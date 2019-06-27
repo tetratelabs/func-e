@@ -17,8 +17,11 @@ package api;
 
 // Builds must be uniquely addressable from the top level so that they can be used to look up the location of binaries.
 // Format: filter_profile(-compliance_profile)/operating_system-operating_system_version:envoy_version
+// Examples:
+//   - istio-fips1402/ubuntu-16.04:1.10.1
+//   - standard/debian-8:nightly
 message Manifest {
-   float version = 1;
+   string version = 1;
 
    // Key is composite key of the value's filter_profile and compliance_profile
    // Note: compliance_profile is optional
@@ -34,10 +37,7 @@ message Flavor {
    // All filters available in this flavor
    repeated string filters = 2;
   
-   // Compliance profile is a Camelcase concatenation of the compliances
-   // Format: Compliance0Compliance1
-   string compliance_profile = 3;
-   repeated Compliance compliances = 4;
+   repeated Compliance compliances = 3;
   
    // Key is composite key of the value's operating_system, operating_system_version and envoy_version
    // Format: operating_system-operating_system_version:envoy_version
@@ -45,13 +45,20 @@ message Flavor {
 }
 
 message Build {
-   string operating_system = 1;
+   OperatingSystem operating_system = 1;
    string operating_system_version = 2;
    string envoy_version = 3;
-   string download_location = 4;
+   string download_location_url = 4;
 }
 
 enum Compliance {
-   NONE = 0;
-   FIPS_1402 = 1;
+   FIPS_1402 = 0;
+}
+
+enum OperatingSystem {
+   UBUNTU = 0;
+   DEBIAN = 1;
+   CENTOS = 2;
+   RHEL = 3;
+   MACOS = 4;
 }
