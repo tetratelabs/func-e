@@ -28,7 +28,7 @@ func Fetch(manifestURL string) (*api.Manifest, error) {
 	if err != nil {
 		return nil, err
 	}
-	if resp.StatusCode >= 400 {
+	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("received %q from %v", resp.StatusCode, manifestURL)
 	}
 	defer resp.Body.Close()
