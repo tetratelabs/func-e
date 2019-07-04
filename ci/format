@@ -4,4 +4,4 @@
 find api -type f -name '*.proto' | xargs protoc --go_out=.
 
 # Apply Licenses
-licenser apply -r . "Tetrate"
+licenser apply -r "Tetrate"

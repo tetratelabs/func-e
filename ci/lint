@@ -15,7 +15,7 @@ fi
 # NOTE: This must be done after license verification as we need to
 #       generate licenses as part of proto generation.
 find api -type f -name '*.proto' | xargs protoc --go_out=.
-licenser apply -r . "Tetrate"
+licenser apply -r "Tetrate"
 if [ "$(git status --porcelain)" != "" ]; then
     echo "The following Protos need to be regenerated:"
     git status --porcelain -v

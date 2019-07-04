@@ -35,18 +35,19 @@ func TestFetch(t *testing.T) {
 	}{
 		{
 			name:                 "responds with parsed manifest",
-			responseStatusCode:   200,
+			responseStatusCode:   http.StatusOK,
 			responseManifestFile: "manifest.golden",
 			want:                 goodManifest(),
 		},
 		{
 			name:               "errors on non-200 response",
-			responseStatusCode: 500,
+			responseStatusCode: http.StatusInternalServerError,
+			want:               nil,
 			wantErr:            true,
 		},
 		{
 			name:                 "errors on unparsable manifest",
-			responseStatusCode:   200,
+			responseStatusCode:   http.StatusOK,
 			responseManifestFile: "malformed.golden",
 			wantErr:              true,
 		},
@@ -69,7 +70,7 @@ func TestFetch(t *testing.T) {
 func mockServer(responseStatusCode int, responseManifestFile string) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(responseStatusCode)
-		if responseStatusCode == 200 {
+		if responseStatusCode == http.StatusOK {
 			bytes, _ := ioutil.ReadFile(filepath.Join("testdata", responseManifestFile))
 			w.Write(bytes)
 		}
@@ -78,7 +79,7 @@ func mockServer(responseStatusCode int, responseManifestFile string) *httptest.S
 
 func goodManifest() *api.Manifest {
 	return &api.Manifest{
-		Version: "v0.1.0",
+		ManifestVersion: "v0.1.0",
 		Flavors: map[string]*api.Flavor{
 			"standard": &api.Flavor{
 				Name:          "standard",
