@@ -21,7 +21,7 @@ jobs:
       - image: circleci/golang:1.12.6
     steps:
       - checkout
-      - run: wget -c https://github.com/liamawhite/licenser/releases/download/v0.5.1/licenser_0.5.1_Linux_x86_64.tar.gz -O - | sudo tar -xz -C /usr/bin
+      - run: ./ci/install
       - run: ./ci/lint
   test:
     resource_class: small
