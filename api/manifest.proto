@@ -16,12 +16,12 @@ syntax = "proto3";
 package api;
 
 // Builds must be uniquely addressable from the top level so that they can be used to look up the location of binaries.
-// Format: filter_profile(-compliance_profile)/operating_system-operating_system_version:envoy_version
+// Format: filter_profile(-compliance_profile):envoy_version/operating_system-operating_system_version
 // Examples:
-//   - istio-fips1402/ubuntu-16.04:1.10.1
-//   - standard/debian-8:nightly
+//   - istio-fips1402:1.10.1/ubuntu-16.04
+//   - standard:nightly/debian-8
 message Manifest {
-   string version = 1;
+   string manifest_version = 1;
 
    // Key is composite key of the value's filter_profile and compliance_profile
    // Note: compliance_profile is optional
@@ -30,32 +30,47 @@ message Manifest {
 }
 
 message Flavor {
+   // This is duplicated in order to make flavor easier to sort
+   string name = 1;
+   
    // Filter profile is the name of the collection of filters
-   // E.g. Standard, Minimal, Istio
-   string filter_profile = 1;
+   // E.g. standard, minimal, istio
+   string filter_profile = 2;
 
    // All filters available in this flavor
-   repeated string filters = 2;
+   repeated string filters = 3;
   
-   repeated Compliance compliances = 3;
+   repeated Compliance compliances = 4;
   
-   // Key is composite key of the value's operating_system, operating_system_version and envoy_version
-   // Format: operating_system-operating_system_version:envoy_version
-   map <string, Build> builds = 5;
+   // Key is Envoy version
+   map <string, Version> versions = 5;
+}
+
+message Version {
+   // This duplicated in order to make version easier to sort
+   string name = 1;
+   // Key is operating system
+   // Note: Keys in proto maps cannot be enums, so this has to be a string.
+   map <string, OperatingSystem> operating_systems = 2; 
+}
+
+message OperatingSystem {
+   // Matches the key, duplicated here to be explicit.
+   OperatingSystemName name = 1;
+   
+   repeated Build builds = 2;
 }
 
 message Build {
-   OperatingSystem operating_system = 1;
-   string operating_system_version = 2;
-   string envoy_version = 3;
-   string download_location_url = 4;
+   string operating_system_version = 1;
+   string download_location_url = 2;
 }
 
 enum Compliance {
    FIPS_1402 = 0;
 }
 
-enum OperatingSystem {
+enum OperatingSystemName {
    UBUNTU = 0;
    DEBIAN = 1;
    CENTOS = 2;

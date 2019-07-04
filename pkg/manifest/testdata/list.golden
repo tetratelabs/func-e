@@ -1,0 +1,4 @@
+FLAVOR                VERSION     AVAILABLE ON
+standard              nightly     CentOS macOS Ubuntu
+standard              1.10.0      CentOS macOS Ubuntu
+standard-fips1402     1.10.0      CentOS Ubuntu

@@ -1,0 +1,102 @@
+{
+  "manifestVersion": "v0.1.0",
+  "flavors": {
+    "standard": {
+      "name": "standard",
+      "filterProfile": "standard",
+      "versions": {
+        "1.10.0": {
+          "name": "1.10.0",
+          "operatingSystems": {
+            "CentOS": {
+              "name": "CENTOS",
+              "builds": [
+                {
+                  "operatingSystemVersion": "7",
+                  "downloadLocationUrl": "http://example.com"
+                }
+              ]
+            },
+            "macOS": {
+              "name": "MACOS",
+              "builds": [
+                {
+                  "operatingSystemVersion": "10.14",
+                  "downloadLocationUrl": "http://example.com"
+                }
+              ]
+            },
+            "Ubuntu": {
+              "builds": [
+                {
+                  "operatingSystemVersion": "16.04",
+                  "downloadLocationUrl": "http://example.com"
+                }
+              ]
+            }
+          }
+        },
+        "nightly": {
+          "name": "nightly",
+          "operatingSystems": {
+            "CentOS": {
+              "name": "CENTOS",
+              "builds": [
+                {
+                  "operatingSystemVersion": "7",
+                  "downloadLocationUrl": "http://example.com"
+                }
+              ]
+            },
+            "macOS": {
+              "name": "MACOS",
+              "builds": [
+                {
+                  "operatingSystemVersion": "10.14",
+                  "downloadLocationUrl": "http://example.com"
+                }
+              ]
+            },
+            "Ubuntu": {
+              "builds": [
+                {
+                  "operatingSystemVersion": "16.04",
+                  "downloadLocationUrl": "http://example.com"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "standard-fips1402": {
+      "name": "standard-fips1402",
+      "filterProfile": "standard",
+      "compliances": ["FIPS_1402"],
+      "versions": {
+        "1.10.0": {
+          "name": "1.10.0",
+          "operatingSystems": {
+            "CentOS": {
+              "name": "CENTOS",
+              "builds": [
+                {
+                  "operatingSystemVersion": "7",
+                  "downloadLocationUrl": "http://example.com"
+                }
+              ]
+            },
+            "Ubuntu": {
+              "builds": [
+                {
+                  "operatingSystemVersion": "16.04",
+                  "downloadLocationUrl": "http://example.com"
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}
