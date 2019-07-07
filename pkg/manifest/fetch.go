@@ -24,6 +24,7 @@ import (
 
 // Fetch retrieves and parses a manifest from the URL passed
 func Fetch(manifestURL string) (*api.Manifest, error) {
+	// #nosec => This is by design, users can call out to wherever they like!
 	resp, err := http.Get(manifestURL)
 	if err != nil {
 		return nil, err
@@ -31,7 +32,7 @@ func Fetch(manifestURL string) (*api.Manifest, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("received %q from %v", resp.StatusCode, manifestURL)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	result := api.Manifest{}
 	if err := jsonpb.Unmarshal(resp.Body, &result); err != nil {
 		return nil, fmt.Errorf("error unmarshalling manifest: %v", err)

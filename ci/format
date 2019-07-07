@@ -5,3 +5,7 @@ find api -type f -name '*.proto' | xargs protoc --go_out=.
 
 # Apply Licenses
 licenser apply -r "Tetrate"
+
+# Misc linters
+golangci-lint run
+find . -type f -name '*.go' | xargs gofmt -s -w
