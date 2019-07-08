@@ -12,20 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package binary
 
 import (
-	"github.com/spf13/cobra"
+	"fmt"
+	"os"
+	"path/filepath"
+	"syscall"
 )
 
-// NewRoot create a new root command and sets the cliVersion to the passed variable
-// TODO: Add version support on the command
-func NewRoot() *cobra.Command {
-	return rootCmd
-}
-
-var rootCmd = &cobra.Command{
-	Use:   "getenvoy",
-	Short: "getenvoy",
-	Long:  "getenvoy",
+// Run execs the file at the path with the args passed
+func Run(path string, args []string) error {
+	if _, err := os.Stat(path); err != nil {
+		return fmt.Errorf("unable to stat %q: %v", path, err)
+	}
+	_, filename := filepath.Split(path)
+	// #nosec -> passthrough by design
+	if err := syscall.Exec(path, append([]string{filename}, args...), os.Environ()); err != nil {
+		return fmt.Errorf("unable to exec %q: %v", path, err)
+	}
+	return nil
 }

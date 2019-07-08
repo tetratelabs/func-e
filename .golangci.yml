@@ -156,7 +156,8 @@ linters-settings:
         sizeThreshold: 32
 
 linters:
-  enable-all: true
+  enable: ["bodyclose", "depguard", "dupl", "goconst", "gocritic", "gofmt", "gocyclo", "goimports", "golint", "gosec", "interfacer", "lll", "maligned", "misspell", "nakedret", "prealloc", "scopelint", "unconvert", "unparam"]
+  disable: ["gochecknoinits", "gochecknoglobals"]
   fast: false
   auto-fix: true
 
