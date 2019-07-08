@@ -51,10 +51,10 @@ getenvoy run standard:1.10.1 -- --help
 			// Set args[0] to newly downloaded envoy.
 			return nil
 		}
-		return binary.Run(args[0], args[1:len(args)])
+		return binary.Run(args[0], args[1:])
 	},
 }
 
 func init() {
-	RootCmd.AddCommand(RunCmd)
+	rootCmd.AddCommand(RunCmd)
 }

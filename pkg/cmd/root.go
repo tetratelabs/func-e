@@ -21,9 +21,11 @@ import (
 // NewRoot create a new root command and sets the cliVersion to the passed variable
 // TODO: Add version support on the command
 func NewRoot() *cobra.Command {
-	return &cobra.Command{
-		Use:   "getenvoy",
-		Short: "getenvoy",
-		Long:  "getenvoy",
-	}
+	return rootCmd
+}
+
+var rootCmd = &cobra.Command{
+	Use:   "getenvoy",
+	Short: "getenvoy",
+	Long:  "getenvoy",
 }
