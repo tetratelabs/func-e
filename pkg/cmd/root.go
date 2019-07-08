@@ -18,12 +18,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var cliVersion string
-
-// RootCmd represents the base command when called without any subcommands
-var RootCmd = &cobra.Command{
-	Use:   "getenvoy",
-	Short: "getenvoy",
-	Long:  "getenvoy",
-	Version: cliVersion,
+// NewRoot create a new root command and sets the cliVersion to the passed variable
+// TODO: Add version support on the command
+func NewRoot() *cobra.Command {
+	return &cobra.Command{
+		Use:   "getenvoy",
+		Short: "getenvoy",
+		Long:  "getenvoy",
+	}
 }

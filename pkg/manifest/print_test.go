@@ -34,10 +34,11 @@ func TestPrettyPrint(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		tc := tt
+		t.Run(tc.name, func(t *testing.T) {
 			got := bytes.NewBuffer(nil)
 			PrettyPrint(got, goodManifest())
-			want, _ := ioutil.ReadFile(filepath.Join("testdata", tt.wantOutputFile))
+			want, _ := ioutil.ReadFile(filepath.Join("testdata", tc.wantOutputFile))
 			assert.Equal(t, string(want), got.String())
 		})
 	}

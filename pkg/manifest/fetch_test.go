@@ -53,12 +53,13 @@ func TestFetch(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			mock := mockServer(tt.responseStatusCode, tt.responseManifestFile)
+		tc := tt
+		t.Run(tc.name, func(t *testing.T) {
+			mock := mockServer(tc.responseStatusCode, tc.responseManifestFile)
 			defer mock.Close()
 			got, err := Fetch(mock.URL)
-			assert.Equal(t, tt.want, got)
-			if tt.wantErr {
+			assert.Equal(t, tc.want, got)
+			if tc.wantErr {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
@@ -81,35 +82,35 @@ func goodManifest() *api.Manifest {
 	return &api.Manifest{
 		ManifestVersion: "v0.1.0",
 		Flavors: map[string]*api.Flavor{
-			"standard": &api.Flavor{
+			"standard": {
 				Name:          "standard",
 				FilterProfile: "standard",
 				Versions: map[string]*api.Version{
-					"1.10.0": &api.Version{
+					"1.10.0": {
 						Name: "1.10.0",
 						OperatingSystems: map[string]*api.OperatingSystem{
-							"Ubuntu": &api.OperatingSystem{
+							"Ubuntu": {
 								Name: api.OperatingSystemName_UBUNTU,
 								Builds: []*api.Build{
-									&api.Build{
+									{
 										OperatingSystemVersion: "16.04",
 										DownloadLocationUrl:    "http://example.com",
 									},
 								},
 							},
-							"macOS": &api.OperatingSystem{
+							"macOS": {
 								Name: api.OperatingSystemName_MACOS,
 								Builds: []*api.Build{
-									&api.Build{
+									{
 										OperatingSystemVersion: "10.14",
 										DownloadLocationUrl:    "http://example.com",
 									},
 								},
 							},
-							"CentOS": &api.OperatingSystem{
+							"CentOS": {
 								Name: api.OperatingSystemName_CENTOS,
 								Builds: []*api.Build{
-									&api.Build{
+									{
 										OperatingSystemVersion: "7",
 										DownloadLocationUrl:    "http://example.com",
 									},
@@ -117,31 +118,31 @@ func goodManifest() *api.Manifest {
 							},
 						},
 					},
-					"nightly": &api.Version{
+					"nightly": {
 						Name: "nightly",
 						OperatingSystems: map[string]*api.OperatingSystem{
-							"Ubuntu": &api.OperatingSystem{
+							"Ubuntu": {
 								Name: api.OperatingSystemName_UBUNTU,
 								Builds: []*api.Build{
-									&api.Build{
+									{
 										OperatingSystemVersion: "16.04",
 										DownloadLocationUrl:    "http://example.com",
 									},
 								},
 							},
-							"macOS": &api.OperatingSystem{
+							"macOS": {
 								Name: api.OperatingSystemName_MACOS,
 								Builds: []*api.Build{
-									&api.Build{
+									{
 										OperatingSystemVersion: "10.14",
 										DownloadLocationUrl:    "http://example.com",
 									},
 								},
 							},
-							"CentOS": &api.OperatingSystem{
+							"CentOS": {
 								Name: api.OperatingSystemName_CENTOS,
 								Builds: []*api.Build{
-									&api.Build{
+									{
 										OperatingSystemVersion: "7",
 										DownloadLocationUrl:    "http://example.com",
 									},
@@ -151,27 +152,27 @@ func goodManifest() *api.Manifest {
 					},
 				},
 			},
-			"standard-fips1402": &api.Flavor{
+			"standard-fips1402": {
 				Name:          "standard-fips1402",
 				FilterProfile: "standard",
 				Compliances:   []api.Compliance{api.Compliance_FIPS_1402},
 				Versions: map[string]*api.Version{
-					"1.10.0": &api.Version{
+					"1.10.0": {
 						Name: "1.10.0",
 						OperatingSystems: map[string]*api.OperatingSystem{
-							"Ubuntu": &api.OperatingSystem{
+							"Ubuntu": {
 								Name: api.OperatingSystemName_UBUNTU,
 								Builds: []*api.Build{
-									&api.Build{
+									{
 										OperatingSystemVersion: "16.04",
 										DownloadLocationUrl:    "http://example.com",
 									},
 								},
 							},
-							"CentOS": &api.OperatingSystem{
+							"CentOS": {
 								Name: api.OperatingSystemName_CENTOS,
 								Builds: []*api.Build{
-									&api.Build{
+									{
 										OperatingSystemVersion: "7",
 										DownloadLocationUrl:    "http://example.com",
 									},
