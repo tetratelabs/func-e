@@ -19,6 +19,7 @@ licenser apply -r "Tetrate" &> /dev/null
 if [ "$(git status --porcelain)" != "" ]; then
     echo "The following Protos need to be regenerated:"
     git status --porcelain -v
+    git --no-pager diff
     SUCCESS=false
 fi
 
