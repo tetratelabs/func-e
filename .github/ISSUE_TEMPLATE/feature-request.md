@@ -2,7 +2,7 @@
 name: Feature Request
 about: Suggest an idea or new platform for GetEnvoy to support.
 title: ''
-labels: ''
+labels: enhancement
 assignees: ''
 
 ---
