@@ -1,10 +1,13 @@
+# Contributing
+
 We welcome contributions from the community. Please read the following guidelines carefully to maximize the chances of your PR being merged.
 
-# Coding Style
-- The code is linted using a relatively stringent [golang-ci config](./.golangci.yml). To run this linter (and a few others) use the `ci/format` script. To verify you can run the `ci/lint` script.
-- We follow standard Go table-driven tests and use the [`testify/assert`](https://github.com/stretchr/testify#assert-package) library to assert correctness. To verify all tests pass you can run the `ci/test` script.
+## Coding Style
 
-# DCO
+- The code is linted using a relatively stringent [golang-ci config](./.golangci.yml). To run this linter (and a few others) use the `ci/format` script. To verify, you can run the `ci/lint` script.
+- We follow standard Go table-driven tests and use the [`testify/assert`](https://github.com/stretchr/testify#assert-package) library to assert correctness. To verify all tests pass, you can run the `ci/test` script.
+
+## DCO
 
 We require DCO signoff line in every commit to this repo.
 
