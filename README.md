@@ -1,5 +1,5 @@
 # GetEnvoy
 
-GetEnvoy is tooling from Tetrate to help simplify your data plane. Including distributing, building, deploying and maintaining your Envoy Proxy instances.
+**GetEnvoy is spread across multiple repos. For more details head over to [GetEnvoy.io](https://getenvoy.io/github).**
 
-**For more details head over to [GetEnvoy.io](https://getenvoy.io).**
+The GetEnvoy project is a collection of tooling focused on building, distributing, deploying and maintaining a fleet of Envoys.
