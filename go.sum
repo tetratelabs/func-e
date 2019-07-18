@@ -40,6 +40,8 @@ github.com/stretchr/testify v1.2.2 h1:bSDNvY7ZPG5RlJ8otE/7V6gMiyenm9RtJ7IUVIAoJ1
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/tetratelabs/getenvoy-package v0.0.0-20190718093948-35658f673f39 h1:ocOviUkYIJiidvsVmYjzzgm2Xy5WZ3EqrxXlnq3tm00=
 github.com/tetratelabs/getenvoy-package v0.0.0-20190718093948-35658f673f39/go.mod h1:IrGJ2YZz3+qia1dEU9GFg3QieuMUUwiJf5tjG8uhogg=
+github.com/tetratelabs/getenvoy-package v0.0.0-20190718134531-9487f25b3273 h1:Iy7CXZY65z7KY0z6LXh2V2urACTo8EDBbKqXf8O+mRU=
+github.com/tetratelabs/getenvoy-package v0.0.0-20190718134531-9487f25b3273/go.mod h1:IrGJ2YZz3+qia1dEU9GFg3QieuMUUwiJf5tjG8uhogg=
 github.com/ugorji/go/codec v0.0.0-20181204163529-d75b2dcb6bc8/go.mod h1:VFNgLljTbGfSG7qAOspJ7OScBnGdDN/yBr0sguwnwf0=
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
 golang.org/x/crypto v0.0.0-20181203042331-505ab145d0a9/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
