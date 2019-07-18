@@ -86,15 +86,15 @@ func goodManifest() *api.Manifest {
 				Name:          "standard",
 				FilterProfile: "standard",
 				Versions: map[string]*api.Version{
-					"1.10.0": {
-						Name: "1.10.0",
+					"1.11.0": {
+						Name: "1.11.0",
 						OperatingSystems: map[string]*api.OperatingSystem{
 							"Ubuntu": {
 								Name: api.OperatingSystemName_UBUNTU,
 								Builds: []*api.Build{
 									{
-										OperatingSystemVersion: "16.04",
-										DownloadLocationUrl:    "http://example.com",
+										OperatingSystemVersions: []string{"16.04", "18.04"},
+										DownloadLocationUrl:     "http://example.com",
 									},
 								},
 							},
@@ -102,8 +102,8 @@ func goodManifest() *api.Manifest {
 								Name: api.OperatingSystemName_MACOS,
 								Builds: []*api.Build{
 									{
-										OperatingSystemVersion: "10.14",
-										DownloadLocationUrl:    "http://example.com",
+										OperatingSystemVersions: []string{"10.14"},
+										DownloadLocationUrl:     "http://example.com",
 									},
 								},
 							},
@@ -111,8 +111,8 @@ func goodManifest() *api.Manifest {
 								Name: api.OperatingSystemName_CENTOS,
 								Builds: []*api.Build{
 									{
-										OperatingSystemVersion: "7",
-										DownloadLocationUrl:    "http://example.com",
+										OperatingSystemVersions: []string{"7"},
+										DownloadLocationUrl:     "http://example.com",
 									},
 								},
 							},
@@ -121,30 +121,12 @@ func goodManifest() *api.Manifest {
 					"nightly": {
 						Name: "nightly",
 						OperatingSystems: map[string]*api.OperatingSystem{
-							"Ubuntu": {
-								Name: api.OperatingSystemName_UBUNTU,
-								Builds: []*api.Build{
-									{
-										OperatingSystemVersion: "16.04",
-										DownloadLocationUrl:    "http://example.com",
-									},
-								},
-							},
-							"macOS": {
-								Name: api.OperatingSystemName_MACOS,
-								Builds: []*api.Build{
-									{
-										OperatingSystemVersion: "10.14",
-										DownloadLocationUrl:    "http://example.com",
-									},
-								},
-							},
 							"CentOS": {
 								Name: api.OperatingSystemName_CENTOS,
 								Builds: []*api.Build{
 									{
-										OperatingSystemVersion: "7",
-										DownloadLocationUrl:    "http://example.com",
+										OperatingSystemVersions: []string{"7"},
+										DownloadLocationUrl:     "http://example.com",
 									},
 								},
 							},
@@ -164,8 +146,8 @@ func goodManifest() *api.Manifest {
 								Name: api.OperatingSystemName_UBUNTU,
 								Builds: []*api.Build{
 									{
-										OperatingSystemVersion: "16.04",
-										DownloadLocationUrl:    "http://example.com",
+										OperatingSystemVersions: []string{"16.04"},
+										DownloadLocationUrl:     "http://example.com",
 									},
 								},
 							},
@@ -173,8 +155,8 @@ func goodManifest() *api.Manifest {
 								Name: api.OperatingSystemName_CENTOS,
 								Builds: []*api.Build{
 									{
-										OperatingSystemVersion: "7",
-										DownloadLocationUrl:    "http://example.com",
+										OperatingSystemVersions: []string{"7"},
+										DownloadLocationUrl:     "http://example.com",
 									},
 								},
 							},

@@ -5,37 +5,6 @@
       "name": "standard",
       "filterProfile": "standard",
       "versions": {
-        "1.10.0": {
-          "name": "1.10.0",
-          "operatingSystems": {
-            "CentOS": {
-              "name": "CENTOS",
-              "builds": [
-                {
-                  "operatingSystemVersion": "7",
-                  "downloadLocationUrl": "http://example.com"
-                }
-              ]
-            },
-            "macOS": {
-              "name": "MACOS",
-              "builds": [
-                {
-                  "operatingSystemVersion": "10.14",
-                  "downloadLocationUrl": "http://example.com"
-                }
-              ]
-            },
-            "Ubuntu": {
-              "builds": [
-                {
-                  "operatingSystemVersion": "16.04",
-                  "downloadLocationUrl": "http://example.com"
-                }
-              ]
-            }
-          }
-        },
         "nightly": {
           "name": "nightly",
           "operatingSystems": {
@@ -43,7 +12,21 @@
               "name": "CENTOS",
               "builds": [
                 {
-                  "operatingSystemVersion": "7",
+                  "operatingSystemVersions": ["7"],
+                  "downloadLocationUrl": "http://example.com"
+                }
+              ]
+            }
+          }
+        },
+        "1.11.0": {
+          "name": "1.11.0",
+          "operatingSystems": {
+            "CentOS": {
+              "name": "CENTOS",
+              "builds": [
+                {
+                  "operatingSystemVersions": ["7"],
                   "downloadLocationUrl": "http://example.com"
                 }
               ]
@@ -52,7 +35,7 @@
               "name": "MACOS",
               "builds": [
                 {
-                  "operatingSystemVersion": "10.14",
+                  "operatingSystemVersions": ["10.14"],
                   "downloadLocationUrl": "http://example.com"
                 }
               ]
@@ -60,7 +43,7 @@
             "Ubuntu": {
               "builds": [
                 {
-                  "operatingSystemVersion": "16.04",
+                  "operatingSystemVersions": ["16.04", "18.04"],
                   "downloadLocationUrl": "http://example.com"
                 }
               ]
@@ -81,7 +64,7 @@
               "name": "CENTOS",
               "builds": [
                 {
-                  "operatingSystemVersion": "7",
+                  "operatingSystemVersions": ["7"],
                   "downloadLocationUrl": "http://example.com"
                 }
               ]
@@ -89,7 +72,7 @@
             "Ubuntu": {
               "builds": [
                 {
-                  "operatingSystemVersion": "16.04",
+                  "operatingSystemVersions": ["16.04"],
                   "downloadLocationUrl": "http://example.com"
                 }
               ]
