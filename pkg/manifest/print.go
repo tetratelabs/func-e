@@ -21,7 +21,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/tetratelabs/getenvoy/api"
+	"github.com/tetratelabs/getenvoy-package/api"
 )
 
 // PrettyPrint tabwrites the passed manifest to the passed writer

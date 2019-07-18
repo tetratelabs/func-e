@@ -19,7 +19,7 @@ import (
 	"net/http"
 
 	"github.com/golang/protobuf/jsonpb"
-	"github.com/tetratelabs/getenvoy/api"
+	"github.com/tetratelabs/getenvoy-package/api"
 )
 
 // Fetch retrieves and parses a manifest from the URL passed

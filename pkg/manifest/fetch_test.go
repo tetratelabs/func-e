@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/tetratelabs/getenvoy/api"
+	"github.com/tetratelabs/getenvoy-package/api"
 )
 
 func TestFetch(t *testing.T) {
