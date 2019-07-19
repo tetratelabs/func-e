@@ -30,7 +30,7 @@ func Fetch(manifestURL string) (*api.Manifest, error) {
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("received %q from %v", resp.StatusCode, manifestURL)
+		return nil, fmt.Errorf("received %v response code from %v", resp.StatusCode, manifestURL)
 	}
 	defer func() { _ = resp.Body.Close() }()
 	result := api.Manifest{}
