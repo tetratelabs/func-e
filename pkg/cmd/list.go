@@ -27,9 +27,6 @@ var (
 	ListCmd     = &cobra.Command{
 		Use:   "list",
 		Short: "Lists available Envoys from GetEnvoy.",
-		Example: `# Default list
-getenvoy list
-`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			m, err := manifest.Fetch(manifestURL)
 			if err != nil {
