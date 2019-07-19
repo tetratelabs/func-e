@@ -44,6 +44,7 @@ getenvoy list
 )
 
 func init() {
-	RunCmd.Flags().StringVarP(&manifestURL, "url", "u", "https://bintray.com/tetrate/getenvoy/download_file?file_path=manifest.json", "overrides to a self-hosted manifest")
+	RunCmd.Flags().StringVarP(&manifestURL, "url", "u",
+		"https://bintray.com/tetrate/getenvoy/download_file?file_path=manifest.json", "overrides to a self-hosted manifest")
 	rootCmd.AddCommand(ListCmd)
 }
