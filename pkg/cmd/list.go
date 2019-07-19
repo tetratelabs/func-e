@@ -27,9 +27,6 @@ var (
 	ListCmd     = &cobra.Command{
 		Use:   "list",
 		Short: "Lists available Envoys from GetEnvoy.",
-		Long: `
-Starts an Envoy process using the binary passed. 
-Location can be a manifest reference or local file.`,
 		Example: `# Default list
 getenvoy list
 `,
@@ -44,7 +41,7 @@ getenvoy list
 )
 
 func init() {
-	RunCmd.Flags().StringVarP(&manifestURL, "url", "u",
-		"https://bintray.com/tetrate/getenvoy/download_file?file_path=manifest.json", "overrides to a self-hosted manifest")
+	ListCmd.Flags().StringVarP(&manifestURL, "url", "u",
+		"https://bintray.com/tetrate/getenvoy/download_file?file_path=manifest.json", "overrides the manifest URL")
 	rootCmd.AddCommand(ListCmd)
 }
