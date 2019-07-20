@@ -17,15 +17,21 @@ package manifest
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"sort"
 	"strings"
 	"text/tabwriter"
 
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/tetratelabs/getenvoy-package/api"
 )
 
-// PrettyPrint tabwrites the passed manifest to the passed writer
-func PrettyPrint(writer io.Writer, manifest *api.Manifest) error {
+// Print retrieves the manifest from the passed URL and writes it to the passed writer
+func Print(writer io.Writer, manifestURL string) error {
+	manifest, err := fetch(manifestURL)
+	if err != nil {
+		return err
+	}
 	w := new(tabwriter.Writer).Init(writer, 0, 8, 5, ' ', 0)
 	fmt.Fprintln(w, "FLAVOR\tVERSION\tAVAILABLE ON")
 
@@ -43,6 +49,23 @@ func PrettyPrint(writer io.Writer, manifest *api.Manifest) error {
 		}
 	}
 	return w.Flush()
+}
+
+func fetch(manifestURL string) (*api.Manifest, error) {
+	// #nosec => This is by design, users can call out to wherever they like!
+	resp, err := http.Get(manifestURL)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("received %v response code from %v", resp.StatusCode, manifestURL)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	result := api.Manifest{}
+	if err := jsonpb.Unmarshal(resp.Body, &result); err != nil {
+		return nil, fmt.Errorf("error unmarshalling manifest: %v", err)
+	}
+	return &result, nil
 }
 
 func deterministicFlavors(flavors map[string]*api.Flavor) []*api.Flavor {

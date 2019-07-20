@@ -28,11 +28,7 @@ var (
 		Use:   "list",
 		Short: "Lists available Envoys from GetEnvoy.",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			m, err := manifest.Fetch(manifestURL)
-			if err != nil {
-				return err
-			}
-			return manifest.PrettyPrint(os.Stdout, m)
+			return manifest.Print(os.Stdout, manifestURL)
 		},
 	}
 )
