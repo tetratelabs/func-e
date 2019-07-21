@@ -54,7 +54,7 @@ func TestPrint(t *testing.T) {
 			if tc.locationOverride != "" {
 				location = tc.locationOverride
 			}
-			if err := Print(got, location); tt.wantErr {
+			if err := Print(got, location); tc.wantErr {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
