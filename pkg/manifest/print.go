@@ -15,6 +15,7 @@
 package manifest
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -22,13 +23,18 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"net/url"
+
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/tetratelabs/getenvoy-package/api"
 )
 
-// Print retrieves the manifest from the passed URL and writes it to the passed writer
-func Print(writer io.Writer, manifestURL string) error {
-	manifest, err := fetch(manifestURL)
+// Print retrieves the manifest from the passed location and writes it to the passed writer
+func Print(writer io.Writer, manifestLocation string) error {
+	if _, err := url.Parse(manifestLocation); err != nil {
+		return errors.New("only URL manifest locations are supported")
+	}
+	manifest, err := fetch(manifestLocation)
 	if err != nil {
 		return err
 	}

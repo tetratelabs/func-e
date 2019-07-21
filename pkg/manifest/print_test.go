@@ -28,12 +28,20 @@ import (
 
 func TestPrint(t *testing.T) {
 	tests := []struct {
-		name           string
-		wantOutputFile string
+		name             string
+		wantOutputFile   string
+		wantErr          bool
+		locationOverride string
 	}{
 		{
 			name:           "Prints golden output",
 			wantOutputFile: "list.golden",
+		},
+
+		{
+			name:             "Errors on non-URL inputs",
+			locationOverride: "dir/file.json",
+			wantErr:          true,
 		},
 	}
 	for _, tt := range tests {
@@ -42,7 +50,15 @@ func TestPrint(t *testing.T) {
 			mock := mockServer(http.StatusOK, "manifest.golden")
 			defer mock.Close()
 			got := bytes.NewBuffer(nil)
-			Print(got, mock.URL)
+			location := mock.URL
+			if tc.locationOverride != "" {
+				location = tc.locationOverride
+			}
+			if err := Print(got, location); tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
 			want, _ := ioutil.ReadFile(filepath.Join("testdata", tc.wantOutputFile))
 			assert.Equal(t, string(want), got.String())
 		})
