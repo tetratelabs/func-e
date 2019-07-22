@@ -13,7 +13,7 @@
               "builds": [
                 {
                   "operatingSystemVersions": ["7"],
-                  "downloadLocationUrl": "http://example.com"
+                  "downloadLocationUrl": "standard:nightly/centos"
                 }
               ]
             }
@@ -27,7 +27,7 @@
               "builds": [
                 {
                   "operatingSystemVersions": ["7"],
-                  "downloadLocationUrl": "http://example.com"
+                  "downloadLocationUrl": "standard:1.11.0/centos"
                 }
               ]
             },
@@ -36,15 +36,15 @@
               "builds": [
                 {
                   "operatingSystemVersions": ["10.14"],
-                  "downloadLocationUrl": "http://example.com"
+                  "downloadLocationUrl": "standard:1.11.0/macos"
                 }
               ]
             },
             "Ubuntu": {
               "builds": [
                 {
-                  "operatingSystemVersions": ["16.04", "18.04"],
-                  "downloadLocationUrl": "http://example.com"
+                  "operatingSystemVersions": ["xenial", "bionic"],
+                  "downloadLocationUrl": "standard:1.11.0/debian"
                 }
               ]
             }
@@ -65,15 +65,15 @@
               "builds": [
                 {
                   "operatingSystemVersions": ["7"],
-                  "downloadLocationUrl": "http://example.com"
+                  "downloadLocationUrl": "standard-fips1402:1.10.0/centos"
                 }
               ]
             },
             "Ubuntu": {
               "builds": [
                 {
-                  "operatingSystemVersions": ["16.04"],
-                  "downloadLocationUrl": "http://example.com"
+                  "operatingSystemVersions": ["xenial"],
+                  "downloadLocationUrl": "standard-fips1402:1.10.0/debian"
                 }
               ]
             }

@@ -133,8 +133,8 @@ func goodManifest() *api.Manifest {
 								Name: api.OperatingSystemName_UBUNTU,
 								Builds: []*api.Build{
 									{
-										OperatingSystemVersions: []string{"16.04", "18.04"},
-										DownloadLocationUrl:     "http://example.com",
+										OperatingSystemVersions: []string{"xenial", "bionic"},
+										DownloadLocationUrl:     "standard:1.11.0/debian",
 									},
 								},
 							},
@@ -143,7 +143,7 @@ func goodManifest() *api.Manifest {
 								Builds: []*api.Build{
 									{
 										OperatingSystemVersions: []string{"10.14"},
-										DownloadLocationUrl:     "http://example.com",
+										DownloadLocationUrl:     "standard:1.11.0/macos",
 									},
 								},
 							},
@@ -152,7 +152,7 @@ func goodManifest() *api.Manifest {
 								Builds: []*api.Build{
 									{
 										OperatingSystemVersions: []string{"7"},
-										DownloadLocationUrl:     "http://example.com",
+										DownloadLocationUrl:     "standard:1.11.0/centos",
 									},
 								},
 							},
@@ -166,7 +166,7 @@ func goodManifest() *api.Manifest {
 								Builds: []*api.Build{
 									{
 										OperatingSystemVersions: []string{"7"},
-										DownloadLocationUrl:     "http://example.com",
+										DownloadLocationUrl:     "standard:nightly/centos",
 									},
 								},
 							},
@@ -186,8 +186,8 @@ func goodManifest() *api.Manifest {
 								Name: api.OperatingSystemName_UBUNTU,
 								Builds: []*api.Build{
 									{
-										OperatingSystemVersions: []string{"16.04"},
-										DownloadLocationUrl:     "http://example.com",
+										OperatingSystemVersions: []string{"xenial"},
+										DownloadLocationUrl:     "standard-fips1402:1.10.0/debian",
 									},
 								},
 							},
@@ -196,7 +196,7 @@ func goodManifest() *api.Manifest {
 								Builds: []*api.Build{
 									{
 										OperatingSystemVersions: []string{"7"},
-										DownloadLocationUrl:     "http://example.com",
+										DownloadLocationUrl:     "standard-fips1402:1.10.0/centos",
 									},
 								},
 							},
