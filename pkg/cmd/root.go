@@ -21,11 +21,24 @@ import (
 // NewRoot create a new root command and sets the cliVersion to the passed variable
 // TODO: Add version support on the command
 func NewRoot() *cobra.Command {
+	runCmd := NewRunCmd()
+	rootCmd.AddCommand(runCmd)
+
+	listCmd := NewListCmd()
+	rootCmd.AddCommand(listCmd)
+
+	rootCmd.PersistentFlags().StringVarP(&manifestURL, "url", "u",
+		"https://bintray.com/tetrate/getenvoy/download_file?file_path=manifest.json", "sets the manifest URL")
+
 	return rootCmd
 }
 
-var rootCmd = &cobra.Command{
-	Use:   "getenvoy",
-	Short: "getenvoy",
-	Long:  "getenvoy",
-}
+var (
+	rootCmd = &cobra.Command{
+		Use:   "getenvoy",
+		Short: "getenvoy",
+		Long:  "getenvoy",
+	}
+
+	manifestURL string
+)

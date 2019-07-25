@@ -21,20 +21,13 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
 
-// ListCmd lists available Envoy binaries
-var (
-	manifestURL string
-	ListCmd     = &cobra.Command{
+// NewListCmd returns command that lists available Envoy binaries
+func NewListCmd() *cobra.Command {
+	return &cobra.Command{
 		Use:   "list",
 		Short: "Lists available Envoys from GetEnvoy.",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return manifest.Print(os.Stdout, manifestURL)
 		},
 	}
-)
-
-func init() {
-	ListCmd.Flags().StringVarP(&manifestURL, "url", "u",
-		"https://bintray.com/tetrate/getenvoy/download_file?file_path=manifest.json", "overrides the manifest URL")
-	rootCmd.AddCommand(ListCmd)
 }

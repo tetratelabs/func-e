@@ -30,33 +30,23 @@ func TestLocate(t *testing.T) {
 		wantErr          bool
 	}{
 		{
-			name: "Ubuntu bionic standard 1.11.0 matches",
-			key:  Key{"standard", "1.11.0", "Ubuntu", "bionic"},
+			name: "standard 1.11.0 debian matches",
+			key:  Key{"standard", "1.11.0", "debian"},
 			want: "standard:1.11.0/debian",
 		},
 		{
-			name: "Ubuntu xenial standard-fips1402 1.10.0 matches",
-			key:  Key{"standard-fips1402", "1.10.0", "Ubuntu", "xenial"},
+			name: "standard-fips1402 1.10.0 debian matches",
+			key:  Key{"standard-fips1402", "1.10.0", "debian"},
 			want: "standard-fips1402:1.10.0/debian",
 		},
 		{
-			name: "CentOS 7.1 standard nightly matches to CentOS 7",
-			key:  Key{"standard", "nightly", "centos", "7.1"},
-			want: "standard:nightly/centos",
-		},
-		{
-			name: "cEnTOS 7 sTanDard nIgHTLY matches",
-			key:  Key{"sTanDard", "nIgHTLY", "cEnTOS", "7"},
-			want: "standard:nightly/centos",
-		},
-		{
-			name: "MacOS standard 1.11.0 with no OS version returns the only macos build",
-			key:  Key{Flavor: "standard", Version: "1.11.0", OperatingSystem: "macos"},
-			want: "standard:1.11.0/macos",
+			name: "sTanDard nIgHTLY rHeL matches",
+			key:  Key{"sTanDard", "nIgHTLY", "rHeL"},
+			want: "standard:nightly/rhel",
 		},
 		{
 			name:    "Error if not found",
-			key:     Key{"notaFlavor", "1.11.0", "Ubuntu", "bionic"},
+			key:     Key{"notaFlavor", "1.11.0", "notanOS"},
 			wantErr: true,
 		},
 		{

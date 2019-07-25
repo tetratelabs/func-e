@@ -118,6 +118,29 @@ func mockServer(responseStatusCode int, responseManifestFile string) *httptest.S
 	}))
 }
 
+var debian = &api.OperatingSystemFamily{
+	Name: api.OperatingSystemFamily_DEBIAN,
+	Children: []*api.OperatingSystemFamily_Distribution{
+		{Name: api.OperatingSystemFamily_Distribution_DEBIAN, Versions: "7+"},
+		{Name: api.OperatingSystemFamily_Distribution_UBUNTU, Versions: "16.04+ LTS"},
+	},
+}
+
+var rhel = &api.OperatingSystemFamily{
+	Name: api.OperatingSystemFamily_RHEL,
+	Children: []*api.OperatingSystemFamily_Distribution{
+		{Name: api.OperatingSystemFamily_Distribution_RHEL, Versions: "7+"},
+		{Name: api.OperatingSystemFamily_Distribution_CENTOS, Versions: "7+"},
+	},
+}
+
+var darwin = &api.OperatingSystemFamily{
+	Name: api.OperatingSystemFamily_DARWIN,
+	Children: []*api.OperatingSystemFamily_Distribution{
+		{Name: api.OperatingSystemFamily_Distribution_MACOS},
+	},
+}
+
 func goodManifest() *api.Manifest {
 	return &api.Manifest{
 		ManifestVersion: "v0.1.0",
@@ -128,48 +151,16 @@ func goodManifest() *api.Manifest {
 				Versions: map[string]*api.Version{
 					"1.11.0": {
 						Name: "1.11.0",
-						OperatingSystems: map[string]*api.OperatingSystem{
-							"Ubuntu": {
-								Name: api.OperatingSystemName_UBUNTU,
-								Builds: []*api.Build{
-									{
-										OperatingSystemVersions: []string{"xenial", "bionic"},
-										DownloadLocationUrl:     "standard:1.11.0/debian",
-									},
-								},
-							},
-							"macOS": {
-								Name: api.OperatingSystemName_MACOS,
-								Builds: []*api.Build{
-									{
-										OperatingSystemVersions: []string{"10.14"},
-										DownloadLocationUrl:     "standard:1.11.0/macos",
-									},
-								},
-							},
-							"CentOS": {
-								Name: api.OperatingSystemName_CENTOS,
-								Builds: []*api.Build{
-									{
-										OperatingSystemVersions: []string{"7"},
-										DownloadLocationUrl:     "standard:1.11.0/centos",
-									},
-								},
-							},
+						Builds: []*api.Build{
+							{DownloadLocationUrl: "standard:1.11.0/rhel", OperatingSystemFamily: rhel},
+							{DownloadLocationUrl: "standard:1.11.0/debian", OperatingSystemFamily: debian},
+							{DownloadLocationUrl: "standard:1.11.0/darwin", OperatingSystemFamily: darwin},
 						},
 					},
 					"nightly": {
 						Name: "nightly",
-						OperatingSystems: map[string]*api.OperatingSystem{
-							"CentOS": {
-								Name: api.OperatingSystemName_CENTOS,
-								Builds: []*api.Build{
-									{
-										OperatingSystemVersions: []string{"7"},
-										DownloadLocationUrl:     "standard:nightly/centos",
-									},
-								},
-							},
+						Builds: []*api.Build{
+							{DownloadLocationUrl: "standard:nightly/rhel", OperatingSystemFamily: rhel},
 						},
 					},
 				},
@@ -181,26 +172,9 @@ func goodManifest() *api.Manifest {
 				Versions: map[string]*api.Version{
 					"1.10.0": {
 						Name: "1.10.0",
-						OperatingSystems: map[string]*api.OperatingSystem{
-							"Ubuntu": {
-								Name: api.OperatingSystemName_UBUNTU,
-								Builds: []*api.Build{
-									{
-										OperatingSystemVersions: []string{"xenial"},
-										DownloadLocationUrl:     "standard-fips1402:1.10.0/debian",
-									},
-								},
-							},
-							"CentOS": {
-								Name: api.OperatingSystemName_CENTOS,
-								Builds: []*api.Build{
-									{
-										OperatingSystemVersions: []string{"7"},
-										DownloadLocationUrl:     "standard-fips1402:1.10.0/centos",
-									},
-								},
-							},
-						},
+						Builds: []*api.Build{
+							{DownloadLocationUrl: "standard-fips1402:1.10.0/rhel", OperatingSystemFamily: rhel},
+							{DownloadLocationUrl: "standard-fips1402:1.10.0/debian", OperatingSystemFamily: debian}},
 					},
 				},
 			},

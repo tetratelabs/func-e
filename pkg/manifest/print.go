@@ -20,10 +20,11 @@ import (
 	"io"
 	"net/http"
 	"sort"
-	"strings"
 	"text/tabwriter"
 
 	"net/url"
+
+	"strings"
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/tetratelabs/getenvoy-package/api"
@@ -39,22 +40,45 @@ func Print(writer io.Writer, manifestLocation string) error {
 		return err
 	}
 	w := new(tabwriter.Writer).Init(writer, 0, 8, 5, ' ', 0)
-	fmt.Fprintln(w, "FLAVOR\tVERSION\tAVAILABLE ON")
+	fmt.Fprintln(w, "REFERENCE\tFLAVOR\tVERSION\tRUNS ON")
 
 	for _, flavor := range deterministicFlavors(manifest.Flavors) {
 		for _, version := range deterministicVersions(flavor.Versions) {
-			osList := []string{}
-			for os := range version.GetOperatingSystems() {
-				osList = append(osList, os)
+			for _, build := range version.GetBuilds() {
+				ref := fmt.Sprintf("%v:%v/%v", flavor.Name, version.Name, strings.ToLower(build.OperatingSystemFamily.Name.String()))
+				runsOn := buildDistList(build.OperatingSystemFamily)
+				fmt.Fprintf(w, "%v\t%v\t%v\t%v\n", ref, flavor.Name, version.Name, runsOn)
 			}
-			sort.Slice(osList, func(i, j int) bool {
-				return strings.ToUpper(osList[i]) < strings.ToUpper(osList[j])
-			})
-			prettyOS := strings.Trim(fmt.Sprintf("%v", osList), "[]")
-			fmt.Fprintf(w, "%v\t%v\t%v\n", flavor.Name, version.Name, prettyOS)
 		}
 	}
 	return w.Flush()
+}
+
+func buildDistList(family *api.OperatingSystemFamily) string {
+	var res strings.Builder
+	// #nosec -> Handling WriteString errors has no value and makes the code less readable
+	for distIndex, dist := range family.Children {
+		res.WriteString(prettifyOS(dist.Name.String()))
+		if dist.Versions != "" {
+			res.WriteString(" " + dist.Versions)
+		}
+		if distIndex != len(family.Children)-1 {
+			res.WriteString(", ")
+		}
+	}
+	return res.String()
+}
+
+func prettifyOS(os string) string {
+	if os == "RHEL" {
+		return os
+	}
+	res := strings.ToLower(os)
+	res = strings.Title(res)
+	if strings.HasSuffix(res, "os") {
+		res = res[:len(res)-2] + "OS"
+	}
+	return res
 }
 
 func fetch(manifestURL string) (*api.Manifest, error) {

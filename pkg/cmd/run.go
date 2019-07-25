@@ -19,17 +19,18 @@ import (
 	"regexp"
 
 	"github.com/spf13/cobra"
-	"github.com/tetratelabs/getenvoy/pkg/binary"
+	"github.com/tetratelabs/getenvoy/pkg/binary/getenvoy"
 )
 
-// RunCmd starts the Envoy process
-var RunCmd = &cobra.Command{
-	Use:   "run [binary] -- <envoy-args>",
-	Short: "Starts an Envoy process using the binary passed.",
-	Long: `
+// NewRunCmd create a command responsible for starting an Envoy process
+func NewRunCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "run [binary] -- <envoy-args>",
+		Short: "Starts an Envoy process using the binary passed.",
+		Long: `
 Starts an Envoy process using the binary passed. 
 Location can be a manifest reference or local file.`,
-	Example: `# Run using a manifest reference. Reference format is <flavor>:<version>.
+		Example: `# Run using a manifest reference. Reference format is <flavor>:<version>.
 getenvoy run standard:1.10.1 -- --config-path ./bootstrap.yaml
 
 # Run using a local file.
@@ -38,23 +39,21 @@ getenvoy run ./envoy -- --config-path ./bootstrap.yaml
 # List available Envoy flags
 getenvoy run standard:1.10.1 -- --help
 `,
-	Args: func(cmd *cobra.Command, args []string) error {
-		if len(args) == 0 {
-			return errors.New("missing binary parameter")
-		}
-		return nil
-	},
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if match, _ := regexp.MatchString("^.*:.*$", args[0]); match {
-			// TODO: handle manifest reference.
-			// Download Envoy to ~/.getenvoy/builds/.... if not already there.
-			// Set args[0] to newly downloaded envoy.
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return errors.New("missing binary parameter")
+			}
 			return nil
-		}
-		return binary.Run(args[0], args[1:])
-	},
-}
-
-func init() {
-	rootCmd.AddCommand(RunCmd)
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			runtime := getenvoy.Runtime{}
+			if match, _ := regexp.MatchString("^.*:.*$", args[0]); match {
+				// TODO: handle manifest reference.
+				// Download Envoy to ~/.getenvoy/builds/.... if not already there.
+				// Set args[0] to newly downloaded envoy.
+				return nil
+			}
+			return runtime.Run(args[0], args[1:])
+		},
+	}
 }

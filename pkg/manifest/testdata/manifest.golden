@@ -7,48 +7,50 @@
       "versions": {
         "nightly": {
           "name": "nightly",
-          "operatingSystems": {
-            "CentOS": {
-              "name": "CENTOS",
-              "builds": [
-                {
-                  "operatingSystemVersions": ["7"],
-                  "downloadLocationUrl": "standard:nightly/centos"
-                }
-              ]
+          "builds": [
+            {
+              "downloadLocationUrl": "standard:nightly/rhel",
+              "operatingSystemFamily": {
+                "name": "RHEL",
+                "children": [
+                  { "name": "RHEL", "versions": "7+" },
+                  { "name": "CENTOS", "versions": "7+" }
+                ]
+              }
             }
-          }
+          ]
         },
         "1.11.0": {
           "name": "1.11.0",
-          "operatingSystems": {
-            "CentOS": {
-              "name": "CENTOS",
-              "builds": [
-                {
-                  "operatingSystemVersions": ["7"],
-                  "downloadLocationUrl": "standard:1.11.0/centos"
-                }
-              ]
+          "builds": [
+            {
+              "downloadLocationUrl": "standard:1.11.0/rhel",
+              "operatingSystemFamily": {
+                "name": "RHEL",
+                "children": [
+                  { "name": "RHEL", "versions": "7+" },
+                  { "name": "CENTOS", "versions": "7+" }
+                ]
+              }
             },
-            "macOS": {
-              "name": "MACOS",
-              "builds": [
-                {
-                  "operatingSystemVersions": ["10.14"],
-                  "downloadLocationUrl": "standard:1.11.0/macos"
-                }
-              ]
+            {
+              "downloadLocationUrl": "standard:1.11.0/debian",
+              "operatingSystemFamily": {
+                "name": "DEBIAN",
+                "children": [
+                  { "name": "DEBIAN", "versions": "7+" },
+                  { "name": "UBUNTU", "versions": "16.04+ LTS" }
+                ]
+              }
             },
-            "Ubuntu": {
-              "builds": [
-                {
-                  "operatingSystemVersions": ["xenial", "bionic"],
-                  "downloadLocationUrl": "standard:1.11.0/debian"
-                }
-              ]
+            {
+              "downloadLocationUrl": "standard:1.11.0/darwin",
+              "operatingSystemFamily": {
+                "name": "DARWIN",
+                "children": [{ "name": "MACOS" }]
+              }
             }
-          }
+          ]
         }
       }
     },
@@ -59,25 +61,28 @@
       "versions": {
         "1.10.0": {
           "name": "1.10.0",
-          "operatingSystems": {
-            "CentOS": {
-              "name": "CENTOS",
-              "builds": [
-                {
-                  "operatingSystemVersions": ["7"],
-                  "downloadLocationUrl": "standard-fips1402:1.10.0/centos"
-                }
-              ]
+          "builds": [
+            {
+              "downloadLocationUrl": "standard-fips1402:1.10.0/rhel",
+              "operatingSystemFamily": {
+                "name": "RHEL",
+                "children": [
+                  { "name": "RHEL", "versions": "7+" },
+                  { "name": "CENTOS", "versions": "7+" }
+                ]
+              }
             },
-            "Ubuntu": {
-              "builds": [
-                {
-                  "operatingSystemVersions": ["xenial"],
-                  "downloadLocationUrl": "standard-fips1402:1.10.0/debian"
-                }
-              ]
+            {
+              "downloadLocationUrl": "standard-fips1402:1.10.0/debian",
+              "operatingSystemFamily": {
+                "name": "DEBIAN",
+                "children": [
+                  { "name": "DEBIAN", "versions": "7+" },
+                  { "name": "UBUNTU", "versions": "16.04+ LTS" }
+                ]
+              }
             }
-          }
+          ]
         }
       }
     }
