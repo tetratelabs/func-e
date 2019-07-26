@@ -18,8 +18,19 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"regexp"
 	"strings"
 )
+
+// NewKey creates a manifest key based on the reference it is given
+func NewKey(reference string) (*Key, error) {
+	r := regexp.MustCompile(`^(.+):(.+)/(.+)$`)
+	matches := r.FindStringSubmatch(reference)
+	if len(matches) != 4 {
+		return nil, fmt.Errorf("reference %v is not of valid format <flavor>:<version>/<operatingsystemfamily>", reference)
+	}
+	return &Key{matches[1], matches[2], matches[3]}, nil
+}
 
 // Key is the primary key used to locate Envoy builds in the manifest
 type Key struct {
@@ -37,7 +48,7 @@ func (k *Key) normalize() {
 // Locate returns the location of the binary for the passed parameters from the passed manifest
 // The build version is searched for as a prefix of the OperatingSystemVersion.
 // If the OperatingSystemVersion is empty it returns the first build listed for that operating system
-func Locate(key Key, manifestLocation string) (string, error) {
+func Locate(key *Key, manifestLocation string) (string, error) {
 	if _, err := url.Parse(manifestLocation); err != nil {
 		return "", errors.New("only URL manifest locations are supported")
 	}

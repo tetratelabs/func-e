@@ -24,29 +24,29 @@ import (
 func TestLocate(t *testing.T) {
 	tests := []struct {
 		name             string
-		key              Key
+		key              *Key
 		locationOverride string
 		want             string
 		wantErr          bool
 	}{
 		{
 			name: "standard 1.11.0 debian matches",
-			key:  Key{"standard", "1.11.0", "debian"},
+			key:  &Key{"standard", "1.11.0", "debian"},
 			want: "standard:1.11.0/debian",
 		},
 		{
 			name: "standard-fips1402 1.10.0 debian matches",
-			key:  Key{"standard-fips1402", "1.10.0", "debian"},
+			key:  &Key{"standard-fips1402", "1.10.0", "debian"},
 			want: "standard-fips1402:1.10.0/debian",
 		},
 		{
 			name: "sTanDard nIgHTLY rHeL matches",
-			key:  Key{"sTanDard", "nIgHTLY", "rHeL"},
+			key:  &Key{"sTanDard", "nIgHTLY", "rHeL"},
 			want: "standard:nightly/rhel",
 		},
 		{
 			name:    "Error if not found",
-			key:     Key{"notaFlavor", "1.11.0", "notanOS"},
+			key:     &Key{"notaFlavor", "1.11.0", "notanOS"},
 			wantErr: true,
 		},
 		{
@@ -69,6 +69,33 @@ func TestLocate(t *testing.T) {
 				assert.Equal(t, "", got)
 			} else {
 				assert.NoError(t, err)
+				assert.Equal(t, tc.want, got)
+			}
+		})
+	}
+}
+
+func TestNewKey(t *testing.T) {
+	tests := []struct {
+		reference string
+		want      *Key
+		wantErr   bool
+	}{
+		{"flavor:version/family", &Key{Flavor: "flavor", Version: "version", OperatingSystemFamily: "family"}, false},
+		{"flavor:version/", nil, true},
+		{"flavor:version", nil, true},
+		{"flavor:", nil, true},
+		{"flavor", nil, true},
+	}
+	for _, tt := range tests {
+		tc := tt
+		t.Run(tc.reference, func(t *testing.T) {
+			got, err := NewKey(tc.reference)
+			if tc.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, got)
+			} else {
+				assert.Nil(t, err)
 				assert.Equal(t, tc.want, got)
 			}
 		})

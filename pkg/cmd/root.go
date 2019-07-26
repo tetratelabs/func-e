@@ -27,6 +27,9 @@ func NewRoot() *cobra.Command {
 	listCmd := NewListCmd()
 	rootCmd.AddCommand(listCmd)
 
+	fetchCmd := NewFetchCmd()
+	rootCmd.AddCommand(fetchCmd)
+
 	rootCmd.PersistentFlags().StringVarP(&manifestURL, "url", "u",
 		"https://bintray.com/tetrate/getenvoy/download_file?file_path=manifest.json", "sets the manifest URL")
 
