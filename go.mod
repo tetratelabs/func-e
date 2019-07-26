@@ -16,5 +16,3 @@ require (
 	github.com/tetratelabs/getenvoy-package v0.0.0-20190718134531-9487f25b3273
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 )
-
-replace github.com/tetratelabs/getenvoy-package => ../getenvoy-package
