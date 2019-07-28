@@ -1,7 +1,7 @@
-REFERENCE                           FLAVOR                VERSION     RUNS ON
-standard:nightly/rhel               standard              nightly     RHEL 7+, CentOS 7+
-standard:1.11.0/rhel                standard              1.11.0      RHEL 7+, CentOS 7+
-standard:1.11.0/debian              standard              1.11.0      Debian 7+, Ubuntu 16.04+ LTS
-standard:1.11.0/darwin              standard              1.11.0      MacOS
-standard-fips1402:1.10.0/rhel       standard-fips1402     1.10.0      RHEL 7+, CentOS 7+
-standard-fips1402:1.10.0/debian     standard-fips1402     1.10.0      Debian 7+, Ubuntu 16.04+ LTS
+REFERENCE                                     FLAVOR                VERSION
+standard:nightly/linux-glibc-2-17             standard              nightly
+standard:1.11.0/linux-glibc-2-18              standard              1.11.0
+standard:1.11.0/linux-glibc-2-17              standard              1.11.0
+standard:1.11.0/darwin                        standard              1.11.0
+standard-fips1402:1.10.0/linux-glibc-2-18     standard-fips1402     1.10.0
+standard-fips1402:1.10.0/linux-glibc-2-17     standard-fips1402     1.10.0

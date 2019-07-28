@@ -27,22 +27,23 @@ func NewKey(reference string) (*Key, error) {
 	r := regexp.MustCompile(`^(.+):(.+)/(.+)$`)
 	matches := r.FindStringSubmatch(reference)
 	if len(matches) != 4 {
-		return nil, fmt.Errorf("reference %v is not of valid format <flavor>:<version>/<operatingsystemfamily>", reference)
+		return nil, fmt.Errorf("reference %v is not of valid format <flavor>:<version>/<platform>", reference)
 	}
-	return &Key{matches[1], matches[2], matches[3]}, nil
+
+	return &Key{strings.ToLower(matches[1]), strings.ToLower(matches[2]), platformToEnum(matches[3])}, nil
+}
+
+func platformToEnum(s string) string {
+	s = strings.ToUpper(s)
+	s = strings.ReplaceAll(s, "-", "_")
+	return s
 }
 
 // Key is the primary key used to locate Envoy builds in the manifest
 type Key struct {
-	Flavor                string
-	Version               string
-	OperatingSystemFamily string
-}
-
-func (k *Key) normalize() {
-	k.Flavor = strings.ToLower(k.Flavor)
-	k.Version = strings.ToLower(k.Version)
-	k.OperatingSystemFamily = strings.ToLower(k.OperatingSystemFamily)
+	Flavor   string
+	Version  string
+	Platform string
 }
 
 // Locate returns the location of the binary for the passed parameters from the passed manifest
@@ -57,11 +58,10 @@ func Locate(key *Key, manifestLocation string) (string, error) {
 		return "", err
 	}
 
-	key.normalize()
 	// This is pretty horrible... Not sure there is a nicer way though.
 	if manifest.Flavors[key.Flavor] != nil && manifest.Flavors[key.Flavor].Versions[key.Version] != nil {
 		for _, build := range manifest.Flavors[key.Flavor].Versions[key.Version].Builds {
-			if strings.EqualFold(build.OperatingSystemFamily.Name.String(), key.OperatingSystemFamily) {
+			if strings.EqualFold(build.Platform.String(), key.Platform) {
 				return build.DownloadLocationUrl, nil
 			}
 		}

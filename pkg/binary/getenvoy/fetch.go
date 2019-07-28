@@ -34,7 +34,7 @@ import (
 
 // Fetch downloads an Envoy binary from the passed location
 func (r *Runtime) Fetch(key *manifest.Key, binaryLocation string) error {
-	dst := filepath.Join(r.local, key.Flavor, key.Version, key.OperatingSystemFamily)
+	dst := filepath.Join(r.local, key.Flavor, key.Version, key.Platform)
 	if err := os.MkdirAll(dst, 0750); err != nil {
 		return fmt.Errorf("unable to create directory %q: %v", dst, err)
 	}

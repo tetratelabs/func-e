@@ -118,29 +118,6 @@ func mockServer(responseStatusCode int, responseManifestFile string) *httptest.S
 	}))
 }
 
-var debian = &api.OperatingSystemFamily{
-	Name: api.OperatingSystemFamily_DEBIAN,
-	Children: []*api.OperatingSystemFamily_Distribution{
-		{Name: api.OperatingSystemFamily_Distribution_DEBIAN, Versions: "7+"},
-		{Name: api.OperatingSystemFamily_Distribution_UBUNTU, Versions: "16.04+ LTS"},
-	},
-}
-
-var rhel = &api.OperatingSystemFamily{
-	Name: api.OperatingSystemFamily_RHEL,
-	Children: []*api.OperatingSystemFamily_Distribution{
-		{Name: api.OperatingSystemFamily_Distribution_RHEL, Versions: "7+"},
-		{Name: api.OperatingSystemFamily_Distribution_CENTOS, Versions: "7+"},
-	},
-}
-
-var darwin = &api.OperatingSystemFamily{
-	Name: api.OperatingSystemFamily_DARWIN,
-	Children: []*api.OperatingSystemFamily_Distribution{
-		{Name: api.OperatingSystemFamily_Distribution_MACOS},
-	},
-}
-
 func goodManifest() *api.Manifest {
 	return &api.Manifest{
 		ManifestVersion: "v0.1.0",
@@ -151,16 +128,28 @@ func goodManifest() *api.Manifest {
 				Versions: map[string]*api.Version{
 					"1.11.0": {
 						Name: "1.11.0",
-						Builds: []*api.Build{
-							{DownloadLocationUrl: "standard:1.11.0/rhel", OperatingSystemFamily: rhel},
-							{DownloadLocationUrl: "standard:1.11.0/debian", OperatingSystemFamily: debian},
-							{DownloadLocationUrl: "standard:1.11.0/darwin", OperatingSystemFamily: darwin},
+						Builds: map[string]*api.Build{
+							api.Build_LINUX_GLIBC_2_17.String(): {
+								Platform:            api.Build_LINUX_GLIBC_2_17,
+								DownloadLocationUrl: "standard:1.11.0/linux-glibc-2-17",
+							},
+							api.Build_LINUX_GLIBC_2_18.String(): {
+								Platform:            api.Build_LINUX_GLIBC_2_18,
+								DownloadLocationUrl: "standard:1.11.0/linux-glibc-2-18",
+							},
+							api.Build_DARWIN.String(): {
+								Platform:            api.Build_DARWIN,
+								DownloadLocationUrl: "standard:1.11.0/darwin",
+							},
 						},
 					},
 					"nightly": {
 						Name: "nightly",
-						Builds: []*api.Build{
-							{DownloadLocationUrl: "standard:nightly/rhel", OperatingSystemFamily: rhel},
+						Builds: map[string]*api.Build{
+							api.Build_LINUX_GLIBC_2_17.String(): {
+								Platform:            api.Build_LINUX_GLIBC_2_17,
+								DownloadLocationUrl: "standard:nightly/linux-glibc-2-17",
+							},
 						},
 					},
 				},
@@ -168,13 +157,20 @@ func goodManifest() *api.Manifest {
 			"standard-fips1402": {
 				Name:          "standard-fips1402",
 				FilterProfile: "standard",
-				Compliances:   []api.Compliance{api.Compliance_FIPS_1402},
+				Compliances:   []api.Compliance{api.Compliance_FIPS1402},
 				Versions: map[string]*api.Version{
 					"1.10.0": {
 						Name: "1.10.0",
-						Builds: []*api.Build{
-							{DownloadLocationUrl: "standard-fips1402:1.10.0/rhel", OperatingSystemFamily: rhel},
-							{DownloadLocationUrl: "standard-fips1402:1.10.0/debian", OperatingSystemFamily: debian}},
+						Builds: map[string]*api.Build{
+							api.Build_LINUX_GLIBC_2_17.String(): {
+								Platform:            api.Build_LINUX_GLIBC_2_17,
+								DownloadLocationUrl: "standard-fips1402:1.10.0/linux-glibc-2-17",
+							},
+							api.Build_LINUX_GLIBC_2_18.String(): {
+								Platform:            api.Build_LINUX_GLIBC_2_18,
+								DownloadLocationUrl: "standard-fips1402:1.10.0/linux-glibc-2-18",
+							},
+						},
 					},
 				},
 			},

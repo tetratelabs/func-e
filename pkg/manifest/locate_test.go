@@ -24,30 +24,30 @@ import (
 func TestLocate(t *testing.T) {
 	tests := []struct {
 		name             string
-		key              *Key
+		reference        string
 		locationOverride string
 		want             string
 		wantErr          bool
 	}{
 		{
-			name: "standard 1.11.0 debian matches",
-			key:  &Key{"standard", "1.11.0", "debian"},
-			want: "standard:1.11.0/debian",
+			name:      "standard 1.11.0 linux-glibc-2-17 matches",
+			reference: "standard:1.11.0/linux-glibc-2-17",
+			want:      "standard:1.11.0/linux-glibc-2-17",
 		},
 		{
-			name: "standard-fips1402 1.10.0 debian matches",
-			key:  &Key{"standard-fips1402", "1.10.0", "debian"},
-			want: "standard-fips1402:1.10.0/debian",
+			name:      "standard-fips1402:1.10.0/linux-glibc-2-17 matches",
+			reference: "standard-fips1402:1.10.0/linux-glibc-2-17",
+			want:      "standard-fips1402:1.10.0/linux-glibc-2-17",
 		},
 		{
-			name: "sTanDard nIgHTLY rHeL matches",
-			key:  &Key{"sTanDard", "nIgHTLY", "rHeL"},
-			want: "standard:nightly/rhel",
+			name:      "sTanDard:nIgHTLY/LiNuX-gLiBc-2-17 matches",
+			reference: "sTanDard:nIgHTLY/LiNuX-gLiBc-2-17",
+			want:      "standard:nightly/linux-glibc-2-17",
 		},
 		{
-			name:    "Error if not found",
-			key:     &Key{"notaFlavor", "1.11.0", "notanOS"},
-			wantErr: true,
+			name:      "Error if not found",
+			reference: "notaFlavor:1.11.0/notaPlatform",
+			wantErr:   true,
 		},
 		{
 			name:             "Error on non-url manifest locations",
@@ -64,7 +64,8 @@ func TestLocate(t *testing.T) {
 			if tc.locationOverride != "" {
 				location = tc.locationOverride
 			}
-			if got, err := Locate(tc.key, location); tc.wantErr {
+			key, _ := NewKey(tc.reference)
+			if got, err := Locate(key, location); tc.wantErr {
 				assert.Error(t, err)
 				assert.Equal(t, "", got)
 			} else {
@@ -81,7 +82,9 @@ func TestNewKey(t *testing.T) {
 		want      *Key
 		wantErr   bool
 	}{
-		{"flavor:version/family", &Key{Flavor: "flavor", Version: "version", OperatingSystemFamily: "family"}, false},
+		{"flavor:version/platform", &Key{Flavor: "flavor", Version: "version", Platform: "PLATFORM"}, false},
+		{"flavor:version/platform-glibc-2-18", &Key{Flavor: "flavor", Version: "version", Platform: "PLATFORM_GLIBC_2_18"}, false},
+		{"fLaVoR:VeRsIoN/pLaTfOrM", &Key{Flavor: "flavor", Version: "version", Platform: "PLATFORM"}, false},
 		{"flavor:version/", nil, true},
 		{"flavor:version", nil, true},
 		{"flavor:", nil, true},

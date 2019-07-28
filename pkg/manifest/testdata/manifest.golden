@@ -7,82 +7,49 @@
       "versions": {
         "nightly": {
           "name": "nightly",
-          "builds": [
-            {
-              "downloadLocationUrl": "standard:nightly/rhel",
-              "operatingSystemFamily": {
-                "name": "RHEL",
-                "children": [
-                  { "name": "RHEL", "versions": "7+" },
-                  { "name": "CENTOS", "versions": "7+" }
-                ]
-              }
+          "builds": {
+            "LINUX_GLIBC_2_17": {
+              "downloadLocationUrl": "standard:nightly/linux-glibc-2-17",
+              "platform": "LINUX_GLIBC_2_17"
             }
-          ]
+          }
         },
         "1.11.0": {
           "name": "1.11.0",
-          "builds": [
-            {
-              "downloadLocationUrl": "standard:1.11.0/rhel",
-              "operatingSystemFamily": {
-                "name": "RHEL",
-                "children": [
-                  { "name": "RHEL", "versions": "7+" },
-                  { "name": "CENTOS", "versions": "7+" }
-                ]
-              }
+          "builds": {
+            "LINUX_GLIBC_2_17": {
+              "downloadLocationUrl": "standard:1.11.0/linux-glibc-2-17",
+              "platform": "LINUX_GLIBC_2_17"
             },
-            {
-              "downloadLocationUrl": "standard:1.11.0/debian",
-              "operatingSystemFamily": {
-                "name": "DEBIAN",
-                "children": [
-                  { "name": "DEBIAN", "versions": "7+" },
-                  { "name": "UBUNTU", "versions": "16.04+ LTS" }
-                ]
-              }
+            "LINUX_GLIBC_2_18": {
+              "downloadLocationUrl": "standard:1.11.0/linux-glibc-2-18",
+              "platform": "LINUX_GLIBC_2_18"
             },
-            {
+            "DARWIN": {
               "downloadLocationUrl": "standard:1.11.0/darwin",
-              "operatingSystemFamily": {
-                "name": "DARWIN",
-                "children": [{ "name": "MACOS" }]
-              }
+              "platform": "DARWIN"
             }
-          ]
+          }
         }
       }
     },
     "standard-fips1402": {
       "name": "standard-fips1402",
       "filterProfile": "standard",
-      "compliances": ["FIPS_1402"],
+      "compliances": ["FIPS1402"],
       "versions": {
         "1.10.0": {
           "name": "1.10.0",
-          "builds": [
-            {
-              "downloadLocationUrl": "standard-fips1402:1.10.0/rhel",
-              "operatingSystemFamily": {
-                "name": "RHEL",
-                "children": [
-                  { "name": "RHEL", "versions": "7+" },
-                  { "name": "CENTOS", "versions": "7+" }
-                ]
-              }
+          "builds": {
+            "LINUX_GLIBC_2_17": {
+              "downloadLocationUrl": "standard-fips1402:1.10.0/linux-glibc-2-17",
+              "platform": "LINUX_GLIBC_2_17"
             },
-            {
-              "downloadLocationUrl": "standard-fips1402:1.10.0/debian",
-              "operatingSystemFamily": {
-                "name": "DEBIAN",
-                "children": [
-                  { "name": "DEBIAN", "versions": "7+" },
-                  { "name": "UBUNTU", "versions": "16.04+ LTS" }
-                ]
-              }
+            "LINUX_GLIBC_2_18": {
+              "downloadLocationUrl": "standard-fips1402:1.10.0/linux-glibc-2-18",
+              "platform": "LINUX_GLIBC_2_18"
             }
-          ]
+          }
         }
       }
     }

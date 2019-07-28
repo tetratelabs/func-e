@@ -40,45 +40,23 @@ func Print(writer io.Writer, manifestLocation string) error {
 		return err
 	}
 	w := new(tabwriter.Writer).Init(writer, 0, 8, 5, ' ', 0)
-	fmt.Fprintln(w, "REFERENCE\tFLAVOR\tVERSION\tRUNS ON")
+	fmt.Fprintln(w, "REFERENCE\tFLAVOR\tVERSION")
 
 	for _, flavor := range deterministicFlavors(manifest.Flavors) {
 		for _, version := range deterministicVersions(flavor.Versions) {
-			for _, build := range version.GetBuilds() {
-				ref := fmt.Sprintf("%v:%v/%v", flavor.Name, version.Name, strings.ToLower(build.OperatingSystemFamily.Name.String()))
-				runsOn := buildDistList(build.OperatingSystemFamily)
-				fmt.Fprintf(w, "%v\t%v\t%v\t%v\n", ref, flavor.Name, version.Name, runsOn)
+			for _, build := range deterministicBuilds(version.Builds) {
+				ref := fmt.Sprintf("%v:%v/%v", flavor.Name, version.Name, platformFromEnum(build.Platform.String()))
+				fmt.Fprintf(w, "%v\t%v\t%v\n", ref, flavor.Name, version.Name)
 			}
 		}
 	}
 	return w.Flush()
 }
 
-func buildDistList(family *api.OperatingSystemFamily) string {
-	var res strings.Builder
-	// #nosec -> Handling WriteString errors has no value and makes the code less readable
-	for distIndex, dist := range family.Children {
-		res.WriteString(prettifyOS(dist.Name.String()))
-		if dist.Versions != "" {
-			res.WriteString(" " + dist.Versions)
-		}
-		if distIndex != len(family.Children)-1 {
-			res.WriteString(", ")
-		}
-	}
-	return res.String()
-}
-
-func prettifyOS(os string) string {
-	if os == "RHEL" {
-		return os
-	}
-	res := strings.ToLower(os)
-	res = strings.Title(res)
-	if strings.HasSuffix(res, "os") {
-		res = res[:len(res)-2] + "OS"
-	}
-	return res
+func platformFromEnum(s string) string {
+	s = strings.ToLower(s)
+	s = strings.ReplaceAll(s, "_", "-")
+	return s
 }
 
 func fetch(manifestURL string) (*api.Manifest, error) {
@@ -120,4 +98,16 @@ func deterministicVersions(versions map[string]*api.Version) []*api.Version {
 		return versionList[i].Name > versionList[j].Name
 	})
 	return versionList
+}
+
+func deterministicBuilds(builds map[string]*api.Build) []*api.Build {
+	buildList := []*api.Build{}
+	for _, flavor := range builds {
+		buildList = append(buildList, flavor)
+	}
+	sort.Slice(buildList, func(i, j int) bool {
+		// Note: build is reverse alphabetical so that newer versions of glibc are first
+		return buildList[i].String() > buildList[j].String()
+	})
+	return buildList
 }

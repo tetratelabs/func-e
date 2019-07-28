@@ -29,7 +29,7 @@ import (
 )
 
 func TestRuntime_Fetch(t *testing.T) {
-	defaultDarwinKey := &manifest.Key{Flavor: "standard", Version: "1.11.0", OperatingSystemFamily: "darwin"}
+	defaultDarwinKey := &manifest.Key{Flavor: "standard", Version: "1.11.0", Platform: "darwin"}
 	tests := []struct {
 		name             string
 		key              *manifest.Key
