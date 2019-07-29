@@ -35,24 +35,35 @@ func TestRuntime_Fetch(t *testing.T) {
 		key              *manifest.Key
 		tarballStructure string
 		envoyLocation    string
+		responseStatus   int
 		wantErr          bool
 	}{
 		{
 			name:             "Downloads and untars envoy to local/key",
 			key:              defaultDarwinKey,
 			tarballStructure: "golden",
+			responseStatus:   http.StatusOK,
 			envoyLocation:    "standard/1.11.0/darwin/envoy",
 		},
 		{
 			name:             "Handles directories called Envoy",
 			key:              defaultDarwinKey,
 			tarballStructure: "envoydirectory",
+			responseStatus:   http.StatusOK,
 			envoyLocation:    "standard/1.11.0/darwin/envoy",
 		},
 		{
 			name:             "errors if it can't find an envoy binary in tarball",
 			key:              defaultDarwinKey,
 			tarballStructure: "noenvoy",
+			responseStatus:   http.StatusOK,
+			wantErr:          true,
+		},
+		{
+			name:             "errors if it gets !200 from download",
+			key:              defaultDarwinKey,
+			tarballStructure: "noenvoy",
+			responseStatus:   http.StatusTeapot,
 			wantErr:          true,
 		},
 	}
@@ -61,7 +72,7 @@ func TestRuntime_Fetch(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tmpDir, _ := ioutil.TempDir("", "getenvoy-test-")
 			defer os.RemoveAll(tmpDir)
-			mock := mockServer(http.StatusOK, tc.tarballStructure, tmpDir)
+			mock := mockServer(tc.responseStatus, tc.tarballStructure, tmpDir)
 
 			r := &Runtime{local: tmpDir}
 			err := r.Fetch(tc.key, mock.URL)

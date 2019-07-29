@@ -50,9 +50,12 @@ func fetchEnvoy(dst, src string) error {
 
 	tarball, err := doDownload(tmpDir, src)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to fetch envoy from %q: %v", src, err)
 	}
-	return extractEnvoy(dst, tarball)
+	if err := extractEnvoy(dst, tarball); err != nil {
+		return fmt.Errorf("unable to extract envoy to %q: %v", dst, err)
+	}
+	return nil
 }
 
 func doDownload(dst, src string) (string, error) {
@@ -62,6 +65,10 @@ func doDownload(dst, src string) (string, error) {
 		return "", err
 	}
 	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("received %v status code from %q", resp.StatusCode, src)
+	}
 
 	tarball := filepath.Join(dst, "envoy.tar.gz")
 	f, err := os.OpenFile(tarball, os.O_CREATE|os.O_WRONLY, 0600)
