@@ -8,22 +8,18 @@
         "nightly": {
           "name": "nightly",
           "builds": {
-            "LINUX_GLIBC_2_17": {
-              "downloadLocationUrl": "standard:nightly/linux-glibc-2-17",
-              "platform": "LINUX_GLIBC_2_17"
+            "LINUX_GLIBC": {
+              "downloadLocationUrl": "standard:nightly/linux-glibc",
+              "platform": "LINUX_GLIBC"
             }
           }
         },
         "1.11.0": {
           "name": "1.11.0",
           "builds": {
-            "LINUX_GLIBC_2_17": {
-              "downloadLocationUrl": "standard:1.11.0/linux-glibc-2-17",
-              "platform": "LINUX_GLIBC_2_17"
-            },
-            "LINUX_GLIBC_2_18": {
-              "downloadLocationUrl": "standard:1.11.0/linux-glibc-2-18",
-              "platform": "LINUX_GLIBC_2_18"
+            "LINUX_GLIBC": {
+              "downloadLocationUrl": "standard:1.11.0/linux-glibc",
+              "platform": "LINUX_GLIBC"
             },
             "DARWIN": {
               "downloadLocationUrl": "standard:1.11.0/darwin",
@@ -41,13 +37,9 @@
         "1.10.0": {
           "name": "1.10.0",
           "builds": {
-            "LINUX_GLIBC_2_17": {
-              "downloadLocationUrl": "standard-fips1402:1.10.0/linux-glibc-2-17",
-              "platform": "LINUX_GLIBC_2_17"
-            },
-            "LINUX_GLIBC_2_18": {
-              "downloadLocationUrl": "standard-fips1402:1.10.0/linux-glibc-2-18",
-              "platform": "LINUX_GLIBC_2_18"
+            "LINUX_GLIBC": {
+              "downloadLocationUrl": "standard-fips1402:1.10.0/linux-glibc",
+              "platform": "LINUX_GLIBC"
             }
           }
         }

@@ -129,13 +129,9 @@ func goodManifest() *api.Manifest {
 					"1.11.0": {
 						Name: "1.11.0",
 						Builds: map[string]*api.Build{
-							api.Build_LINUX_GLIBC_2_17.String(): {
-								Platform:            api.Build_LINUX_GLIBC_2_17,
-								DownloadLocationUrl: "standard:1.11.0/linux-glibc-2-17",
-							},
-							api.Build_LINUX_GLIBC_2_18.String(): {
-								Platform:            api.Build_LINUX_GLIBC_2_18,
-								DownloadLocationUrl: "standard:1.11.0/linux-glibc-2-18",
+							api.Build_LINUX_GLIBC.String(): {
+								Platform:            api.Build_LINUX_GLIBC,
+								DownloadLocationUrl: "standard:1.11.0/linux-glibc",
 							},
 							api.Build_DARWIN.String(): {
 								Platform:            api.Build_DARWIN,
@@ -146,9 +142,9 @@ func goodManifest() *api.Manifest {
 					"nightly": {
 						Name: "nightly",
 						Builds: map[string]*api.Build{
-							api.Build_LINUX_GLIBC_2_17.String(): {
-								Platform:            api.Build_LINUX_GLIBC_2_17,
-								DownloadLocationUrl: "standard:nightly/linux-glibc-2-17",
+							api.Build_LINUX_GLIBC.String(): {
+								Platform:            api.Build_LINUX_GLIBC,
+								DownloadLocationUrl: "standard:nightly/linux-glibc",
 							},
 						},
 					},
@@ -162,13 +158,9 @@ func goodManifest() *api.Manifest {
 					"1.10.0": {
 						Name: "1.10.0",
 						Builds: map[string]*api.Build{
-							api.Build_LINUX_GLIBC_2_17.String(): {
-								Platform:            api.Build_LINUX_GLIBC_2_17,
-								DownloadLocationUrl: "standard-fips1402:1.10.0/linux-glibc-2-17",
-							},
-							api.Build_LINUX_GLIBC_2_18.String(): {
-								Platform:            api.Build_LINUX_GLIBC_2_18,
-								DownloadLocationUrl: "standard-fips1402:1.10.0/linux-glibc-2-18",
+							api.Build_LINUX_GLIBC.String(): {
+								Platform:            api.Build_LINUX_GLIBC,
+								DownloadLocationUrl: "standard-fips1402:1.10.0/linux-glibc",
 							},
 						},
 					},

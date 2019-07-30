@@ -106,7 +106,7 @@ func deterministicBuilds(builds map[string]*api.Build) []*api.Build {
 		buildList = append(buildList, flavor)
 	}
 	sort.Slice(buildList, func(i, j int) bool {
-		// Note: build is reverse alphabetical so that newer versions of glibc are first
+		// Note: build is reverse alphabetical so that Linux versions are before Darwin
 		return buildList[i].String() > buildList[j].String()
 	})
 	return buildList

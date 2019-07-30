@@ -1,7 +1,5 @@
-REFERENCE                                     FLAVOR                VERSION
-standard:nightly/linux-glibc-2-17             standard              nightly
-standard:1.11.0/linux-glibc-2-18              standard              1.11.0
-standard:1.11.0/linux-glibc-2-17              standard              1.11.0
-standard:1.11.0/darwin                        standard              1.11.0
-standard-fips1402:1.10.0/linux-glibc-2-18     standard-fips1402     1.10.0
-standard-fips1402:1.10.0/linux-glibc-2-17     standard-fips1402     1.10.0
+REFERENCE                                FLAVOR                VERSION
+standard:nightly/linux-glibc             standard              nightly
+standard:1.11.0/linux-glibc              standard              1.11.0
+standard:1.11.0/darwin                   standard              1.11.0
+standard-fips1402:1.10.0/linux-glibc     standard-fips1402     1.10.0

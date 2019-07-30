@@ -30,19 +30,19 @@ func TestLocate(t *testing.T) {
 		wantErr          bool
 	}{
 		{
-			name:      "standard 1.11.0 linux-glibc-2-17 matches",
-			reference: "standard:1.11.0/linux-glibc-2-17",
-			want:      "standard:1.11.0/linux-glibc-2-17",
+			name:      "standard 1.11.0 linux-glibc matches",
+			reference: "standard:1.11.0/linux-glibc",
+			want:      "standard:1.11.0/linux-glibc",
 		},
 		{
-			name:      "standard-fips1402:1.10.0/linux-glibc-2-17 matches",
-			reference: "standard-fips1402:1.10.0/linux-glibc-2-17",
-			want:      "standard-fips1402:1.10.0/linux-glibc-2-17",
+			name:      "standard-fips1402:1.10.0/linux-glibc matches",
+			reference: "standard-fips1402:1.10.0/linux-glibc",
+			want:      "standard-fips1402:1.10.0/linux-glibc",
 		},
 		{
-			name:      "sTanDard:nIgHTLY/LiNuX-gLiBc-2-17 matches",
-			reference: "sTanDard:nIgHTLY/LiNuX-gLiBc-2-17",
-			want:      "standard:nightly/linux-glibc-2-17",
+			name:      "sTanDard:nIgHTLY/LiNuX-gLiBc matches",
+			reference: "sTanDard:nIgHTLY/LiNuX-gLiBc",
+			want:      "standard:nightly/linux-glibc",
 		},
 		{
 			name:      "Error if not found",
@@ -83,7 +83,7 @@ func TestNewKey(t *testing.T) {
 		wantErr   bool
 	}{
 		{"flavor:version/platform", &Key{Flavor: "flavor", Version: "version", Platform: "PLATFORM"}, false},
-		{"flavor:version/platform-glibc-2-18", &Key{Flavor: "flavor", Version: "version", Platform: "PLATFORM_GLIBC_2_18"}, false},
+		{"flavor:version/platform-glibc", &Key{Flavor: "flavor", Version: "version", Platform: "PLATFORM_GLIBC"}, false},
 		{"fLaVoR:VeRsIoN/pLaTfOrM", &Key{Flavor: "flavor", Version: "version", Platform: "PLATFORM"}, false},
 		{"flavor:version/", nil, true},
 		{"flavor:version", nil, true},

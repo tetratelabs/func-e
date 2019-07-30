@@ -3,7 +3,6 @@ module github.com/tetratelabs/getenvoy
 go 1.12
 
 require (
-	github.com/davecgh/go-spew v1.1.1
 	github.com/dsnet/compress v0.0.1 // indirect
 	github.com/golang/protobuf v1.3.2
 	github.com/golang/snappy v0.0.1 // indirect
@@ -17,5 +16,3 @@ require (
 	github.com/tetratelabs/getenvoy-package v0.0.0-20190718134531-9487f25b3273
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 )
-
-replace github.com/tetratelabs/getenvoy-package => ../getenvoy-package
