@@ -19,10 +19,18 @@ import (
 	"os"
 	"path/filepath"
 	"syscall"
+
+	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
 
-// Run execs the file at the path with the args passed
-func (r *Runtime) Run(path string, args []string) error {
+// Run execs the binary defined by the key with the args passed
+func (r *Runtime) Run(key *manifest.Key, args []string) error {
+	path := filepath.Join(r.binaryPath(key), "envoy")
+	return r.RunPath(path, args)
+}
+
+// RunPath execs the binary at the path with the args passed
+func (r *Runtime) RunPath(path string, args []string) error {
 	if _, err := os.Stat(path); err != nil {
 		return fmt.Errorf("unable to stat %q: %v", path, err)
 	}

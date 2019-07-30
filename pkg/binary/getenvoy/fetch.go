@@ -18,6 +18,7 @@ import (
 	"errors"
 	"net/http"
 	"path/filepath"
+	"strings"
 
 	"os"
 
@@ -34,11 +35,17 @@ import (
 
 // Fetch downloads an Envoy binary from the passed location
 func (r *Runtime) Fetch(key *manifest.Key, binaryLocation string) error {
-	dst := filepath.Join(r.local, key.Flavor, key.Version, key.Platform)
+	dst := r.binaryPath(key)
 	if err := os.MkdirAll(dst, 0750); err != nil {
 		return fmt.Errorf("unable to create directory %q: %v", dst, err)
 	}
 	return fetchEnvoy(dst, binaryLocation)
+}
+
+func (r *Runtime) binaryPath(key *manifest.Key) string {
+	platform := strings.ToLower(key.Platform)
+	platform = strings.ReplaceAll(platform, "-", "_")
+	return filepath.Join(r.local, key.Flavor, key.Version, platform)
 }
 
 func fetchEnvoy(dst, src string) error {

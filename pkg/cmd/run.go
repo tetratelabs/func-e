@@ -19,6 +19,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/tetratelabs/getenvoy/pkg/binary/getenvoy"
+	"github.com/tetratelabs/getenvoy/pkg/manifest"
+	"github.com/tetratelabs/log"
 )
 
 // NewRunCmd create a command responsible for starting an Envoy process
@@ -49,7 +51,12 @@ getenvoy run standard:1.10.1 -- --help
 			if err != nil {
 				return err
 			}
-			return runtime.Run(args[0], args[1:])
+			key, err := manifest.NewKey(args[0])
+			if err != nil {
+				log.Info("binary arg is not in the manifest reference format - attempting to run as path")
+				return runtime.RunPath(args[0], args[1:])
+			}
+			return runtime.Run(key, args[1:])
 		},
 	}
 }
