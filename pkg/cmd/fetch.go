@@ -19,25 +19,22 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/tetratelabs/getenvoy/pkg/binary/getenvoy"
+	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
 
-// NewRunCmd create a command responsible for starting an Envoy process
-func NewRunCmd() *cobra.Command {
+// NewFetchCmd create a command responsible for retrieving Envoy binaries
+func NewFetchCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "run [binary] -- <envoy-args>",
-		Short: "Starts an Envoy process using the binary passed.",
+		Use:   "fetch [binary]",
+		Short: "Retreives the passed Envoy binary.",
 		Long: `
-Starts an Envoy process using the binary passed. 
-Location can be a manifest reference or local file.`,
-		Example: `# Run using a manifest reference. Reference format is <flavor>:<version>.
-getenvoy run standard:1.10.1 -- --config-path ./bootstrap.yaml
-
-# Run using a local file.
-getenvoy run ./envoy -- --config-path ./bootstrap.yaml
-
-# List available Envoy flags
-getenvoy run standard:1.10.1 -- --help
-`,
+Retreives the passed Envoy binary. 
+Location can be a full or partial manifest reference, use getenvoy list for a complete list of available builds.`,
+		Example: `# Fetch using a partial manifest reference to retrieve a build for your operating system.
+getenvoy fetch standard:1.11.1
+		
+# Fetch using a full manifest reference to retrieve a specific build. 
+getenvoy fetch standard:1.11.1/debian`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return errors.New("missing binary parameter")
@@ -45,11 +42,19 @@ getenvoy run standard:1.10.1 -- --help
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			key, err := manifest.NewKey(args[0])
+			if err != nil {
+				return err
+			}
+			location, err := manifest.Locate(key, manifestURL)
+			if err != nil {
+				return err
+			}
 			runtime, err := getenvoy.New()
 			if err != nil {
 				return err
 			}
-			return runtime.Run(args[0], args[1:])
+			return runtime.Fetch(key, location)
 		},
 	}
 }

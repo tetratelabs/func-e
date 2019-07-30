@@ -20,10 +20,11 @@ import (
 	"io"
 	"net/http"
 	"sort"
-	"strings"
 	"text/tabwriter"
 
 	"net/url"
+
+	"strings"
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/tetratelabs/getenvoy-package/api"
@@ -39,22 +40,23 @@ func Print(writer io.Writer, manifestLocation string) error {
 		return err
 	}
 	w := new(tabwriter.Writer).Init(writer, 0, 8, 5, ' ', 0)
-	fmt.Fprintln(w, "FLAVOR\tVERSION\tAVAILABLE ON")
+	fmt.Fprintln(w, "REFERENCE\tFLAVOR\tVERSION")
 
 	for _, flavor := range deterministicFlavors(manifest.Flavors) {
 		for _, version := range deterministicVersions(flavor.Versions) {
-			osList := []string{}
-			for os := range version.GetOperatingSystems() {
-				osList = append(osList, os)
+			for _, build := range deterministicBuilds(version.Builds) {
+				ref := fmt.Sprintf("%v:%v/%v", flavor.Name, version.Name, platformFromEnum(build.Platform.String()))
+				fmt.Fprintf(w, "%v\t%v\t%v\n", ref, flavor.Name, version.Name)
 			}
-			sort.Slice(osList, func(i, j int) bool {
-				return strings.ToUpper(osList[i]) < strings.ToUpper(osList[j])
-			})
-			prettyOS := strings.Trim(fmt.Sprintf("%v", osList), "[]")
-			fmt.Fprintf(w, "%v\t%v\t%v\n", flavor.Name, version.Name, prettyOS)
 		}
 	}
 	return w.Flush()
+}
+
+func platformFromEnum(s string) string {
+	s = strings.ToLower(s)
+	s = strings.ReplaceAll(s, "_", "-")
+	return s
 }
 
 func fetch(manifestURL string) (*api.Manifest, error) {
@@ -96,4 +98,16 @@ func deterministicVersions(versions map[string]*api.Version) []*api.Version {
 		return versionList[i].Name > versionList[j].Name
 	})
 	return versionList
+}
+
+func deterministicBuilds(builds map[string]*api.Build) []*api.Build {
+	buildList := []*api.Build{}
+	for _, flavor := range builds {
+		buildList = append(buildList, flavor)
+	}
+	sort.Slice(buildList, func(i, j int) bool {
+		// Note: build is reverse alphabetical so that Linux versions are before Darwin
+		return buildList[i].String() > buildList[j].String()
+	})
+	return buildList
 }

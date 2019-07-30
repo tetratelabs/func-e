@@ -14,22 +14,20 @@
 
 package binary
 
-import (
-	"fmt"
-	"os"
-	"path/filepath"
-	"syscall"
-)
+import "github.com/tetratelabs/getenvoy/pkg/manifest"
 
-// Run execs the file at the path with the args passed
-func Run(path string, args []string) error {
-	if _, err := os.Stat(path); err != nil {
-		return fmt.Errorf("unable to stat %q: %v", path, err)
-	}
-	_, filename := filepath.Split(path)
-	// #nosec -> passthrough by design
-	if err := syscall.Exec(path, append([]string{filename}, args...), os.Environ()); err != nil {
-		return fmt.Errorf("unable to exec %q: %v", path, err)
-	}
-	return nil
+// Runner wraps the Envoy Run interface
+type Runner interface {
+	Run(build string, args []string) error
+}
+
+// Fetcher wraps the Envoy Fetch interface
+type Fetcher interface {
+	Fetch(key *manifest.Key, binaryLocation string) error
+}
+
+// Runtime wraps the Run and Fetch interfaces
+type Runtime interface {
+	Runner
+	Fetcher
 }

@@ -7,46 +7,23 @@
       "versions": {
         "nightly": {
           "name": "nightly",
-          "operatingSystems": {
-            "CentOS": {
-              "name": "CENTOS",
-              "builds": [
-                {
-                  "operatingSystemVersions": ["7"],
-                  "downloadLocationUrl": "standard:nightly/centos"
-                }
-              ]
+          "builds": {
+            "LINUX_GLIBC": {
+              "downloadLocationUrl": "standard:nightly/linux-glibc",
+              "platform": "LINUX_GLIBC"
             }
           }
         },
         "1.11.0": {
           "name": "1.11.0",
-          "operatingSystems": {
-            "CentOS": {
-              "name": "CENTOS",
-              "builds": [
-                {
-                  "operatingSystemVersions": ["7"],
-                  "downloadLocationUrl": "standard:1.11.0/centos"
-                }
-              ]
+          "builds": {
+            "LINUX_GLIBC": {
+              "downloadLocationUrl": "standard:1.11.0/linux-glibc",
+              "platform": "LINUX_GLIBC"
             },
-            "macOS": {
-              "name": "MACOS",
-              "builds": [
-                {
-                  "operatingSystemVersions": ["10.14"],
-                  "downloadLocationUrl": "standard:1.11.0/macos"
-                }
-              ]
-            },
-            "Ubuntu": {
-              "builds": [
-                {
-                  "operatingSystemVersions": ["xenial", "bionic"],
-                  "downloadLocationUrl": "standard:1.11.0/debian"
-                }
-              ]
+            "DARWIN": {
+              "downloadLocationUrl": "standard:1.11.0/darwin",
+              "platform": "DARWIN"
             }
           }
         }
@@ -55,27 +32,14 @@
     "standard-fips1402": {
       "name": "standard-fips1402",
       "filterProfile": "standard",
-      "compliances": ["FIPS_1402"],
+      "compliances": ["FIPS1402"],
       "versions": {
         "1.10.0": {
           "name": "1.10.0",
-          "operatingSystems": {
-            "CentOS": {
-              "name": "CENTOS",
-              "builds": [
-                {
-                  "operatingSystemVersions": ["7"],
-                  "downloadLocationUrl": "standard-fips1402:1.10.0/centos"
-                }
-              ]
-            },
-            "Ubuntu": {
-              "builds": [
-                {
-                  "operatingSystemVersions": ["xenial"],
-                  "downloadLocationUrl": "standard-fips1402:1.10.0/debian"
-                }
-              ]
+          "builds": {
+            "LINUX_GLIBC": {
+              "downloadLocationUrl": "standard-fips1402:1.10.0/linux-glibc",
+              "platform": "LINUX_GLIBC"
             }
           }
         }

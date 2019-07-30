@@ -12,22 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package getenvoy
 
 import (
+	"fmt"
 	"os"
-
-	"github.com/spf13/cobra"
-	"github.com/tetratelabs/getenvoy/pkg/manifest"
+	"path/filepath"
+	"syscall"
 )
 
-// NewListCmd returns command that lists available Envoy binaries
-func NewListCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "list",
-		Short: "Lists available Envoys from GetEnvoy.",
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			return manifest.Print(os.Stdout, manifestURL)
-		},
+// Run execs the file at the path with the args passed
+func (r *Runtime) Run(path string, args []string) error {
+	if _, err := os.Stat(path); err != nil {
+		return fmt.Errorf("unable to stat %q: %v", path, err)
 	}
+	_, filename := filepath.Split(path)
+	// #nosec -> passthrough by design
+	if err := syscall.Exec(path, append([]string{filename}, args...), os.Environ()); err != nil {
+		return fmt.Errorf("unable to exec %q: %v", path, err)
+	}
+	return nil
 }

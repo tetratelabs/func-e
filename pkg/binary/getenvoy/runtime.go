@@ -12,22 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package getenvoy
 
 import (
-	"os"
+	"path/filepath"
 
-	"github.com/spf13/cobra"
-	"github.com/tetratelabs/getenvoy/pkg/manifest"
+	"github.com/mitchellh/go-homedir"
+	"github.com/tetratelabs/getenvoy/pkg/binary"
 )
 
-// NewListCmd returns command that lists available Envoy binaries
-func NewListCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "list",
-		Short: "Lists available Envoys from GetEnvoy.",
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			return manifest.Print(os.Stdout, manifestURL)
-		},
-	}
+// New creates a new GetEnvoy binary.Runtime with the local file storage set to the home directory
+func New() (binary.Runtime, error) {
+	usrDir, err := homedir.Dir()
+	return &Runtime{
+		local: filepath.Join(usrDir, ".getenvoy", "builds"),
+	}, err
+}
+
+// Runtime implements the GetEnvoy binary.Runtime
+type Runtime struct {
+	local string
 }

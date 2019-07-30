@@ -128,47 +128,23 @@ func goodManifest() *api.Manifest {
 				Versions: map[string]*api.Version{
 					"1.11.0": {
 						Name: "1.11.0",
-						OperatingSystems: map[string]*api.OperatingSystem{
-							"Ubuntu": {
-								Name: api.OperatingSystemName_UBUNTU,
-								Builds: []*api.Build{
-									{
-										OperatingSystemVersions: []string{"xenial", "bionic"},
-										DownloadLocationUrl:     "standard:1.11.0/debian",
-									},
-								},
+						Builds: map[string]*api.Build{
+							api.Build_LINUX_GLIBC.String(): {
+								Platform:            api.Build_LINUX_GLIBC,
+								DownloadLocationUrl: "standard:1.11.0/linux-glibc",
 							},
-							"macOS": {
-								Name: api.OperatingSystemName_MACOS,
-								Builds: []*api.Build{
-									{
-										OperatingSystemVersions: []string{"10.14"},
-										DownloadLocationUrl:     "standard:1.11.0/macos",
-									},
-								},
-							},
-							"CentOS": {
-								Name: api.OperatingSystemName_CENTOS,
-								Builds: []*api.Build{
-									{
-										OperatingSystemVersions: []string{"7"},
-										DownloadLocationUrl:     "standard:1.11.0/centos",
-									},
-								},
+							api.Build_DARWIN.String(): {
+								Platform:            api.Build_DARWIN,
+								DownloadLocationUrl: "standard:1.11.0/darwin",
 							},
 						},
 					},
 					"nightly": {
 						Name: "nightly",
-						OperatingSystems: map[string]*api.OperatingSystem{
-							"CentOS": {
-								Name: api.OperatingSystemName_CENTOS,
-								Builds: []*api.Build{
-									{
-										OperatingSystemVersions: []string{"7"},
-										DownloadLocationUrl:     "standard:nightly/centos",
-									},
-								},
+						Builds: map[string]*api.Build{
+							api.Build_LINUX_GLIBC.String(): {
+								Platform:            api.Build_LINUX_GLIBC,
+								DownloadLocationUrl: "standard:nightly/linux-glibc",
 							},
 						},
 					},
@@ -177,28 +153,14 @@ func goodManifest() *api.Manifest {
 			"standard-fips1402": {
 				Name:          "standard-fips1402",
 				FilterProfile: "standard",
-				Compliances:   []api.Compliance{api.Compliance_FIPS_1402},
+				Compliances:   []api.Compliance{api.Compliance_FIPS1402},
 				Versions: map[string]*api.Version{
 					"1.10.0": {
 						Name: "1.10.0",
-						OperatingSystems: map[string]*api.OperatingSystem{
-							"Ubuntu": {
-								Name: api.OperatingSystemName_UBUNTU,
-								Builds: []*api.Build{
-									{
-										OperatingSystemVersions: []string{"xenial"},
-										DownloadLocationUrl:     "standard-fips1402:1.10.0/debian",
-									},
-								},
-							},
-							"CentOS": {
-								Name: api.OperatingSystemName_CENTOS,
-								Builds: []*api.Build{
-									{
-										OperatingSystemVersions: []string{"7"},
-										DownloadLocationUrl:     "standard-fips1402:1.10.0/centos",
-									},
-								},
+						Builds: map[string]*api.Build{
+							api.Build_LINUX_GLIBC.String(): {
+								Platform:            api.Build_LINUX_GLIBC,
+								DownloadLocationUrl: "standard-fips1402:1.10.0/linux-glibc",
 							},
 						},
 					},

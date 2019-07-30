@@ -24,40 +24,30 @@ import (
 func TestLocate(t *testing.T) {
 	tests := []struct {
 		name             string
-		key              Key
+		reference        string
 		locationOverride string
 		want             string
 		wantErr          bool
 	}{
 		{
-			name: "Ubuntu bionic standard 1.11.0 matches",
-			key:  Key{"standard", "1.11.0", "Ubuntu", "bionic"},
-			want: "standard:1.11.0/debian",
+			name:      "standard 1.11.0 linux-glibc matches",
+			reference: "standard:1.11.0/linux-glibc",
+			want:      "standard:1.11.0/linux-glibc",
 		},
 		{
-			name: "Ubuntu xenial standard-fips1402 1.10.0 matches",
-			key:  Key{"standard-fips1402", "1.10.0", "Ubuntu", "xenial"},
-			want: "standard-fips1402:1.10.0/debian",
+			name:      "standard-fips1402:1.10.0/linux-glibc matches",
+			reference: "standard-fips1402:1.10.0/linux-glibc",
+			want:      "standard-fips1402:1.10.0/linux-glibc",
 		},
 		{
-			name: "CentOS 7.1 standard nightly matches to CentOS 7",
-			key:  Key{"standard", "nightly", "centos", "7.1"},
-			want: "standard:nightly/centos",
+			name:      "sTanDard:nIgHTLY/LiNuX-gLiBc matches",
+			reference: "sTanDard:nIgHTLY/LiNuX-gLiBc",
+			want:      "standard:nightly/linux-glibc",
 		},
 		{
-			name: "cEnTOS 7 sTanDard nIgHTLY matches",
-			key:  Key{"sTanDard", "nIgHTLY", "cEnTOS", "7"},
-			want: "standard:nightly/centos",
-		},
-		{
-			name: "MacOS standard 1.11.0 with no OS version returns the only macos build",
-			key:  Key{Flavor: "standard", Version: "1.11.0", OperatingSystem: "macos"},
-			want: "standard:1.11.0/macos",
-		},
-		{
-			name:    "Error if not found",
-			key:     Key{"notaFlavor", "1.11.0", "Ubuntu", "bionic"},
-			wantErr: true,
+			name:      "Error if not found",
+			reference: "notaFlavor:1.11.0/notaPlatform",
+			wantErr:   true,
 		},
 		{
 			name:             "Error on non-url manifest locations",
@@ -74,11 +64,41 @@ func TestLocate(t *testing.T) {
 			if tc.locationOverride != "" {
 				location = tc.locationOverride
 			}
-			if got, err := Locate(tc.key, location); tc.wantErr {
+			key, _ := NewKey(tc.reference)
+			if got, err := Locate(key, location); tc.wantErr {
 				assert.Error(t, err)
 				assert.Equal(t, "", got)
 			} else {
 				assert.NoError(t, err)
+				assert.Equal(t, tc.want, got)
+			}
+		})
+	}
+}
+
+func TestNewKey(t *testing.T) {
+	tests := []struct {
+		reference string
+		want      *Key
+		wantErr   bool
+	}{
+		{"flavor:version/platform", &Key{Flavor: "flavor", Version: "version", Platform: "PLATFORM"}, false},
+		{"flavor:version/platform-glibc", &Key{Flavor: "flavor", Version: "version", Platform: "PLATFORM_GLIBC"}, false},
+		{"fLaVoR:VeRsIoN/pLaTfOrM", &Key{Flavor: "flavor", Version: "version", Platform: "PLATFORM"}, false},
+		{"flavor:version/", nil, true},
+		{"flavor:version", nil, true},
+		{"flavor:", nil, true},
+		{"flavor", nil, true},
+	}
+	for _, tt := range tests {
+		tc := tt
+		t.Run(tc.reference, func(t *testing.T) {
+			got, err := NewKey(tc.reference)
+			if tc.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, got)
+			} else {
+				assert.Nil(t, err)
 				assert.Equal(t, tc.want, got)
 			}
 		})
