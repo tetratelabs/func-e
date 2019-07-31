@@ -52,6 +52,8 @@ getenvoy run standard:1.10.1 -- --help
 			if err != nil {
 				return err
 			}
+			runtime.EnvoyAdminDataCollection(true)
+
 			key, manifestErr := manifest.NewKey(args[0])
 			if manifestErr != nil {
 				if _, err := os.Stat(args[0]); err != nil {

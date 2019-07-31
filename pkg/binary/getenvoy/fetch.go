@@ -45,7 +45,7 @@ func (r *Runtime) Fetch(key *manifest.Key, binaryLocation string) error {
 func (r *Runtime) binaryPath(key *manifest.Key) string {
 	platform := strings.ToLower(key.Platform)
 	platform = strings.ReplaceAll(platform, "-", "_")
-	return filepath.Join(r.local, key.Flavor, key.Version, platform)
+	return filepath.Join(r.local, "builds", key.Flavor, key.Version, platform)
 }
 
 func fetchEnvoy(dst, src string) error {
