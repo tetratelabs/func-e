@@ -26,15 +26,15 @@ import (
 // NewRunCmd create a command responsible for starting an Envoy process
 func NewRunCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "run [binary] -- <envoy-args>",
-		Short: "Starts an Envoy process using the binary passed.",
+		Use:   "run [manifest-reference|filepath] -- <envoy-args>",
+		Short: "Starts an Envoy process using the reference or path passed.",
 		Long: `
-Starts an Envoy process using the binary passed. 
-Location can be a manifest reference or local file.`,
+Starts an Envoy process using the location passed. 
+Location can be a manifest reference or path to an Envoy binary.`,
 		Example: `# Run using a manifest reference. Reference format is <flavor>:<version>.
 getenvoy run standard:1.10.1 -- --config-path ./bootstrap.yaml
 
-# Run using a local file.
+# Run using a filepath .
 getenvoy run ./envoy -- --config-path ./bootstrap.yaml
 
 # List available Envoy flags
