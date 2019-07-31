@@ -18,7 +18,8 @@ import "github.com/tetratelabs/getenvoy/pkg/manifest"
 
 // Runner wraps the Envoy Run interface
 type Runner interface {
-	Run(build string, args []string) error
+	Run(key *manifest.Key, args []string) error
+	RunPath(path string, args []string) error
 }
 
 // Fetcher wraps the Envoy Fetch interface

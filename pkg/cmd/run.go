@@ -16,23 +16,26 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/tetratelabs/getenvoy/pkg/binary/getenvoy"
+	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
 
 // NewRunCmd create a command responsible for starting an Envoy process
 func NewRunCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "run [binary] -- <envoy-args>",
-		Short: "Starts an Envoy process using the binary passed.",
+		Use:   "run [manifest-reference|filepath] -- <envoy-args>",
+		Short: "Starts an Envoy process using the reference or path passed.",
 		Long: `
-Starts an Envoy process using the binary passed. 
-Location can be a manifest reference or local file.`,
+Starts an Envoy process using the location passed. 
+Location can be a manifest reference or path to an Envoy binary.`,
 		Example: `# Run using a manifest reference. Reference format is <flavor>:<version>.
 getenvoy run standard:1.10.1 -- --config-path ./bootstrap.yaml
 
-# Run using a local file.
+# Run using a filepath .
 getenvoy run ./envoy -- --config-path ./bootstrap.yaml
 
 # List available Envoy flags
@@ -49,7 +52,14 @@ getenvoy run standard:1.10.1 -- --help
 			if err != nil {
 				return err
 			}
-			return runtime.Run(args[0], args[1:])
+			key, manifestErr := manifest.NewKey(args[0])
+			if manifestErr != nil {
+				if _, err := os.Stat(args[0]); err != nil {
+					return fmt.Errorf("%v isn't valid manifest reference or an existing filepath", args[0])
+				}
+				return runtime.RunPath(args[0], args[1:])
+			}
+			return runtime.Run(key, args[1:])
 		},
 	}
 }
