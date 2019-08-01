@@ -89,7 +89,7 @@ func (r *Runtime) runEnvoy(path string, args []string, cancel context.CancelFunc
 
 	if err := r.cmd.Run(); err != nil {
 		if r.cmd.ProcessState.ExitCode() == -1 {
-			log.Infof("Envoy process (PID=%d) terminated via signal", r.cmd.Process.Pid)
+			log.Infof("Envoy process (PID=%d) terminated via %v", r.cmd.Process.Pid, err)
 		} else {
 			log.Infof("Envoy process (PID=%d) terminated with an error: %v", r.cmd.Process.Pid, err)
 		}

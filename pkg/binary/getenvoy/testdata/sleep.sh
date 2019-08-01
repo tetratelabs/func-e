@@ -20,8 +20,15 @@ terminate () {
     exit 0
 }
 
+error() {
+    exit 1
+}
+
 trap terminate SIGINT SIGTERM SIGKILL
 
 while true; do
     sleep 0.1
+    if "$1" == "error"; then
+        error
+    fi
 done

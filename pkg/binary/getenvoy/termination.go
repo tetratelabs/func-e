@@ -27,7 +27,7 @@ import (
 )
 
 func (r *Runtime) handleTermination() {
-	if r.cmd.ProcessState != nil && !r.cmd.ProcessState.Exited() {
+	if r.cmd.ProcessState != nil {
 		log.Infof("Envoy process (PID=%d) terminated prematurely", r.cmd.Process.Pid)
 		return
 	}

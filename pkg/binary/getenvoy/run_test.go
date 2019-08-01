@@ -30,6 +30,7 @@ import (
 func TestRuntime_RunPath(t *testing.T) {
 	tests := []struct {
 		name        string
+		args        []string
 		killerFunc  func(*Runtime)
 		wantPreTerm bool
 	}{
@@ -41,6 +42,12 @@ func TestRuntime_RunPath(t *testing.T) {
 		{
 			name:        "Envoy shot first",
 			killerFunc:  func(r *Runtime) { r.cmd.Process.Signal(syscall.SIGINT) },
+			wantPreTerm: false,
+		},
+		{
+			name:        "Envoy simulate error",
+			killerFunc:  func(r *Runtime) { time.Sleep(time.Millisecond * 100) },
+			args:        []string{"error"},
 			wantPreTerm: false,
 		},
 	}
@@ -61,7 +68,7 @@ func TestRuntime_RunPath(t *testing.T) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				r.RunPath(filepath.Join("testdata", "sleep.sh"), []string{})
+				r.RunPath(filepath.Join("testdata", "sleep.sh"), tc.args)
 			}()
 
 			waitForProcessStart(r)
