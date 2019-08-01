@@ -43,14 +43,14 @@ func TestRuntime_Fetch(t *testing.T) {
 			key:              defaultDarwinKey,
 			tarballStructure: "golden",
 			responseStatus:   http.StatusOK,
-			envoyLocation:    "standard/1.11.0/darwin/envoy",
+			envoyLocation:    "builds/standard/1.11.0/darwin/envoy",
 		},
 		{
 			name:             "Handles directories called Envoy",
 			key:              defaultDarwinKey,
 			tarballStructure: "envoydirectory",
 			responseStatus:   http.StatusOK,
-			envoyLocation:    "standard/1.11.0/darwin/envoy",
+			envoyLocation:    "builds/standard/1.11.0/darwin/envoy",
 		},
 		{
 			name:             "errors if it can't find an envoy binary in tarball",
