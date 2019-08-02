@@ -41,7 +41,7 @@ func (r *Runtime) handleTermination() {
 
 	// Forward on the SIGINT to Envoy
 	log.Infof("Sending Envoy process (PID=%d) SIGINT", r.cmd.Process.Pid)
-	_ = r.cmd.Process.Signal(syscall.SIGKILL)
+	_ = r.cmd.Process.Signal(syscall.SIGINT)
 
 	// TODO: tar it all up! (Liam)
 }
@@ -67,7 +67,7 @@ var EnableEnvoyAdminDataCollection = func(r *Runtime) {
 	r.registerPreTermination(func(r *Runtime) error {
 		var multiErr *multierror.Error
 		for path, file := range adminAPIPaths {
-			resp, err := http.Get(fmt.Sprintf("http://0.0.0.0:15001/%v", path))
+			resp, err := http.Get(fmt.Sprintf("http://localhost:15001/%v", path))
 			if err != nil {
 				multiErr = multierror.Append(multiErr, err)
 			}
