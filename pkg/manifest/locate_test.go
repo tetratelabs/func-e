@@ -62,12 +62,19 @@ func TestLocate(t *testing.T) {
 			wantErr:            true,
 		},
 		{
+			name:      "Error if passed nil key",
+			reference: "notAReference",
+			wantErr:   true,
+		},
+		{
 			name:             "Error on non-url manifest locations",
+			reference:        "standard:1.11.0",
 			locationOverride: "not-a-url",
 			wantErr:          true,
 		},
 		{
 			name:               "Error on failed fetch",
+			reference:          "standard:1.11.0",
 			responseStatusCode: http.StatusTeapot,
 			wantErr:            true,
 		},
