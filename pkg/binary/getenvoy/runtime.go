@@ -45,8 +45,11 @@ type Runtime struct {
 	local    string
 	debugDir string
 
-	cmd     *exec.Cmd
-	wg      *sync.WaitGroup
+	cmd *exec.Cmd
+	wg  *sync.WaitGroup
+
+	// This channel doesn't need to be on the struct, it's here to enable the testing of termination behavior.
+	// Don't push any information onto this channel as it will likely have unintended consequences.
 	signals chan os.Signal
 
 	preStart       []preStartFunc
