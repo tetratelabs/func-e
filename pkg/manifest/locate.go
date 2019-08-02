@@ -24,12 +24,15 @@ import (
 
 // NewKey creates a manifest key based on the reference it is given
 func NewKey(reference string) (*Key, error) {
-	r := regexp.MustCompile(`^(.+):(.+)/(.+)$`)
+	r := regexp.MustCompile(`^([\w\d-\._]+):([\w\d-\._]+)/?([\w\d-\._]+)?$`)
 	matches := r.FindStringSubmatch(reference)
 	if len(matches) != 4 {
 		return nil, fmt.Errorf("reference %v is not of valid format <flavor>:<version>/<platform>", reference)
 	}
-
+	// If platform is empty, fill it in.
+	if len(matches[3]) == 0 {
+		matches[3] = platform()
+	}
 	return &Key{strings.ToLower(matches[1]), strings.ToLower(matches[2]), platformToEnum(matches[3])}, nil
 }
 
@@ -50,7 +53,10 @@ type Key struct {
 // The build version is searched for as a prefix of the OperatingSystemVersion.
 // If the OperatingSystemVersion is empty it returns the first build listed for that operating system
 func Locate(key *Key, manifestLocation string) (string, error) {
-	if _, err := url.Parse(manifestLocation); err != nil {
+	if key == nil {
+		return "", errors.New("passed key was nil")
+	}
+	if u, err := url.Parse(manifestLocation); err != nil || u.Host == "" || u.Scheme == "" {
 		return "", errors.New("only URL manifest locations are supported")
 	}
 	manifest, err := fetch(manifestLocation)
