@@ -50,7 +50,7 @@ type Key struct {
 // The build version is searched for as a prefix of the OperatingSystemVersion.
 // If the OperatingSystemVersion is empty it returns the first build listed for that operating system
 func Locate(key *Key, manifestLocation string) (string, error) {
-	if _, err := url.Parse(manifestLocation); err != nil {
+	if u, err := url.Parse(manifestLocation); err != nil || u.Host == "" || u.Scheme == "" {
 		return "", errors.New("only URL manifest locations are supported")
 	}
 	manifest, err := fetch(manifestLocation)
