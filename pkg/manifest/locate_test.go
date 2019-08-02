@@ -15,6 +15,7 @@
 package manifest
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -34,6 +35,12 @@ func TestLocate(t *testing.T) {
 			name:               "standard 1.11.0 linux-glibc matches",
 			reference:          "standard:1.11.0/linux-glibc",
 			want:               "standard:1.11.0/linux-glibc",
+			responseStatusCode: http.StatusOK,
+		},
+		{
+			name:               "standard 1.11.0 matches",
+			reference:          "standard:1.11.0",
+			want:               fmt.Sprintf("standard:1.11.0/%v", platform()),
 			responseStatusCode: http.StatusOK,
 		},
 		{
@@ -92,11 +99,13 @@ func TestNewKey(t *testing.T) {
 		want      *Key
 		wantErr   bool
 	}{
+		{"flavor:version/platform/platform", nil, true},
 		{"flavor:version/platform", &Key{Flavor: "flavor", Version: "version", Platform: "PLATFORM"}, false},
 		{"flavor:version/platform-glibc", &Key{Flavor: "flavor", Version: "version", Platform: "PLATFORM_GLIBC"}, false},
 		{"fLaVoR:VeRsIoN/pLaTfOrM", &Key{Flavor: "flavor", Version: "version", Platform: "PLATFORM"}, false},
-		{"flavor:version/", nil, true},
-		{"flavor:version", nil, true},
+		{"flavor:version/", &Key{Flavor: "flavor", Version: "version", Platform: platformToEnum(platform())}, false},
+		{"flavor:version", &Key{Flavor: "flavor", Version: "version", Platform: platformToEnum(platform())}, false},
+		{"fLaVoR:VeRsIoN", &Key{Flavor: "flavor", Version: "version", Platform: platformToEnum(platform())}, false},
 		{"flavor:", nil, true},
 		{"flavor", nil, true},
 	}
