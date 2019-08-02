@@ -89,7 +89,7 @@ func waitForProcessStart(r *Runtime) {
 func newRuntimeWithMockFunctions(t *testing.T) (*Runtime, *bool, *bool) {
 	preStartCalled := false
 	preStart := func(r *Runtime) {
-		r.registerPreStart(func() error {
+		r.registerPreStart(func(r *Runtime) error {
 			if r.cmd != nil && r.cmd.Process != nil {
 				t.Error("preStart was called after process has started")
 			}
@@ -100,7 +100,7 @@ func newRuntimeWithMockFunctions(t *testing.T) (*Runtime, *bool, *bool) {
 
 	preTerminationCalled := false
 	preTermination := func(r *Runtime) {
-		r.registerPreTermination(func() error {
+		r.registerPreTermination(func(r *Runtime) error {
 			if r.cmd != nil && r.cmd.Process == nil {
 				t.Error("preTermination was called before process was started")
 			}

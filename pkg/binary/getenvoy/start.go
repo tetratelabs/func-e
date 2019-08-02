@@ -19,7 +19,7 @@ import "github.com/tetratelabs/log"
 func (r *Runtime) handlePreStart() {
 	// Execute all registered preStart functions
 	for _, f := range r.preStart {
-		if err := f(); err != nil {
+		if err := f(r); err != nil {
 			log.Error(err.Error())
 		}
 	}

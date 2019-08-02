@@ -56,5 +56,5 @@ type Runtime struct {
 	preTermination []preTerminationFunc
 }
 
-type preStartFunc func() error
-type preTerminationFunc func() error
+type preStartFunc func(r *Runtime) error
+type preTerminationFunc func(r *Runtime) error

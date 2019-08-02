@@ -34,7 +34,7 @@ func (r *Runtime) handleTermination() {
 
 	// Execute all registered preTermination functions
 	for _, f := range r.preTermination {
-		if err := f(); err != nil {
+		if err := f(r); err != nil {
 			log.Error(err.Error())
 		}
 	}
@@ -64,7 +64,7 @@ var adminAPIPaths = map[string]string{
 
 // EnableEnvoyAdminDataCollection registers collection of Envoy Admin API information
 var EnableEnvoyAdminDataCollection = func(r *Runtime) {
-	r.registerPreTermination(func() error {
+	r.registerPreTermination(func(r *Runtime) error {
 		var multiErr *multierror.Error
 		for path, file := range adminAPIPaths {
 			resp, err := http.Get(fmt.Sprintf("http://0.0.0.0:15001/%v", path))
