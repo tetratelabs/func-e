@@ -62,28 +62,25 @@ var adminAPIPaths = map[string]string{
 	"runtime":           "runtime.json",
 }
 
-// EnvoyAdminDataCollection registers collection of Envoy Admin API information
-// TODO: Test this (Liam)
-func (r *Runtime) EnvoyAdminDataCollection(enable bool) {
-	if enable {
-		r.registerPreTermination(func() error {
-			var multiErr *multierror.Error
-			for path, file := range adminAPIPaths {
-				resp, err := http.Get(fmt.Sprintf("http://0.0.0.0:15001/%v", path))
-				if err != nil {
-					multiErr = multierror.Append(multiErr, err)
-				}
-				f, err := os.OpenFile(filepath.Join(r.debugDir, file), os.O_CREATE|os.O_WRONLY, 0600)
-				if err != nil {
-					multiErr = multierror.Append(multiErr, err)
-				}
-				defer func() { _ = f.Close() }()
-				defer func() { _ = resp.Body.Close() }()
-				if _, err := io.Copy(f, resp.Body); err != nil {
-					multiErr = multierror.Append(multiErr, err)
-				}
+// EnableEnvoyAdminDataCollection registers collection of Envoy Admin API information
+var EnableEnvoyAdminDataCollection = func(r *Runtime) {
+	r.registerPreTermination(func() error {
+		var multiErr *multierror.Error
+		for path, file := range adminAPIPaths {
+			resp, err := http.Get(fmt.Sprintf("http://0.0.0.0:15001/%v", path))
+			if err != nil {
+				multiErr = multierror.Append(multiErr, err)
 			}
-			return multiErr.ErrorOrNil()
-		})
-	}
+			f, err := os.OpenFile(filepath.Join(r.debugDir, file), os.O_CREATE|os.O_WRONLY, 0600)
+			if err != nil {
+				multiErr = multierror.Append(multiErr, err)
+			}
+			defer func() { _ = f.Close() }()
+			defer func() { _ = resp.Body.Close() }()
+			if _, err := io.Copy(f, resp.Body); err != nil {
+				multiErr = multierror.Append(multiErr, err)
+			}
+		}
+		return multiErr.ErrorOrNil()
+	})
 }

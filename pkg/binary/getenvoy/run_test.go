@@ -55,14 +55,11 @@ func TestRuntime_RunPath(t *testing.T) {
 	for _, tt := range tests {
 		tc := tt
 		t.Run(tc.name, func(t *testing.T) {
-			r, _ := New()
+			// This ensures functions are called in the correct order
+			r, preStartCalled, preTerminationCalled := newRuntimeWithMockFunctions(t)
 			tmpDir, _ := ioutil.TempDir("", "getenvoy-test-")
 			defer os.RemoveAll(tmpDir)
 			r.local = tmpDir
-
-			// These will t.Error if not called in correct order
-			preStartCalled := registerPreStart(t, r)
-			preTerminationCalled := registerPreTermination(t, r)
 
 			wg := &sync.WaitGroup{}
 			wg.Add(1)
@@ -88,29 +85,32 @@ func waitForProcessStart(r *Runtime) {
 	}
 }
 
-func registerPreStart(t *testing.T, r *Runtime) *bool {
-	called := false
-	r.registerPreStart(func() error {
-		if r.cmd != nil && r.cmd.Process != nil {
-			t.Error("preStart was called after process has started")
-		}
-		called = true
-		return nil
-	})
-	return &called
-}
+// This ensures functions are called in the correct order
+func newRuntimeWithMockFunctions(t *testing.T) (*Runtime, *bool, *bool) {
+	preStartCalled := false
+	preStart := func(r *Runtime) {
+		r.registerPreStart(func() error {
+			if r.cmd != nil && r.cmd.Process != nil {
+				t.Error("preStart was called after process has started")
+			}
+			preStartCalled = true
+			return nil
+		})
+	}
 
-func registerPreTermination(t *testing.T, r *Runtime) *bool {
-	called := false
-	r.registerPreTermination(func() error {
-		if r.cmd != nil && r.cmd.Process == nil {
-			t.Error("preTermination was called before process was started")
-		}
-		if r.cmd != nil && r.cmd.ProcessState != nil {
-			t.Error("preTermination was called after process was terminated")
-		}
-		called = true
-		return nil
-	})
-	return &called
+	preTerminationCalled := false
+	preTermination := func(r *Runtime) {
+		r.registerPreTermination(func() error {
+			if r.cmd != nil && r.cmd.Process == nil {
+				t.Error("preTermination was called before process was started")
+			}
+			if r.cmd != nil && r.cmd.ProcessState != nil {
+				t.Error("preTermination was called after process was terminated")
+			}
+			preTerminationCalled = true
+			return nil
+		})
+	}
+	runtime, _ := New(preStart, preTermination)
+	return runtime, &preStartCalled, &preTerminationCalled
 }

@@ -24,16 +24,20 @@ import (
 )
 
 // New creates a new GetEnvoy binary.Runtime with the local file storage set to the home directory
-func New() (*Runtime, error) {
+func New(options ...func(*Runtime)) (*Runtime, error) {
 	usrDir, err := homedir.Dir()
 	local := filepath.Join(usrDir, ".getenvoy")
-	return &Runtime{
+	runtime := &Runtime{
 		local:          local,
 		wg:             &sync.WaitGroup{},
 		signals:        make(chan os.Signal),
 		preStart:       make([]preStartFunc, 0),
 		preTermination: make([]preTerminationFunc, 0),
-	}, err
+	}
+	for _, option := range options {
+		option(runtime)
+	}
+	return runtime, err
 }
 
 // Runtime implements the GetEnvoy binary.Runtime
