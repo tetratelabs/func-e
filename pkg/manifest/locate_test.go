@@ -23,42 +23,52 @@ import (
 
 func TestLocate(t *testing.T) {
 	tests := []struct {
-		name             string
-		reference        string
-		locationOverride string
-		want             string
-		wantErr          bool
+		name               string
+		reference          string
+		locationOverride   string
+		responseStatusCode int
+		want               string
+		wantErr            bool
 	}{
 		{
-			name:      "standard 1.11.0 linux-glibc matches",
-			reference: "standard:1.11.0/linux-glibc",
-			want:      "standard:1.11.0/linux-glibc",
+			name:               "standard 1.11.0 linux-glibc matches",
+			reference:          "standard:1.11.0/linux-glibc",
+			want:               "standard:1.11.0/linux-glibc",
+			responseStatusCode: http.StatusOK,
 		},
 		{
-			name:      "standard-fips1402:1.10.0/linux-glibc matches",
-			reference: "standard-fips1402:1.10.0/linux-glibc",
-			want:      "standard-fips1402:1.10.0/linux-glibc",
+			name:               "standard-fips1402:1.10.0/linux-glibc matches",
+			reference:          "standard-fips1402:1.10.0/linux-glibc",
+			want:               "standard-fips1402:1.10.0/linux-glibc",
+			responseStatusCode: http.StatusOK,
 		},
 		{
-			name:      "sTanDard:nIgHTLY/LiNuX-gLiBc matches",
-			reference: "sTanDard:nIgHTLY/LiNuX-gLiBc",
-			want:      "standard:nightly/linux-glibc",
+			name:               "sTanDard:nIgHTLY/LiNuX-gLiBc matches",
+			reference:          "sTanDard:nIgHTLY/LiNuX-gLiBc",
+			want:               "standard:nightly/linux-glibc",
+			responseStatusCode: http.StatusOK,
 		},
 		{
-			name:      "Error if not found",
-			reference: "notaFlavor:1.11.0/notaPlatform",
-			wantErr:   true,
+			name:               "Error if not found",
+			reference:          "notaFlavor:1.11.0/notaPlatform",
+			responseStatusCode: http.StatusOK,
+			wantErr:            true,
 		},
 		{
 			name:             "Error on non-url manifest locations",
 			locationOverride: "not-a-url",
 			wantErr:          true,
 		},
+		{
+			name:               "Error on failed fetch",
+			responseStatusCode: http.StatusTeapot,
+			wantErr:            true,
+		},
 	}
 	for _, tt := range tests {
 		tc := tt
 		t.Run(tc.name, func(t *testing.T) {
-			mock := mockServer(http.StatusOK, "manifest.golden")
+			mock := mockServer(tc.responseStatusCode, "manifest.golden")
 			defer mock.Close()
 			location := mock.URL
 			if tc.locationOverride != "" {
