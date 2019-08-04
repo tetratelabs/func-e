@@ -15,29 +15,88 @@
 package getenvoy
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/exec"
+	"os/signal"
 	"path/filepath"
+	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
+	"github.com/tetratelabs/log"
 )
 
 // Run execs the binary defined by the key with the args passed
+// It is a blocking function that can only be terminated via SIGINT
 func (r *Runtime) Run(key *manifest.Key, args []string) error {
 	path := filepath.Join(r.binaryPath(key), "envoy")
 	return r.RunPath(path, args)
 }
 
 // RunPath execs the binary at the path with the args passed
+// It is a blocking function that can only be terminated via SIGINT
 func (r *Runtime) RunPath(path string, args []string) error {
 	if _, err := os.Stat(path); err != nil {
 		return fmt.Errorf("unable to stat %q: %v", path, err)
 	}
-	_, filename := filepath.Split(path)
-	// #nosec -> passthrough by design
-	if err := syscall.Exec(path, append([]string{filename}, args...), os.Environ()); err != nil {
-		return fmt.Errorf("unable to exec %q: %v", path, err)
+
+	// Debug store should always be created prior to any prestart functions
+	if err := r.initializeDebugStore(); err != nil {
+		return fmt.Errorf("unable to create directory to store debug information: %v", err)
 	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	r.handlePreStart()
+
+	go r.runEnvoy(path, args, cancel)
+
+	r.waitForTerminationSignals(ctx)
+	r.handleTermination()
+	cancel() // this should never actually do anything but lets avoid any future context leaks
+
+	// Block until the Envoy process and termination handler are finished cleaning up
+	r.wg.Wait()
 	return nil
+}
+
+func (r *Runtime) waitForTerminationSignals(ctx context.Context) {
+	signal.Notify(r.signals, syscall.SIGINT)
+
+	// Block until we receive SIGINT or are canceled because Envoy has died
+	select {
+	case <-ctx.Done():
+		log.Infof("No Envoy processes remaining, terminating GetEnvoy process (PID=%d)", os.Getpid())
+		return
+	case <-r.signals:
+		log.Infof("GetEnvoy process (PID=%d) received SIGINT", os.Getpid())
+		return
+	}
+}
+
+func (r *Runtime) runEnvoy(path string, args []string, cancel context.CancelFunc) {
+	// #nosec -> users can run whatever binary they like!
+	r.cmd = exec.Command(path, args...)
+	r.cmd.SysProcAttr = sysProcAttr()
+	r.cmd.Stdout = os.Stdout
+	r.cmd.Stderr = os.Stderr
+
+	r.wg.Add(1)
+	defer r.wg.Done()
+	defer cancel()
+
+	if err := r.cmd.Run(); err != nil {
+		if r.cmd.ProcessState.ExitCode() == -1 {
+			log.Infof("Envoy process (PID=%d) terminated via %v", r.cmd.Process.Pid, err)
+		} else {
+			log.Infof("Envoy process (PID=%d) terminated with an error: %v", r.cmd.Process.Pid, err)
+		}
+	}
+}
+
+func (r *Runtime) initializeDebugStore() error {
+	r.debugDir = filepath.Join(r.local, "debug", strconv.FormatInt(time.Now().UnixNano(), 10))
+	return os.MkdirAll(r.debugDir, 0750)
 }

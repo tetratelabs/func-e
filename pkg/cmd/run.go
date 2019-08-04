@@ -48,10 +48,13 @@ getenvoy run standard:1.10.1 -- --help
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			runtime, err := getenvoy.New()
+			runtime, err := getenvoy.New(
+				getenvoy.EnableEnvoyAdminDataCollection,
+			)
 			if err != nil {
 				return err
 			}
+
 			key, manifestErr := manifest.NewKey(args[0])
 			if manifestErr != nil {
 				if _, err := os.Stat(args[0]); err != nil {

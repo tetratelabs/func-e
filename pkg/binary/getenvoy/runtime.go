@@ -15,21 +15,46 @@
 package getenvoy
 
 import (
+	"os"
+	"os/exec"
 	"path/filepath"
+	"sync"
 
 	"github.com/mitchellh/go-homedir"
-	"github.com/tetratelabs/getenvoy/pkg/binary"
 )
 
 // New creates a new GetEnvoy binary.Runtime with the local file storage set to the home directory
-func New() (binary.Runtime, error) {
+func New(options ...func(*Runtime)) (*Runtime, error) {
 	usrDir, err := homedir.Dir()
-	return &Runtime{
-		local: filepath.Join(usrDir, ".getenvoy", "builds"),
-	}, err
+	local := filepath.Join(usrDir, ".getenvoy")
+	runtime := &Runtime{
+		local:          local,
+		wg:             &sync.WaitGroup{},
+		signals:        make(chan os.Signal),
+		preStart:       make([]preStartFunc, 0),
+		preTermination: make([]preTerminationFunc, 0),
+	}
+	for _, option := range options {
+		option(runtime)
+	}
+	return runtime, err
 }
 
 // Runtime implements the GetEnvoy binary.Runtime
 type Runtime struct {
-	local string
+	local    string
+	debugDir string
+
+	cmd *exec.Cmd
+	wg  *sync.WaitGroup
+
+	// This channel doesn't need to be on the struct, it's here to enable the testing of termination behavior.
+	// Don't push any information onto this channel as it will likely have unintended consequences.
+	signals chan os.Signal
+
+	preStart       []preStartFunc
+	preTermination []preTerminationFunc
 }
+
+type preStartFunc func(r *Runtime) error
+type preTerminationFunc func(r *Runtime) error
