@@ -40,6 +40,8 @@ func (r *Runtime) handleTermination() {
 	// TODO: tar it all up! (Liam)
 }
 
+// RegisterPreTermination registers the passed functions to be run after Envoy has started
+// and just before GetEnvoy instructs Envoy to terminate
 func (r *Runtime) RegisterPreTermination(f ...preTerminationFunc) {
 	r.preTermination = append(r.preTermination, f...)
 }

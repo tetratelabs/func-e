@@ -21,10 +21,12 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/tetratelabs/getenvoy-package/api"
 	"github.com/tetratelabs/log"
 )
 
 const (
+	// DefaultURL is the official GetEnvoy manifest location
 	DefaultURL = "https://tetrate.bintray.com/getenvoy/manifest.json"
 )
 
@@ -78,7 +80,10 @@ func Locate(key *Key, manifestLocation string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	return locateBuild(key, manifest)
+}
 
+func locateBuild(key *Key, manifest *api.Manifest) (string, error) {
 	// This is pretty horrible... Not sure there is a nicer way though.
 	if manifest.Flavors[key.Flavor] != nil && manifest.Flavors[key.Flavor].Versions[key.Version] != nil {
 		for _, build := range manifest.Flavors[key.Flavor].Versions[key.Version].Builds {

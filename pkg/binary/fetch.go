@@ -48,6 +48,7 @@ func (r *Runtime) Fetch(key *manifest.Key, binaryLocation string) error {
 	return nil
 }
 
+// AlreadyDownloaded returns true if there is a cached Envoy binary matching the passed Key
 func (r *Runtime) AlreadyDownloaded(key *manifest.Key) bool {
 	_, err := os.Stat(filepath.Join(r.binaryPath(key), "envoy"))
 	// !IsNotExist != IsExist

@@ -25,6 +25,7 @@ func (r *Runtime) handlePreStart() {
 	}
 }
 
+// RegisterPreStart registers the passed functions to be run before Envoy has started
 func (r *Runtime) RegisterPreStart(f ...preStartFunc) {
 	r.preStart = append(r.preStart, f...)
 }
