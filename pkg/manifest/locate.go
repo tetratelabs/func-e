@@ -20,6 +20,12 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+
+	"github.com/tetratelabs/log"
+)
+
+const (
+	DefaultURL = "https://tetrate.bintray.com/getenvoy/manifest.json"
 )
 
 // NewKey creates a manifest key based on the reference it is given
@@ -49,16 +55,25 @@ type Key struct {
 	Platform string
 }
 
+func (k Key) String() string {
+	return fmt.Sprintf("%v:%v/%v", k.Flavor, k.Version, platformFromEnum(k.Platform))
+}
+
 // Locate returns the location of the binary for the passed parameters from the passed manifest
+// If manifestLocation is an empty string the DefaultURL is used
 // The build version is searched for as a prefix of the OperatingSystemVersion.
 // If the OperatingSystemVersion is empty it returns the first build listed for that operating system
 func Locate(key *Key, manifestLocation string) (string, error) {
 	if key == nil {
 		return "", errors.New("passed key was nil")
 	}
+	if manifestLocation == "" {
+		manifestLocation = DefaultURL
+	}
 	if u, err := url.Parse(manifestLocation); err != nil || u.Host == "" || u.Scheme == "" {
 		return "", errors.New("only URL manifest locations are supported")
 	}
+	log.Debugf("retrieving manifest %v", manifestLocation)
 	manifest, err := fetch(manifestLocation)
 	if err != nil {
 		return "", err

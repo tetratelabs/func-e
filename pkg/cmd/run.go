@@ -20,7 +20,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/tetratelabs/getenvoy/pkg/binary/getenvoy"
+	"github.com/tetratelabs/getenvoy/pkg/binary"
+	"github.com/tetratelabs/getenvoy/pkg/binary/debug"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
 
@@ -48,19 +49,27 @@ getenvoy run standard:1.10.1 -- --help
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			runtime, err := getenvoy.New(
-				getenvoy.EnableEnvoyAdminDataCollection,
+			runtime, err := binary.NewRuntime(
+				debug.EnableEnvoyAdminDataCollection,
 			)
 			if err != nil {
 				return err
 			}
-
 			key, manifestErr := manifest.NewKey(args[0])
 			if manifestErr != nil {
 				if _, err := os.Stat(args[0]); err != nil {
 					return fmt.Errorf("%v isn't valid manifest reference or an existing filepath", args[0])
 				}
 				return runtime.RunPath(args[0], args[1:])
+			}
+			if !runtime.AlreadyDownloaded(key) {
+				location, err := manifest.Locate(key, manifestURL)
+				if err != nil {
+					return err
+				}
+				if err := runtime.Fetch(key, location); err != nil {
+					return err
+				}
 			}
 			return runtime.Run(key, args[1:])
 		},
