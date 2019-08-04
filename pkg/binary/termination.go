@@ -12,19 +12,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package getenvoy
+package binary
 
-import "github.com/tetratelabs/log"
+import (
+	"syscall"
 
-func (r *Runtime) handlePreStart() {
-	// Execute all registered preStart functions
-	for _, f := range r.preStart {
+	"github.com/tetratelabs/log"
+)
+
+func (r *Runtime) handleTermination() {
+	if r.cmd.ProcessState != nil {
+		log.Infof("Envoy process (PID=%d) terminated prematurely", r.cmd.Process.Pid)
+		return
+	}
+
+	// Execute all registered preTermination functions
+	for _, f := range r.preTermination {
 		if err := f(r); err != nil {
 			log.Error(err.Error())
 		}
 	}
+
+	// Forward on the SIGINT to Envoy
+	log.Infof("Sending Envoy process (PID=%d) SIGINT", r.cmd.Process.Pid)
+	_ = r.cmd.Process.Signal(syscall.SIGINT)
+
+	// TODO: tar it all up! (Liam)
 }
 
-func (r *Runtime) registerPreStart(f ...preStartFunc) {
-	r.preStart = append(r.preStart, f...)
+func (r *Runtime) RegisterPreTermination(f ...preTerminationFunc) {
+	r.preTermination = append(r.preTermination, f...)
 }

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package getenvoy
+package binary
 
 import (
 	"io/ioutil"
@@ -35,8 +35,10 @@ func TestRuntime_Fetch(t *testing.T) {
 		key              *manifest.Key
 		tarballStructure string
 		envoyLocation    string
+		alreadyLocal     bool
 		responseStatus   int
 		wantErr          bool
+		wantServerCalled bool
 	}{
 		{
 			name:             "Downloads and untars envoy to local/key",
@@ -44,6 +46,14 @@ func TestRuntime_Fetch(t *testing.T) {
 			tarballStructure: "golden",
 			responseStatus:   http.StatusOK,
 			envoyLocation:    "builds/standard/1.11.0/darwin/envoy",
+			wantServerCalled: true,
+		},
+		{
+			name:             "Does nothing if it already has a local copy",
+			key:              defaultDarwinKey,
+			envoyLocation:    "builds/standard/1.11.0/darwin/envoy",
+			alreadyLocal:     true,
+			wantServerCalled: false,
 		},
 		{
 			name:             "Handles directories called Envoy",
@@ -51,6 +61,7 @@ func TestRuntime_Fetch(t *testing.T) {
 			tarballStructure: "envoydirectory",
 			responseStatus:   http.StatusOK,
 			envoyLocation:    "builds/standard/1.11.0/darwin/envoy",
+			wantServerCalled: true,
 		},
 		{
 			name:             "errors if it can't find an envoy binary in tarball",
@@ -58,6 +69,7 @@ func TestRuntime_Fetch(t *testing.T) {
 			tarballStructure: "noenvoy",
 			responseStatus:   http.StatusOK,
 			wantErr:          true,
+			wantServerCalled: true,
 		},
 		{
 			name:             "errors if it gets !200 from download",
@@ -65,14 +77,19 @@ func TestRuntime_Fetch(t *testing.T) {
 			tarballStructure: "noenvoy",
 			responseStatus:   http.StatusTeapot,
 			wantErr:          true,
+			wantServerCalled: true,
 		},
 	}
 	for _, tt := range tests {
 		tc := tt
 		t.Run(tc.name, func(t *testing.T) {
 			tmpDir, _ := ioutil.TempDir("", "getenvoy-test-")
+			envoyLocation := filepath.Join(tmpDir, tc.envoyLocation)
 			defer os.RemoveAll(tmpDir)
-			mock := mockServer(tc.responseStatus, tc.tarballStructure, tmpDir)
+			mock, gotCalled := mockServer(tc.responseStatus, tc.tarballStructure, tmpDir)
+			if tc.alreadyLocal {
+				createLocalEnvoy(envoyLocation)
+			}
 
 			r := &Runtime{local: tmpDir}
 			err := r.Fetch(tc.key, mock.URL)
@@ -80,16 +97,27 @@ func TestRuntime_Fetch(t *testing.T) {
 				assert.Error(t, err)
 			} else {
 				assert.Nil(t, err)
-				f, _ := os.Open(filepath.Join(tmpDir, tc.envoyLocation))
+				f, _ := os.Open(envoyLocation)
 				bytes, _ := ioutil.ReadAll(f)
 				assert.Contains(t, string(bytes), "some complied c++")
 			}
+			assert.Equal(t, tc.wantServerCalled, *gotCalled, "mismatch of expectations for calling of remote server")
 		})
 	}
 }
 
-func mockServer(responseStatusCode int, tarballStructure string, tmpDir string) *httptest.Server {
+func createLocalEnvoy(envoyLocation string) {
+	dir, _ := filepath.Split(envoyLocation)
+	os.MkdirAll(dir, 0750)
+	f, _ := os.Create(envoyLocation)
+	f.WriteString("some complied c++")
+	f.Close()
+}
+
+func mockServer(responseStatusCode int, tarballStructure string, tmpDir string) (*httptest.Server, *bool) {
+	called := false
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
 		w.WriteHeader(responseStatusCode)
 		if responseStatusCode == http.StatusOK {
 			tarball := filepath.Join(tmpDir, tarballStructure+".tar.gz")
@@ -97,5 +125,5 @@ func mockServer(responseStatusCode int, tarballStructure string, tmpDir string) 
 			bytes, _ := ioutil.ReadFile(tarball)
 			w.Write(bytes)
 		}
-	}))
+	})), &called
 }

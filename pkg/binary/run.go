@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package getenvoy
+package binary
 
 import (
 	"context"
@@ -97,6 +97,6 @@ func (r *Runtime) runEnvoy(path string, args []string, cancel context.CancelFunc
 }
 
 func (r *Runtime) initializeDebugStore() error {
-	r.debugDir = filepath.Join(r.local, "debug", strconv.FormatInt(time.Now().UnixNano(), 10))
-	return os.MkdirAll(r.debugDir, 0750)
+	r.DebugDir = filepath.Join(r.local, "debug", strconv.FormatInt(time.Now().UnixNano(), 10))
+	return os.MkdirAll(r.DebugDir, 0750)
 }

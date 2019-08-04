@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package getenvoy
+package binary
 
 import (
 	"errors"
@@ -31,15 +31,28 @@ import (
 	"github.com/mholt/archiver"
 	"github.com/schollz/progressbar/v2"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
+	"github.com/tetratelabs/log"
 )
 
 // Fetch downloads an Envoy binary from the passed location
 func (r *Runtime) Fetch(key *manifest.Key, binaryLocation string) error {
-	dst := r.binaryPath(key)
-	if err := os.MkdirAll(dst, 0750); err != nil {
-		return fmt.Errorf("unable to create directory %q: %v", dst, err)
+	if !r.AlreadyDownloaded(key) {
+		log.Debugf("fetching %v from %v", key, binaryLocation)
+		dst := r.binaryPath(key)
+		if err := os.MkdirAll(dst, 0750); err != nil {
+			return fmt.Errorf("unable to create directory %q: %v", dst, err)
+		}
+		return fetchEnvoy(dst, binaryLocation)
 	}
-	return fetchEnvoy(dst, binaryLocation)
+	log.Debugf("%v is already downloaded", key)
+	return nil
+}
+
+func (r *Runtime) AlreadyDownloaded(key *manifest.Key) bool {
+	_, err := os.Stat(filepath.Join(r.binaryPath(key), "envoy"))
+	// !IsNotExist != IsExist
+	// os.Stat doesn't return IsExist typed errors
+	return !os.IsNotExist(err)
 }
 
 func (r *Runtime) binaryPath(key *manifest.Key) string {

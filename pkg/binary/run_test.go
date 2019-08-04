@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package getenvoy
+package binary
 
 import (
 	"fmt"
@@ -89,7 +89,7 @@ func waitForProcessStart(r *Runtime) {
 func newRuntimeWithMockFunctions(t *testing.T) (*Runtime, *bool, *bool) {
 	preStartCalled := false
 	preStart := func(r *Runtime) {
-		r.registerPreStart(func(r *Runtime) error {
+		r.RegisterPreStart(func(r *Runtime) error {
 			if r.cmd != nil && r.cmd.Process != nil {
 				t.Error("preStart was called after process has started")
 			}
@@ -100,7 +100,7 @@ func newRuntimeWithMockFunctions(t *testing.T) (*Runtime, *bool, *bool) {
 
 	preTerminationCalled := false
 	preTermination := func(r *Runtime) {
-		r.registerPreTermination(func(r *Runtime) error {
+		r.RegisterPreTermination(func(r *Runtime) error {
 			if r.cmd != nil && r.cmd.Process == nil {
 				t.Error("preTermination was called before process was started")
 			}
@@ -111,6 +111,6 @@ func newRuntimeWithMockFunctions(t *testing.T) (*Runtime, *bool, *bool) {
 			return nil
 		})
 	}
-	runtime, _ := New(preStart, preTermination)
+	runtime, _ := NewRuntime(preStart, preTermination)
 	return runtime, &preStartCalled, &preTerminationCalled
 }

@@ -14,7 +14,7 @@
 
 // +build !linux
 
-package getenvoy
+package binary
 
 import (
 	"syscall"
