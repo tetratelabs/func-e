@@ -48,7 +48,8 @@ const (
 	StatusTerminated
 )
 
-// Fetcher wraps the Envoy Fetch interface
+// Fetcher retreives the binary from the location and stores it bases on key
+// TODO (Liam): make this less Envoy specific (not using manifest.Key) so it can be reused
 type Fetcher interface {
 	Fetch(key *manifest.Key, binaryLocation string) error
 	AlreadyDownloaded(key *manifest.Key) bool
