@@ -1,0 +1,10 @@
+#!/bin/bash
+
+ci/install
+
+# Install Envoy
+go run cmd/getenvoy/main.go fetch standard:1.11.0 
+
+# Install Envoy dependency
+sudo apt-get update
+sudo apt-get install -y libc++1
