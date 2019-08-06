@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package binary
+package envoy
 
 import (
 	"errors"
@@ -51,15 +51,22 @@ func (r *Runtime) Fetch(key *manifest.Key, binaryLocation string) error {
 // AlreadyDownloaded returns true if there is a cached Envoy binary matching the passed Key
 func (r *Runtime) AlreadyDownloaded(key *manifest.Key) bool {
 	_, err := os.Stat(filepath.Join(r.binaryPath(key), "envoy"))
-	// !IsNotExist != IsExist
+
+	// !IsNotExist is not the same as IsExist
 	// os.Stat doesn't return IsExist typed errors
 	return !os.IsNotExist(err)
+}
+
+// BinaryStore returns the location at which the runtime instance persists binaries
+// Getters typically aren't idiomatic Go, however, this one is deliberately part of the fetcher interface
+func (r *Runtime) BinaryStore() string {
+	return filepath.Join(r.store, "builds")
 }
 
 func (r *Runtime) binaryPath(key *manifest.Key) string {
 	platform := strings.ToLower(key.Platform)
 	platform = strings.ReplaceAll(platform, "-", "_")
-	return filepath.Join(r.local, "builds", key.Flavor, key.Version, platform)
+	return filepath.Join(r.BinaryStore(), key.Flavor, key.Version, platform)
 }
 
 func fetchEnvoy(dst, src string) error {

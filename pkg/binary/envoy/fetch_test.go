@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package binary
+package envoy
 
 import (
 	"io/ioutil"
@@ -91,7 +91,7 @@ func TestRuntime_Fetch(t *testing.T) {
 				createLocalEnvoy(envoyLocation)
 			}
 
-			r := &Runtime{local: tmpDir}
+			r := &Runtime{fetcher: fetcher{tmpDir}}
 			err := r.Fetch(tc.key, mock.URL)
 			if tc.wantErr {
 				assert.Error(t, err)

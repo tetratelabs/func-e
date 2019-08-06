@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package binary
+package envoy
 
 import (
 	"context"
@@ -62,6 +62,12 @@ func (r *Runtime) RunPath(path string, args []string) error {
 	return nil
 }
 
+// DebugStore returns the location at which the runtime instance persists debug data for this given instance
+// Getters typically aren't idiomatic Go, however, this one is deliberately part of the runner interface
+func (r *Runtime) DebugStore() string {
+	return r.debugDir
+}
+
 func (r *Runtime) waitForTerminationSignals(ctx context.Context) {
 	signal.Notify(r.signals, syscall.SIGINT)
 
@@ -97,6 +103,6 @@ func (r *Runtime) runEnvoy(path string, args []string, cancel context.CancelFunc
 }
 
 func (r *Runtime) initializeDebugStore() error {
-	r.DebugDir = filepath.Join(r.local, "debug", strconv.FormatInt(time.Now().UnixNano(), 10))
-	return os.MkdirAll(r.DebugDir, 0750)
+	r.debugDir = filepath.Join(r.store, "debug", strconv.FormatInt(time.Now().UnixNano(), 10))
+	return os.MkdirAll(r.debugDir, 0750)
 }

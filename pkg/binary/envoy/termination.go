@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package binary
+package envoy
 
 import (
 	"syscall"
 
+	"github.com/tetratelabs/getenvoy/pkg/binary"
 	"github.com/tetratelabs/log"
 )
 
@@ -42,6 +43,6 @@ func (r *Runtime) handleTermination() {
 
 // RegisterPreTermination registers the passed functions to be run after Envoy has started
 // and just before GetEnvoy instructs Envoy to terminate
-func (r *Runtime) RegisterPreTermination(f ...preTerminationFunc) {
+func (r *Runtime) RegisterPreTermination(f ...func(binary.Runner) error) {
 	r.preTermination = append(r.preTermination, f...)
 }

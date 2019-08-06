@@ -20,8 +20,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/tetratelabs/getenvoy/pkg/binary"
-	"github.com/tetratelabs/getenvoy/pkg/binary/debug"
+	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
+	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/debug"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
 
@@ -49,7 +49,7 @@ getenvoy run standard:1.10.1 -- --help
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			runtime, err := binary.NewRuntime(
+			runtime, err := envoy.NewRuntime(
 				debug.EnableEnvoyAdminDataCollection,
 			)
 			if err != nil {

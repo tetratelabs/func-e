@@ -15,6 +15,7 @@
 package debug
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -23,6 +24,7 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/tetratelabs/getenvoy/pkg/binary"
+	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 )
 
 var adminAPIPaths = map[string]string{
@@ -38,20 +40,31 @@ var adminAPIPaths = map[string]string{
 }
 
 // EnableEnvoyAdminDataCollection is a preset option that registers collection of Envoy Admin API information
-var EnableEnvoyAdminDataCollection = func(r *binary.Runtime) {
+var EnableEnvoyAdminDataCollection = func(r *envoy.Runtime) {
 	r.RegisterPreTermination(retrieveAdminAPIData)
 }
 
-func retrieveAdminAPIData(r *binary.Runtime) error {
+func retrieveAdminAPIData(r binary.Runner) error {
+	// Type assert as we're using Envoy specific debugging (admin endpoint)
+	envoy, ok := r.(*envoy.Runtime)
+	if !ok {
+		return errors.New("binary.Runner is not an Envoy runtime")
+	}
 	var multiErr *multierror.Error
 	for path, file := range adminAPIPaths {
-		resp, err := http.Get(fmt.Sprintf("http://localhost:15001/%v", path))
+		resp, err := http.Get(fmt.Sprintf("http://%v/%v", envoy.AdminEndpoint, path))
 		if err != nil {
 			multiErr = multierror.Append(multiErr, err)
+			continue
 		}
-		f, err := os.OpenFile(filepath.Join(r.DebugDir, file), os.O_CREATE|os.O_WRONLY, 0600)
+		if resp.StatusCode != http.StatusOK {
+			multiErr = multierror.Append(multiErr, fmt.Errorf("received %v from /%v ", resp.StatusCode, path))
+			continue
+		}
+		f, err := os.OpenFile(filepath.Join(r.DebugStore(), file), os.O_CREATE|os.O_WRONLY, 0600)
 		if err != nil {
 			multiErr = multierror.Append(multiErr, err)
+			continue
 		}
 		defer func() { _ = f.Close() }()
 		defer func() { _ = resp.Body.Close() }()
