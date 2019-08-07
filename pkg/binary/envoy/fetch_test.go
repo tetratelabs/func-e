@@ -42,7 +42,7 @@ func TestRuntime_Fetch(t *testing.T) {
 		wantServerCalled bool
 	}{
 		{
-			name:             "Downloads and untars envoy and libs to local/key/bin and local/key/lib",
+			name:             "Downloads and untars envoy and runtime libs to store/key/bin and store/key/lib",
 			key:              defaultDarwinKey,
 			tarballStructure: "envoy",
 			responseStatus:   http.StatusOK,
