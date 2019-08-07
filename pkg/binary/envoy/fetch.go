@@ -15,6 +15,7 @@
 package envoy
 
 import (
+	"archive/tar"
 	"errors"
 	"net/http"
 	"path/filepath"
@@ -34,11 +35,13 @@ import (
 	"github.com/tetratelabs/log"
 )
 
+const envoyLocation = "bin/envoy"
+
 // Fetch downloads an Envoy binary from the passed location
 func (r *Runtime) Fetch(key *manifest.Key, binaryLocation string) error {
 	if !r.AlreadyDownloaded(key) {
 		log.Debugf("fetching %v from %v", key, binaryLocation)
-		dst := r.binaryPath(key)
+		dst := r.platformDirectory(key)
 		if err := os.MkdirAll(dst, 0750); err != nil {
 			return fmt.Errorf("unable to create directory %q: %v", dst, err)
 		}
@@ -50,7 +53,8 @@ func (r *Runtime) Fetch(key *manifest.Key, binaryLocation string) error {
 
 // AlreadyDownloaded returns true if there is a cached Envoy binary matching the passed Key
 func (r *Runtime) AlreadyDownloaded(key *manifest.Key) bool {
-	_, err := os.Stat(filepath.Join(r.binaryPath(key), "envoy"))
+	fmt.Println(filepath.Join(r.platformDirectory(key), envoyLocation))
+	_, err := os.Stat(filepath.Join(r.platformDirectory(key), envoyLocation))
 
 	// !IsNotExist is not the same as IsExist
 	// os.Stat doesn't return IsExist typed errors
@@ -63,7 +67,7 @@ func (r *Runtime) BinaryStore() string {
 	return filepath.Join(r.store, "builds")
 }
 
-func (r *Runtime) binaryPath(key *manifest.Key) string {
+func (r *Runtime) platformDirectory(key *manifest.Key) string {
 	platform := strings.ToLower(key.Platform)
 	platform = strings.ReplaceAll(platform, "-", "_")
 	return filepath.Join(r.BinaryStore(), key.Flavor, key.Version, platform)
@@ -78,10 +82,10 @@ func fetchEnvoy(dst, src string) error {
 
 	tarball, err := doDownload(tmpDir, src)
 	if err != nil {
-		return fmt.Errorf("unable to fetch envoy from %q: %v", src, err)
+		return fmt.Errorf("unable to fetch envoy from %v: %v", src, err)
 	}
 	if err := extractEnvoy(dst, tarball); err != nil {
-		return fmt.Errorf("unable to extract envoy to %q: %v", dst, err)
+		return fmt.Errorf("unable to extract envoy to %v: %v", dst, err)
 	}
 	return nil
 }
@@ -112,27 +116,25 @@ func doDownload(dst, src string) (string, error) {
 }
 
 func extractEnvoy(dst, tarball string) error {
-	// #nosec -> envoy binary needs to be executable
-	envoy, err := os.OpenFile(filepath.Join(dst, "envoy"), os.O_CREATE|os.O_WRONLY, 0755)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = envoy.Close() }()
-	// Walk the tarball until we find file named envoy, then copy to our destination
-	found := false
+	// Walk the tarball until we find the bin and lib directories
 	if err := archiver.Walk(tarball, func(f archiver.File) error {
-		if f.Name() == "envoy" && !f.IsDir() {
-			found = true
-			if _, err := io.Copy(envoy, f); err != nil {
-				return err
+		if (f.Name() == "bin" && f.IsDir()) || (f.Name() == "lib" && f.IsDir()) {
+			if f.Header != nil {
+				if header, ok := f.Header.(*tar.Header); ok {
+					if err := archiver.Extract(tarball, header.Name, dst); err != nil {
+						log.Errorf("error extracting %v: %v", f.Name(), err)
+					}
+				}
 			}
 		}
 		return nil
 	}); err != nil {
 		return err
 	}
-	if !found {
-		return errors.New("unable to find Envoy binary in downloaded tarball")
+	envoyFilepath := filepath.Join(dst, envoyLocation)
+	log.Debugf("checking for binary at %v", envoyFilepath)
+	if _, err := os.Stat(envoyFilepath); os.IsNotExist(err) {
+		return errors.New("no Envoy binary in downloaded tarball")
 	}
 	return nil
 }

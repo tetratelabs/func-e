@@ -35,33 +35,28 @@ func TestRuntime_Fetch(t *testing.T) {
 		key              *manifest.Key
 		tarballStructure string
 		envoyLocation    string
+		libLocation      string
 		alreadyLocal     bool
 		responseStatus   int
 		wantErr          bool
 		wantServerCalled bool
 	}{
 		{
-			name:             "Downloads and untars envoy to local/key",
+			name:             "Downloads and untars envoy and libs to local/key/bin and local/key/lib",
 			key:              defaultDarwinKey,
-			tarballStructure: "golden",
+			tarballStructure: "envoy",
 			responseStatus:   http.StatusOK,
-			envoyLocation:    "builds/standard/1.11.0/darwin/envoy",
+			envoyLocation:    "builds/standard/1.11.0/darwin/bin/envoy",
+			libLocation:      "builds/standard/1.11.0/darwin/lib/somelib",
 			wantServerCalled: true,
 		},
 		{
 			name:             "Does nothing if it already has a local copy",
 			key:              defaultDarwinKey,
-			envoyLocation:    "builds/standard/1.11.0/darwin/envoy",
+			envoyLocation:    "builds/standard/1.11.0/darwin/bin/envoy",
+			libLocation:      "builds/standard/1.11.0/darwin/lib/somelib",
 			alreadyLocal:     true,
 			wantServerCalled: false,
-		},
-		{
-			name:             "Handles directories called Envoy",
-			key:              defaultDarwinKey,
-			tarballStructure: "envoydirectory",
-			responseStatus:   http.StatusOK,
-			envoyLocation:    "builds/standard/1.11.0/darwin/envoy",
-			wantServerCalled: true,
 		},
 		{
 			name:             "errors if it can't find an envoy binary in tarball",
@@ -84,11 +79,13 @@ func TestRuntime_Fetch(t *testing.T) {
 		tc := tt
 		t.Run(tc.name, func(t *testing.T) {
 			tmpDir, _ := ioutil.TempDir("", "getenvoy-test-")
-			envoyLocation := filepath.Join(tmpDir, tc.envoyLocation)
 			defer os.RemoveAll(tmpDir)
+			envoyLocation := filepath.Join(tmpDir, tc.envoyLocation)
+			libLocation := filepath.Join(tmpDir, tc.libLocation)
 			mock, gotCalled := mockServer(tc.responseStatus, tc.tarballStructure, tmpDir)
 			if tc.alreadyLocal {
-				createLocalEnvoy(envoyLocation)
+				createLocalFile(envoyLocation)
+				createLocalFile(libLocation)
 			}
 
 			r := &Runtime{fetcher: fetcher{tmpDir}}
@@ -97,20 +94,22 @@ func TestRuntime_Fetch(t *testing.T) {
 				assert.Error(t, err)
 			} else {
 				assert.Nil(t, err)
-				f, _ := os.Open(envoyLocation)
-				bytes, _ := ioutil.ReadAll(f)
-				assert.Contains(t, string(bytes), "some complied c++")
+				for _, location := range []string{libLocation, envoyLocation} {
+					f, _ := os.Open(location)
+					bytes, _ := ioutil.ReadAll(f)
+					assert.Contains(t, string(bytes), "some c++")
+				}
 			}
 			assert.Equal(t, tc.wantServerCalled, *gotCalled, "mismatch of expectations for calling of remote server")
 		})
 	}
 }
 
-func createLocalEnvoy(envoyLocation string) {
-	dir, _ := filepath.Split(envoyLocation)
+func createLocalFile(location string) {
+	dir, _ := filepath.Split(location)
 	os.MkdirAll(dir, 0750)
-	f, _ := os.Create(envoyLocation)
-	f.WriteString("some complied c++")
+	f, _ := os.Create(location)
+	f.WriteString("some c++")
 	f.Close()
 }
 

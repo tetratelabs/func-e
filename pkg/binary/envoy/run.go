@@ -32,7 +32,7 @@ import (
 // Run execs the binary defined by the key with the args passed
 // It is a blocking function that can only be terminated via SIGINT
 func (r *Runtime) Run(key *manifest.Key, args []string) error {
-	path := filepath.Join(r.binaryPath(key), "envoy")
+	path := filepath.Join(r.platformDirectory(key), envoyLocation)
 	return r.RunPath(path, args)
 }
 
