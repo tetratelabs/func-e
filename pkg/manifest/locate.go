@@ -20,6 +20,14 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+
+	"github.com/tetratelabs/getenvoy-package/api"
+	"github.com/tetratelabs/log"
+)
+
+const (
+	// DefaultURL is the official GetEnvoy manifest location
+	DefaultURL = "https://tetrate.bintray.com/getenvoy/manifest.json"
 )
 
 // NewKey creates a manifest key based on the reference it is given
@@ -49,21 +57,33 @@ type Key struct {
 	Platform string
 }
 
+func (k Key) String() string {
+	return fmt.Sprintf("%v:%v/%v", k.Flavor, k.Version, platformFromEnum(k.Platform))
+}
+
 // Locate returns the location of the binary for the passed parameters from the passed manifest
+// If manifestLocation is an empty string the DefaultURL is used
 // The build version is searched for as a prefix of the OperatingSystemVersion.
 // If the OperatingSystemVersion is empty it returns the first build listed for that operating system
 func Locate(key *Key, manifestLocation string) (string, error) {
 	if key == nil {
 		return "", errors.New("passed key was nil")
 	}
+	if manifestLocation == "" {
+		manifestLocation = DefaultURL
+	}
 	if u, err := url.Parse(manifestLocation); err != nil || u.Host == "" || u.Scheme == "" {
 		return "", errors.New("only URL manifest locations are supported")
 	}
+	log.Debugf("retrieving manifest %v", manifestLocation)
 	manifest, err := fetch(manifestLocation)
 	if err != nil {
 		return "", err
 	}
+	return locateBuild(key, manifest)
+}
 
+func locateBuild(key *Key, manifest *api.Manifest) (string, error) {
 	// This is pretty horrible... Not sure there is a nicer way though.
 	if manifest.Flavors[key.Flavor] != nil && manifest.Flavors[key.Flavor].Versions[key.Version] != nil {
 		for _, build := range manifest.Flavors[key.Flavor].Versions[key.Version].Builds {

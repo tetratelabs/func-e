@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package getenvoy
+package envoy
 
 import (
 	"io/ioutil"
@@ -35,22 +35,28 @@ func TestRuntime_Fetch(t *testing.T) {
 		key              *manifest.Key
 		tarballStructure string
 		envoyLocation    string
+		libLocation      string
+		alreadyLocal     bool
 		responseStatus   int
 		wantErr          bool
+		wantServerCalled bool
 	}{
 		{
-			name:             "Downloads and untars envoy to local/key",
+			name:             "Downloads and untars envoy and runtime libs to store/key/bin and store/key/lib",
 			key:              defaultDarwinKey,
-			tarballStructure: "golden",
+			tarballStructure: "envoy",
 			responseStatus:   http.StatusOK,
-			envoyLocation:    "builds/standard/1.11.0/darwin/envoy",
+			envoyLocation:    "builds/standard/1.11.0/darwin/bin/envoy",
+			libLocation:      "builds/standard/1.11.0/darwin/lib/somelib",
+			wantServerCalled: true,
 		},
 		{
-			name:             "Handles directories called Envoy",
+			name:             "Does nothing if it already has a local copy",
 			key:              defaultDarwinKey,
-			tarballStructure: "envoydirectory",
-			responseStatus:   http.StatusOK,
-			envoyLocation:    "builds/standard/1.11.0/darwin/envoy",
+			envoyLocation:    "builds/standard/1.11.0/darwin/bin/envoy",
+			libLocation:      "builds/standard/1.11.0/darwin/lib/somelib",
+			alreadyLocal:     true,
+			wantServerCalled: false,
 		},
 		{
 			name:             "errors if it can't find an envoy binary in tarball",
@@ -58,6 +64,7 @@ func TestRuntime_Fetch(t *testing.T) {
 			tarballStructure: "noenvoy",
 			responseStatus:   http.StatusOK,
 			wantErr:          true,
+			wantServerCalled: true,
 		},
 		{
 			name:             "errors if it gets !200 from download",
@@ -65,6 +72,7 @@ func TestRuntime_Fetch(t *testing.T) {
 			tarballStructure: "noenvoy",
 			responseStatus:   http.StatusTeapot,
 			wantErr:          true,
+			wantServerCalled: true,
 		},
 	}
 	for _, tt := range tests {
@@ -72,24 +80,43 @@ func TestRuntime_Fetch(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tmpDir, _ := ioutil.TempDir("", "getenvoy-test-")
 			defer os.RemoveAll(tmpDir)
-			mock := mockServer(tc.responseStatus, tc.tarballStructure, tmpDir)
+			envoyLocation := filepath.Join(tmpDir, tc.envoyLocation)
+			libLocation := filepath.Join(tmpDir, tc.libLocation)
+			mock, gotCalled := mockServer(tc.responseStatus, tc.tarballStructure, tmpDir)
+			if tc.alreadyLocal {
+				createLocalFile(envoyLocation)
+				createLocalFile(libLocation)
+			}
 
-			r := &Runtime{local: tmpDir}
+			r := &Runtime{fetcher: fetcher{tmpDir}}
 			err := r.Fetch(tc.key, mock.URL)
 			if tc.wantErr {
 				assert.Error(t, err)
 			} else {
 				assert.Nil(t, err)
-				f, _ := os.Open(filepath.Join(tmpDir, tc.envoyLocation))
-				bytes, _ := ioutil.ReadAll(f)
-				assert.Contains(t, string(bytes), "some complied c++")
+				for _, location := range []string{libLocation, envoyLocation} {
+					f, _ := os.Open(location)
+					bytes, _ := ioutil.ReadAll(f)
+					assert.Contains(t, string(bytes), "some c++")
+				}
 			}
+			assert.Equal(t, tc.wantServerCalled, *gotCalled, "mismatch of expectations for calling of remote server")
 		})
 	}
 }
 
-func mockServer(responseStatusCode int, tarballStructure string, tmpDir string) *httptest.Server {
+func createLocalFile(location string) {
+	dir, _ := filepath.Split(location)
+	os.MkdirAll(dir, 0750)
+	f, _ := os.Create(location)
+	f.WriteString("some c++")
+	f.Close()
+}
+
+func mockServer(responseStatusCode int, tarballStructure string, tmpDir string) (*httptest.Server, *bool) {
+	called := false
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
 		w.WriteHeader(responseStatusCode)
 		if responseStatusCode == http.StatusOK {
 			tarball := filepath.Join(tmpDir, tarballStructure+".tar.gz")
@@ -97,5 +124,5 @@ func mockServer(responseStatusCode int, tarballStructure string, tmpDir string) 
 			bytes, _ := ioutil.ReadFile(tarball)
 			w.Write(bytes)
 		}
-	}))
+	})), &called
 }

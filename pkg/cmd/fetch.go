@@ -18,7 +18,7 @@ import (
 	"errors"
 
 	"github.com/spf13/cobra"
-	"github.com/tetratelabs/getenvoy/pkg/binary/getenvoy"
+	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
 
@@ -50,7 +50,7 @@ getenvoy fetch standard:1.11.1/debian`,
 			if err != nil {
 				return err
 			}
-			runtime, err := getenvoy.New()
+			runtime, err := envoy.NewRuntime()
 			if err != nil {
 				return err
 			}

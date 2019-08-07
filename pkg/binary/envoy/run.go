@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package getenvoy
+package envoy
 
 import (
 	"context"
@@ -32,7 +32,7 @@ import (
 // Run execs the binary defined by the key with the args passed
 // It is a blocking function that can only be terminated via SIGINT
 func (r *Runtime) Run(key *manifest.Key, args []string) error {
-	path := filepath.Join(r.binaryPath(key), "envoy")
+	path := filepath.Join(r.platformDirectory(key), envoyLocation)
 	return r.RunPath(path, args)
 }
 
@@ -60,6 +60,12 @@ func (r *Runtime) RunPath(path string, args []string) error {
 	// Block until the Envoy process and termination handler are finished cleaning up
 	r.wg.Wait()
 	return nil
+}
+
+// DebugStore returns the location at which the runtime instance persists debug data for this given instance
+// Getters typically aren't idiomatic Go, however, this one is deliberately part of the runner interface
+func (r *Runtime) DebugStore() string {
+	return r.debugDir
 }
 
 func (r *Runtime) waitForTerminationSignals(ctx context.Context) {
@@ -97,6 +103,6 @@ func (r *Runtime) runEnvoy(path string, args []string, cancel context.CancelFunc
 }
 
 func (r *Runtime) initializeDebugStore() error {
-	r.debugDir = filepath.Join(r.local, "debug", strconv.FormatInt(time.Now().UnixNano(), 10))
+	r.debugDir = filepath.Join(r.store, "debug", strconv.FormatInt(time.Now().UnixNano(), 10))
 	return os.MkdirAll(r.debugDir, 0750)
 }

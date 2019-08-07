@@ -12,13 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package getenvoy
+package envoy
 
-import "syscall"
+import (
+	"github.com/tetratelabs/getenvoy/pkg/binary"
+	"github.com/tetratelabs/log"
+)
 
-func sysProcAttr() *syscall.SysProcAttr {
-	return &syscall.SysProcAttr{
-		Setpgid:   true,            // equivalent to setpgrp() syscall
-		Pdeathsig: syscall.SIGTERM, // ensure the child Envoy process is cleaned up even if we die
+func (r *Runtime) handlePreStart() {
+	// Execute all registered preStart functions
+	for _, f := range r.preStart {
+		if err := f(r); err != nil {
+			log.Error(err.Error())
+		}
 	}
+}
+
+// RegisterPreStart registers the passed functions to be run before Envoy has started
+func (r *Runtime) RegisterPreStart(f ...func(binary.Runner) error) {
+	r.preStart = append(r.preStart, f...)
 }

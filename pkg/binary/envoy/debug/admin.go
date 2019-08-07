@@ -1,0 +1,76 @@
+// Copyright 2019 Tetrate
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package debug
+
+import (
+	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
+
+	"github.com/hashicorp/go-multierror"
+	"github.com/tetratelabs/getenvoy/pkg/binary"
+	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
+)
+
+var adminAPIPaths = map[string]string{
+	"certs":             "certs.json",
+	"clusters":          "clusters.txt",
+	"config_dump":       "config_dump.json",
+	"contention":        "contention.txt",
+	"listeners":         "listeners.txt",
+	"memory":            "memory.json",
+	"server_info":       "server_info.json",
+	"stats?format=json": "stats.json",
+	"runtime":           "runtime.json",
+}
+
+// EnableEnvoyAdminDataCollection is a preset option that registers collection of Envoy Admin API information
+var EnableEnvoyAdminDataCollection = func(r *envoy.Runtime) {
+	r.RegisterPreTermination(retrieveAdminAPIData)
+}
+
+func retrieveAdminAPIData(r binary.Runner) error {
+	// Type assert as we're using Envoy specific debugging (admin endpoint)
+	envoy, ok := r.(*envoy.Runtime)
+	if !ok {
+		return errors.New("binary.Runner is not an Envoy runtime")
+	}
+	var multiErr *multierror.Error
+	for path, file := range adminAPIPaths {
+		resp, err := http.Get(fmt.Sprintf("http://%v/%v", envoy.AdminEndpoint, path))
+		if err != nil {
+			multiErr = multierror.Append(multiErr, err)
+			continue
+		}
+		if resp.StatusCode != http.StatusOK {
+			multiErr = multierror.Append(multiErr, fmt.Errorf("received %v from /%v ", resp.StatusCode, path))
+			continue
+		}
+		f, err := os.OpenFile(filepath.Join(r.DebugStore(), file), os.O_CREATE|os.O_WRONLY, 0600)
+		if err != nil {
+			multiErr = multierror.Append(multiErr, err)
+			continue
+		}
+		defer func() { _ = f.Close() }()
+		defer func() { _ = resp.Body.Close() }()
+		if _, err := io.Copy(f, resp.Body); err != nil {
+			multiErr = multierror.Append(multiErr, err)
+		}
+	}
+	return multiErr.ErrorOrNil()
+}

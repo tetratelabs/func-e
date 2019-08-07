@@ -12,23 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package binary
+package envoy
 
-import "github.com/tetratelabs/getenvoy/pkg/manifest"
+import "syscall"
 
-// Runner wraps the Envoy Run interface
-type Runner interface {
-	Run(key *manifest.Key, args []string) error
-	RunPath(path string, args []string) error
-}
-
-// Fetcher wraps the Envoy Fetch interface
-type Fetcher interface {
-	Fetch(key *manifest.Key, binaryLocation string) error
-}
-
-// Runtime wraps the Run and Fetch interfaces
-type Runtime interface {
-	Runner
-	Fetcher
+func sysProcAttr() *syscall.SysProcAttr {
+	return &syscall.SysProcAttr{
+		Setpgid:   true,            // equivalent to setpgrp() syscall
+		Pdeathsig: syscall.SIGTERM, // ensure the child Envoy process is cleaned up even if we die
+	}
 }

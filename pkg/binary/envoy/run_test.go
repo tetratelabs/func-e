@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package getenvoy
+package envoy
 
 import (
 	"fmt"
@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/tetratelabs/getenvoy/pkg/binary"
 )
 
 func TestRuntime_RunPath(t *testing.T) {
@@ -36,7 +37,7 @@ func TestRuntime_RunPath(t *testing.T) {
 	}{
 		{
 			name:        "GetEnvoy shot first",
-			killerFunc:  func(r *Runtime) { r.signals <- syscall.SIGINT },
+			killerFunc:  func(r *Runtime) { r.SendSignal(syscall.SIGINT) },
 			wantPreTerm: true,
 		},
 		{
@@ -59,7 +60,7 @@ func TestRuntime_RunPath(t *testing.T) {
 			r, preStartCalled, preTerminationCalled := newRuntimeWithMockFunctions(t)
 			tmpDir, _ := ioutil.TempDir("", "getenvoy-test-")
 			defer os.RemoveAll(tmpDir)
-			r.local = tmpDir
+			r.store = tmpDir
 
 			wg := &sync.WaitGroup{}
 			wg.Add(1)
@@ -68,7 +69,7 @@ func TestRuntime_RunPath(t *testing.T) {
 				r.RunPath(filepath.Join("testdata", "sleep.sh"), tc.args)
 			}()
 
-			waitForProcessStart(r)
+			r.Wait(binary.StatusStarted)
 			tc.killerFunc(r)
 			wg.Wait()
 
@@ -79,18 +80,13 @@ func TestRuntime_RunPath(t *testing.T) {
 	}
 }
 
-func waitForProcessStart(r *Runtime) {
-	for r.cmd == nil || r.cmd.Process == nil {
-		time.Sleep(time.Millisecond)
-	}
-}
-
 // This ensures functions are called in the correct order
 func newRuntimeWithMockFunctions(t *testing.T) (*Runtime, *bool, *bool) {
 	preStartCalled := false
 	preStart := func(r *Runtime) {
-		r.registerPreStart(func(r *Runtime) error {
-			if r.cmd != nil && r.cmd.Process != nil {
+		r.RegisterPreStart(func(r binary.Runner) error {
+			r, _ = r.(*Runtime)
+			if r.Status() > binary.StatusStarting {
 				t.Error("preStart was called after process has started")
 			}
 			preStartCalled = true
@@ -100,17 +96,19 @@ func newRuntimeWithMockFunctions(t *testing.T) (*Runtime, *bool, *bool) {
 
 	preTerminationCalled := false
 	preTermination := func(r *Runtime) {
-		r.registerPreTermination(func(r *Runtime) error {
-			if r.cmd != nil && r.cmd.Process == nil {
+		r.RegisterPreTermination(func(r binary.Runner) error {
+			r, _ = r.(*Runtime)
+			if r.Status() < binary.StatusStarted {
 				t.Error("preTermination was called before process was started")
 			}
-			if r.cmd != nil && r.cmd.ProcessState != nil {
+			if r.Status() > binary.StatusReady {
 				t.Error("preTermination was called after process was terminated")
 			}
 			preTerminationCalled = true
 			return nil
 		})
 	}
-	runtime, _ := New(preStart, preTermination)
-	return runtime, &preStartCalled, &preTerminationCalled
+	runtime, _ := NewRuntime(preStart, preTermination)
+
+	return runtime.(*Runtime), &preStartCalled, &preTerminationCalled
 }
