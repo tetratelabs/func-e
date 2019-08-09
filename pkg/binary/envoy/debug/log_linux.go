@@ -25,7 +25,7 @@ import (
 	"github.com/tetratelabs/log"
 )
 
-// EnableEnvoyLogCollection is a preset option that registers collection of Envoy Access Logs
+// EnableEnvoyLogCollection is a preset option that registers collection of Envoy access logs and stderr
 var EnableEnvoyLogCollection = func(r *envoy.Runtime) {
 	r.RegisterPreStart(captureStdout)
 	r.RegisterPreStart(captureStderr)
