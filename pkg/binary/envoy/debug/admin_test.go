@@ -15,6 +15,7 @@
 package debug
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -27,18 +28,19 @@ import (
 
 const envoyReference = "standard:1.11.0"
 
-func fetchEnvoy(t *testing.T) {
+func fetchEnvoy() error {
 	key, _ := manifest.NewKey(envoyReference)
 	r, _ := envoy.NewRuntime()
 	if !r.AlreadyDownloaded(key) {
 		location, err := manifest.Locate(key, manifest.DefaultURL)
 		if err != nil {
-			t.Fatalf("unable to retrieve manifest from %v: %v", manifest.DefaultURL, err)
+			return fmt.Errorf("unable to retrieve manifest from %v: %v", manifest.DefaultURL, err)
 		}
 		if err := r.Fetch(key, location); err != nil {
-			t.Fatalf("unable to retrieve binary from %v: %v", location, err)
+			return fmt.Errorf("unable to retrieve binary from %v: %v", location, err)
 		}
 	}
+	return nil
 }
 
 func startWaitKillGetEnvoy(r binary.Runner, key *manifest.Key) {
@@ -48,10 +50,17 @@ func startWaitKillGetEnvoy(r binary.Runner, key *manifest.Key) {
 	r.Wait(binary.StatusTerminated)
 }
 
+func TestMain(m *testing.M) {
+	if err := fetchEnvoy(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	os.Exit(m.Run())
+}
+
 // This test relies on a local Envoy binary, if not present it will fetch one from GetEnvoy
 // This is more of an integration test than a unit test, but either way is necessary.
 func Test_retrieveAdminAPIData(t *testing.T) {
-	fetchEnvoy(t)
 	t.Run("creates all non-empty files", func(t *testing.T) {
 		key, _ := manifest.NewKey(envoyReference)
 		r, _ := envoy.NewRuntime(EnableEnvoyAdminDataCollection)

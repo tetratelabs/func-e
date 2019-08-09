@@ -51,6 +51,7 @@ getenvoy run standard:1.10.1 -- --help
 		RunE: func(cmd *cobra.Command, args []string) error {
 			runtime, err := envoy.NewRuntime(
 				debug.EnableEnvoyAdminDataCollection,
+				debug.EnableEnvoyLogCollection,
 			)
 			if err != nil {
 				return err

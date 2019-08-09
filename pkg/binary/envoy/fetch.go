@@ -45,9 +45,10 @@ func (r *Runtime) Fetch(key *manifest.Key, binaryLocation string) error {
 		if err := os.MkdirAll(dst, 0750); err != nil {
 			return fmt.Errorf("unable to create directory %q: %v", dst, err)
 		}
+		fmt.Printf("fetching %v\n", key)
 		return fetchEnvoy(dst, binaryLocation)
 	}
-	log.Debugf("%v is already downloaded", key)
+	fmt.Printf("%v is already downloaded\n", key)
 	return nil
 }
 
@@ -111,6 +112,7 @@ func doDownload(dst, src string) (string, error) {
 	bar := progressbar.NewOptions64(resp.ContentLength, progressbar.OptionSetDescription("[Fetching Envoy]"))
 	out := io.MultiWriter(f, bar)
 	_, err = io.Copy(out, resp.Body)
+	fmt.Println("") // append a newline to progressbar output
 	return tarball, err
 }
 
