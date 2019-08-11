@@ -44,11 +44,6 @@ func (r *Runtime) RunPath(path string, args []string) error {
 		return fmt.Errorf("unable to stat %q: %v", path, err)
 	}
 
-	// Debug store should always be created prior to any prestart functions
-	if err := r.initializeDebugStore(); err != nil {
-		return fmt.Errorf("unable to create directory to store debug information: %v", err)
-	}
-
 	ctx, cancel := context.WithCancel(context.Background())
 	r.ctx = ctx
 

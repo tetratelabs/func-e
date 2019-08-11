@@ -40,6 +40,11 @@ func NewRuntime(options ...func(*Runtime)) (binary.FetchRunner, error) {
 		preStart:       make([]func(binary.Runner) error, 0),
 		preTermination: make([]func(binary.Runner) error, 0),
 	}
+
+	if debugErr := runtime.initializeDebugStore(); err != nil {
+		return nil, fmt.Errorf("unable to create directory to store debug information: %v", debugErr)
+	}
+
 	for _, option := range options {
 		option(runtime)
 	}

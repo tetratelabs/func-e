@@ -30,7 +30,7 @@ func Test_ps(t *testing.T) {
 		defer os.RemoveAll(r.DebugStore())
 		startWaitKillGetEnvoy(r, key)
 
-		path := filepath.Join(nodePath, "ps.txt")
+		path := filepath.Join(r.DebugStore(), "node/ps.txt")
 		f, err := os.Stat(path)
 		if err != nil {
 			t.Errorf("error stating %v: %v", path, err)

@@ -25,13 +25,10 @@ import (
 	"github.com/tetratelabs/log"
 )
 
-var nodePath string
-
 // EnableNodeCollection is a preset option that registers collection of node level information for debugging
 var EnableNodeCollection = func(r *envoy.Runtime) {
-	nodePath = filepath.Join(r.DebugStore(), "node")
-	if err := os.MkdirAll(nodePath, os.ModePerm); err != nil {
-		log.Errorf("unable to create directory to write logs to: %v", err)
+	if err := os.MkdirAll(filepath.Join(r.DebugStore(), "node"), os.ModePerm); err != nil {
+		log.Errorf("unable to create directory to write node data to: %v", err)
 		return
 	}
 	registerCommand(r, "ps", ps)
@@ -47,7 +44,7 @@ func registerCommand(r *envoy.Runtime, cmd string, execFunc func(binary.Runner) 
 }
 
 func ps(r binary.Runner) error {
-	f, err := os.OpenFile(filepath.Join(nodePath, "ps.txt"), os.O_CREATE|os.O_WRONLY, 0600)
+	f, err := os.Create(filepath.Join(r.DebugStore(), "node/ps.txt"))
 	if err != nil {
 		return fmt.Errorf("unable to create file to write ps output to: %v", err)
 	}
