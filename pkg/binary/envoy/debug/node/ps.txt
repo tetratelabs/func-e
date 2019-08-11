@@ -1,0 +1,424 @@
+USER             STAT    RSS      VSZ MINFLT MAJFLT  %CPU %MEM ARGS
+root             Ss    16020  4374344      -      -   4.8  0.1 /sbin/launchd
+root             Ss     1068  4350876      -      -   0.0  0.0 /usr/sbin/syslogd
+root             Ss     4820  4379304      -      -   0.0  0.0 /usr/libexec/UserEventAgent (System)
+root             Ss      460  4333536      -      -   0.0  0.0 /System/Library/PrivateFrameworks/Uninstall.framework/Resources/uninstalld
+root             Ss    13128  4391820      -      -   0.0  0.1 /usr/libexec/kextd
+root             Ss     6564  4437068      -      -   0.1  0.0 /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/FSEvents.framework/Versions/A/Support/fseventsd
+root             Ss     4412  4379080      -      -   0.0  0.0 /System/Library/PrivateFrameworks/MediaRemote.framework/Support/mediaremoted
+_appleevents     Ss     3428  4379132      -      -   0.0  0.0 /System/Library/CoreServices/appleeventsd --server
+root             Ss     9168  4399564      -      -   0.0  0.1 /usr/sbin/systemstats --daemon
+root             Ss     6892  4383668      -      -   0.0  0.0 /usr/libexec/configd
+root             Ss    14188  4381412      -      -   0.0  0.1 /Library/Application Support/iStat Menus 6/iStatMenusDaemon
+root             Ss     4720  4377300      -      -   0.0  0.0 /System/Library/CoreServices/powerd.bundle/powerd
+root             Ss     1132  4383388      -      -   0.0  0.0 /Library/PrivilegedHelperTools/com.80pct.FreedomHelper
+root             Ss    37796  4466924      -      -   0.2  0.2 /usr/libexec/logd
+root             Ss        8  4349880      -      -   0.0  0.0 /usr/libexec/keybagd -t 15
+root             Ss      728  4351996      -      -   0.0  0.0 /Library/Application Support/iStat Menus 6/iStatMenusFans
+root             Ss    48760  4586076      -      -   0.1  0.3 /System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Support/mds
+_iconservices    Ss     1240  4351356      -      -   0.0  0.0 /System/Library/CoreServices/iconservicesd
+root             Ss     2596  4376460      -      -   0.0  0.0 /usr/libexec/diskarbitrationd
+root             Ss     6372  4388344      -      -   0.0  0.0 /Applications/Private Internet Access.app/Contents/MacOS/pia-daemon
+root             Ss     1248  4377444      -      -   0.0  0.0 /System/Library/CoreServices/backupd.bundle/Contents/Resources/backupd-helper -launchd
+root             Ss     6028  4387684      -      -   0.0  0.0 /usr/libexec/coreduetd
+root             Ss    12068  4409220      -      -   0.3  0.1 /usr/libexec/opendirectoryd
+root             Ss     7316  4387224      -      -   0.0  0.0 /System/Library/PrivateFrameworks/ApplePushService.framework/apsd
+root             Ss      148  4424972      -      -   0.0  0.0 /Library/PrivilegedHelperTools/com.docker.vmnetd
+root             Ss      352  4377884      -      -   0.0  0.0 /System/Library/PrivateFrameworks/Noticeboard.framework/Versions/A/Resources/nbstated
+root             Ss     7064  4380272      -      -   0.0  0.0 /System/Library/CoreServices/launchservicesd
+_timed           Ss     2640  4376816      -      -   0.0  0.0 /usr/libexec/timed
+root             Ss     5496  4380380      -      -   0.0  0.0 /usr/sbin/securityd -i
+_usbmuxd         Ss      912  4377220      -      -   0.0  0.0 /System/Library/PrivateFrameworks/MobileDevice.framework/Versions/A/Resources/usbmuxd -launchd
+_locationd       Ss    10852  4395816      -      -   0.0  0.1 /usr/libexec/locationd
+root             Ss        8  4342100      -      -   0.0  0.0 autofsd
+_displaypolicyd  Ss     1536  4353204      -      -   0.0  0.0 /usr/libexec/displaypolicyd -k 1
+root             Ss     5264  4382488      -      -   0.0  0.0 /usr/libexec/dasd
+liam             Ss    29832  4974912      -      -   0.0  0.2 /System/Library/CoreServices/loginwindow.app/Contents/MacOS/loginwindow console
+root             Ss     1664  4349848      -      -   0.0  0.0 /System/Library/CoreServices/logind
+root             Ss     1468  4378980      -      -   0.0  0.0 /System/Library/PrivateFrameworks/GenerationalStorage.framework/Versions/A/Support/revisiond
+root             Ss        8  4325332      -      -   0.0  0.0 /usr/sbin/KernelEventAgent
+root             Ss     5892  4381536      -      -   0.0  0.0 /usr/sbin/bluetoothd
+_hidd            Ss     6936  4382404      -      -   0.1  0.0 /usr/libexec/hidd
+root             Ss     3736  4384140      -      -   0.0  0.0 /usr/libexec/corebrightnessd --launchd
+root             Ss     4804  4447124      -      -   0.0  0.0 /usr/libexec/AirPlayXPCHelper
+root             Ss     1744  4325884      -      -   0.1  0.0 /usr/sbin/notifyd
+root             Ss     4188  4384852      -      -   0.0  0.0 /usr/libexec/amfid
+root             Ss    11840  4389308      -      -   0.0  0.1 /usr/libexec/syspolicyd
+_distnote        Ss     1348  4350956      -      -   0.0  0.0 /usr/sbin/distnoted daemon
+root             Ss     2408  4335484      -      -   0.3  0.0 /usr/libexec/taskgated
+root             Ss     3052  4350816      -      -   0.0  0.0 /usr/sbin/cfprefsd daemon
+root             Ss     4380  4408380      -      -   0.1  0.0 /System/Library/CoreServices/coreservicesd
+root             Ss     4756  4380732      -      -   0.0  0.0 /System/Library/Frameworks/Security.framework/Versions/A/XPCServices/authd.xpc/Contents/MacOS/authd
+root             Ss      784  4350552      -      -   0.0  0.0 aslmanager
+root             Ss        8  4342052      -      -   0.0  0.0 /System/Library/Frameworks/PCSC.framework/Versions/A/XPCServices/com.apple.ctkpcscd.xpc/Contents/MacOS/com.apple.ctkpcscd
+_ctkd            Ss        8  4343256      -      -   0.0  0.0 /System/Library/Frameworks/CryptoTokenKit.framework/ctkd -s
+_windowserver    Ss   193624  8414288      -      -   1.8  1.2 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer -daemon
+root             Ss    19948  4415212      -      -   0.0  0.1 /usr/libexec/trustd
+_coreaudiod      Ss    13568  4395628      -      -   0.0  0.1 /usr/sbin/coreaudiod
+root             Ss     7396  4384804      -      -   0.0  0.0 /System/Library/PrivateFrameworks/CoreDuetContext.framework/Resources/contextstored
+root             Ss     2536  4378348      -      -   0.0  0.0 /usr/libexec/nehelper
+root             Ss    10760  4410604      -      -   0.0  0.1 /usr/libexec/mobileassetd
+_coreaudiod      Ss      232  4377092      -      -   0.0  0.0 /System/Library/Frameworks/CoreAudio.framework/Versions/A/XPCServices/com.apple.audio.DriverHelper.xpc/Contents/MacOS/com.apple.audio.DriverHelper
+_nsurlsessiond   Ss     5808  4387852      -      -   0.0  0.0 /usr/libexec/nsurlsessiond --privileged
+_networkd        Ss     7728  4388336      -      -   0.4  0.0 /usr/libexec/symptomsd
+root             Ss     1364  4377592      -      -   0.0  0.0 /System/Library/PrivateFrameworks/WirelessDiagnostics.framework/Support/awdd
+root             Ss     4520  4390996      -      -   0.0  0.0 /usr/libexec/lsd runAsRoot
+_mdnsresponder   Ss     3384  4379160      -      -   4.3  0.0 /usr/sbin/mDNSResponder
+root             Ss      812  4377444      -      -   0.0  0.0 /usr/sbin/mDNSResponderHelper
+root             Ss      724  4344232      -      -   0.0  0.0 /System/Library/PrivateFrameworks/CoreSymbolication.framework/coresymbolicationd
+root             Ss        8  4332288      -      -   0.0  0.0 /usr/libexec/multiversed
+root             Ss      512  4341584      -      -   0.0  0.0 /System/Library/CryptoTokenKit/com.apple.ifdreader.slotd/Contents/MacOS/com.apple.ifdreader
+root             Ss      540  4349732      -      -   0.0  0.0 /usr/libexec/apfsd
+root             Ss    13880  4391404      -      -   0.0  0.1 /usr/libexec/airportd
+root             Ss      980  4377604      -      -   0.0  0.0 /usr/libexec/usbd
+_cmiodalassistants Ss     2728  4407308      -      -   0.0  0.0 /System/Library/Frameworks/CoreMediaIO.framework/Resources/VDC.plugin/Contents/Resources/VDCAssistant
+root             Ss      216  4377072      -      -   0.0  0.0 /System/Library/PrivateFrameworks/BridgeOSInstallReporting.framework/Resources/bosreporter
+_softwareupdate  Ss      576  4350340      -      -   0.0  0.0 /System/Library/PrivateFrameworks/BridgeOSSoftwareUpdate.framework/Support/bosUpdateProxy
+root             Ss     2556  4377484      -      -   0.0  0.0 /System/Library/CoreServices/SubmitDiagInfo server-init
+_softwareupdate  Ss     3032  4491972      -      -   0.0  0.0 /System/Library/CoreServices/Software Update.app/Contents/Resources/softwareupdated
+root             Ss      632  4350920      -      -   0.0  0.0 /System/Library/CoreServices/Software Update.app/Contents/Resources/suhelperd
+_atsserver       Ss      516  4378548      -      -   0.0  0.0 /System/Library/Frameworks/ApplicationServices.framework/Frameworks/ATS.framework/Support/fontd
+root             Ss        8  4342168      -      -   0.0  0.0 /System/Library/CoreServices/ReportCrash daemon
+_analyticsd      Ss     2208  4378920      -      -   0.0  0.0 /System/Library/PrivateFrameworks/CoreAnalytics.framework/Support/analyticsd
+_nsurlstoraged   Ss     1232  4350376      -      -   0.0  0.0 /usr/libexec/nsurlstoraged --privileged
+root             Ss     1456  4384652      -      -   0.0  0.0 /usr/libexec/rtcreportingd
+root             Ss      248  4317144      -      -   0.0  0.0 /usr/libexec/smd
+root             Ss     1840  4417396      -      -   0.0  0.0 /System/Library/CoreServices/iconservicesagent runAsRoot
+root             Ss      684  4334440      -      -   0.0  0.0 /usr/libexec/watchdogd
+root             Ss      204  4335280      -      -   0.0  0.0 /System/Library/Frameworks/AudioToolbox.framework/AudioComponentRegistrar -daemon
+_coreaudiod      Ss        8  4305908      -      -   0.0  0.0 /System/Library/Frameworks/AudioToolbox.framework/XPCServices/com.apple.audio.SandboxHelper.xpc/Contents/MacOS/com.apple.audio.SandboxHelper
+root             Ss      308  4300580      -      -   0.0  0.0 /usr/libexec/thermald
+root             Ss     8320  4381340      -      -   0.2  0.0 /System/Library/PrivateFrameworks/TCC.framework/Resources/tccd system
+root             Ss    81004  5544028      -      -   0.0  0.5 /System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mds_stores
+_captiveagent    Ss      692  4352040      -      -   0.0  0.0 /usr/libexec/captiveagent
+root             Ss     2552  4377708      -      -   0.0  0.0 /usr/libexec/findmydeviced
+root             Ss     3396  4378708      -      -   0.0  0.0 /usr/libexec/secinitd
+root             Ss    13532  4431076      -      -   0.0  0.1 /usr/libexec/TouchBarServer
+root             Ss     1320  4376100      -      -   0.0  0.0 /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/CVMServer
+root             Ss     5216  4349780      -      -   0.0  0.0 /usr/libexec/colorsync.displayservices
+root             Ss     2100  4350548      -      -   0.0  0.0 /usr/libexec/colorsyncd
+_windowserver    Ss    26068  4881044      -      -   0.0  0.2 /System/Library/Frameworks/Metal.framework/Versions/A/XPCServices/MTLCompilerService.xpc/Contents/MacOS/MTLCompilerService
+root             Ss      292  4349916      -      -   0.0  0.0 /usr/libexec/sysmond
+root             S      1240  4378252      -      -   0.0  0.0 /usr/sbin/systemstats --logger-helper /private/var/db/systemstats
+root             Ss     3124  4352420      -      -   0.0  0.0 /System/Library/Frameworks/Security.framework/Versions/A/XPCServices/com.apple.CodeSigningHelper.xpc/Contents/MacOS/com.apple.CodeSigningHelper
+root             Ss      248  4350280      -      -   0.0  0.0 /System/Library/Frameworks/CoreMediaIO.framework/Versions/A/XPCServices/com.apple.cmio.registerassistantservice.xpc/Contents/MacOS/com.apple.cmio.registerassistantservice
+root             Ss        8  4880692      -      -   0.0  0.0 /System/Library/Frameworks/Metal.framework/Versions/A/XPCServices/MTLCompilerService.xpc/Contents/MacOS/MTLCompilerService
+root             Ss        8  4341392      -      -   0.0  0.0 /usr/libexec/bootinstalld
+root             Ss      212  4377884      -      -   0.0  0.0 /System/Library/CoreServices/sharedfilelistd
+root             S      2364  4377308      -      -   0.0  0.0 /System/Library/PrivateFrameworks/ViewBridge.framework/Versions/A/XPCServices/ViewBridgeAuxiliary.xpc/Contents/MacOS/ViewBridgeAuxiliary
+root             S       572  4350956      -      -   0.0  0.0 /usr/sbin/distnoted agent
+root             Ss     2644  4353892      -      -   0.0  0.0 /System/Library/PrivateFrameworks/PerformanceAnalysis.framework/Versions/A/XPCServices/com.apple.PerformanceAnalysis.animationperfd.xpc/Contents/MacOS/com.apple.PerformanceAnalysis.animationperfd
+root             Ss     1064  4350212      -      -   0.0  0.0 /System/Library/PrivateFrameworks/AccountPolicy.framework/XPCServices/com.apple.AccountPolicyHelper.xpc/Contents/MacOS/com.apple.AccountPolicyHelper
+root             Ss     4364  4377780      -      -   0.0  0.0 /System/Library/Frameworks/LocalAuthentication.framework/Support/coreauthd
+liam             S      2612  4377052      -      -   0.0  0.0 /System/Library/Frameworks/LocalAuthentication.framework/Support/coreauthd
+root             Ss      364  4326812      -      -   0.0  0.0 /usr/libexec/securityd_service
+root             Ss     4216  4378168      -      -   0.0  0.0 /usr/libexec/biometrickitd --launchd
+liam             S      4856  4351548      -      -   0.0  0.0 /usr/sbin/cfprefsd agent
+liam             S      8508  4380200      -      -   0.0  0.1 /usr/libexec/UserEventAgent (Aqua)
+liam             S      3944  4350956      -      -   0.0  0.0 /usr/sbin/distnoted agent
+liam             S      6996  4390560      -      -   0.0  0.0 /System/Library/Frameworks/CoreTelephony.framework/Support/CommCenter -L
+root             Ss      620  4376812      -      -   0.0  0.0 /usr/libexec/biokitaggdd
+liam             S      5936  4392988      -      -   0.0  0.0 /usr/libexec/lsd
+liam             S     12760  4410876      -      -   0.0  0.1 /usr/libexec/trustd --agent
+root             Ss      504  4377100      -      -   0.0  0.0 /System/Library/PrivateFrameworks/EmbeddedOSInstall.framework/Versions/A/XPCServices/EmbeddedOSInstallService.xpc/Contents/MacOS/EmbeddedOSInstallService
+liam             S      2240  4351864      -      -   0.0  0.0 /usr/libexec/pboard
+liam             S      4908  4381528      -      -   0.0  0.0 /usr/libexec/secd
+liam             S      4812  4378088      -      -   0.0  0.0 /usr/libexec/rapportd
+root             Ss     2228  4377696      -      -   0.0  0.0 /usr/sbin/WirelessRadioManagerd
+liam             S      7260  4387316      -      -   0.0  0.0 /System/Library/PrivateFrameworks/TelephonyUtilities.framework/callservicesd
+liam             S      9860  4393648      -      -   0.0  0.1 /System/Library/PrivateFrameworks/CloudKitDaemon.framework/Support/cloudd
+liam             S      6440  4387456      -      -   0.0  0.0 /System/Library/PrivateFrameworks/IDS.framework/identityservicesd.app/Contents/MacOS/identityservicesd
+liam             S      2380  4380964      -      -   0.0  0.0 /System/Library/PrivateFrameworks/HomeKitDaemon.framework/Support/homed
+liam             S      1180  4379756      -      -   0.0  0.0 /usr/libexec/languageassetd --firstLogin
+liam             S      3228  4377980      -      -   0.0  0.0 /System/Library/CoreServices/cloudpaird
+liam             S     13360  4456312      -      -   0.0  0.1 /System/Library/Frameworks/Accounts.framework/Versions/A/Support/accountsd
+liam             S      4144  4379608      -      -   0.0  0.0 /usr/libexec/secinitd
+liam             S     12180  4389448      -      -   0.0  0.1 /usr/libexec/routined LAUNCHED_BY_LAUNCHD
+liam             S      4096  4385896      -      -   0.0  0.0 /System/Library/PrivateFrameworks/TCC.framework/Resources/tccd
+liam             S      4932  4378320      -      -   0.0  0.0 /System/Library/PrivateFrameworks/IMCore.framework/imagent.app/Contents/MacOS/imagent
+liam             S      5992  4381216      -      -   0.0  0.0 /usr/sbin/usernoted
+liam             S       532  4379428      -      -   0.0  0.0 /usr/libexec/nsurlsessiond
+liam             S     34876  4952460      -      -   0.0  0.2 /System/Library/CoreServices/ControlStrip.app/Contents/MacOS/ControlStrip
+liam             S      1328  4378556      -      -   0.0  0.0 /usr/libexec/networkserviceproxy
+liam             S     24308  4457112      -      -   0.0  0.1 /System/Library/PrivateFrameworks/CalendarAgent.framework/Executables/CalendarAgent
+liam             S       200  4350316      -      -   0.0  0.0 /System/Library/CoreServices/APFSUserAgent
+liam             S       556  4377788      -      -   0.0  0.0 /System/Library/PrivateFrameworks/IMDPersistence.framework/XPCServices/IMDPersistenceAgent.xpc/Contents/MacOS/IMDPersistenceAgent
+liam             S     41680  5129944      -      -   0.0  0.2 /System/Library/CoreServices/NotificationCenter.app/Contents/MacOS/NotificationCenter
+liam             S       744  4350044      -      -   0.0  0.0 /System/Library/Frameworks/Security.framework/Versions/A/Resources/CloudKeychainProxy.bundle/Contents/MacOS/CloudKeychainProxy
+liam             S      1900  4349888      -      -   0.0  0.0 /System/Library/Frameworks/AddressBook.framework/Executables/ContactsAccountsService
+liam             S       448  4349732      -      -   0.0  0.0 /System/Library/PrivateFrameworks/CoreCDP.framework/Versions/A/Resources/cdpd
+liam             S      3288  4378276      -      -   0.0  0.0 /System/Library/PrivateFrameworks/ProtectedCloudStorage.framework/Helpers/ProtectedCloudKeySyncing
+liam             S       440  4349892      -      -   0.0  0.0 /System/Library/CoreServices/EscrowSecurityAlert.app/Contents/MacOS/EscrowSecurityAlert
+liam             S      7024  4407068      -      -   0.0  0.0 /System/Library/CoreServices/WiFiAgent.app/Contents/MacOS/WiFiAgent
+root             Ss     2392  4377812      -      -   0.0  0.0 /usr/sbin/wirelessproxd
+liam             Ss     4504  4378100      -      -   0.0  0.0 /System/Library/PrivateFrameworks/IMFoundation.framework/XPCServices/IMRemoteURLConnectionAgent.xpc/Contents/MacOS/IMRemoteURLConnectionAgent
+liam             S      5336  4386040      -      -   0.0  0.0 /usr/libexec/nsurlstoraged
+liam             S     17100  4405060      -      -   0.0  0.1 /usr/libexec/sharingd
+liam             S      1180  4378604      -      -   0.0  0.0 /usr/libexec/fmfd
+liam             S       564  4377284      -      -   0.0  0.0 /System/Library/PrivateFrameworks/FamilyCircle.framework/Versions/A/Resources/familycircled
+liam             Ss     4500  4378100      -      -   0.0  0.0 /System/Library/PrivateFrameworks/IMFoundation.framework/XPCServices/IMRemoteURLConnectionAgent.xpc/Contents/MacOS/IMRemoteURLConnectionAgent
+liam             S      5016  4384700      -      -   0.0  0.0 /System/Library/PrivateFrameworks/MessagesKit.framework/Resources/soagent.app/Contents/MacOS/soagent
+liam             S      4380  4379624      -      -   0.0  0.0 /System/Library/PrivateFrameworks/UserActivity.framework/Agents/useractivityd
+root             Ss      184  4341564      -      -   0.0  0.0 /System/Library/CoreServices/CrashReporterSupportHelper server-init
+liam             S       988  4349736      -      -   0.0  0.0 /System/Library/PrivateFrameworks/MediaRemote.framework/Support/mediaremoteagent
+liam             S      3248  4387840      -      -   0.0  0.0 /System/Library/PrivateFrameworks/AuthKit.framework/Versions/A/Support/akd
+_fpsd            Ss      640  4354012      -      -   0.0  0.0 /System/Library/PrivateFrameworks/CoreADI.framework/adid
+liam             Ss     9876  4389452      -      -   0.0  0.1 /System/Library/PrivateFrameworks/CalendarNotification.framework/Versions/A/XPCServices/CalNCService.xpc/Contents/MacOS/CalNCService
+liam             Ss     1036  4349696      -      -   0.0  0.0 /System/Library/PrivateFrameworks/IMFoundation.framework/XPCServices/IMRemoteURLConnectionAgent.xpc/Contents/MacOS/IMRemoteURLConnectionAgent
+liam             S     19332  4545364      -      -   0.0  0.1 /System/Library/CoreServices/iconservicesagent
+liam             S      4144  4384072      -      -   0.0  0.0 /System/Library/CoreServices/pbs
+liam             S         8  4333696      -      -   0.0  0.0 /System/Library/PrivateFrameworks/CloudServices.framework/Versions/A/XPCServices/com.apple.sbd.xpc/Contents/MacOS/com.apple.sbd
+liam             S      5272  4379068      -      -   0.0  0.0 /System/Library/CoreServices/sharedfilelistd
+liam             S      4632  4386768      -      -   0.0  0.0 /System/Library/PrivateFrameworks/CoreParsec.framework/parsecd
+liam             S      1644  4538532      -      -   0.0  0.0 /System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/corespotlightd
+liam             S      4304  4384512      -      -   0.0  0.0 /System/Library/PrivateFrameworks/AssistantServices.framework/Versions/A/Support/assistantd
+liam             S       228  4380728      -      -   0.0  0.0 /usr/libexec/swcd
+liam             S      3556  4377568      -      -   0.0  0.0 /System/Library/PrivateFrameworks/CloudDocsDaemon.framework/Versions/A/Support/bird
+liam             S      7716  4410776      -      -   0.0  0.0 /System/Library/CoreServices/CoreLocationAgent.app/Contents/MacOS/CoreLocationAgent
+_datadetectors   Ss      932  4356824      -      -   0.0  0.0 /usr/libexec/DataDetectorsSourceAccess
+liam             S      6708  4425664      -      -   0.0  0.0 /System/Library/PrivateFrameworks/CommerceKit.framework/Versions/A/Resources/commerce
+liam             S      9364  4394740      -      -   0.0  0.1 /System/Library/PrivateFrameworks/GeoServices.framework/Versions/A/XPCServices/com.apple.geod.xpc/Contents/MacOS/com.apple.geod
+liam             Ss     3804  4378100      -      -   0.0  0.0 /System/Library/PrivateFrameworks/IMFoundation.framework/XPCServices/IMRemoteURLConnectionAgent.xpc/Contents/MacOS/IMRemoteURLConnectionAgent
+liam             S       284  4377064      -      -   0.0  0.0 /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/DictionaryServices.framework/Versions/A/XPCServices/com.apple.DictionaryServiceHelper.xpc/Contents/MacOS/com.apple.DictionaryServiceHelper
+liam             S      3040  4382428      -      -   0.0  0.0 /System/Library/PrivateFrameworks/CacheDelete.framework/deleted
+root             Ss     3272  4381428      -      -   0.0  0.0 /usr/sbin/systemsoundserverd
+liam             S     16488  4494656      -      -   0.0  0.1 /System/Library/PrivateFrameworks/CoreSuggestions.framework/Versions/A/Support/suggestd
+liam             S       596  4377452      -      -   0.0  0.0 /usr/libexec/videosubscriptionsd
+liam             S      2492  4384700      -      -   0.0  0.0 /usr/libexec/knowledge-agent
+root             Ss     6280  4401284      -      -   0.0  0.0 /usr/sbin/spindump
+liam             S       380  4352968      -      -   0.0  0.0 /usr/libexec/spindump_agent
+root             Ss     1488  4428700      -      -   0.0  0.0 /Library/Application Support/com.canonical.multipass/bin/multipassd
+root             Ss     4148  4377176      -      -   0.0  0.0 /System/Library/PrivateFrameworks/AmbientDisplay.framework/Versions/A/XPCServices/com.apple.AmbientDisplayAgent.xpc/Contents/MacOS/com.apple.AmbientDisplayAgent
+liam             S      7256  4382756      -      -   0.0  0.0 /System/Library/Frameworks/ApplicationServices.framework/Frameworks/ATS.framework/Support/fontd
+liam             S      7364  4410624      -      -   0.0  0.0 /System/Library/CoreServices/talagent
+liam             S      5524  4379684      -      -   0.0  0.0 /System/Library/PrivateFrameworks/ViewBridge.framework/Versions/A/XPCServices/ViewBridgeAuxiliary.xpc/Contents/MacOS/ViewBridgeAuxiliary
+liam             S      4448  4380920      -      -   0.0  0.0 /System/Library/CoreServices/backgroundtaskmanagementagent
+liam             S      8004  4920164      -      -   0.0  0.0 /System/Library/PrivateFrameworks/UniversalAccess.framework/Versions/A/Resources/universalAccessAuthWarn.app/Contents/MacOS/universalAccessAuthWarn launchd -s
+root             Ss     1580  4342220      -      -   0.0  0.0 /System/Library/PrivateFrameworks/SystemAdministration.framework/XPCServices/writeconfig.xpc/Contents/MacOS/writeconfig
+liam             S      5560  4382744      -      -   0.0  0.0 /usr/libexec/pkd
+liam             S      1816  4353608      -      -   0.0  0.0 /System/Library/PrivateFrameworks/CommerceKit.framework/Versions/A/Resources/storeaccountd
+liam             Ss        8  4880144      -      -   0.0  0.0 /System/Library/Frameworks/Metal.framework/Versions/A/XPCServices/MTLCompilerService.xpc/Contents/MacOS/MTLCompilerService
+root             Ss      192  4376860      -      -   0.0  0.0 /System/Library/PrivateFrameworks/PackageKit.framework/Resources/system_installd
+liam             Ss        8  4880144      -      -   0.0  0.0 /System/Library/Frameworks/Metal.framework/Versions/A/XPCServices/MTLCompilerService.xpc/Contents/MacOS/MTLCompilerService
+liam             S      4632  4380060      -      -   0.0  0.0 /System/Library/CoreServices/diagnostics_agent
+_assetcache      Ss     1428  4380480      -      -   0.0  0.0 /usr/libexec/AssetCache/AssetCache
+liam             S      7380  4438628      -      -   0.0  0.0 /System/Library/CoreServices/cloudphotosd.app/Contents/MacOS/cloudphotosd
+root             Ss      780  4390360      -      -   0.0  0.0 /System/Library/PrivateFrameworks/PackageKit.framework/Resources/installd
+liam             S      1476  4430964      -      -   0.0  0.0 /System/Library/PrivateFrameworks/CommerceKit.framework/Versions/A/Resources/storedownloadd
+root             Ss     1340  4378328      -      -   0.0  0.0 /usr/bin/sysdiagnose
+liam             S       576  4376612      -      -   0.0  0.0 /System/Library/PrivateFrameworks/QuickLookThumbnailing.framework/Support/com.apple.quicklook.ThumbnailsAgent
+liam             S      2864  4376552      -      -   0.0  0.0 /System/Library/PrivateFrameworks/CloudPhotoServices.framework/Versions/A/Frameworks/CloudPhotosConfigurationXPC.framework/Versions/A/XPCServices/com.apple.CloudPhotosConfiguration.xpc/Contents/MacOS/com.apple.CloudPhotosConfiguration
+liam             Ss      184  4349812      -      -   0.0  0.0 /System/Library/CoreServices/NotificationCenter.app/Contents/XPCServices/com.apple.notificationcenterui.WeatherSummary.xpc/Contents/MacOS/com.apple.notificationcenterui.WeatherSummary
+liam             Ss     2872  4435908      -      -   0.0  0.0 /System/Library/Frameworks/MediaLibrary.framework/Versions/A/XPCServices/com.apple.MediaLibraryService.xpc/Contents/MacOS/com.apple.MediaLibraryService
+liam             S      1480  4384928      -      -   0.0  0.0 /System/Library/PrivateFrameworks/PhotoLibraryPrivate.framework/Versions/A/Support/photolibraryd
+root             Ss     2860  4350712      -      -   0.0  0.0 /usr/sbin/filecoordinationd
+_softwareupdate  Ss      488  4377480      -      -   0.0  0.0 /System/Library/CoreServices/Software Update.app/Contents/Resources/softwareupdate_download_service
+liam             S      1444  4351004      -      -   0.0  0.0 /System/Library/CoreServices/Software Update.app/Contents/Resources/softwareupdate_notify_agent
+liam             S      4632  4382212      -      -   0.0  0.0 /System/Library/Frameworks/InputMethodKit.framework/Resources/imklaunchagent
+liam             Ss     9216  5006416      -      -   0.0  0.1 /System/Library/Input Methods/PressAndHold.app/Contents/PlugIns/PAH_Extension.appex/Contents/MacOS/PAH_Extension
+liam             Ss    11368  5094120      -      -   0.0  0.1 /System/Library/Input Methods/EmojiFunctionRowIM.app/Contents/PlugIns/EmojiFunctionRowIM_Extension.appex/Contents/MacOS/EmojiFunctionRowIM_Extension
+liam             S       180  4325272      -      -   0.0  0.0 /System/Library/PrivateFrameworks/CharacterPicker.framework/Versions/A/XPCServices/com.apple.CharacterPicker.FileService.xpc/Contents/MacOS/com.apple.CharacterPicker.FileService
+_fpsd            Ss      256  4335212      -      -   0.0  0.0 /System/Library/PrivateFrameworks/CoreFP.framework/Versions/A/fpsd
+_locationd       S      9024  4393468      -      -   0.0  0.1 /System/Library/PrivateFrameworks/GeoServices.framework/Versions/A/XPCServices/com.apple.geod.xpc/Contents/MacOS/com.apple.geod
+_locationd       S       276  4378884      -      -   0.0  0.0 /usr/libexec/secinitd
+_locationd       S       488  4325600      -      -   0.0  0.0 /usr/sbin/cfprefsd agent
+_locationd       S      1236  4382604      -      -   0.0  0.0 /usr/libexec/trustd --agent
+_locationd       S       564  4350956      -      -   0.0  0.0 /usr/sbin/distnoted agent
+_spotlight       S      2796  4380860      -      -   0.0  0.0 /usr/libexec/trustd --agent
+_spotlight       S       600  4350956      -      -   0.0  0.0 /usr/sbin/distnoted agent
+liam             S      4468  4393556      -      -   0.0  0.0 /usr/libexec/adprivacyd
+liam             S       348  4390540      -      -   0.0  0.0 /System/Library/CoreServices/ReportCrash agent
+root             Ss     4032  4383176      -      -   0.0  0.0 /usr/libexec/mobileactivationd
+root             S      9080  4394012      -      -   0.0  0.1 /System/Library/PrivateFrameworks/GeoServices.framework/Versions/A/XPCServices/com.apple.geod.xpc/Contents/MacOS/com.apple.geod
+root             S       224  4378708      -      -   0.0  0.0 /usr/libexec/secinitd
+liam             S      1592  4383820      -      -   0.0  0.0 /System/Library/CoreServices/SafariSupport.bundle/Contents/MacOS/SafariBookmarksSyncAgent
+liam             S       444  4413724      -      -   0.0  0.0 /System/Library/Frameworks/ApplicationServices.framework/Frameworks/ATS.framework/Support/atsd
+root             Ss        8  4324560      -      -   0.0  0.0 /System/Library/PrivateFrameworks/InstallerDiagnostics.framework/Versions/A/Resources/installerdiagd
+root             Ss        8  4861712      -      -   0.0  0.0 /System/Library/Frameworks/Metal.framework/Versions/A/XPCServices/MTLCompilerService.xpc/Contents/MacOS/MTLCompilerService
+root             Ss      876  4351000      -      -   0.0  0.0 /System/Library/Frameworks/CryptoTokenKit.framework/ctkahp.bundle/Contents/MacOS/ctkahp -d
+liam             S       188  4349972      -      -   0.0  0.0 /System/Library/PrivateFrameworks/CoreFollowUp.framework/Versions/A/Support/followupd
+liam             S       684  4351120      -      -   0.0  0.0 /System/Library/Frameworks/CryptoTokenKit.framework/ctkahp.bundle/Contents/MacOS/ctkahp
+root             Ss      712  4411628      -      -   0.0  0.0 /System/Library/Frameworks/VideoToolbox.framework/Versions/A/XPCServices/VTDecoderXPCService.xpc/Contents/MacOS/VTDecoderXPCService
+liam             S       236  4351556      -      -   0.0  0.0 /System/Library/Frameworks/CryptoTokenKit.framework/ctkd -tw
+liam             S      6960  4393688      -      -   0.0  0.0 /System/Library/PrivateFrameworks/AppStoreDaemon.framework/Support/appstoreagent
+liam             S      4404  4385324      -      -   0.0  0.0 /System/Library/PrivateFrameworks/CommerceKit.framework/Versions/A/Resources/storeassetd
+root             Ss     1008  4382764      -      -   0.0  0.0 /usr/libexec/dprivacyd
+liam             S       552  4376392      -      -   0.0  0.0 /System/Library/PrivateFrameworks/PhotoAnalysis.framework/Versions/A/Support/photoanalysisd
+liam             S      9024  4417868      -      -   0.0  0.1 /System/Library/PrivateFrameworks/Noticeboard.framework/Versions/A/Resources/nbagent.app/Contents/MacOS/nbagent
+liam             S      5384  4381344      -      -   0.0  0.0 /System/Library/CoreServices/mapspushd
+liam             S       476  4377564      -      -   0.0  0.0 /System/Library/PrivateFrameworks/CommerceKit.framework/Versions/A/Resources/storelegacy
+liam             S      7636  4412332      -      -   0.0  0.0 /System/Library/PrivateFrameworks/CommerceKit.framework/Resources/LaterAgent.app/Contents/MacOS/LaterAgent
+root             Ss      336  4341612      -      -   0.0  0.0 /System/Library/PrivateFrameworks/CommerceKit.framework/Versions/A/Resources/storeinstalld
+liam             Ss      412  4382624      -      -   0.0  0.0 /System/Library/PrivateFrameworks/CommerceKit.framework/Versions/A/XPCServices/com.apple.CommerceKit.TransactionService.xpc/Contents/MacOS/com.apple.CommerceKit.TransactionService
+root             SNs     308  4299960      -      -   0.0  0.0 /usr/libexec/periodic-wrapper daily
+liam             S       616  4379608      -      -   0.0  0.0 /System/Library/PrivateFrameworks/UsageTracking.framework/Versions/A/UsageTrackingAgent
+liam             S      2764  4377252      -      -   0.0  0.0 /System/Library/PrivateFrameworks/IMDPersistence.framework/IMAutomaticHistoryDeletionAgent.app/Contents/MacOS/IMAutomaticHistoryDeletionAgent
+liam             S       164  4351396      -      -   0.0  0.0 /usr/libexec/silhouette
+liam             Ss      180  4456856      -      -   0.0  0.0 /System/Library/PrivateFrameworks/AssistantServices.framework/Versions/A/XPCServices/media-indexer.xpc/Contents/MacOS/media-indexer
+liam             Ss      328  4381184      -      -   0.0  0.0 /System/Library/Frameworks/iTunesLibrary.framework/Versions/A/XPCServices/com.apple.iTunesLibraryService.xpc/Contents/MacOS/com.apple.iTunesLibraryService
+liam             Ss     1644  4405648      -      -   0.0  0.0 /System/Library/PrivateFrameworks/PhotoLibraryPrivate.framework/Versions/A/Frameworks/PhotoLibraryServices.framework/Versions/A/XPCServices/com.apple.photomodel.xpc/Contents/MacOS/com.apple.photomodel
+_spotlight       S       196  4378508      -      -   0.0  0.0 /System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mdworker -s mdworker-sizing -c MDSSizingWorker -m com.apple.mdworker.sizing
+liam             S       200  4380572      -      -   0.0  0.0 /System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mdworker -s mdworker-sizing -c MDSSizingWorker -m com.apple.mdworker.sizing
+liam             S      2712  4380256      -      -   0.0  0.0 /System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mdwrite
+liam             S     19880  4979692      -      -   0.0  0.1 /System/Library/CoreServices/Spotlight.app/Contents/MacOS/Spotlight
+liam             Ss        8  4835088      -      -   0.0  0.0 /System/Library/Frameworks/Metal.framework/Versions/A/XPCServices/MTLCompilerService.xpc/Contents/MacOS/MTLCompilerService
+liam             S       176  4351368      -      -   0.0  0.0 /usr/libexec/USBAgent
+liam             S     10928  4418060      -      -   0.0  0.1 /System/Library/CoreServices/PowerChime.app/Contents/MacOS/PowerChime
+liam             S       756  4380796      -      -   0.0  0.0 /System/Library/Frameworks/AudioToolbox.framework/AudioComponentRegistrar
+liam             S     37216  5679552      -      -   0.0  0.2 /System/Library/CoreServices/Dock.app/Contents/MacOS/Dock
+liam             S     45264  4972440      -      -   0.0  0.3 /System/Library/CoreServices/SystemUIServer.app/Contents/MacOS/SystemUIServer
+liam             S    119204  5146512      -      -   0.0  0.7 /System/Library/CoreServices/Finder.app/Contents/MacOS/Finder
+liam             Ss        8  4871952      -      -   0.0  0.0 /System/Library/Frameworks/Metal.framework/Versions/A/XPCServices/MTLCompilerService.xpc/Contents/MacOS/MTLCompilerService
+liam             Ss     2904  4376860      -      -   0.0  0.0 /System/Library/PrivateFrameworks/CoreWLANKit.framework/Versions/A/XPCServices/WiFiProxy.xpc/Contents/MacOS/WiFiProxy
+_gamecontrollerd Ss     1588  4350400      -      -   0.0  0.0 /usr/libexec/gamecontrollerd
+liam             Ss     9612  4880144      -      -   0.0  0.1 /System/Library/Frameworks/Metal.framework/Versions/A/XPCServices/MTLCompilerService.xpc/Contents/MacOS/MTLCompilerService
+liam             Ss    10056  4919632      -      -   0.0  0.1 /System/Library/CoreServices/Dock.app/Contents/XPCServices/com.apple.dock.extra.xpc/Contents/MacOS/com.apple.dock.extra
+liam             S       624  4379100      -      -   0.0  0.0 /System/Library/PrivateFrameworks/CallHistory.framework/Support/CallHistoryPluginHelper
+liam             S         8  4821272      -      -   0.0  0.0 SafeEjectGPUAgent
+liam             S       556  4380176      -      -   0.0  0.0 /System/Library/CoreServices/Menu Extras/SafeEjectGPUExtra.menu/Contents/XPCServices/SafeEjectGPUService.xpc/Contents/MacOS/SafeEjectGPUService
+liam             S      3864  4381388      -      -   0.0  0.0 /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/HIServices.framework/Versions/A/XPCServices/com.apple.hiservices-xpcservice.xpc/Contents/MacOS/com.apple.hiservices-xpcservice
+liam             Ss        8  4880144      -      -   0.0  0.0 /System/Library/Frameworks/Metal.framework/Versions/A/XPCServices/MTLCompilerService.xpc/Contents/MacOS/MTLCompilerService
+liam             S      3684  4379772      -      -   0.0  0.0 /System/Library/PrivateFrameworks/CoreSpeech.framework/corespeechd
+liam             S       940  4376432      -      -   0.0  0.0 /System/Library/CoreServices/SocialPushAgent.app/Contents/MacOS/SocialPushAgent
+liam             S      1356  4379812      -      -   0.0  0.0 /usr/libexec/dmd
+liam             S      6300  4380160      -      -   0.0  0.0 /System/Library/Image Capture/Support/icdd
+liam             S<      600  4349116      -      -   0.0  0.0 /usr/local/Cellar/watchman/4.9.0_2/libexec/bin/watchman --foreground --logfile=/usr/local/var/run/watchman/liam-state/log --log-level=1 --sockname=/usr/local/var/run/watchman/liam-state/sock --statefile=/usr/local/var/run/watchman/liam-state/state --pidfile=/usr/local/var/run/watchman/liam-state/pid
+liam             S     10188  4416456      -      -   0.0  0.1 /Library/Application Support/iStat Menus 6/iStatMenusAgent.app/Contents/MacOS/iStatMenusAgent
+liam             S      8224  4917720      -      -   0.0  0.0 /System/Library/CoreServices/AirPlayUIAgent.app/Contents/MacOS/AirPlayUIAgent --launchd
+liam             S     49460  4665828      -      -   0.6  0.3 /Library/Application Support/iStat Menus 6/iStat Menus Status.app/Contents/MacOS/iStat Menus Status
+root             Ss      648  4377748      -      -   0.0  0.0 /usr/libexec/dmd
+liam             S     85440  5413720      -      -   0.0  0.5 /Applications/Spotify.app/Contents/MacOS/Spotify
+liam             S     59996  5000400      -      -   0.5  0.4 /Applications/Bartender 3.app/Contents/MacOS/Bartender 3
+liam             S     34388  4999576      -      -   0.0  0.2 /Applications/LastPass.app/Contents/MacOS/LastPass
+liam             S      2800  4357900      -      -   0.0  0.0 /System/Library/PrivateFrameworks/PrintingPrivate.framework/Versions/A/PrintUITool
+liam             S     24556  6014608      -      -   0.0  0.1 /Applications/Flux.app/Contents/MacOS/Flux
+liam             Ss     9712  4880232      -      -   0.0  0.1 /System/Library/Frameworks/Metal.framework/Versions/A/XPCServices/MTLCompilerService.xpc/Contents/MacOS/MTLCompilerService
+liam             S      1308  4575480      -      -   0.0  0.0 /Applications/Spotify.app/Contents/Frameworks/Spotify Helper.app/Contents/MacOS/Spotify Helper --monitor-self-annotation=ptype=crashpad-handler --type=crashpad-handler --max-uploads=5 --max-db-size=20 --max-db-age=5 --database=/Users/liam/Library/Application Support/Spotify/User Data --url=https://crashdump.spotify.com:443/ --annotation=platform=macos --annotation=product=spotify --annotation=version=1.1.10.540 --handshake-fd=8
+liam             S     13372  4824700      -      -   0.0  0.1 /Applications/Spotify.app/Contents/Frameworks/Spotify Helper.app/Contents/MacOS/Spotify Helper --type=gpu-process --field-trial-handle=1718379636,17606853646093723599,1219809832447360698,131072 --disable-features=ExtendedMouseButtons,NetworkService --log-file=/Users/liam/Library/Logs/Spotify_debug.log --log-severity=disable --product-version=Spotify/1.1.10.540 --lang=en-US --gpu-preferences=KAAAAAAAAAAgAAAAAQAAAAAAAAAAAGAAAAAAAAAAAAAIAAAAAAAAADgBAAAmAAAAMAEAAAAAAAA4AQAAAAAAAEABAAAAAAAASAEAAAAAAABQAQAAAAAAAFgBAAAAAAAAYAEAAAAAAABoAQAAAAAAAHABAAAAAAAAeAEAAAAAAACAAQAAAAAAAIgBAAAAAAAAkAEAAAAAAACYAQAAAAAAAKABAAAAAAAAqAEAAAAAAACwAQAAAAAAALgBAAAAAAAAwAEAAAAAAADIAQAAAAAAANABAAAAAAAA2AEAAAAAAADgAQAAAAAAAOgBAAAAAAAA8AEAAAAAAAD4AQAAAAAAAAACAAAAAAAACAIAAAAAAAAQAgAAAAAAABgCAAAAAAAAIAIAAAAAAAAoAgAAAAAAADACAAAAAAAAOAIAAAAAAABAAgAAAAAAAEgCAAAAAAAAUAIAAAAAAABYAgAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAGAAAAEAAAAAAAAAAAAAAABwAAABAAAAAAAAAAAAAAAAgAAAAQAAAAAAAAAAAAAAAKAAAAEAAAAAAAAAAAAAAACwAAABAAAAAAAAAAAAAAAA0AAAAQAAAAAAAAAAAAAAAOAAAAEAAAAAAAAAABAAAAAAAAABAAAAAAAAAAAQAAAAYAAAAQAAAAAAAAAAEAAAAHAAAAEAAAAAAAAAABAAAACAAAABAAAAAAAAAAAQAAAAoAAAAQAAAAAAAAAAEAAAALAAAAEAAAAAAAAAABAAAADQAAABAAAAAAAAAAAQAAAA4AAAAQAAAAAAAAAAQAAAAAAAAAEAAAAAAAAAAEAAAABgAAABAAAAAAAAAABAAAAAcAAAAQAAAAAAAAAAQAAAAIAAAAEAAAAAAAAAAEAAAACgAAABAAAAAAAAAABAAAAAsAAAAQAAAAAAAAAAQAAAANAAAAEAAAAAAAAAAEAAAADgAAABAAAAAAAAAABgAAAAAAAAAQAAAAAAAAAAYAAAAGAAAAEAAAAAAAAAAGAAAACAAAABAAAAAAAAAABgAAAAoAAAAQAAAAAAAAAAYAAAALAAAAEAAAAAAAAAAGAAAADQAAABAAAAAAAAAABgAAAA4AAAAQAAAAAAAAAAcAAAAAAAAAEAAAAAAAAAAHAAAABgAAABAAAAAAAAAABwAAAAgAAAAQAAAAAAAAAAcAAAAKAAAAEAAAAAAAAAAHAAAACwAAABAAAAAAAAAABwAAAA0AAAAQAAAAAAAAAAcAAAAOAAAA --log-file=/Users/liam/Library/Logs/Spotify_debug.log --service-request-channel-token=3434196638917532629
+liam             Ss        8  4880144      -      -   0.0  0.0 /System/Library/Frameworks/Metal.framework/Versions/A/XPCServices/MTLCompilerService.xpc/Contents/MacOS/MTLCompilerService
+liam             S       640  4352876      -      -   0.0  0.0 /usr/libexec/loginitemregisterd
+liam             Ss      528  4380756      -      -   0.0  0.0 /System/Library/Frameworks/VideoToolbox.framework/Versions/A/XPCServices/VTDecoderXPCService.xpc/Contents/MacOS/VTDecoderXPCService
+liam             Ss        8  4880144      -      -   0.0  0.0 /System/Library/Frameworks/Metal.framework/Versions/A/XPCServices/MTLCompilerService.xpc/Contents/MacOS/MTLCompilerService
+liam             S    196952  5199212      -      -   0.1  1.2 /Applications/Spotify.app/Contents/Frameworks/Spotify Helper.app/Contents/MacOS/Spotify Helper --type=renderer --log-file=/Users/liam/Library/Logs/Spotify_debug.log --field-trial-handle=1718379636,17606853646093723599,1219809832447360698,131072 --disable-features=ExtendedMouseButtons,NetworkService --lang=en-US --log-file=/Users/liam/Library/Logs/Spotify_debug.log --log-severity=disable --product-version=Spotify/1.1.10.540 --disable-scroll-bounce --disable-spell-checking --num-raster-threads=4 --enable-zero-copy --enable-gpu-memory-buffer-compositor-resources --enable-main-frame-before-activation --service-request-channel-token=9324975218116024052 --renderer-client-id=3 --seatbelt-client=77
+liam             S     10980  4934668      -      -   0.0  0.1 /System/Library/CoreServices/NowPlayingTouchUI.app/Contents/MacOS/NowPlayingTouchUI
+liam             Ss        8  4880144      -      -   0.0  0.0 /System/Library/Frameworks/Metal.framework/Versions/A/XPCServices/MTLCompilerService.xpc/Contents/MacOS/MTLCompilerService
+liam             Ss        8  4880144      -      -   0.0  0.0 /System/Library/Frameworks/Metal.framework/Versions/A/XPCServices/MTLCompilerService.xpc/Contents/MacOS/MTLCompilerService
+liam             S     11456  4939820      -      -   0.0  0.1 /System/Library/Frameworks/LocalAuthentication.framework/Support/coreautha.bundle/Contents/MacOS/coreautha
+liam             Ss        8  4880188      -      -   0.0  0.0 /System/Library/Frameworks/Metal.framework/Versions/A/XPCServices/MTLCompilerService.xpc/Contents/MacOS/MTLCompilerService
+liam             S     10712  4927280      -      -   0.0  0.1 /System/Library/CoreServices/OSDUIHelper.app/Contents/MacOS/OSDUIHelper
+liam             Ss        8  4880144      -      -   0.0  0.0 /System/Library/Frameworks/Metal.framework/Versions/A/XPCServices/MTLCompilerService.xpc/Contents/MacOS/MTLCompilerService
+liam             S      8624  4414124      -      -   0.0  0.1 /System/Library/PrivateFrameworks/CommerceKit.framework/Versions/A/Resources/storeuid.app/Contents/MacOS/storeuid
+liam             S     63960  4689152      -      -   0.0  0.4 /System/Library/Services/AppleSpell.service/Contents/MacOS/AppleSpell
+liam             S      4004  4386536      -      -   0.0  0.0 /usr/libexec/keyboardservicesd
+liam             S         8  4331704      -      -   0.0  0.0 /System/Library/PrivateFrameworks/KerberosHelper/Helpers/DiskUnmountWatcher
+liam             S      1900  4389232      -      -   0.0  0.0 /System/Library/Frameworks/ApplicationServices.framework/Frameworks/SpeechSynthesis.framework/Resources/com.apple.speech.speechsynthesisd
+_windowserver    Ss        8  4861496      -      -   0.0  0.0 /System/Library/Frameworks/Metal.framework/Versions/A/XPCServices/MTLCompilerService.xpc/Contents/MacOS/MTLCompilerService
+liam             S     28068  6038472      -      -   0.0  0.2 /Applications/Docker.app/Contents/MacOS/Docker
+liam             Ss        8  4861712      -      -   0.0  0.0 /System/Library/Frameworks/Metal.framework/Versions/A/XPCServices/MTLCompilerService.xpc/Contents/MacOS/MTLCompilerService
+liam             S      7396  4507912      -      -   0.0  0.0 /Applications/Docker.app/Contents/MacOS/com.docker.supervisor -watchdog fd:0
+liam             S      9632  4370908      -      -   0.0  0.1 com.docker.osxfs serve --address fd:3 --connect vms/0/connect --control fd:4 --log-destination asl
+liam             S     64916  4436220      -      -   0.0  0.4 com.docker.vpnkit --ethernet fd:3 --diagnostics fd:4 --pcap fd:5 --vsock-path vms/0/connect --gateway-forwards /Users/liam/Library/Group Containers/group.com.docker/gateway_forwards.json --host-names host.docker.internal,docker.for.mac.host.internal,docker.for.mac.localhost --listen-backlog 32 --mtu 1500 --allowed-bind-addresses 0.0.0.0 --http /Users/liam/Library/Group Containers/group.com.docker/http_proxy.json --dhcp /Users/liam/Library/Group Containers/group.com.docker/dhcp.json --port-max-idle-time 300 --max-connections 2000 --gateway-ip 192.168.65.1 --host-ip 192.168.65.2 --lowest-ip 192.168.65.3 --highest-ip 192.168.65.254 --log-destination asl --udpv4-forwards 123:127.0.0.1:56174 --gc-compact-interval 1800
+liam             S     11148  4530452      -      -   0.0  0.1 com.docker.driver.amd64-linux -addr fd:3 -debug
+liam             S      7792  4406976      -      -   0.0  0.0 com.docker.backend -addr fd:3
+liam             Z         0        0      -      -   0.0  0.0 (uname)
+liam             S    122396  6569812      -      -   2.1  0.7 com.docker.hyperkit -A -u -F vms/0/hyperkit.pid -c 4 -m 2048M -s 0:0,hostbridge -s 31,lpc -s 1:0,virtio-vpnkit,path=vpnkit.eth.sock,uuid=c181e368-7bb3-4f10-a978-acfd481b428a -U d242fba9-5af1-4c10-bf3e-8d20cbc3e1df -s 2:0,ahci-hd,/Users/liam/Library/Containers/com.docker.docker/Data/vms/0/Docker.raw -s 3,virtio-sock,guest_cid=3,path=vms/0,guest_forwards=2376;1525 -s 4,ahci-cd,/Applications/Docker.app/Contents/Resources/linuxkit/docker-desktop.iso -s 5,ahci-cd,vms/0/config.iso -s 6,ahci-cd,/Applications/Docker.app/Contents/Resources/linuxkit/docker.iso -s 7,virtio-rnd -l com1,autopty=vms/0/tty,asl -f bootrom,/Applications/Docker.app/Contents/Resources/uefi/UEFI.fd,,
+liam             S    479388  5776220      -      -   9.5  2.9 /Applications/iTerm.app/Contents/MacOS/iTerm2
+liam             Ss    10028  4880144      -      -   0.0  0.1 /System/Library/Frameworks/Metal.framework/Versions/A/XPCServices/MTLCompilerService.xpc/Contents/MacOS/MTLCompilerService
+liam             S         8  4300640      -      -   0.0  0.0 /usr/bin/ssh-agent -l
+liam             S     16780  4430480      -      -   0.0  0.1 /System/Library/PreferencePanes/Displays.prefPane/Contents/Resources/MirrorDisplays.app/Contents/MacOS/MirrorDisplays
+liam             Ss        8  4880144      -      -   0.0  0.0 /System/Library/Frameworks/Metal.framework/Versions/A/XPCServices/MTLCompilerService.xpc/Contents/MacOS/MTLCompilerService
+liam             S      2680  4354504      -      -   0.0  0.0 /System/Library/Frameworks/ColorSync.framework/Support/colorsync.useragent
+root             Ss        8  4323316      -      -   0.0  0.0 /System/Library/Frameworks/AudioToolbox.framework/XPCServices/com.apple.audio.SandboxHelper.xpc/Contents/MacOS/com.apple.audio.SandboxHelper
+_softwareupdate  S       340  4309216      -      -   0.0  0.0 /usr/sbin/cfprefsd agent
+_softwareupdate  S       428  4350956      -      -   0.0  0.0 /usr/sbin/distnoted agent
+root             SNs       8  4298936      -      -   0.0  0.0 /usr/libexec/periodic-wrapper monthly
+root             Ss        8  4333816      -      -   0.0  0.0 /usr/sbin/aslmanager -s /var/log/eventmonitor
+root             Ss     7808  4378904      -      -   0.0  0.0 /usr/libexec/PerfPowerServices
+liam             S      8932  4771680      -      -   0.0  0.1 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper.app/Contents/MacOS/Code Helper --nolazy --inspect=35362 /Applications/Visual Studio Code.app/Contents/Resources/app/out/bootstrap-fork --type=extensionHost
+liam             Ss        8  4315444      -      -   0.0  0.0 /System/Library/CoreServices/ControlStrip.app/Contents/XPCServices/com.apple.DFRSystemExtra.ScreenLock.xpc/Contents/MacOS/com.apple.DFRSystemExtra.ScreenLock
+liam             S    251484  5306080      -      -   0.8  1.5 /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+liam             S       664  4346892      -      -   0.0  0.0 /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/76.0.3809.100/Helpers/chrome_crashpad_handler --monitor-self-annotation=ptype=crashpad-handler --database=/Users/liam/Library/Application Support/Google/Chrome/Crashpad --metrics-dir=/Users/liam/Library/Application Support/Google/Chrome --url=https://clients2.google.com/cr/report --annotation=channel= --annotation=plat=OS X --annotation=prod=Chrome_Mac --annotation=ver=76.0.3809.100 --handshake-fd=8
+liam             S     85400  4787232      -      -   0.0  0.5 /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/76.0.3809.100/Helpers/Google Chrome Helper (GPU).app/Contents/MacOS/Google Chrome Helper (GPU) --type=gpu-process --field-trial-handle=1718379636,15968723314266061717,15829912309519969242,131072 --gpu-preferences=IAAAAAAAAAAgAAAAAAAAAAAAYAAAAAAACAAAAAAAAAAIAQAAIAAAAAABAAAAAAAACAEAAAAAAAAQAQAAAAAAABgBAAAAAAAAIAEAAAAAAAAoAQAAAAAAADABAAAAAAAAOAEAAAAAAABAAQAAAAAAAEgBAAAAAAAAUAEAAAAAAABYAQAAAAAAAGABAAAAAAAAaAEAAAAAAABwAQAAAAAAAHgBAAAAAAAAgAEAAAAAAACIAQAAAAAAAJABAAAAAAAAmAEAAAAAAACgAQAAAAAAAKgBAAAAAAAAsAEAAAAAAAC4AQAAAAAAAMABAAAAAAAAyAEAAAAAAADQAQAAAAAAANgBAAAAAAAA4AEAAAAAAADoAQAAAAAAAPABAAAAAAAA+AEAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAABgAAABAAAAAAAAAAAAAAAAcAAAAQAAAAAAAAAAAAAAAIAAAAEAAAAAAAAAAAAAAACgAAABAAAAAAAAAAAAAAAAsAAAAQAAAAAAAAAAAAAAANAAAAEAAAAAAAAAAAAAAADgAAABAAAAAAAAAAAQAAAAAAAAAQAAAAAAAAAAEAAAAGAAAAEAAAAAAAAAABAAAABwAAABAAAAAAAAAAAQAAAAgAAAAQAAAAAAAAAAEAAAAKAAAAEAAAAAAAAAABAAAACwAAABAAAAAAAAAAAQAAAA0AAAAQAAAAAAAAAAEAAAAOAAAAEAAAAAAAAAAEAAAAAAAAABAAAAAAAAAABAAAAAYAAAAQAAAAAAAAAAQAAAAHAAAAEAAAAAAAAAAEAAAACAAAABAAAAAAAAAABAAAAAoAAAAQAAAAAAAAAAQAAAALAAAAEAAAAAAAAAAEAAAADQAAABAAAAAAAAAABAAAAA4AAAAQAAAAAAAAAAYAAAAAAAAAEAAAAAAAAAAGAAAABgAAABAAAAAAAAAABgAAAAcAAAAQAAAAAAAAAAYAAAAIAAAAEAAAAAAAAAAGAAAACgAAABAAAAAAAAAABgAAAAsAAAAQAAAAAAAAAAYAAAANAAAAEAAAAAAAAAAGAAAADgAAAA== --service-request-channel-token=8664550032400077903
+liam             S     32832  4606752      -      -   0.0  0.2 /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/76.0.3809.100/Helpers/Google Chrome Helper.app/Contents/MacOS/Google Chrome Helper --type=utility --field-trial-handle=1718379636,15968723314266061717,15829912309519969242,131072 --lang=en-GB --service-sandbox-type=network --service-request-channel-token=12549609618540563618
+liam             Ss        8  4325764      -      -   0.0  0.0 /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/76.0.3809.100/XPCServices/AlertNotificationService.xpc/Contents/MacOS/AlertNotificationService
+liam             Ss      584  4380756      -      -   0.0  0.0 /System/Library/Frameworks/VideoToolbox.framework/Versions/A/XPCServices/VTDecoderXPCService.xpc/Contents/MacOS/VTDecoderXPCService
+liam             S     45412 15364420      -      -   0.0  0.3 /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/76.0.3809.100/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer) --type=renderer --field-trial-handle=1718379636,15968723314266061717,15829912309519969242,131072 --lang=en-GB --extension-process --enable-auto-reload --num-raster-threads=4 --enable-zero-copy --enable-gpu-memory-buffer-compositor-resources --enable-main-frame-before-activation --service-request-channel-token=9650619702896007907 --renderer-client-id=4 --no-v8-untrusted-code-mitigations --seatbelt-client=98
+liam             S     76656  5068000      -      -   0.0  0.5 /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/76.0.3809.100/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer) --type=renderer --field-trial-handle=1718379636,15968723314266061717,15829912309519969242,131072 --lang=en-GB --extension-process --enable-auto-reload --num-raster-threads=4 --enable-zero-copy --enable-gpu-memory-buffer-compositor-resources --enable-main-frame-before-activation --service-request-channel-token=14674932416591293692 --renderer-client-id=5 --no-v8-untrusted-code-mitigations --seatbelt-client=90
+liam             S     38928  4872876      -      -   0.2  0.2 /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/76.0.3809.100/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer) --type=renderer --field-trial-handle=1718379636,15968723314266061717,15829912309519969242,131072 --lang=en-GB --extension-process --enable-auto-reload --num-raster-threads=4 --enable-zero-copy --enable-gpu-memory-buffer-compositor-resources --enable-main-frame-before-activation --service-request-channel-token=558663539119452749 --renderer-client-id=6 --no-v8-untrusted-code-mitigations --seatbelt-client=124
+liam             S     57448  4903768      -      -   0.0  0.3 /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/76.0.3809.100/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer) --type=renderer --field-trial-handle=1718379636,15968723314266061717,15829912309519969242,131072 --lang=en-GB --extension-process --enable-auto-reload --num-raster-threads=4 --enable-zero-copy --enable-gpu-memory-buffer-compositor-resources --enable-main-frame-before-activation --service-request-channel-token=449404668788460875 --renderer-client-id=7 --no-v8-untrusted-code-mitigations --seatbelt-client=109
+liam             S     38488  4835772      -      -   0.2  0.2 /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/76.0.3809.100/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer) --type=renderer --field-trial-handle=1718379636,15968723314266061717,15829912309519969242,131072 --lang=en-GB --extension-process --enable-auto-reload --num-raster-threads=4 --enable-zero-copy --enable-gpu-memory-buffer-compositor-resources --enable-main-frame-before-activation --service-request-channel-token=18000339032610512699 --renderer-client-id=8 --no-v8-untrusted-code-mitigations --seatbelt-client=124
+liam             S     65964  4862768      -      -   0.0  0.4 /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/76.0.3809.100/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer) --type=renderer --field-trial-handle=1718379636,15968723314266061717,15829912309519969242,131072 --lang=en-GB --extension-process --enable-auto-reload --num-raster-threads=4 --enable-zero-copy --enable-gpu-memory-buffer-compositor-resources --enable-main-frame-before-activation --service-request-channel-token=13946020651176130004 --renderer-client-id=10 --no-v8-untrusted-code-mitigations --seatbelt-client=136
+liam             S     45080  4848272      -      -   0.0  0.3 /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/76.0.3809.100/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer) --type=renderer --field-trial-handle=1718379636,15968723314266061717,15829912309519969242,131072 --lang=en-GB --extension-process --enable-auto-reload --num-raster-threads=4 --enable-zero-copy --enable-gpu-memory-buffer-compositor-resources --enable-main-frame-before-activation --service-request-channel-token=3974617440985557634 --renderer-client-id=56 --no-v8-untrusted-code-mitigations --seatbelt-client=153
+liam             S      1068  4350040      -      -   0.0  0.0 /usr/libexec/assertiond
+liam             Ss      244  4356104      -      -   0.0  0.0 /System/Library/PrivateFrameworks/CommerceKit.framework/Versions/A/XPCServices/com.apple.CommerceKit.TransactionService.xpc/Contents/MacOS/com.apple.CommerceKit.TransactionService
+liam             S      9820  4364984      -      -   0.0  0.1 /System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mdworker_shared -s mdworker -c MDSImporterWorker -m com.apple.mdworker.shared
+liam             S     19344  4374108      -      -   0.0  0.1 /System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mdworker_shared -s mdworker -c MDSImporterWorker -m com.apple.mdworker.shared
+liam             S     12876  4374632      -      -   0.0  0.1 /System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mdworker_shared -s mdworker -c MDSImporterWorker -m com.apple.mdworker.shared
+liam             S      9784  4364984      -      -   0.0  0.1 /System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mdworker_shared -s mdworker -c MDSImporterWorker -m com.apple.mdworker.shared
+_spotlight       S      2044  4352972      -      -   0.0  0.0 /System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mdworker_shared -s mdworker -c MDSImporterWorker -m com.apple.mdworker.shared
+root             Ss    11288  4388192      -      -   0.0  0.1 /usr/libexec/sandboxd
+root             SNs     852  4300984      -      -   0.0  0.0 /usr/libexec/periodic-wrapper weekly
+liam             S     25960  4408044      -      -   0.0  0.2 /usr/libexec/avconferenced
+liam             Ss    11764  4380148      -      -   0.0  0.1 /System/Library/PrivateFrameworks/IMFoundation.framework/XPCServices/IMRemoteURLConnectionAgent.xpc/Contents/MacOS/IMRemoteURLConnectionAgent
+liam             S     26724  4350416      -      -   0.0  0.2 /System/Library/PrivateFrameworks/MailService.framework/Versions/A/XPCServices/com.apple.MailServiceAgent.xpc/Contents/MacOS/com.apple.MailServiceAgent
+_netbios         SNs   10920  4351864      -      -   0.0  0.1 /usr/sbin/netbiosd
+root             Ss     9380  4378892      -      -   0.0  0.1 /usr/sbin/cupsd -l
+liam             S     34544  4429540      -      -   0.0  0.2 /usr/libexec/studentd
+liam             S     27588  4393044      -      -   0.0  0.2 /System/Library/PrivateFrameworks/PassKitCore.framework/passd
+_applepay        Ss     8280  4377628      -      -   0.0  0.0 /usr/libexec/nfcd
+liam             S     12248  4381968      -      -   0.0  0.1 /System/Library/Frameworks/ApplicationServices.framework/Frameworks/PrintCore.framework/Versions/A/printtool agent
+_applepay        Ss     7144  4376524      -      -   0.0  0.0 /usr/libexec/seld
+root             Ss     9512  4377380      -      -   0.0  0.1 /System/Library/Frameworks/PreferencePanes.framework/Versions/A/XPCServices/cacheAssistant.xpc/Contents/MacOS/cacheAssistant
+liam             S      7316  4379952      -      -   0.0  0.0 /System/Library/CoreServices/ScopedBookmarkAgent
+liam             S     17900  4417428      -      -   0.0  0.1 /System/Library/CoreServices/CoreServicesUIAgent.app/Contents/MacOS/CoreServicesUIAgent
+liam             Ss    11772  4372720      -      -   0.0  0.1 /System/Library/PrivateFrameworks/XprotectFramework.framework/Versions/A/XPCServices/XprotectService.xpc/Contents/MacOS/XprotectService
+liam             Ss    20152  4918324      -      -   0.0  0.1 /System/Library/Frameworks/Quartz.framework/Versions/A/Frameworks/QuickLookUI.framework/Versions/A/XPCServices/QuickLookUIService.xpc/Contents/MacOS/QuickLookUIService
+liam             S    465964  5557732      -      -   0.0  2.8 /Applications/Backup and Sync.app/Contents/MacOS/Backup and Sync
+liam             S     37460  4948196      -      -   0.3  0.2 /Applications/Alfred 4.app/Contents/MacOS/Alfred
+liam             Ss    48072  4461216      -      -   0.0  0.3 /Applications/Backup and Sync.app/Contents/PlugIns/FinderSyncAPIExtension.appex/Contents/MacOS/FinderSyncAPIExtension
+liam             Ss    23620  4444832      -      -   0.0  0.1 /Applications/Backup and Sync.app/Contents/PlugIns/FinderSyncAPIExtension.appex/Contents/MacOS/FinderSyncAPIExtension
+liam             S     53376  6029680      -      -   0.0  0.3 /Applications/Todoist.app/Contents/MacOS/Todoist
+liam             Ss   118852 89745984      -      -   0.0  0.7 /System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.WebContent.xpc/Contents/MacOS/com.apple.WebKit.WebContent
+liam             Ss    23412  4397076      -      -   0.0  0.1 /System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.Networking.xpc/Contents/MacOS/com.apple.WebKit.Networking
+liam             S     76108  4975376      -      -   0.1  0.5 /Applications/BetterTouchTool.app/Contents/MacOS/BetterTouchTool
+liam             Ss     8952  4322156      -      -   0.0  0.1 /Applications/BetterTouchTool.app/Contents/XPCServices/BetterTouchToolScriptRunner.xpc/Contents/MacOS/BetterTouchToolScriptRunner
+liam             Ss     9072  4332404      -      -   0.0  0.1 /Applications/BetterTouchTool.app/Contents/XPCServices/BetterTouchToolAppleScriptRunner.xpc/Contents/MacOS/BetterTouchToolAppleScriptRunner
+liam             Ss     4924  4313568      -      -   0.0  0.0 /Applications/BetterTouchTool.app/Contents/XPCServices/BetterTouchToolShellScriptRunner.xpc/Contents/MacOS/BetterTouchToolShellScriptRunner
+liam             S     15944  4905952      -      -   0.0  0.1 /Applications/BetterTouchTool.app/Contents/Resources/BTTRelaunch.app/Contents/MacOS/BTTRelaunch
+liam             S    307960  5328120      -      -   0.0  1.8 /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/76.0.3809.100/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer) --type=renderer --field-trial-handle=1718379636,15968723314266061717,15829912309519969242,131072 --lang=en-GB --extension-process --enable-auto-reload --num-raster-threads=4 --enable-zero-copy --enable-gpu-memory-buffer-compositor-resources --enable-main-frame-before-activation --service-request-channel-token=12358605325975690206 --renderer-client-id=961 --no-v8-untrusted-code-mitigations --seatbelt-client=250
+liam             S     62100  4835372      -      -   0.0  0.4 /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/76.0.3809.100/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer) --type=renderer --field-trial-handle=1718379636,15968723314266061717,15829912309519969242,131072 --lang=en-GB --enable-auto-reload --num-raster-threads=4 --enable-zero-copy --enable-gpu-memory-buffer-compositor-resources --enable-main-frame-before-activation --service-request-channel-token=1931086901543414739 --renderer-client-id=962 --no-v8-untrusted-code-mitigations --seatbelt-client=247
+liam             Ss   100248  4967776      -      -   0.0  0.6 /Applications/Visual Studio Code.app/Contents/MacOS/Electron .
+liam             S     87028  5710364      -      -   0.0  0.5 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper.app/Contents/MacOS/Code Helper --type=gpu-process --enable-features=SharedArrayBuffer --disable-features=MacV2Sandbox,SpareRendererForSitePerProcess --disable-color-correct-rendering --no-sandbox --gpu-preferences=KAAAAAAAAACAAAAAAQAAAAAAAAAAAGAAAAAAAAAAAAAIAAAAAAAAAGABAAArAAAAWAEAAAAAAABgAQAAAAAAAGgBAAAAAAAAcAEAAAAAAAB4AQAAAAAAAIABAAAAAAAAiAEAAAAAAACQAQAAAAAAAJgBAAAAAAAAoAEAAAAAAACoAQAAAAAAALABAAAAAAAAuAEAAAAAAADAAQAAAAAAAMgBAAAAAAAA0AEAAAAAAADYAQAAAAAAAOABAAAAAAAA6AEAAAAAAADwAQAAAAAAAPgBAAAAAAAAAAIAAAAAAAAIAgAAAAAAABACAAAAAAAAGAIAAAAAAAAgAgAAAAAAACgCAAAAAAAAMAIAAAAAAAA4AgAAAAAAAEACAAAAAAAASAIAAAAAAABQAgAAAAAAAFgCAAAAAAAAYAIAAAAAAABoAgAAAAAAAHACAAAAAAAAeAIAAAAAAACAAgAAAAAAAIgCAAAAAAAAkAIAAAAAAACYAgAAAAAAAKACAAAAAAAAqAIAAAAAAAAQAAAAAAAAAAAAAAAFAAAAEAAAAAAAAAAAAAAABwAAABAAAAAAAAAAAAAAAAsAAAAQAAAAAAAAAAAAAAAMAAAAEAAAAAAAAAAAAAAADQAAABAAAAAAAAAAAAAAAA8AAAAQAAAAAAAAAAAAAAAQAAAAEAAAAAAAAAAAAAAAEgAAABAAAAAAAAAAAAAAABMAAAAQAAAAAAAAAAEAAAAFAAAAEAAAAAAAAAABAAAABwAAABAAAAAAAAAAAQAAAAsAAAAQAAAAAAAAAAEAAAAMAAAAEAAAAAAAAAABAAAADQAAABAAAAAAAAAAAQAAAA8AAAAQAAAAAAAAAAEAAAAQAAAAEAAAAAAAAAABAAAAEgAAABAAAAAAAAAAAQAAABMAAAAQAAAAAAAAAAQAAAAFAAAAEAAAAAAAAAAEAAAABwAAABAAAAAAAAAABAAAAAsAAAAQAAAAAAAAAAQAAAAMAAAAEAAAAAAAAAAEAAAADQAAABAAAAAAAAAABAAAAA8AAAAQAAAAAAAAAAQAAAAQAAAAEAAAAAAAAAAEAAAAEgAAABAAAAAAAAAABAAAABMAAAAQAAAAAAAAAAYAAAAFAAAAEAAAAAAAAAAGAAAABwAAABAAAAAAAAAABgAAAAsAAAAQAAAAAAAAAAYAAAANAAAAEAAAAAAAAAAGAAAADwAAABAAAAAAAAAABgAAABAAAAAQAAAAAAAAAAYAAAASAAAAEAAAAAAAAAAGAAAAEwAAABAAAAAAAAAABwAAAAUAAAAQAAAAAAAAAAcAAAAHAAAAEAAAAAAAAAAHAAAACwAAABAAAAAAAAAABwAAAA0AAAAQAAAAAAAAAAcAAAAPAAAAEAAAAAAAAAAHAAAAEAAAABAAAAAAAAAABwAAABIAAAAQAAAAAAAAAAcAAAATAAAA --service-request-channel-token=2085094579759602474
+liam             Ss     6624  4385148      -      -   0.0  0.0 /System/Library/Frameworks/VideoToolbox.framework/Versions/A/XPCServices/VTDecoderXPCService.xpc/Contents/MacOS/VTDecoderXPCService
+liam             S    277560  6197596      -      -   0.1  1.7 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper.app/Contents/MacOS/Code Helper --type=renderer --disable-color-correct-rendering --no-sandbox --enable-features=SharedArrayBuffer --disable-features=MacV2Sandbox,SpareRendererForSitePerProcess --service-pipe-token=18284353500964663272 --lang=en-GB --app-path=/Applications/Visual Studio Code.app/Contents/Resources/app --user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.37.0 Chrome/69.0.3497.128 Electron/4.2.7 Safari/537.36 --node-integration=true --webview-tag=true --no-sandbox --background-color=#171717 --num-raster-threads=4 --enable-zero-copy --enable-gpu-memory-buffer-compositor-resources --enable-main-frame-before-activation --service-request-channel-token=18284353500964663272 --renderer-client-id=4
+liam             S      8948  4329988      -      -   0.0  0.1 /Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Resources/crashpad_handler --no-rate-limit --no-upload-gzip --database=/var/folders/xr/z72_xnk96vxgjnmdrxlxrt900000gn/T/VSCode Crashes --metrics-dir=/var/folders/xr/z72_xnk96vxgjnmdrxlxrt900000gn/T/VSCode Crashes --url=https://rink.hockeyapp.net/api/2/apps/21a48a66799e47fea4f52c0ff81e803d/crashes/upload --handshake-fd=66
+liam             S    285556  4995500      -      -   0.0  1.7 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper.app/Contents/MacOS/Code Helper --nolazy --inspect=52737 /Applications/Visual Studio Code.app/Contents/Resources/app/out/bootstrap-fork --type=extensionHost
+liam             S     44280  4769212      -      -   0.0  0.3 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper.app/Contents/MacOS/Code Helper /Applications/Visual Studio Code.app/Contents/Resources/app/out/bootstrap-fork --type=watcherService
+liam             S     45972  4750644      -      -   0.0  0.3 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper.app/Contents/MacOS/Code Helper /Applications/Visual Studio Code.app/Contents/Resources/app/out/bootstrap-fork --type=searchService
+liam             S     53176  4721476      -      -   0.0  0.3 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper.app/Contents/MacOS/Code Helper /Users/liam/.vscode/extensions/arjun.swagger-viewer-2.2.2/node_modules/vscode-languageclient/lib/utils/electronForkStart /Users/liam/.vscode/extensions/arjun.swagger-viewer-2.2.2/out/language/server.js --node-ipc --clientProcessId=28564
+liam             S     13204  4365056      -      -   0.0  0.1 /System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mdworker_shared -s mdworker -c MDSImporterWorker -m com.apple.mdworker.shared
+liam             S    181312  4975276      -      -   1.2  1.1 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper.app/Contents/MacOS/Code Helper --type=renderer --disable-color-correct-rendering --no-sandbox --enable-features=SharedArrayBuffer --disable-features=MacV2Sandbox,SpareRendererForSitePerProcess --service-pipe-token=18020254878334783881 --lang=en-GB --app-path=/Applications/Visual Studio Code.app/Contents/Resources/app --user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.37.0 Chrome/69.0.3497.128 Electron/4.2.7 Safari/537.36 --node-integration=true --webview-tag=true --no-sandbox --background-color=#171717 --disable-blink-features=Auxclick --num-raster-threads=4 --enable-zero-copy --enable-gpu-memory-buffer-compositor-resources --enable-main-frame-before-activation --service-request-channel-token=18020254878334783881 --renderer-client-id=6
+liam             S     47040  4721188      -      -   0.0  0.3 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper.app/Contents/MacOS/Code Helper /Applications/Visual Studio Code.app/Contents/Resources/app/extensions/json-language-features/server/dist/jsonServerMain --node-ipc --clientProcessId=28564
+liam             S    143472  4907420      -      -   0.0  0.9 /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/76.0.3809.100/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer) --type=renderer --field-trial-handle=1718379636,15968723314266061717,15829912309519969242,131072 --lang=en-GB --enable-auto-reload --num-raster-threads=4 --enable-zero-copy --enable-gpu-memory-buffer-compositor-resources --enable-main-frame-before-activation --service-request-channel-token=7700601864577178920 --renderer-client-id=978 --no-v8-untrusted-code-mitigations --seatbelt-client=183
+liam             S    315124  5317588      -      -   0.0  1.9 /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/76.0.3809.100/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer) --type=renderer --field-trial-handle=1718379636,15968723314266061717,15829912309519969242,131072 --lang=en-GB --enable-auto-reload --num-raster-threads=4 --enable-zero-copy --enable-gpu-memory-buffer-compositor-resources --enable-main-frame-before-activation --service-request-channel-token=12466720426111944402 --renderer-client-id=988 --no-v8-untrusted-code-mitigations --seatbelt-client=117
+liam             S     36592  4797188      -      -   0.0  0.2 /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/76.0.3809.100/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer) --type=renderer --field-trial-handle=1718379636,15968723314266061717,15829912309519969242,131072 --lang=en-GB --enable-auto-reload --num-raster-threads=4 --enable-zero-copy --enable-gpu-memory-buffer-compositor-resources --enable-main-frame-before-activation --service-request-channel-token=1353407517292543536 --renderer-client-id=989 --no-v8-untrusted-code-mitigations --seatbelt-client=247
+liam             S     16056  4377324      -      -   0.0  0.1 /System/Library/PrivateFrameworks/AOSKit.framework/Versions/A/XPCServices/com.apple.iCloudHelper.xpc/Contents/MacOS/com.apple.iCloudHelper
+liam             S    529984  4898340      -      -   0.0  3.2 /Users/liam/dev/bin/gopls -mode=stdio
+liam             S     62640  4761176      -      -   0.0  0.4 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper.app/Contents/MacOS/Code Helper /Users/liam/.vscode/extensions/redhat.vscode-yaml-0.4.1/node_modules/vscode-languageclient/lib/utils/electronForkStart /Users/liam/.vscode/extensions/redhat.vscode-yaml-0.4.1/node_modules/yaml-language-server/out/server/src/server.js --node-ipc --clientProcessId=28564
+liam             S     47792  4715664      -      -   0.0  0.3 /Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper.app/Contents/MacOS/Code Helper /Users/liam/.vscode/extensions/ms-azuretools.vscode-docker-0.7.0/dist/dockerfile-language-server-nodejs/lib/server.js --node-ipc --node-ipc --clientProcessId=28564
+root             Ss     6556  4358948      -      -   0.1  0.0 /usr/sbin/ocspd
+liam             S     25720  4442016      -      -   0.0  0.2 kubectl cluster-info
+liam             S     13108  4365056      -      -   0.0  0.1 /System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mdworker_shared -s mdworker -c MDSImporterWorker -m com.apple.mdworker.shared
+liam             S     13076  4365056      -      -   0.0  0.1 /System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mdworker_shared -s mdworker -c MDSImporterWorker -m com.apple.mdworker.shared
+liam             Ss      272  4359824      -      -   0.0  0.0 /Applications/iTerm.app/Contents/MacOS/iTerm2 --server /usr/local/bin/zsh
+liam             S      4460  4336360      -      -   0.0  0.0 /usr/local/bin/zsh
+liam             S+     1136  4268636      -      -   0.0  0.0 /bin/bash ci/test
+liam             S+    21872  4401452      -      -  18.7  0.1 go test -timeout 60s ./...
+liam             R+    11700  4414544      -      -  12.7  0.1 /var/folders/xr/z72_xnk96vxgjnmdrxlxrt900000gn/T/go-build325744209/b171/debug.test -test.testlogfile=/var/folders/xr/z72_xnk96vxgjnmdrxlxrt900000gn/T/go-build325744209/b171/testlog.txt -test.timeout=60s
+liam             S+    12972  4412100      -      -   6.5  0.1 /var/folders/xr/z72_xnk96vxgjnmdrxlxrt900000gn/T/go-build325744209/b159/envoy.test -test.testlogfile=/var/folders/xr/z72_xnk96vxgjnmdrxlxrt900000gn/T/go-build325744209/b159/testlog.txt -test.timeout=60s
+liam             S     25960  4359564      -      -   0.0  0.2 /Users/liam/.getenvoy/builds/standard/1.11.0/darwin/bin/envoy -c testdata/bootstrap.yaml
+liam             S      1160  4268636      -      -   0.0  0.0 (bash)
+liam             S       672  4267932      -      -   0.0  0.0 (sleep)
+root             R+     1100  4268540      -      -   0.0  0.0 ps -eo user,stat,rss,vsz,minflt,majflt,pcpu,pmem,args
+liam             Ss      288  4343440      -      -   0.0  0.0 /Applications/iTerm.app/Contents/MacOS/iTerm2 --server /usr/local/bin/zsh
+liam             S+     5556  4337252      -      -   0.0  0.0 /usr/local/bin/zsh
