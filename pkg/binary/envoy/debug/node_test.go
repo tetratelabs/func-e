@@ -28,7 +28,7 @@ func Test_ps(t *testing.T) {
 		key, _ := manifest.NewKey(envoyReference)
 		r, _ := envoy.NewRuntime(EnableNodeCollection)
 		defer os.RemoveAll(r.DebugStore())
-		startWaitKillGetEnvoy(r, key)
+		startWaitKillGetEnvoy(r, key, filepath.Join("testdata", "null.yaml"))
 
 		path := filepath.Join(r.DebugStore(), "node/ps.txt")
 		f, err := os.Stat(path)

@@ -27,6 +27,10 @@ import (
 
 // EnableEnvoyLogCollection is a preset option that registers collection of Envoy access logs and stderr
 var EnableEnvoyLogCollection = func(r *envoy.Runtime) {
+	if err := os.MkdirAll(filepath.Join(r.DebugStore(), "logs"), os.ModePerm); err != nil {
+		log.Errorf("unable to create directory to write logs to, no logs will be captured: %v", err)
+		return
+	}
 	r.RegisterPreStart(captureStdout)
 	r.RegisterPreStart(captureStderr)
 }
@@ -52,10 +56,6 @@ func captureStderr(r binary.Runner) error {
 }
 
 func createLogFile(path string) (*os.File, error) {
-	dir, _ := filepath.Split(path)
-	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-		return nil, fmt.Errorf("unable to create directory to write logs to: %v", err)
-	}
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
 		return nil, fmt.Errorf("unable to open file to write logs to %v: %v", path, err)

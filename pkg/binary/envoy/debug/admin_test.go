@@ -43,8 +43,8 @@ func fetchEnvoy() error {
 	return nil
 }
 
-func startWaitKillGetEnvoy(r binary.Runner, key *manifest.Key) {
-	go r.Run(key, []string{"-c", filepath.Join("testdata", "bootstrap.yaml")})
+func startWaitKillGetEnvoy(r binary.Runner, key *manifest.Key, bootstrap string) {
+	go r.Run(key, []string{"-c", bootstrap})
 	r.Wait(binary.StatusReady)
 	r.SendSignal(syscall.SIGINT)
 	r.Wait(binary.StatusTerminated)
@@ -65,7 +65,7 @@ func Test_retrieveAdminAPIData(t *testing.T) {
 		key, _ := manifest.NewKey(envoyReference)
 		r, _ := envoy.NewRuntime(EnableEnvoyAdminDataCollection)
 		defer os.RemoveAll(r.DebugStore())
-		startWaitKillGetEnvoy(r, key)
+		startWaitKillGetEnvoy(r, key, filepath.Join("testdata", "null.yaml"))
 
 		for _, filename := range adminAPIPaths {
 			path := filepath.Join(r.DebugStore(), filename)
