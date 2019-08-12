@@ -15,6 +15,7 @@
 package envoy
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -57,12 +58,15 @@ type Runtime struct {
 	AdminEndpoint string
 
 	cmd *exec.Cmd
+	ctx context.Context
 	wg  *sync.WaitGroup
 
 	signals chan os.Signal
 
 	preStart       []func(binary.Runner) error
 	preTermination []func(binary.Runner) error
+
+	isReady bool
 }
 
 // Status indicates the state of the child process
@@ -81,12 +85,22 @@ func (r *Runtime) Status() int {
 }
 
 func (r *Runtime) envoyReady() bool {
+	// Once we have seen its ready once stop spamming the ready endpoint.
+	// If we expand the interface to support ready <-> not ready then
+	// this approach will be wrong but as the states are monotonic this is good enough for now
+	if r.isReady {
+		return true
+	}
 	resp, err := http.Get(fmt.Sprintf("http://%v/ready", r.AdminEndpoint))
 	if err != nil {
 		return false
 	}
 	defer func() { _ = resp.Body.Close() }()
-	return resp.StatusCode == http.StatusOK
+	if resp.StatusCode == http.StatusOK {
+		r.isReady = true
+		return r.isReady
+	}
+	return false
 }
 
 // Wait blocks until the child process reaches the state passed
@@ -94,7 +108,8 @@ func (r *Runtime) envoyReady() bool {
 func (r *Runtime) Wait(state int) {
 	for r.Status() < state {
 		// This is a call to a function to allow the goroutine to be preempted for garbage collection
-		func() { time.Sleep(time.Millisecond) }()
+		// The sleep duration is somewhat arbitrary
+		func() { time.Sleep(time.Millisecond * 100) }()
 	}
 }
 

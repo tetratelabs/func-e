@@ -17,6 +17,7 @@ package envoy
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -49,11 +50,17 @@ func (r *Runtime) RunPath(path string, args []string) error {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
+	r.ctx = ctx
+
+	// #nosec -> users can run whatever binary they like!
+	r.cmd = exec.Command(path, args...)
+	r.cmd.SysProcAttr = sysProcAttr()
+
 	r.handlePreStart()
 
-	go r.runEnvoy(path, args, cancel)
+	go r.runEnvoy(cancel)
 
-	r.waitForTerminationSignals(ctx)
+	r.waitForTerminationSignals()
 	r.handleTermination()
 	cancel() // this should never actually do anything but lets avoid any future context leaks
 
@@ -68,12 +75,34 @@ func (r *Runtime) DebugStore() string {
 	return r.debugDir
 }
 
-func (r *Runtime) waitForTerminationSignals(ctx context.Context) {
+// SetStdout writes the stdout of Envoy to the passed writer
+func (r *Runtime) SetStdout(w io.Writer) {
+	r.cmd.Stdout = w
+}
+
+// SetStderr writes the stderr of Envoy to the passed writer
+func (r *Runtime) SetStderr(w io.Writer) {
+	r.cmd.Stderr = w
+}
+
+// RegisterWait informs the runtime it needs to wait for you to complete
+// It is a wrapper around sync.WaitGroup.Add()
+func (r *Runtime) RegisterWait(delta int) {
+	r.wg.Add(delta)
+}
+
+// RegisterDone informs the runtime that you have completed
+// It is a wrapper around sync.WaitGroup.Done()
+func (r *Runtime) RegisterDone() {
+	r.wg.Done()
+}
+
+func (r *Runtime) waitForTerminationSignals() {
 	signal.Notify(r.signals, syscall.SIGINT)
 
 	// Block until we receive SIGINT or are canceled because Envoy has died
 	select {
-	case <-ctx.Done():
+	case <-r.ctx.Done():
 		log.Infof("No Envoy processes remaining, terminating GetEnvoy process (PID=%d)", os.Getpid())
 		return
 	case <-r.signals:
@@ -82,18 +111,23 @@ func (r *Runtime) waitForTerminationSignals(ctx context.Context) {
 	}
 }
 
-func (r *Runtime) runEnvoy(path string, args []string, cancel context.CancelFunc) {
-	// #nosec -> users can run whatever binary they like!
-	r.cmd = exec.Command(path, args...)
-	r.cmd.SysProcAttr = sysProcAttr()
-	r.cmd.Stdout = os.Stdout
-	r.cmd.Stderr = os.Stderr
+func (r *Runtime) runEnvoy(cancel context.CancelFunc) {
+	if r.cmd.Stdout == nil {
+		r.cmd.Stdout = os.Stdout
+	}
+	if r.cmd.Stderr == nil {
+		r.cmd.Stderr = os.Stderr
+	}
 
 	r.wg.Add(1)
 	defer r.wg.Done()
 	defer cancel()
 
-	if err := r.cmd.Run(); err != nil {
+	if err := r.cmd.Start(); err != nil {
+		log.Errorf("Unable to start Envoy process: %v", err)
+	}
+
+	if err := r.cmd.Wait(); err != nil {
 		if r.cmd.ProcessState.ExitCode() == -1 {
 			log.Infof("Envoy process (PID=%d) terminated via %v", r.cmd.Process.Pid, err)
 		} else {

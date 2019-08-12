@@ -55,7 +55,7 @@ static_resources:
                 address: service1
                 port_value: 80
 admin:
-  access_log_path: "/dev/null"
+  access_log_path: "/dev/stdout"
   address:
     socket_address:
       address: 0.0.0.0
