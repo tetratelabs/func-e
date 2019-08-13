@@ -23,23 +23,20 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
 
-func Test_capture(t *testing.T) {
-	t.Run("creates non-empty access and error log files", func(t *testing.T) {
+func Test_ps(t *testing.T) {
+	t.Run("creates non-empty files", func(t *testing.T) {
 		key, _ := manifest.NewKey(envoyReference)
-		// EnableEnvoyAdminDataCollection is here to create some requests to the admin endpoint for stdout
-		r, _ := envoy.NewRuntime(EnableEnvoyLogCollection, EnableEnvoyAdminDataCollection)
+		r, _ := envoy.NewRuntime(EnableNodeCollection)
 		defer os.RemoveAll(r.DebugStore())
-		startWaitKillGetEnvoy(r, key, filepath.Join("testdata", "stdout.yaml"))
+		startWaitKillGetEnvoy(r, key, filepath.Join("testdata", "null.yaml"))
 
-		for _, filename := range []string{"logs/access.log", "logs/error.log"} {
-			path := filepath.Join(r.DebugStore(), filename)
-			f, err := os.Stat(path)
-			if err != nil {
-				t.Errorf("error stating %v: %v", path, err)
-			}
-			if f.Size() < 1 {
-				t.Errorf("file %v was empty", path)
-			}
+		path := filepath.Join(r.DebugStore(), "node/ps.txt")
+		f, err := os.Stat(path)
+		if err != nil {
+			t.Errorf("error stating %v: %v", path, err)
+		}
+		if f.Size() < 1 {
+			t.Errorf("file %v was empty", path)
 		}
 	})
 }

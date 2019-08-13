@@ -52,6 +52,7 @@ getenvoy run standard:1.10.1 -- --help
 			runtime, err := envoy.NewRuntime(
 				debug.EnableEnvoyAdminDataCollection,
 				debug.EnableEnvoyLogCollection,
+				debug.EnableNodeCollection,
 			)
 			if err != nil {
 				return err
