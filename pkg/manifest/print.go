@@ -39,7 +39,7 @@ func Print(writer io.Writer, manifestLocation string) error {
 	if err != nil {
 		return err
 	}
-	w := new(tabwriter.Writer).Init(writer, 0, 8, 5, ' ', 0)
+	w := tabwriter.NewWriter(writer, 0, 8, 5, ' ', 0)
 	fmt.Fprintln(w, "REFERENCE\tFLAVOR\tVERSION")
 
 	for _, flavor := range deterministicFlavors(manifest.Flavors) {

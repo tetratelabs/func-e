@@ -16,10 +16,12 @@ package debug
 
 import (
 	"fmt"
+	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
+	"text/tabwriter"
 
+	"github.com/shirou/gopsutil/process"
 	"github.com/tetratelabs/getenvoy/pkg/binary"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/log"
@@ -31,16 +33,7 @@ var EnableNodeCollection = func(r *envoy.Runtime) {
 		log.Errorf("unable to create directory to write node data to: %v", err)
 		return
 	}
-	registerCommand(r, "ps", ps)
-}
-
-func registerCommand(r *envoy.Runtime, cmd string, execFunc func(binary.Runner) error) {
-	_, err := exec.LookPath(cmd)
-	if err != nil {
-		log.Errorf("%v is not available, unable to collect data pre-termination", cmd)
-		return
-	}
-	r.RegisterPreTermination(execFunc)
+	r.RegisterPreTermination(ps)
 }
 
 func ps(r binary.Runner) error {
@@ -49,12 +42,79 @@ func ps(r binary.Runner) error {
 		return fmt.Errorf("unable to create file to write ps output to: %v", err)
 	}
 	defer func() { _ = f.Close() }()
-	// #nosec -> all command parameters are hardcoded so we're safe!
-	cmd := exec.Command("ps", "-eo", "user,stat,rss,vsz,minflt,majflt,pcpu,pmem,args")
-	out, err := cmd.CombinedOutput()
+
+	processes, err := process.Processes()
 	if err != nil {
-		return fmt.Errorf("error running ps: %v", err)
+		return fmt.Errorf("unable to get list of running processes: %v", err)
 	}
-	_, err = f.Write(out)
-	return err
+	return processPrinter(f, processes)
+}
+
+func processPrinter(out io.Writer, processes []*process.Process) error {
+	w := tabwriter.NewWriter(out, 0, 8, 5, ' ', 0)
+	fmt.Fprintln(w, "PID\tUSERNAME\tSTATUS\tRSS\tVSZ\tMINFLT\tMAJFLT\tPCPU\tPMEM\tARGS")
+	for _, p := range processes {
+		proc := safeProc(p)
+		fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\t%v\t%v\t%.2f\t%.2f\t%v\n", proc.pid, proc.username, proc.status, proc.rss, proc.vms, proc.minflt,
+			proc.majflt, proc.pCPU, proc.pMem, proc.cmd)
+	}
+	return w.Flush()
+}
+
+type proc struct {
+	username, status, cmd    string
+	rss, vms, minflt, majflt uint64
+	pCPU                     float64
+	pid                      int32
+	pMem                     float32
+}
+
+func safeProc(p *process.Process) *proc {
+	// These are onloy debug logs as on certain OSs these features are not supported
+	// If we errorf we spam stderr with errors for every single process
+	user, err := p.Username()
+	if err != nil {
+		log.Debugf("unable to retrieve username of %v: %v", p.Pid, err)
+	}
+	status, err := p.Status()
+	if err != nil {
+		log.Debugf("unable to retrieve status of %v: %v", p.Pid, err)
+	}
+	mem, err := p.MemoryInfo()
+	if err != nil {
+		log.Debugf("unable to retrieve memory information of %v: %v", p.Pid, err)
+	}
+	if mem == nil {
+		mem = &process.MemoryInfoStat{}
+	}
+	pagefault, err := p.PageFaults()
+	if err != nil {
+		log.Debugf("unable to retrieve page fault information of %v: %v", p.Pid, err)
+	}
+	if pagefault == nil {
+		pagefault = &process.PageFaultsStat{}
+	}
+	pCPU, err := p.CPUPercent()
+	if err != nil {
+		log.Debugf("unable to retrieve cpu percentage information of %v: %v", p.Pid, err)
+	}
+	pMem, err := p.MemoryPercent()
+	if err != nil {
+		log.Debugf("unable to retrieve memory percentage information of %v: %v", p.Pid, err)
+	}
+	cmd, err := p.Cmdline()
+	if err != nil {
+		log.Debugf("unable to retrieve command information of %v: %v", p.Pid, err)
+	}
+	return &proc{
+		username: user,
+		status:   status,
+		rss:      mem.RSS,
+		vms:      mem.VMS,
+		minflt:   pagefault.MinorFaults,
+		majflt:   pagefault.MajorFaults,
+		pCPU:     pCPU,
+		pMem:     pMem,
+		cmd:      cmd,
+	}
 }
