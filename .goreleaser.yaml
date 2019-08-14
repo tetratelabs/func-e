@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project_name: getenvoy-cli
+project_name: getenvoy
 env:
   - GO111MODULE=on
 before:
   hooks:
     - go mod download
 builds:
-- env:
+- main: ./cmd/getenvoy/main.go
+  env:
   - CGO_ENABLED=0
   goos:
     - linux
@@ -46,12 +47,12 @@ changelog:
     - Merge pull request
     - Merge branch
     - goreleaser
-brew:
-  github:
+brews:
+- github:
     owner: tetratelabs
     name: homebrew-getenvoy
   folder: Formula
   homepage:  https://github.com/tetratelabs/getenvoy
   description: Distribute, deploy and operate a fleet of Envoys
   test: |
-    system "#{bin}/getenvoy -v"
+    system "#{bin}/getenvoy --help"
