@@ -65,7 +65,7 @@ func (r *Runtime) RunPath(path string, args []string) error {
 
 	// Tar up the debug data and clean up
 	if err := archiver.Archive([]string{r.DebugStore()}, r.DebugStore()+".tar.gz"); err != nil {
-		return fmt.Errorf("unable to clean up debug store directory %v: %v", r.DebugStore(), err)
+		return fmt.Errorf("unable to archive debug store directory %v: %v", r.DebugStore(), err)
 	}
 	return os.RemoveAll(r.DebugStore())
 }
