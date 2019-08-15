@@ -27,8 +27,9 @@ func Test_ps(t *testing.T) {
 	t.Run("creates non-empty files", func(t *testing.T) {
 		key, _ := manifest.NewKey(envoyReference)
 		r, _ := envoy.NewRuntime(EnableNodeCollection)
+		defer os.RemoveAll(r.DebugStore() + ".tar.gz")
 		defer os.RemoveAll(r.DebugStore())
-		startWaitKillGetEnvoy(r, key, filepath.Join("testdata", "null.yaml"))
+		startWaitKillUnarchiveGetEnvoy(r, key, filepath.Join("testdata", "null.yaml"))
 
 		path := filepath.Join(r.DebugStore(), "node/ps.txt")
 		f, err := os.Stat(path)

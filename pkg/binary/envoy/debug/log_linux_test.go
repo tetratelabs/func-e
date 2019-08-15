@@ -28,8 +28,9 @@ func Test_capture(t *testing.T) {
 		key, _ := manifest.NewKey(envoyReference)
 		// EnableEnvoyAdminDataCollection is here to create some requests to the admin endpoint for stdout
 		r, _ := envoy.NewRuntime(EnableEnvoyLogCollection, EnableEnvoyAdminDataCollection)
+		defer os.RemoveAll(r.DebugStore() + ".tar.gz")
 		defer os.RemoveAll(r.DebugStore())
-		startWaitKillGetEnvoy(r, key, filepath.Join("testdata", "stdout.yaml"))
+		startWaitKillUnarchiveGetEnvoy(r, key, filepath.Join("testdata", "stdout.yaml"))
 
 		for _, filename := range []string{"logs/access.log", "logs/error.log"} {
 			path := filepath.Join(r.DebugStore(), filename)
