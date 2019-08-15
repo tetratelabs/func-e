@@ -26,6 +26,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/mholt/archiver"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 	"github.com/tetratelabs/log"
 )
@@ -61,7 +62,12 @@ func (r *Runtime) RunPath(path string, args []string) error {
 
 	// Block until the Envoy process and termination handler are finished cleaning up
 	r.wg.Wait()
-	return nil
+
+	// Tar up the debug data and clean up
+	if err := archiver.Archive([]string{r.DebugStore()}, r.DebugStore()+".tar.gz"); err != nil {
+		return fmt.Errorf("unable to clean up debug store directory %v: %v", r.DebugStore(), err)
+	}
+	return os.RemoveAll(r.DebugStore())
 }
 
 // DebugStore returns the location at which the runtime instance persists debug data for this given instance

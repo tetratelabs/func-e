@@ -21,6 +21,7 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/mholt/archiver"
 	"github.com/tetratelabs/getenvoy/pkg/binary"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
@@ -43,11 +44,12 @@ func fetchEnvoy() error {
 	return nil
 }
 
-func startWaitKillGetEnvoy(r binary.Runner, key *manifest.Key, bootstrap string) {
+func startWaitKillUnarchiveGetEnvoy(r binary.Runner, key *manifest.Key, bootstrap string) {
 	go r.Run(key, []string{"-c", bootstrap})
 	r.Wait(binary.StatusReady)
 	r.SendSignal(syscall.SIGINT)
 	r.Wait(binary.StatusTerminated)
+	archiver.Unarchive(r.DebugStore()+".tar.gz", filepath.Dir(r.DebugStore()))
 }
 
 func TestMain(m *testing.M) {
@@ -64,8 +66,9 @@ func Test_retrieveAdminAPIData(t *testing.T) {
 	t.Run("creates all non-empty files", func(t *testing.T) {
 		key, _ := manifest.NewKey(envoyReference)
 		r, _ := envoy.NewRuntime(EnableEnvoyAdminDataCollection)
+		defer os.RemoveAll(r.DebugStore() + ".tar.gz")
 		defer os.RemoveAll(r.DebugStore())
-		startWaitKillGetEnvoy(r, key, filepath.Join("testdata", "null.yaml"))
+		startWaitKillUnarchiveGetEnvoy(r, key, filepath.Join("testdata", "null.yaml"))
 
 		for _, filename := range adminAPIPaths {
 			path := filepath.Join(r.DebugStore(), filename)
