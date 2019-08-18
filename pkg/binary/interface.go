@@ -31,6 +31,7 @@ type Runner interface {
 	RegisterDone()
 	SendSignal(signal os.Signal)
 	Status() int
+	AppendArgs([]string)
 	Wait(int)
 	DebugStore() string
 	SetStdout(w io.Writer)

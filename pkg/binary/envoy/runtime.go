@@ -33,9 +33,10 @@ func NewRuntime(options ...func(*Runtime)) (binary.FetchRunner, error) {
 	usrDir, err := homedir.Dir()
 	local := filepath.Join(usrDir, ".getenvoy")
 	runtime := &Runtime{
+		Config:         NewConfig(),
 		fetcher:        fetcher{local},
+		TmplDir:        filepath.Join(local, "templates"),
 		wg:             &sync.WaitGroup{},
-		AdminEndpoint:  "localhost:15001",
 		signals:        make(chan os.Signal),
 		preStart:       make([]func(binary.Runner) error, 0),
 		preTermination: make([]func(binary.Runner) error, 0),
@@ -59,8 +60,9 @@ type fetcher struct {
 type Runtime struct {
 	fetcher
 
-	debugDir      string
-	AdminEndpoint string
+	debugDir string
+	TmplDir  string
+	Config   *Config
 
 	cmd *exec.Cmd
 	ctx context.Context
@@ -96,7 +98,7 @@ func (r *Runtime) envoyReady() bool {
 	if r.isReady {
 		return true
 	}
-	resp, err := http.Get(fmt.Sprintf("http://%v/ready", r.AdminEndpoint))
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%v/ready", r.Config.AdminPort))
 	if err != nil {
 		return false
 	}

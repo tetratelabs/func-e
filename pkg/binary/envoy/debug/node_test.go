@@ -20,12 +20,13 @@ import (
 	"testing"
 
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
+	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
 
 func Test_ps(t *testing.T) {
 	t.Run("creates non-empty files", func(t *testing.T) {
-		key, _ := manifest.NewKey(envoyReference)
+		key, _ := manifest.NewKey(envoytest.Reference)
 		r, _ := envoy.NewRuntime(EnableNodeCollection)
 		defer os.RemoveAll(r.DebugStore() + ".tar.gz")
 		defer os.RemoveAll(r.DebugStore())

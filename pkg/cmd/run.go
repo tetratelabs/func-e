@@ -18,29 +18,42 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
+	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/controlplane"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/debug"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
 
+var (
+	controlplaneAddress    string
+	serviceCluster         string
+	accessLogServerAddress string
+	mode                   string
+	envoyLogLevel          string
+
+	istio bool
+)
+
 // NewRunCmd create a command responsible for starting an Envoy process
 func NewRunCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "run [manifest-reference|filepath] -- <envoy-args>",
 		Short: "Starts an Envoy process using the reference or path passed.",
 		Long: `
 Starts an Envoy process using the location passed. 
 Location can be a manifest reference or path to an Envoy binary.`,
 		Example: `# Run using a manifest reference. Reference format is <flavor>:<version>.
-getenvoy run standard:1.10.1 -- --config-path ./bootstrap.yaml
+getenvoy run standard:1.11.1 -- --config-path ./bootstrap.yaml
 
-# Run using a filepath .
+# Run using a filepath
 getenvoy run ./envoy -- --config-path ./bootstrap.yaml
 
 # List available Envoy flags
-getenvoy run standard:1.10.1 -- --help
+
+getenvoy run standard:1.11.1 -- --help
 `,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
@@ -49,14 +62,28 @@ getenvoy run standard:1.10.1 -- --help
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			validMode, err := envoy.ParseMode(mode)
+			if err != nil {
+				return err
+			}
+			cfg := envoy.NewConfig(
+				func(c *envoy.Config) {
+					c.XDSAddress = controlplaneAddress
+					c.Mode = validMode
+					c.ALSAddresss = accessLogServerAddress
+				},
+			)
 			runtime, err := envoy.NewRuntime(
+				func(r *envoy.Runtime) { r.Config = cfg },
 				debug.EnableEnvoyAdminDataCollection,
 				debug.EnableEnvoyLogCollection,
 				debug.EnableNodeCollection,
+				controlplaneFunc(),
 			)
 			if err != nil {
 				return err
 			}
+
 			key, manifestErr := manifest.NewKey(args[0])
 			if manifestErr != nil {
 				if _, err := os.Stat(args[0]); err != nil {
@@ -75,5 +102,21 @@ getenvoy run standard:1.10.1 -- --help
 			}
 			return runtime.Run(key, args[1:])
 		},
+	}
+	cmd.Flags().BoolVar(&istio, "istio", false, "instruct Envoy to use an Istio controlplane")
+	cmd.Flags().StringVar(&controlplaneAddress, "controlplaneAddress", "", "location of Envoy's dynamic configuration server (<host|ip>:port)")
+	cmd.Flags().StringVar(&accessLogServerAddress, "accessLogServerAddress", "", "location of Envoy's access log server (<host|ip>:port)")
+	cmd.Flags().StringVarP(&mode, "mode", "m", "", fmt.Sprintf("mode to run Envoy in (%v)", strings.Join(envoy.ValidModes, "|")))
+	return cmd
+}
+
+func controlplaneFunc() func(r *envoy.Runtime) {
+	// When adding a second controlplane here ensure that we warn when multiple flags are set
+	switch {
+	case istio:
+		return controlplane.Istio
+	default:
+		// do nothing!
+		return func(r *envoy.Runtime) {}
 	}
 }

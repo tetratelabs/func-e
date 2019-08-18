@@ -31,8 +31,7 @@ func NewRoot() *cobra.Command {
 	fetchCmd := NewFetchCmd()
 	rootCmd.AddCommand(fetchCmd)
 
-	rootCmd.PersistentFlags().StringVarP(&manifestURL, "url", "u",
-		manifest.DefaultURL, "sets the manifest URL")
+	rootCmd.PersistentFlags().StringVarP(&manifestURL, "url", "u", manifest.DefaultURL, "sets the manifest URL")
 	return rootCmd
 }
 

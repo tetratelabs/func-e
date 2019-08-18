@@ -52,7 +52,7 @@ func retrieveAdminAPIData(r binary.Runner) error {
 	}
 	var multiErr *multierror.Error
 	for path, file := range adminAPIPaths {
-		resp, err := http.Get(fmt.Sprintf("http://%v/%v", envoy.AdminEndpoint, path))
+		resp, err := http.Get(fmt.Sprintf("http://localhost:%v/%v", envoy.Config.AdminPort, path))
 		if err != nil {
 			multiErr = multierror.Append(multiErr, err)
 			continue
