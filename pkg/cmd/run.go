@@ -106,7 +106,7 @@ getenvoy run standard:1.11.1 -- --help
 	cmd.Flags().BoolVar(&istio, "istio", false, "instruct Envoy to use an Istio controlplane")
 	cmd.Flags().StringVar(&controlplaneAddress, "controlplaneAddress", "", "location of Envoy's dynamic configuration server (<host|ip>:port)")
 	cmd.Flags().StringVar(&accessLogServerAddress, "accessLogServerAddress", "", "location of Envoy's access log server (<host|ip>:port)")
-	cmd.Flags().StringVarP(&mode, "mode", "m", "", fmt.Sprintf("mode to run Envoy in (%v)", strings.Join(envoy.ValidModes, "|")))
+	cmd.Flags().StringVarP(&mode, "mode", "m", "", fmt.Sprintf("mode to run Envoy in (%v)", strings.Join(envoy.SupportedModes, "|")))
 	return cmd
 }
 
