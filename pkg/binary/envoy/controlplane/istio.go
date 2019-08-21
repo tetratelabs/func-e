@@ -32,18 +32,23 @@ import (
 	"istio.io/istio/pkg/config/mesh"
 )
 
-const defaultControlplane = "istio-pilot:15010"
+const (
+	defaultControlplane   = "istio-pilot:15010"
+	initialEpochBootstrap = "envoy-rev1.json"
+)
 
 // Istio tells GetEnvoy that it's using Istio for xDS and should bootstrap accordingly
 var Istio = func(r *envoy.Runtime) {
 	if len(r.Config.XDSAddress) == 0 {
 		r.Config.XDSAddress = defaultControlplane
 	}
-	ips, err := retrieveIPs()
-	if err != nil {
-		panic(fmt.Sprintf("unable to retrieve IPs to be used in Istio bootstrap: %v", err))
+	if len(r.Config.IPAddresses) == 0 {
+		ips, err := retrieveIPs()
+		if err != nil {
+			panic(fmt.Sprintf("unable to retrieve IPs to be used in Istio bootstrap: %v", err))
+		}
+		r.Config.IPAddresses = ips
 	}
-	r.Config.IPAddresses = ips
 	r.RegisterPreStart(writeBootstrap)
 	r.RegisterPreStart(appendArgs)
 }
@@ -55,7 +60,7 @@ func appendArgs(r binary.Runner) error {
 		return errors.New("unable to append Istio args to Envoy as binary.Runner is not an Envoy runtime")
 	}
 	args := []string{
-		"--config-path", filepath.Join(envoy.DebugStore(), "envoy-rev1.json"),
+		"--config-path", filepath.Join(envoy.DebugStore(), initialEpochBootstrap),
 		"--drain-time-s", fmt.Sprint(int(convertDuration(envoy.Config.DrainDuration) / time.Second)),
 		"--max-obj-name-len", fmt.Sprint(envoy.Config.StatNameLength),
 	}
@@ -77,20 +82,26 @@ func writeBootstrap(r binary.Runner) error {
 	if !ok {
 		return errors.New("unable to write Istio bootstrap: binary.Runner is not an Envoy runtime")
 	}
+	cfg := generateIstioConfig(envoy)
+	if err := writeIstioTemplate(cfg.ProxyBootstrapTemplatePath); err != nil {
+		return fmt.Errorf("unable to write Istio bootstrap template: %v", err)
+	}
+	if _, err := agent.WriteBootstrap(&cfg, istioNode(envoy.Config), 1, []string{}, nil, os.Environ(), envoy.Config.IPAddresses, "60s"); err != nil {
+		return fmt.Errorf("unable to write Istio bootstrap: %v", err)
+	}
+	return nil
+}
+
+func generateIstioConfig(envoy *envoy.Runtime) meshconfig.ProxyConfig {
 	cfg := mesh.DefaultProxyConfig()
 	cfg.ConfigPath = envoy.DebugStore()
 	cfg.DiscoveryAddress = envoy.Config.XDSAddress
 	cfg.ProxyAdminPort = envoy.Config.AdminPort
 	cfg.ProxyBootstrapTemplatePath = filepath.Join(envoy.TmplDir, "istio_bootstrap_tmpl.json")
-	if err := writeIstioTemplate(cfg.ProxyBootstrapTemplatePath); err != nil {
-		return fmt.Errorf("unable to write Istio bootstrap template: %v", err)
-	}
 	cfg.EnvoyAccessLogService = &meshconfig.RemoteService{Address: envoy.Config.ALSAddresss}
+	// cfg.ServiceCluster = "istio-ingressgateway"
 	// cfg.ControlPlaneAuthPolicy = v1alpha1.AuthenticationPolicy_MUTUAL_TLS // TODO: turn on!
-	if _, err := agent.WriteBootstrap(&cfg, istioNode(envoy.Config), 1, []string{}, nil, os.Environ(), envoy.Config.IPAddresses, "60s"); err != nil {
-		return fmt.Errorf("unable to write Istio bootstrap: %v", err)
-	}
-	return nil
+	return cfg
 }
 
 func retrieveIPs() ([]string, error) {

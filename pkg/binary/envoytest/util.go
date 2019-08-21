@@ -46,14 +46,36 @@ func Fetch() error {
 	return nil
 }
 
-// Run runs, waits for ready, sends sigint, waits for termination, then unarchives the debug directory.
-// It is blocking and will only return once completed or context timeout is exceeded
-func Run(r binary.Runner, key *manifest.Key, bootstrap string) {
-	go r.Run(key, []string{"-c", bootstrap})
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
+// Run executes envoy and waits for it to be ready
+// It is blocking and will only return once ready (nil) or context timeout is exceeded (error)
+func Run(ctx context.Context, r binary.Runner, bootstrap string) error {
+	key, _ := manifest.NewKey(Reference)
+	args := []string{}
+	if bootstrap != "" {
+		args = append(args, "-c", bootstrap)
+	}
+	go r.Run(key, args)
 	r.WaitWithContext(ctx, binary.StatusReady)
+	return ctx.Err()
+}
+
+// Kill sends sigint to a running enboy, waits for termination, then unarchives the debug directory.
+// It is blocking and will only return once terminated (nil) or context timeout is exceeded (error)
+func Kill(ctx context.Context, r binary.Runner) error {
 	r.SendSignal(syscall.SIGINT)
 	r.WaitWithContext(ctx, binary.StatusTerminated)
 	archiver.Unarchive(r.DebugStore()+".tar.gz", filepath.Dir(r.DebugStore()))
+	return ctx.Err()
+}
+
+// RunKill executes envoy, waits for ready, sends sigint, waits for termination, then unarchives the debug directory.
+// It should be used when you just want to cycle through an Envoy lifecycle
+// It is blocking and will only return once completed (nil) or context timeout is exceeded (error)
+func RunKill(r binary.Runner, bootstrap string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	if err := Run(ctx, r, bootstrap); err != nil {
+		return err
+	}
+	return Kill(ctx, r)
 }

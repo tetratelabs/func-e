@@ -20,7 +20,7 @@ import (
 	"path/filepath"
 )
 
-// TODO: (maybe?) Refactor the Istio write.Bootstrap upstream or write a helper that it wraps so we can pass it a byte slice instead
+// TODO: (maybe?) Refactor the Istio write.Bootstrap upstream so we can pass it a byte slice instead
 func writeIstioTemplate(path string) error {
 	if err := os.MkdirAll(filepath.Dir(path), os.ModePerm); err != nil {
 		return err
