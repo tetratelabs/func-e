@@ -16,6 +16,7 @@ package controlplane
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -27,6 +28,14 @@ import (
 	"istio.io/istio/pilot/pkg/bootstrap"
 	"istio.io/istio/tests/util"
 )
+
+func TestMain(m *testing.M) {
+	if err := envoytest.Fetch(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	os.Exit(m.Run())
+}
 
 // more of an integration test than a unit test
 func Test_IstioGateway(t *testing.T) {
