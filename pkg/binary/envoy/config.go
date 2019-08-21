@@ -15,34 +15,37 @@
 package envoy
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/gogo/protobuf/types"
 )
 
+// Mode is the mode Envoy should run in
 type Mode string
 
 const (
+	// Sidecar instructs Envoy to run as a sidecar
 	Sidecar Mode = "sidecar"
-	Router  Mode = "router"
+	// Router instructs Envoy to tun as a router (e.g. gateway)
+	Router Mode = "router"
 )
 
+// SupportedModes indicate the modes that are current supported by GetEnvoy
 var SupportedModes = []string{string(Router)}
 
-func ParseMode(s string) (Mode, error) {
-	switch {
-	case Mode(s) == Sidecar:
-		return Sidecar, nil
-	case Mode(s) == Router:
-		return Router, nil
-	case s == "":
-		return "", nil
+// ParseMode converts the passed string into a valid mode or empty string
+func ParseMode(s string) Mode {
+	switch Mode(s) {
+	case Sidecar:
+		return Sidecar
+	case Router:
+		return Router
 	default:
-		return "", fmt.Errorf("unable to parse mode %v, must be one of %v", s, SupportedModes)
+		return ""
 	}
 }
 
+// NewConfig creates and mutates a config object based on passed params
 func NewConfig(options ...func(*Config)) *Config {
 	cfg := &Config{
 		AdminPort:      15000,
@@ -56,6 +59,7 @@ func NewConfig(options ...func(*Config)) *Config {
 	return cfg
 }
 
+// Config store Envoy config information for use by bootstrap and arg mutators
 type Config struct {
 	XDSAddress     string
 	Mode           Mode

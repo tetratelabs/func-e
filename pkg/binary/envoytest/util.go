@@ -21,8 +21,10 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
 
-const Reference = "standard:1.11.0"
+// Reference indicates the default Envoy version to be used for testing
+var Reference = "standard:1.11.0"
 
+// Fetch retrieves the Envoy indicated by Reference
 func Fetch() error {
 	key, _ := manifest.NewKey(Reference)
 	r, _ := envoy.NewRuntime()

@@ -18,5 +18,4 @@ require (
 	github.com/tetratelabs/log v0.0.0-20190710134534-eb04d1e84fb8
 	istio.io/api v0.0.0-20190815135234-0d1db548cf57
 	istio.io/istio v0.0.0-20190818012331-da84a1487471
-	istio.io/pkg v0.0.0-20190731230704-fcbac27d69d5
 )

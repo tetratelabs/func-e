@@ -98,6 +98,7 @@ func (r *Runtime) RegisterDone() {
 	r.wg.Done()
 }
 
+// AppendArgs appends the passed args to the child process' args
 func (r *Runtime) AppendArgs(args []string) {
 	r.cmd.Args = append(r.cmd.Args, args...)
 }
