@@ -120,6 +120,23 @@ func (r *Runtime) Wait(state int) {
 	}
 }
 
+// WaitWithContext blocks until the child process reaches the state passed or the context is canceled
+// Note: It does not guarantee that it is in the specified state just that it has reached it
+func (r *Runtime) WaitWithContext(ctx context.Context, state int) {
+	done := make(chan struct{})
+	go func() {
+		r.Wait(state)
+		close(done)
+	}()
+	select {
+	case <-done:
+		return
+	case <-ctx.Done():
+		return
+
+	}
+}
+
 // SendSignal sends a signal to the parent process
 func (r *Runtime) SendSignal(s os.Signal) {
 	r.signals <- s

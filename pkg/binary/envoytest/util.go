@@ -15,8 +15,14 @@
 package envoytest
 
 import (
+	"context"
 	"fmt"
+	"path/filepath"
+	"syscall"
+	"time"
 
+	"github.com/mholt/archiver"
+	"github.com/tetratelabs/getenvoy/pkg/binary"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
@@ -38,4 +44,16 @@ func Fetch() error {
 		}
 	}
 	return nil
+}
+
+// Run runs, waits for ready, sends sigint, waits for termination, then unarchives the debug directory.
+// It is blocking and will only return once completed or context timeout is exceeded
+func Run(r binary.Runner, key *manifest.Key, bootstrap string) {
+	go r.Run(key, []string{"-c", bootstrap})
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	r.WaitWithContext(ctx, binary.StatusReady)
+	r.SendSignal(syscall.SIGINT)
+	r.WaitWithContext(ctx, binary.StatusTerminated)
+	archiver.Unarchive(r.DebugStore()+".tar.gz", filepath.Dir(r.DebugStore()))
 }

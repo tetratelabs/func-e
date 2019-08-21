@@ -31,7 +31,8 @@ func Test_capture(t *testing.T) {
 		r, _ := envoy.NewRuntime(EnableEnvoyLogCollection, EnableEnvoyAdminDataCollection)
 		defer os.RemoveAll(r.DebugStore() + ".tar.gz")
 		defer os.RemoveAll(r.DebugStore())
-		startWaitKillUnarchiveGetEnvoy(r, key, filepath.Join("testdata", "stdout.yaml"))
+		context.WithTimeout()
+		envoytest.Run(r, key, filepath.Join("testdata", "stdout.yaml"))
 
 		for _, filename := range []string{"logs/access.log", "logs/error.log"} {
 			path := filepath.Join(r.DebugStore(), filename)

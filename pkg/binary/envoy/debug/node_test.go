@@ -30,7 +30,7 @@ func Test_ps(t *testing.T) {
 		r, _ := envoy.NewRuntime(EnableNodeCollection)
 		defer os.RemoveAll(r.DebugStore() + ".tar.gz")
 		defer os.RemoveAll(r.DebugStore())
-		startWaitKillUnarchiveGetEnvoy(r, key, filepath.Join("testdata", "null.yaml"))
+		envoytest.Run(r, key, filepath.Join("testdata", "null.yaml"))
 
 		path := filepath.Join(r.DebugStore(), "node/ps.txt")
 		f, err := os.Stat(path)

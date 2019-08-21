@@ -18,23 +18,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"syscall"
 	"testing"
 
-	"github.com/mholt/archiver"
-	"github.com/tetratelabs/getenvoy/pkg/binary"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
-
-func startWaitKillUnarchiveGetEnvoy(r binary.Runner, key *manifest.Key, bootstrap string) {
-	go r.Run(key, []string{"-c", bootstrap})
-	r.Wait(binary.StatusReady)
-	r.SendSignal(syscall.SIGINT)
-	r.Wait(binary.StatusTerminated)
-	archiver.Unarchive(r.DebugStore()+".tar.gz", filepath.Dir(r.DebugStore()))
-}
 
 func TestMain(m *testing.M) {
 	if err := envoytest.Fetch(); err != nil {
@@ -52,7 +41,7 @@ func Test_retrieveAdminAPIData(t *testing.T) {
 		r, _ := envoy.NewRuntime(EnableEnvoyAdminDataCollection)
 		defer os.RemoveAll(r.DebugStore() + ".tar.gz")
 		defer os.RemoveAll(r.DebugStore())
-		startWaitKillUnarchiveGetEnvoy(r, key, filepath.Join("testdata", "null.yaml"))
+		envoytest.Run(r, key, filepath.Join("testdata", "null.yaml"))
 
 		for _, filename := range adminAPIPaths {
 			path := filepath.Join(r.DebugStore(), filename)
