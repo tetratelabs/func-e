@@ -29,7 +29,7 @@ func Test_capture(t *testing.T) {
 		r, _ := envoy.NewRuntime(EnableEnvoyLogCollection, EnableEnvoyAdminDataCollection)
 		defer os.RemoveAll(r.DebugStore() + ".tar.gz")
 		defer os.RemoveAll(r.DebugStore())
-		envoytest.RunKill(r, filepath.Join("testdata", "stdout.yaml"))
+		envoytest.RunKill(r, filepath.Join("testdata", "stdout.yaml"), 0)
 
 		for _, filename := range []string{"logs/access.log", "logs/error.log"} {
 			path := filepath.Join(r.DebugStore(), filename)

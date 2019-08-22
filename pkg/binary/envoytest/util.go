@@ -71,8 +71,12 @@ func Kill(ctx context.Context, r binary.Runner) error {
 // RunKill executes envoy, waits for ready, sends sigint, waits for termination, then unarchives the debug directory.
 // It should be used when you just want to cycle through an Envoy lifecycle
 // It is blocking and will only return once completed (nil) or context timeout is exceeded (error)
-func RunKill(r binary.Runner, bootstrap string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+// If timeout passed is 0, it defaults to 3 seconds
+func RunKill(r binary.Runner, bootstrap string, timeout time.Duration) error {
+	if timeout == 0 {
+		timeout = time.Second * 3
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	if err := Run(ctx, r, bootstrap); err != nil {
 		return err

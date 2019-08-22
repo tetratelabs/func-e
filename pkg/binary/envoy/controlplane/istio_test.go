@@ -17,7 +17,9 @@ package controlplane
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -37,7 +39,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// more of an integration test than a unit test
+// NOTE: This test will fail on macOS due to an issue with Envoy, the same issue as debug logging
 func Test_IstioGateway(t *testing.T) {
 	t.Run("connects to mock Pilot as a gateway", func(t *testing.T) {
 		_, teardown := setupMockPilot()
@@ -59,28 +61,20 @@ func Test_IstioGateway(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
 		assert.NoError(t, envoytest.Run(ctx, runtime, ""))
+		gotListeners, _ := ioutil.ReadFile(filepath.Join(runtime.DebugStore(), "listeners.txt"))
+		assert.Contains(t, string(gotListeners), "0.0.0.0_8443::0.0.0.0:8443")
+		assert.Contains(t, string(gotListeners), "0.0.0.0_8080::0.0.0.0:8080")
 		assert.NoError(t, envoytest.Kill(ctx, runtime))
 	})
-
-	// t.Run("mutates Envoy to a runnable state", func(t *testing.T) {
-	// 	r := defaultIstioRuntime()
-	// 	writeBootstrap(r)
-	// 	envoy, _ := envoy.NewRuntime()
-	// 	defer os.RemoveAll(r.DebugStore() + ".tar.gz")
-	// 	defer os.RemoveAll(r.DebugStore())
-	// 	assert.NoError(t, envoytest.Run(envoy, filepath.Join(r.DebugStore(), initialEpochBootstrap)))
-	// })
 }
 
 func setupMockPilot() (*bootstrap.Server, util.TearDownFunc) {
 	return util.EnsureTestServer(func(args *bootstrap.PilotArgs) {
 		bootstrap.PilotCertDir = "testdata"
-		// args.DiscoveryOptions.SecureGrpcAddr = ""
-		args.Plugins = bootstrap.DefaultPlugins
 		args.Config.FileDir = "testdata"
+		args.Plugins = bootstrap.DefaultPlugins
 		args.Mesh.MixerAddress = ""
 		args.Mesh.RdsRefreshDelay = nil
-		// args.Mesh.ConfigFile = "testdata/ingress-gateway/mesh.yaml"
 		args.Service.Registries = []string{}
 	})
 }

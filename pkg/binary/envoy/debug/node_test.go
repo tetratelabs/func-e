@@ -18,6 +18,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
@@ -28,7 +29,7 @@ func Test_ps(t *testing.T) {
 		r, _ := envoy.NewRuntime(EnableNodeCollection)
 		defer os.RemoveAll(r.DebugStore() + ".tar.gz")
 		defer os.RemoveAll(r.DebugStore())
-		envoytest.RunKill(r, filepath.Join("testdata", "null.yaml"))
+		envoytest.RunKill(r, filepath.Join("testdata", "null.yaml"), time.Second*10)
 
 		path := filepath.Join(r.DebugStore(), "node/ps.txt")
 		f, err := os.Stat(path)

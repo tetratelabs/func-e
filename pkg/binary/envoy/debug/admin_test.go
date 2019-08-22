@@ -39,7 +39,7 @@ func Test_retrieveAdminAPIData(t *testing.T) {
 		r, _ := envoy.NewRuntime(EnableEnvoyAdminDataCollection)
 		defer os.RemoveAll(r.DebugStore() + ".tar.gz")
 		defer os.RemoveAll(r.DebugStore())
-		envoytest.RunKill(r, filepath.Join("testdata", "null.yaml"))
+		envoytest.RunKill(r, filepath.Join("testdata", "null.yaml"), 0)
 
 		for _, filename := range adminAPIPaths {
 			path := filepath.Join(r.DebugStore(), filename)
