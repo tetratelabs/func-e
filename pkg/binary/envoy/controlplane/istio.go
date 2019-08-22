@@ -26,6 +26,7 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/binary"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	meshconfig "istio.io/api/mesh/v1alpha1"
+	"istio.io/pkg/log"
 
 	"istio.io/istio/pilot/pkg/model"
 	agent "istio.io/istio/pkg/bootstrap"
@@ -39,7 +40,7 @@ const (
 
 // Istio tells GetEnvoy that it's using Istio for xDS and should bootstrap accordingly
 var Istio = func(r *envoy.Runtime) {
-	if len(r.Config.XDSAddress) == 0 {
+	if r.Config.XDSAddress == "" {
 		r.Config.XDSAddress = defaultControlplane
 	}
 	if len(r.Config.IPAddresses) == 0 {
@@ -55,14 +56,14 @@ var Istio = func(r *envoy.Runtime) {
 
 func appendArgs(r binary.Runner) error {
 	// Type assert as we're using Envoy specific config
-	envoy, ok := r.(*envoy.Runtime)
+	e, ok := r.(*envoy.Runtime)
 	if !ok {
 		return errors.New("unable to append Istio args to Envoy as binary.Runner is not an Envoy runtime")
 	}
 	args := []string{
-		"--config-path", filepath.Join(envoy.DebugStore(), initialEpochBootstrap),
-		"--drain-time-s", fmt.Sprint(int(convertDuration(envoy.Config.DrainDuration) / time.Second)),
-		"--max-obj-name-len", fmt.Sprint(envoy.Config.StatNameLength),
+		"--config-path", filepath.Join(e.DebugStore(), initialEpochBootstrap),
+		"--drain-time-s", fmt.Sprint(int(convertDuration(e.Config.DrainDuration) / time.Second)),
+		"--max-obj-name-len", fmt.Sprint(e.Config.StatNameLength),
 	}
 	r.AppendArgs(args)
 	return nil
@@ -72,33 +73,36 @@ func convertDuration(d *types.Duration) time.Duration {
 	if d == nil {
 		return 0
 	}
-	dur, _ := types.DurationFromProto(d)
+	dur, err := types.DurationFromProto(d)
+	if err != nil {
+		log.Warnf("unable to convert proto duration %v to time.Duration", d)
+	}
 	return dur
 }
 
 func writeBootstrap(r binary.Runner) error {
 	// Type assert as we're using Envoy specific config
-	envoy, ok := r.(*envoy.Runtime)
+	e, ok := r.(*envoy.Runtime)
 	if !ok {
 		return errors.New("unable to write Istio bootstrap: binary.Runner is not an Envoy runtime")
 	}
-	cfg := generateIstioConfig(envoy)
+	cfg := generateIstioConfig(e)
 	if err := writeIstioTemplate(cfg.ProxyBootstrapTemplatePath); err != nil {
 		return fmt.Errorf("unable to write Istio bootstrap template: %v", err)
 	}
-	if _, err := agent.WriteBootstrap(&cfg, istioNode(envoy.Config), 1, []string{}, nil, os.Environ(), envoy.Config.IPAddresses, "60s"); err != nil {
+	if _, err := agent.WriteBootstrap(&cfg, istioNode(e.Config), 1, []string{}, nil, os.Environ(), e.Config.IPAddresses, "60s"); err != nil {
 		return fmt.Errorf("unable to write Istio bootstrap: %v", err)
 	}
 	return nil
 }
 
-func generateIstioConfig(envoy *envoy.Runtime) meshconfig.ProxyConfig {
+func generateIstioConfig(e *envoy.Runtime) meshconfig.ProxyConfig {
 	cfg := mesh.DefaultProxyConfig()
-	cfg.ConfigPath = envoy.DebugStore()
-	cfg.DiscoveryAddress = envoy.Config.XDSAddress
-	cfg.ProxyAdminPort = envoy.Config.AdminPort
-	cfg.ProxyBootstrapTemplatePath = filepath.Join(envoy.TmplDir, "istio_bootstrap_tmpl.json")
-	cfg.EnvoyAccessLogService = &meshconfig.RemoteService{Address: envoy.Config.ALSAddresss}
+	cfg.ConfigPath = e.DebugStore()
+	cfg.DiscoveryAddress = e.Config.XDSAddress
+	cfg.ProxyAdminPort = e.Config.AdminPort
+	cfg.ProxyBootstrapTemplatePath = filepath.Join(e.TmplDir, "istio_bootstrap_tmpl.json")
+	cfg.EnvoyAccessLogService = &meshconfig.RemoteService{Address: e.Config.ALSAddresss}
 	// cfg.ControlPlaneAuthPolicy = v1alpha1.AuthenticationPolicy_MUTUAL_TLS // TODO: turn on!
 	return cfg
 }

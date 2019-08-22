@@ -16,16 +16,18 @@ version: 2.0
 
 jobs:
   lint:
-    resource_class: small
     docker:
       - image: circleci/golang:1.12.6
+    environment:
+      # Run garbage collection more aggresively to avoid getting OOMed during the lint phase.
+      GOGC: "20"
+      # Circle CI executor has many cores (> 30) but throttles CPU and RAM. If we don't limit
+      # this to the number of allocated cores, the job is likely to get OOMed and killed.
+      GOMAXPROCS: "2"
     steps:
       - checkout
-      - run: ./ci/install
-      - run: go mod vendor # vendor prior to lint to avoid linting timeouts
-      - run: 
-          command: ./ci/lint
-          no_output_timeout: 1h
+      - run: ./ci/install-lint
+      - run: ./ci/lint
           
   test:
     resource_class: small

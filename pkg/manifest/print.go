@@ -68,7 +68,7 @@ func fetch(manifestURL string) (*api.Manifest, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("received %v response code from %v", resp.StatusCode, manifestURL)
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer resp.Body.Close() //nolint
 	result := api.Manifest{}
 	if err := jsonpb.Unmarshal(resp.Body, &result); err != nil {
 		return nil, fmt.Errorf("error unmarshalling manifest: %v", err)

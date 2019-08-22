@@ -113,7 +113,7 @@ func createLocalFile(location string) {
 	f.Close()
 }
 
-func mockServer(responseStatusCode int, tarballStructure string, tmpDir string) (*httptest.Server, *bool) {
+func mockServer(responseStatusCode int, tarballStructure, tmpDir string) (*httptest.Server, *bool) {
 	called := false
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called = true

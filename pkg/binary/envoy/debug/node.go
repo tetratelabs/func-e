@@ -41,7 +41,7 @@ func ps(r binary.Runner) error {
 	if err != nil {
 		return fmt.Errorf("unable to create file to write ps output to: %v", err)
 	}
-	defer func() { _ = f.Close() }()
+	defer f.Close() //nolint
 
 	processes, err := process.Processes()
 	if err != nil {

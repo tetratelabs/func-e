@@ -102,7 +102,7 @@ func (r *Runtime) envoyReady() bool {
 	if err != nil {
 		return false
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer resp.Body.Close() //nolint
 	if resp.StatusCode == http.StatusOK {
 		r.isReady = true
 		return r.isReady
