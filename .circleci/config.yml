@@ -21,16 +21,21 @@ jobs:
       - image: circleci/golang:1.12.6
     steps:
       - checkout
-      - run: ./ci/install-linux
-      - run: ./ci/lint
+      - run: ./ci/install
+      - run: go mod vendor # vendor prior to lint to avoid linting timeouts
+      - run: 
+          command: ./ci/lint
+          no_output_timeout: 1h
+          
   test:
     resource_class: small
     docker:
       - image: circleci/golang:1.12.6
     steps:
       - checkout
-      - run: ./ci/install-linux
+      - run: ./ci/install-envoy
       - run: ./ci/test
+      
   release:
     docker:
       - image: circleci/golang:1.12.6

@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
 
@@ -28,10 +29,16 @@ import (
 const (
 	// DefaultURL is the official GetEnvoy manifest location
 	DefaultURL = "https://tetrate.bintray.com/getenvoy/manifest.json"
+
+	referenceEnv = "ENVOY_REFERENCE"
 )
 
 // NewKey creates a manifest key based on the reference it is given
 func NewKey(reference string) (*Key, error) {
+	// This enables us to parameterize Docker images
+	if reference == "@" {
+		reference = os.Getenv(referenceEnv)
+	}
 	r := regexp.MustCompile(`^([\w\d-\._]+):([\w\d-\._]+)/?([\w\d-\._]+)?$`)
 	matches := r.FindStringSubmatch(reference)
 	if len(matches) != 4 {

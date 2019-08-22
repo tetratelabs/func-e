@@ -10,7 +10,7 @@ else
     SUCCESS=false
 fi
 
-if golangci-lint run; then
+if time golangci-lint run -v; then
     echo "golangci-lint succeded."
 else
     echo "golangci-lint failed."
