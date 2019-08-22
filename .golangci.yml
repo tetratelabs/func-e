@@ -105,7 +105,7 @@ linters-settings:
     min-occurrences: 3
   depguard:
     list-type: blacklist
-    include-go-root: true
+    include-go-root: false
     packages:
       - github.com/davecgh/go-spew/spew
   misspell:
@@ -164,8 +164,8 @@ linters-settings:
         sizeThreshold: 32
 
 linters:
-  enable: ["bodyclose", "depguard", "dupl", "goconst", "gocritic", "gofmt", "gocyclo", "goimports", "golint", "gosec", "interfacer", "lll", "maligned", "misspell", "nakedret", "prealloc", "scopelint", "unconvert", "unparam"]
-  disable: ["gochecknoinits", "gochecknoglobals"]
+  enable: ["bodyclose", "dupl", "goconst", "gocritic", "gofmt", "gocyclo", "goimports", "golint", "gosec", "interfacer", "lll", "maligned", "misspell", "nakedret", "prealloc", "scopelint", "unconvert", "unparam"]
+  disable: ["gochecknoinits", "gochecknoglobals", "depguard"] # re-enable depguard once new golangci is released (currently 1.17.1) -> https://github.com/golangci/golangci-lint/pull/589
   fast: false
   auto-fix: true
 
