@@ -99,7 +99,6 @@ func generateIstioConfig(envoy *envoy.Runtime) meshconfig.ProxyConfig {
 	cfg.ProxyAdminPort = envoy.Config.AdminPort
 	cfg.ProxyBootstrapTemplatePath = filepath.Join(envoy.TmplDir, "istio_bootstrap_tmpl.json")
 	cfg.EnvoyAccessLogService = &meshconfig.RemoteService{Address: envoy.Config.ALSAddresss}
-	// cfg.ServiceCluster = "istio-ingressgateway"
 	// cfg.ControlPlaneAuthPolicy = v1alpha1.AuthenticationPolicy_MUTUAL_TLS // TODO: turn on!
 	return cfg
 }

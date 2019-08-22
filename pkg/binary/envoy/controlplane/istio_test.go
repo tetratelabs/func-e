@@ -61,10 +61,11 @@ func Test_IstioGateway(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
 		assert.NoError(t, envoytest.Run(ctx, runtime, ""))
+		time.Sleep(time.Millisecond * 500) // Pilot config propagation
+		assert.NoError(t, envoytest.Kill(ctx, runtime))
 		gotListeners, _ := ioutil.ReadFile(filepath.Join(runtime.DebugStore(), "listeners.txt"))
 		assert.Contains(t, string(gotListeners), "0.0.0.0_8443::0.0.0.0:8443")
 		assert.Contains(t, string(gotListeners), "0.0.0.0_8080::0.0.0.0:8080")
-		assert.NoError(t, envoytest.Kill(ctx, runtime))
 	})
 }
 
