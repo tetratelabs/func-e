@@ -26,7 +26,7 @@ import (
 )
 
 // EnableEnvoyLogCollection is a preset option that registers collection of Envoy access logs and stderr
-var EnableEnvoyLogCollection = func(r *envoy.Runtime) {
+func EnableEnvoyLogCollection(r *envoy.Runtime) {
 	if err := os.MkdirAll(filepath.Join(r.DebugStore(), "logs"), os.ModePerm); err != nil {
 		log.Errorf("unable to create directory to write logs to, no logs will be captured: %v", err)
 		return

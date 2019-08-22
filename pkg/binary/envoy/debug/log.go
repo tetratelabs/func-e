@@ -27,6 +27,6 @@ import (
 // *exec.Cmd.Stdout == os.Stdout. This makes it impossible to add the MultiWriter and start Envoy.
 //
 // The reason for this is not fully understood and not worth investing time yet just for macOS.
-var EnableEnvoyLogCollection = func(r *envoy.Runtime) {
+func EnableEnvoyLogCollection(r *envoy.Runtime) {
 	log.Errorf("Log collection is not supported on this Operating System")
 }

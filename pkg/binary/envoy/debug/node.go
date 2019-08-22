@@ -28,7 +28,7 @@ import (
 )
 
 // EnableNodeCollection is a preset option that registers collection of node level information for debugging
-var EnableNodeCollection = func(r *envoy.Runtime) {
+func EnableNodeCollection(r *envoy.Runtime) {
 	if err := os.MkdirAll(filepath.Join(r.DebugStore(), "node"), os.ModePerm); err != nil {
 		log.Errorf("unable to create directory to write node data to: %v", err)
 		return

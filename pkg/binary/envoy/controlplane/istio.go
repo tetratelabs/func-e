@@ -39,7 +39,7 @@ const (
 )
 
 // Istio tells GetEnvoy that it's using Istio for xDS and should bootstrap accordingly
-var Istio = func(r *envoy.Runtime) {
+func Istio(r *envoy.Runtime) {
 	if r.Config.XDSAddress == "" {
 		r.Config.XDSAddress = defaultControlplane
 	}
