@@ -14,10 +14,10 @@
 
 FROM gcr.io/distroless/cc
 
-COPY bin/getenvoy /
+COPY getenvoy /
 
-ARG envoy_reference
-ENV ENVOY_REFERENCE=$envoy_reference
+ARG reference
+ENV ENVOY_REFERENCE=$reference
 RUN ["/getenvoy", "fetch", "@"]
 ENTRYPOINT ["/getenvoy", "run", "@"]
 
