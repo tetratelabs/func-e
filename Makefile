@@ -12,11 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+ENVOY = standard:1.11.1
+HUB ?= docker.io/getenvoy
+TAG ?= dev
+
 deps:
 	go mod download
 
 build: deps
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./bin/getenvoy ./cmd/getenvoy/main.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o getenvoy ./cmd/getenvoy/main.go
 
 docker: build
-	docker build -t getenvoy:latest .
+	docker build -t $(HUB)/getenvoy:$(TAG) --build-arg reference=$(ENVOY) .
