@@ -43,6 +43,7 @@ jobs:
       - image: circleci/golang:1.12.6
     steps:
       - checkout
+      - setup_remote_docker
       - run: echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
       - run: curl -sL https://git.io/goreleaser | bash
 
