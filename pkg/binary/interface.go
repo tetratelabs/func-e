@@ -15,6 +15,7 @@
 package binary
 
 import (
+	"context"
 	"io"
 	"os"
 
@@ -31,7 +32,9 @@ type Runner interface {
 	RegisterDone()
 	SendSignal(signal os.Signal)
 	Status() int
+	AppendArgs([]string)
 	Wait(int)
+	WaitWithContext(context.Context, int)
 	DebugStore() string
 	SetStdout(w io.Writer)
 	SetStderr(w io.Writer)

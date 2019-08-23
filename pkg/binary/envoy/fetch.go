@@ -78,8 +78,7 @@ func fetchEnvoy(dst, src string) error {
 	if err != nil {
 		return err
 	}
-	defer func() { _ = os.RemoveAll(tmpDir) }()
-
+	defer os.RemoveAll(tmpDir) //nolint
 	tarball, err := doDownload(tmpDir, src)
 	if err != nil {
 		return fmt.Errorf("unable to fetch envoy from %v: %v", src, err)
@@ -96,7 +95,7 @@ func doDownload(dst, src string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer resp.Body.Close() //nolint
 
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("received %v status code from %q", resp.StatusCode, src)
@@ -107,7 +106,7 @@ func doDownload(dst, src string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer func() { _ = f.Close() }()
+	defer f.Close() //nolint
 
 	bar := progressbar.NewOptions64(resp.ContentLength, progressbar.OptionSetDescription("[Fetching Envoy]"))
 	out := io.MultiWriter(f, bar)

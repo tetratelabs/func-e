@@ -20,17 +20,16 @@ import (
 	"testing"
 
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
-	"github.com/tetratelabs/getenvoy/pkg/manifest"
+	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
 )
 
 func Test_capture(t *testing.T) {
 	t.Run("creates non-empty access and error log files", func(t *testing.T) {
-		key, _ := manifest.NewKey(envoyReference)
 		// EnableEnvoyAdminDataCollection is here to create some requests to the admin endpoint for stdout
 		r, _ := envoy.NewRuntime(EnableEnvoyLogCollection, EnableEnvoyAdminDataCollection)
 		defer os.RemoveAll(r.DebugStore() + ".tar.gz")
 		defer os.RemoveAll(r.DebugStore())
-		startWaitKillUnarchiveGetEnvoy(r, key, filepath.Join("testdata", "stdout.yaml"))
+		envoytest.RunKill(r, filepath.Join("testdata", "stdout.yaml"), 0)
 
 		for _, filename := range []string{"logs/access.log", "logs/error.log"} {
 			path := filepath.Join(r.DebugStore(), filename)

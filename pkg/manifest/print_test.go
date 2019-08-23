@@ -112,8 +112,8 @@ func mockServer(responseStatusCode int, responseManifestFile string) *httptest.S
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(responseStatusCode)
 		if responseStatusCode == http.StatusOK {
-			bytes, _ := ioutil.ReadFile(filepath.Join("testdata", responseManifestFile))
-			w.Write(bytes)
+			b, _ := ioutil.ReadFile(filepath.Join("testdata", responseManifestFile))
+			w.Write(b)
 		}
 	}))
 }

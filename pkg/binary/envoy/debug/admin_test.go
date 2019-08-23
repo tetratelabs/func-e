@@ -18,42 +18,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"syscall"
 	"testing"
 
-	"github.com/mholt/archiver"
-	"github.com/tetratelabs/getenvoy/pkg/binary"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
-	"github.com/tetratelabs/getenvoy/pkg/manifest"
+	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
 )
 
-const envoyReference = "standard:1.11.0"
-
-func fetchEnvoy() error {
-	key, _ := manifest.NewKey(envoyReference)
-	r, _ := envoy.NewRuntime()
-	if !r.AlreadyDownloaded(key) {
-		location, err := manifest.Locate(key, manifest.DefaultURL)
-		if err != nil {
-			return fmt.Errorf("unable to retrieve manifest from %v: %v", manifest.DefaultURL, err)
-		}
-		if err := r.Fetch(key, location); err != nil {
-			return fmt.Errorf("unable to retrieve binary from %v: %v", location, err)
-		}
-	}
-	return nil
-}
-
-func startWaitKillUnarchiveGetEnvoy(r binary.Runner, key *manifest.Key, bootstrap string) {
-	go r.Run(key, []string{"-c", bootstrap})
-	r.Wait(binary.StatusReady)
-	r.SendSignal(syscall.SIGINT)
-	r.Wait(binary.StatusTerminated)
-	archiver.Unarchive(r.DebugStore()+".tar.gz", filepath.Dir(r.DebugStore()))
-}
-
 func TestMain(m *testing.M) {
-	if err := fetchEnvoy(); err != nil {
+	if err := envoytest.Fetch(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
@@ -64,11 +36,10 @@ func TestMain(m *testing.M) {
 // This is more of an integration test than a unit test, but either way is necessary.
 func Test_retrieveAdminAPIData(t *testing.T) {
 	t.Run("creates all non-empty files", func(t *testing.T) {
-		key, _ := manifest.NewKey(envoyReference)
 		r, _ := envoy.NewRuntime(EnableEnvoyAdminDataCollection)
 		defer os.RemoveAll(r.DebugStore() + ".tar.gz")
 		defer os.RemoveAll(r.DebugStore())
-		startWaitKillUnarchiveGetEnvoy(r, key, filepath.Join("testdata", "null.yaml"))
+		envoytest.RunKill(r, filepath.Join("testdata", "null.yaml"), 0)
 
 		for _, filename := range adminAPIPaths {
 			path := filepath.Join(r.DebugStore(), filename)

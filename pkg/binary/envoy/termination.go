@@ -36,7 +36,7 @@ func (r *Runtime) handleTermination() {
 
 	// Forward on the SIGINT to Envoy
 	log.Infof("Sending Envoy process (PID=%d) SIGINT", r.cmd.Process.Pid)
-	_ = r.cmd.Process.Signal(syscall.SIGINT)
+	r.cmd.Process.Signal(syscall.SIGINT) //nolint
 
 }
 

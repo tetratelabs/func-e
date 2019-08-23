@@ -33,9 +33,10 @@ func NewRuntime(options ...func(*Runtime)) (binary.FetchRunner, error) {
 	usrDir, err := homedir.Dir()
 	local := filepath.Join(usrDir, ".getenvoy")
 	runtime := &Runtime{
+		Config:         NewConfig(),
 		fetcher:        fetcher{local},
+		TmplDir:        filepath.Join(local, "templates"),
 		wg:             &sync.WaitGroup{},
-		AdminEndpoint:  "localhost:15001",
 		signals:        make(chan os.Signal),
 		preStart:       make([]func(binary.Runner) error, 0),
 		preTermination: make([]func(binary.Runner) error, 0),
@@ -59,8 +60,9 @@ type fetcher struct {
 type Runtime struct {
 	fetcher
 
-	debugDir      string
-	AdminEndpoint string
+	debugDir string
+	TmplDir  string
+	Config   *Config
 
 	cmd *exec.Cmd
 	ctx context.Context
@@ -96,11 +98,11 @@ func (r *Runtime) envoyReady() bool {
 	if r.isReady {
 		return true
 	}
-	resp, err := http.Get(fmt.Sprintf("http://%v/ready", r.AdminEndpoint))
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%v/ready", r.Config.AdminPort))
 	if err != nil {
 		return false
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer resp.Body.Close() //nolint
 	if resp.StatusCode == http.StatusOK {
 		r.isReady = true
 		return r.isReady
@@ -115,6 +117,23 @@ func (r *Runtime) Wait(state int) {
 		// This is a call to a function to allow the goroutine to be preempted for garbage collection
 		// The sleep duration is somewhat arbitrary
 		func() { time.Sleep(time.Millisecond * 100) }()
+	}
+}
+
+// WaitWithContext blocks until the child process reaches the state passed or the context is canceled
+// Note: It does not guarantee that it is in the specified state just that it has reached it
+func (r *Runtime) WaitWithContext(ctx context.Context, state int) {
+	done := make(chan struct{})
+	go func() {
+		r.Wait(state)
+		close(done)
+	}()
+	select {
+	case <-done:
+		return
+	case <-ctx.Done():
+		return
+
 	}
 }
 

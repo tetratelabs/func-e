@@ -40,19 +40,19 @@ var adminAPIPaths = map[string]string{
 }
 
 // EnableEnvoyAdminDataCollection is a preset option that registers collection of Envoy Admin API information
-var EnableEnvoyAdminDataCollection = func(r *envoy.Runtime) {
+func EnableEnvoyAdminDataCollection(r *envoy.Runtime) {
 	r.RegisterPreTermination(retrieveAdminAPIData)
 }
 
 func retrieveAdminAPIData(r binary.Runner) error {
 	// Type assert as we're using Envoy specific debugging (admin endpoint)
-	envoy, ok := r.(*envoy.Runtime)
+	e, ok := r.(*envoy.Runtime)
 	if !ok {
 		return errors.New("binary.Runner is not an Envoy runtime")
 	}
 	var multiErr *multierror.Error
 	for path, file := range adminAPIPaths {
-		resp, err := http.Get(fmt.Sprintf("http://%v/%v", envoy.AdminEndpoint, path))
+		resp, err := http.Get(fmt.Sprintf("http://localhost:%v/%v", e.Config.AdminPort, path))
 		if err != nil {
 			multiErr = multierror.Append(multiErr, err)
 			continue
@@ -66,8 +66,8 @@ func retrieveAdminAPIData(r binary.Runner) error {
 			multiErr = multierror.Append(multiErr, err)
 			continue
 		}
-		defer func() { _ = f.Close() }()
-		defer func() { _ = resp.Body.Close() }()
+		defer f.Close()         //nolint
+		defer resp.Body.Close() //nolint
 		if _, err := io.Copy(f, resp.Body); err != nil {
 			multiErr = multierror.Append(multiErr, err)
 		}

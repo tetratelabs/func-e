@@ -98,8 +98,13 @@ func (r *Runtime) RegisterDone() {
 	r.wg.Done()
 }
 
+// AppendArgs appends the passed args to the child process' args
+func (r *Runtime) AppendArgs(args []string) {
+	r.cmd.Args = append(r.cmd.Args, args...)
+}
+
 func (r *Runtime) waitForTerminationSignals() {
-	signal.Notify(r.signals, syscall.SIGINT)
+	signal.Notify(r.signals, syscall.SIGINT, syscall.SIGTERM)
 
 	// Block until we receive SIGINT or are canceled because Envoy has died
 	select {
@@ -124,6 +129,7 @@ func (r *Runtime) runEnvoy(cancel context.CancelFunc) {
 	defer r.wg.Done()
 	defer cancel()
 
+	log.Infof("Envoy command: %v", r.cmd.Args)
 	if err := r.cmd.Start(); err != nil {
 		log.Errorf("Unable to start Envoy process: %v", err)
 	}

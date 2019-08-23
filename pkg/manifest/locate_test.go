@@ -17,6 +17,7 @@ package manifest
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,6 +27,7 @@ func TestLocate(t *testing.T) {
 	tests := []struct {
 		name               string
 		reference          string
+		envVar             string
 		locationOverride   string
 		responseStatusCode int
 		want               string
@@ -34,6 +36,13 @@ func TestLocate(t *testing.T) {
 		{
 			name:               "standard 1.11.0 linux-glibc matches",
 			reference:          "standard:1.11.0/linux-glibc",
+			want:               "standard:1.11.0/linux-glibc",
+			responseStatusCode: http.StatusOK,
+		},
+		{
+			name:               "@ uses env var",
+			reference:          "@",
+			envVar:             "standard:1.11.0/linux-glibc",
 			want:               "standard:1.11.0/linux-glibc",
 			responseStatusCode: http.StatusOK,
 		},
@@ -87,6 +96,10 @@ func TestLocate(t *testing.T) {
 			location := mock.URL
 			if tc.locationOverride != "" {
 				location = tc.locationOverride
+			}
+			if len(tc.envVar) > 0 {
+				os.Setenv(referenceEnv, tc.envVar)
+				defer os.Unsetenv(referenceEnv)
 			}
 			key, _ := NewKey(tc.reference)
 			if got, err := Locate(key, location); tc.wantErr {
