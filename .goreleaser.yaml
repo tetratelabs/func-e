@@ -60,6 +60,7 @@ brews:
 dockers:
 - image_templates: 
   - getenvoy/getenvoy:{{ .Version }}-standard-1.11.1
+  - getenvoy/getenvoy:standard-latest
   build_flag_templates:
   - "--build-arg=reference=standard:1.11.1"
 
