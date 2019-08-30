@@ -22,24 +22,22 @@ import (
 // NewRoot create a new root command and sets the cliVersion to the passed variable
 // TODO: Add version support on the command
 func NewRoot() *cobra.Command {
-	runCmd := NewRunCmd()
-	rootCmd.AddCommand(runCmd)
+	rootCmd.AddCommand(NewRunCmd())
+	rootCmd.AddCommand(NewListCmd())
+	rootCmd.AddCommand(NewFetchCmd())
+	rootCmd.AddCommand(NewDocCmd())
 
-	listCmd := NewListCmd()
-	rootCmd.AddCommand(listCmd)
-
-	fetchCmd := NewFetchCmd()
-	rootCmd.AddCommand(fetchCmd)
-
-	rootCmd.PersistentFlags().StringVarP(&manifestURL, "url", "u", manifest.DefaultURL, "sets the manifest URL")
+	rootCmd.PersistentFlags().StringVar(&manifestURL, "manifest", manifest.DefaultURL, "sets the manifest URL")
+	rootCmd.PersistentFlags().MarkHidden("manifest") // nolint
 	return rootCmd
 }
 
 var (
 	rootCmd = &cobra.Command{
 		Use:   "getenvoy",
-		Short: "getenvoy",
-		Long:  "getenvoy",
+		Short: "Fetch, deploy and debug Envoy",
+		Long: `Manage full lifecycle of Envoy including fetching binaries,
+bootstrap generation and automated collection of access logs, Envoy state and machine state.`,
 	}
 
 	manifestURL string

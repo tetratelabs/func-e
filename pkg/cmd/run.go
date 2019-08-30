@@ -37,18 +37,21 @@ var (
 // NewRunCmd create a command responsible for starting an Envoy process
 func NewRunCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "run [manifest-reference|filepath] -- <envoy-args>",
-		Short: "Starts an Envoy process using the reference or path passed.",
+		Use:   "run <reference|filepath> [flags] [-- <envoy-args>]",
+		Short: "Runs an instance of Envoy.",
 		Long: `
-Starts an Envoy process using the location passed. 
-Location can be a manifest reference or path to an Envoy binary.`,
-		Example: `# Run using a manifest reference. Reference format is <flavor>:<version>.
+Manages full lifecycle of Envoy including bootstrap generation and automated collection of access logs,
+Envoy state and machine state into the ` + "`~/.getenvoy/debug`" + ` directory.`,
+		Example: `# Run using a manifest reference.
 getenvoy run standard:1.11.1 -- --config-path ./bootstrap.yaml
 
-# Run using a filepath
+# Run as a gateway using an Istio controlplane bootstrap.
+getenvoy run standard:1.11.1 --mode router --bootstrap istio --controlplaneAddress istio-pilot.istio-system:15010
+
+# Run using a filepath.
 getenvoy run ./envoy -- --config-path ./bootstrap.yaml
 
-# List available Envoy flags
+# List available Envoy flags.
 getenvoy run standard:1.11.1 -- --help
 `,
 		Args: func(cmd *cobra.Command, args []string) error {
@@ -103,13 +106,13 @@ getenvoy run standard:1.11.1 -- --help
 		},
 	}
 	cmd.Flags().StringVarP(&bootstrap, "bootstrap", "b", "",
-		fmt.Sprintf("which controlplane's bootstrap to generate and use (%v) [experimental]", strings.Join(supported, "|")))
+		fmt.Sprintf("controlplane bootstrap to generate and use <%v> (experimental)", strings.Join(supported, "|")))
 	cmd.Flags().StringVar(&controlplaneAddress, "controlplaneAddress", "",
-		"location of Envoy's dynamic configuration server (<host|ip>:port) [requires bootstrap to be set]")
+		"location of Envoy's dynamic configuration server <host|ip:port> (requires bootstrap flag)")
 	cmd.Flags().StringVar(&accessLogServerAddress, "accessLogServerAddress", "",
-		"location of Envoy's access log server(<host|ip>:port) [requires bootstrap to be set]")
-	cmd.Flags().StringVarP(&mode, "mode", "m", "",
-		fmt.Sprintf("mode to run Envoy in (%v) [requires bootstrap to be set]", strings.Join(envoy.SupportedModes, "|")))
+		"location of Envoy's access log server <host|ip:port> (requires bootstrap flag)")
+	cmd.Flags().StringVar(&mode, "mode", "",
+		fmt.Sprintf("mode to run Envoy in <%v> (requires bootstrap flag)", strings.Join(envoy.SupportedModes, "|")))
 	return cmd
 }
 
