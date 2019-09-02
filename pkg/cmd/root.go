@@ -34,8 +34,9 @@ func NewRoot() *cobra.Command {
 
 var (
 	rootCmd = &cobra.Command{
-		Use:   "getenvoy",
-		Short: "Fetch, deploy and debug Envoy",
+		Use:               "getenvoy",
+		DisableAutoGenTag: true, // removes autogenerate on ___ from produced docs
+		Short:             "Fetch, deploy and debug Envoy",
 		Long: `Manage full lifecycle of Envoy including fetching binaries,
 bootstrap generation and automated collection of access logs, Envoy state and machine state.`,
 	}
