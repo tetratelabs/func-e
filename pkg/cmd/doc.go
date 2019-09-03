@@ -48,12 +48,20 @@ func NewDocCmd() *cobra.Command {
 func filePrepender(filename string) string {
 	name := filepath.Base(filename)
 	base := strings.TrimSuffix(name, path.Ext(name))
-	return fmt.Sprintf(fmTemplate, strings.ReplaceAll(base, "_", " "))
+	split := strings.Split(base, "_")
+	parent := "root"
+	if len(split) > 1 {
+		parent = split[len(split)-2]
+	}
+	command := split[len(split)-1]
+	return fmt.Sprintf(fmTemplate, strings.Join(split, " "), parent, command)
 }
 
 const fmTemplate = `+++
 title = "%s"
-type = "docs"
+type = "reference"
+parent = "%s"
+command = "%s"
 +++
 `
 
