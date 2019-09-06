@@ -25,16 +25,16 @@ import (
 // NewFetchCmd create a command responsible for retrieving Envoy binaries
 func NewFetchCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "fetch [binary]",
-		Short: "Retreives the passed Envoy binary.",
+		Use:   "fetch <reference>",
+		Short: "Retrieve Envoy binaries from GetEnvoy.",
 		Long: `
-Retreives the passed Envoy binary. 
-Location can be a full or partial manifest reference, use getenvoy list for a complete list of available builds.`,
-		Example: `# Fetch using a partial manifest reference to retrieve a build for your operating system.
+Retrieves the referenced Envoy binary from GetEnvoy. The reference can be a full or partial reference.
+A complete list of available builds can be retrieved using` + "`getenvoy list`" + `.`,
+		Example: `# Fetch using a partial manifest reference to retrieve a build suitable for your operating system.
 getenvoy fetch standard:1.11.1
 		
-# Fetch using a full manifest reference to retrieve a specific build. 
-getenvoy fetch standard:1.11.1/debian`,
+# Fetch using a full manifest reference to retrieve a specific build for Linux. 
+getenvoy fetch standard:1.11.1/linux-glibc`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return errors.New("missing binary parameter")

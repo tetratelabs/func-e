@@ -25,7 +25,9 @@ import (
 func NewListCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
-		Short: "Lists available Envoys from GetEnvoy.",
+		Short: "List available Envoys provided by GetEnvoy.",
+		Long: `
+Retrieves a list of Envoy builds provided by GetEnvoy.`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return manifest.Print(os.Stdout, manifestURL)
 		},

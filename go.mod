@@ -17,6 +17,7 @@ require (
 	github.com/stretchr/testify v1.3.0
 	github.com/tetratelabs/getenvoy-package v0.0.0-20190730071641-da31aed4333e
 	github.com/tetratelabs/log v0.0.0-20190710134534-eb04d1e84fb8
+	gotest.tools v2.2.0+incompatible
 	istio.io/api v0.0.0-20190815135234-0d1db548cf57
 	istio.io/istio v0.0.0-20190818012331-da84a1487471
 	istio.io/pkg v0.0.0-20190731230704-fcbac27d69d5
