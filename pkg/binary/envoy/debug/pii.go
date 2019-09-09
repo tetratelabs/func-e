@@ -1,72 +1,50 @@
 package debug
 
 import (
-	"fmt"
-	"bitbucket.org/creachadair/shell"
 	"crypto/sha256"
+	"fmt"
+
+	"bitbucket.org/creachadair/shell"
 )
 
-// filter the array of logs using formatStr and validFieldNames, hash the resulting array of logs and return the final array
-func process(logsArr []string, formatStr string, validFieldNames map[string]bool) (processedLogs []string) {
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println("process func panicking, recovering")
-		}
-	} ()
-
-	fieldNames, ok := shell.Split(formatStr)
-
+// process the array of logs by filtering it using format and containsPII, hash the resulting array of logs and return the final array.
+// an empty array of strings and an error instance will be returned in the event of an error
+func process(logs []string, format string, containsPII map[string]bool) ([]string, error) {
+	// filter the valid logs according to the format str
+	fieldNames, ok := shell.Split(format)
 	if !ok {
-		panic(fmt.Sprint("error in splitting format string: %s", formatStr))
+		return []string{}, fmt.Errorf("error in splitting format string: %s", format)
 	}
 
-	testForValidLog :=  func(log string) bool {
-		fields, ok := shell.Split(log)
+	out := []string{}
+	for _, log := range logs {
+		fieldValues, ok := shell.Split(log)
 		if !ok {
-			panic(fmt.Sprint("error in splitting log: %s", log))
+			return []string{}, fmt.Errorf("error in splitting log: %s", log)
 		}
-		// TODO: consider using regex to check fields instead of merely verifiying the number of fields
-		return len(fields) == len(fieldNames)
-	}
-	validLogs := filter(logsArr, testForValidLog)
-
-	// filter and hash each log in the array of valid logs with relevant fields
-	for i,_ := range(validLogs) {
-		fields, ok := shell.Split(validLogs[i])
-		if !ok {
-			panic(fmt.Sprint("error in splitting a valid log: %s", validLogs[i]))
-		}
-
-		// filter fields by validFieldNames
-		filteredFields := []string{}
-		for j,_ := range(fields) {
-			if (validFieldNames[fieldNames[j]]) {
-				filteredFields = append(filteredFields,fields[j])
+		// check for correct number of fields, filter and hash the relevent PII fields
+		// TODO: add additional check on the field values, i.e, regex check
+		if len(fieldValues) == len(fieldNames) {
+			requiredvalues := []string{}
+			// pick the PII fields and hash the fields
+			for j, name := range fieldNames {
+				if containsPII[name] {
+					fmt.Println("-----inside containsPII loop-----")
+					fmt.Println("original value:", fieldValues[j])
+					fmt.Println("hashed value: ", hash(fieldValues[j]))
+					requiredvalues = append(requiredvalues, hash(fieldValues[j]))
+				}
 			}
-		}
-		validLog := shell.Join(filteredFields)
-
-		// hash log
-		validLog = hash(validLog)
-		processedLogs = append(processedLogs, validLog)
-	}
-
-	return
-}
-
-func filter(strSlice []string, test func(string) bool) (filteredStrSlice []string) {
-	for _,s := range strSlice {
-		if test(s) {
-			filteredStrSlice = append(filteredStrSlice, s)
+			fmt.Println(shell.Join(requiredvalues))
+			out = append(out, shell.Join(requiredvalues))
 		}
 	}
-	return
+	return out, nil
 }
 
 // TODO: salting the hash
-func hash(s string) (hashedString string) {
+func hash(s string) string {
 	h := sha256.New()
 	h.Write([]byte(s))
-	hashedString = string(h.Sum(nil))
-	return
-} 
+	return string(h.Sum(nil))
+}
