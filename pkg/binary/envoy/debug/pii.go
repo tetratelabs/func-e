@@ -29,10 +29,11 @@ func processLogs(logs []string, format string, containsPII map[string]bool) ([]s
 			// pick the PII fields and hash the fields
 			for j, name := range fieldNames {
 				if containsPII[name] {
-					fmt.Println("-----inside containsPII loop-----")
-					fmt.Println("original value:", fieldValues[j])
-					fmt.Println("hashed value: ", hash(fieldValues[j]))
-					requiredvalues = append(requiredvalues, hash(fieldValues[j]))
+					hash, err := hash(fieldValues[j])
+					if err != nil {
+						return []string{}, fmt.Errorf("error in hashing the field: %s", fieldValues[j])
+					}
+					requiredvalues = append(requiredvalues, (hash))
 				}
 			}
 			fmt.Println(shell.Join(requiredvalues))
@@ -43,8 +44,11 @@ func processLogs(logs []string, format string, containsPII map[string]bool) ([]s
 }
 
 // TODO: salting the hash
-func hash(s string) string {
+func hash(s string) (string, error) {
 	h := sha256.New()
-	h.Write([]byte(s))
-	return string(h.Sum(nil))
+	_, err := h.Write([]byte(s))
+	if err != nil {
+		return "", err
+	}
+	return string(h.Sum(nil)), nil
 }
