@@ -9,7 +9,7 @@ import (
 
 // process the array of logs by filtering it using format and containsPII, hash the resulting array of logs and return the final array.
 // an empty array of strings and an error instance will be returned in the event of an error
-func process(logs []string, format string, containsPII map[string]bool) ([]string, error) {
+func processLogs(logs []string, format string, containsPII map[string]bool) ([]string, error) {
 	// filter the valid logs according to the format str
 	fieldNames, ok := shell.Split(format)
 	if !ok {
@@ -22,7 +22,7 @@ func process(logs []string, format string, containsPII map[string]bool) ([]strin
 		if !ok {
 			return []string{}, fmt.Errorf("error in splitting log: %s", log)
 		}
-		// check for correct number of fields, filter and hash the relevent PII fields
+		// check for correct number of fields, filter and hash the relevant PII fields
 		// TODO: add additional check on the field values, i.e, regex check
 		if len(fieldValues) == len(fieldNames) {
 			requiredvalues := []string{}
