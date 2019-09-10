@@ -46,7 +46,7 @@ Envoy state and machine state into the ` + "`~/.getenvoy/debug`" + ` directory.`
 getenvoy run standard:1.11.1 -- --config-path ./bootstrap.yaml
 
 # Run as a gateway using an Istio controlplane bootstrap.
-getenvoy run standard:1.11.1 --mode router --bootstrap istio --controlplaneAddress istio-pilot.istio-system:15010
+getenvoy run standard:1.11.1 --mode loadbalancer --bootstrap istio --controlplaneAddress istio-pilot.istio-system:15010
 
 # Run using a filepath.
 getenvoy run ./envoy -- --config-path ./bootstrap.yaml
