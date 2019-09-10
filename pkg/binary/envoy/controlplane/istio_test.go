@@ -46,7 +46,7 @@ func Test_IstioGateway(t *testing.T) {
 		defer teardown()
 		cfg := envoy.NewConfig(
 			func(c *envoy.Config) {
-				c.Mode = envoy.ParseMode("router")
+				c.Mode = envoy.ParseMode("loadbalancer")
 				c.XDSAddress = util.MockPilotGrpcAddr
 				c.IPAddresses = []string{"1.1.1.1"}
 			},

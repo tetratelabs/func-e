@@ -46,7 +46,7 @@ Envoy state and machine state into the ` + "`~/.getenvoy/debug`" + ` directory.`
 getenvoy run standard:1.11.1 -- --config-path ./bootstrap.yaml
 
 # Run as a gateway using an Istio controlplane bootstrap.
-getenvoy run standard:1.11.1 --mode router --bootstrap istio --controlplaneAddress istio-pilot.istio-system:15010
+getenvoy run standard:1.11.1 --mode loadbalancer --bootstrap istio --controlplaneAddress istio-pilot.istio-system:15010
 
 # Run using a filepath.
 getenvoy run ./envoy -- --config-path ./bootstrap.yaml
@@ -106,13 +106,13 @@ getenvoy run standard:1.11.1 -- --help
 		},
 	}
 	cmd.Flags().StringVarP(&bootstrap, "bootstrap", "b", "",
-		fmt.Sprintf("controlplane bootstrap to generate and use <%v> (experimental)", strings.Join(supported, "|")))
+		fmt.Sprintf("(experimental) controlplane bootstrap to generate and use <%v>", strings.Join(supported, "|")))
 	cmd.Flags().StringVar(&controlplaneAddress, "controlplaneAddress", "",
-		"location of Envoy's dynamic configuration server <host|ip:port> (requires bootstrap flag)")
+		"(experimental) location of Envoy's dynamic configuration server <host|ip:port> (requires bootstrap flag)")
 	cmd.Flags().StringVar(&accessLogServerAddress, "accessLogServerAddress", "",
-		"location of Envoy's access log server <host|ip:port> (requires bootstrap flag)")
+		"(experimental) location of Envoy's access log server <host|ip:port> (requires bootstrap flag)")
 	cmd.Flags().StringVar(&mode, "mode", "",
-		fmt.Sprintf("mode to run Envoy in <%v> (requires bootstrap flag)", strings.Join(envoy.SupportedModes, "|")))
+		fmt.Sprintf("(experimental) mode to run Envoy in <%v> (requires bootstrap flag)", strings.Join(envoy.SupportedModes, "|")))
 	return cmd
 }
 
