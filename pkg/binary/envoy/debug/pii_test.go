@@ -69,7 +69,7 @@ func TestProcess(t *testing.T) {
 	// defining subtest with t.Run
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			actualLogs, actualErr := Process_modified(tc.logs, tc.format, tc.containsPII)
+			actualLogs, actualErr := ProcessLogs(tc.logs, tc.format, tc.containsPII)
 
 			// hash the desired fields for each log in wanted logs
 			for i, log := range tc.want.logs {

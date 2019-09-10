@@ -23,7 +23,7 @@ import (
 
 // process the array of logs by filtering it using format and containsPII, Hash the resulting array of logs and return the final array.
 // an empty array of strings and an error instance will be returned in the event of an error
-func Process_modified(logs []string, format string, containsPII map[string]bool) ([]string, error) {
+func ProcessLogs(logs []string, format string, containsPII map[string]bool) ([]string, error) {
 	// filter the valid logs according to the format str
 	fieldNames, ok := shell.Split(format)
 	if !ok {
