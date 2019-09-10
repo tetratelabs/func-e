@@ -125,7 +125,7 @@ func retrieveIPs() ([]string, error) {
 
 func istioNode(cfg *envoy.Config) string {
 	mode := cfg.Mode
-	if mode == envoy.Mode(envoy.LoadBalancer) {
+	if mode == envoy.LoadBalancer {
 		mode = "router"
 	}
 	p := &model.Proxy{
