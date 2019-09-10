@@ -122,7 +122,7 @@ func safeProc(p *process.Process) *proc {
 }
 
 func networkInterfaces(r binary.Runner) error {
-	f, err := os.Create(filepath.Join(r.DebugStore(), "node/network_interface.txt"))
+	f, err := os.Create(filepath.Join(r.DebugStore(), "node/network_interface.json"))
 	if err != nil {
 		return fmt.Errorf("unable to create file to write network interface output to: %v", err)
 	}
