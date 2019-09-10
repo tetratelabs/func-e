@@ -21,7 +21,7 @@ import (
 	"bitbucket.org/creachadair/shell"
 )
 
-// process the array of logs by filtering it using format and containsPII, Hash the resulting array of logs and return the final array.
+// ProcessLogs process logs by filtering it using format and containsPII, Hash the resulting array of logs and return the final array.
 // an empty array of strings and an error instance will be returned in the event of an error
 func ProcessLogs(logs []string, format string, containsPII map[string]bool) ([]string, error) {
 	// filter the valid logs according to the format str
@@ -54,9 +54,10 @@ func ProcessLogs(logs []string, format string, containsPII map[string]bool) ([]s
 	return out, nil
 }
 
+// Hash returns the hashed value of s using sha256 hash function
 // TODO: salt the Hash
 func Hash(s string) (string, error) {
 	h := sha256.New()
-	h.Write([]byte(s)) //nolint: errcheck
+	h.Write([]byte(s)) //nolint
 	return string(h.Sum(nil)), nil
 }
