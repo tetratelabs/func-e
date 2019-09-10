@@ -26,20 +26,20 @@ type Mode string
 const (
 	// Sidecar instructs Envoy to run as a sidecar
 	Sidecar Mode = "sidecar"
-	// Router instructs Envoy to tun as a router (e.g. gateway)
-	Router Mode = "router"
+	// LoadBalancer instructs Envoy to run as a loadbalancer (e.g. gateway)
+	LoadBalancer Mode = "loadbalancer"
 )
 
 // SupportedModes indicate the modes that are current supported by GetEnvoy
-var SupportedModes = []string{string(Router)}
+var SupportedModes = []string{string(LoadBalancer)}
 
 // ParseMode converts the passed string into a valid mode or empty string
 func ParseMode(s string) Mode {
 	switch Mode(s) {
 	case Sidecar:
 		return Sidecar
-	case Router:
-		return Router
+	case LoadBalancer:
+		return LoadBalancer
 	default:
 		return ""
 	}
