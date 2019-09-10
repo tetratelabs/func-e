@@ -101,7 +101,7 @@ func doDownload(dst, src string) (string, error) {
 		return "", fmt.Errorf("received %v status code from %q", resp.StatusCode, src)
 	}
 
-	tarball := filepath.Join(dst, "envoy.tar.gz")
+	tarball := filepath.Join(dst, "envoy.tar"+filepath.Ext(src))
 	f, err := os.OpenFile(tarball, os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
 		return "", err
