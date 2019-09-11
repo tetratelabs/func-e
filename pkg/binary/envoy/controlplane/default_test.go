@@ -41,6 +41,6 @@ func Test_DefaultConfig(t *testing.T) {
 		defer os.RemoveAll(runtime.DebugStore())
 		assert.NoError(t, envoytest.RunKill(runtime, "", time.Second*5))
 		gotListeners, _ := ioutil.ReadFile(filepath.Join(runtime.DebugStore(), "listeners.txt"))
-		assert.Contains(t, string(gotListeners), "0.0.0.0_15001::0.0.0.0:15001")
+		assert.Contains(t, string(gotListeners), "::0.0.0.0:15001")
 	})
 }
