@@ -32,10 +32,10 @@ func Test_DefaultConfig(t *testing.T) {
 	if err := envoytest.Fetch(); err != nil {
 		t.Fatalf("error fetching Envoy: %v", err)
 	}
-	t.Run("writes and uses a default config if no bootstrap provided", func(t *testing.T) {
+	t.Run("writes and uses a default config", func(t *testing.T) {
 		runtime, _ := envoy.NewRuntime(
-			DefaultStaticBootstrap,
 			debug.EnableEnvoyAdminDataCollection,
+			DefaultStaticBootstrap,
 		)
 		defer os.RemoveAll(runtime.DebugStore() + ".tar.gz")
 		defer os.RemoveAll(runtime.DebugStore())
