@@ -34,6 +34,7 @@ func TestRuntime_Fetch(t *testing.T) {
 		name             string
 		key              *manifest.Key
 		tarballStructure string
+		tarExtension     string
 		envoyLocation    string
 		libLocation      string
 		alreadyLocal     bool
@@ -45,6 +46,17 @@ func TestRuntime_Fetch(t *testing.T) {
 			name:             "Downloads and untars envoy and runtime libs to store/key/bin and store/key/lib",
 			key:              defaultDarwinKey,
 			tarballStructure: "envoy",
+			tarExtension:     ".tar.gz",
+			responseStatus:   http.StatusOK,
+			envoyLocation:    "builds/standard/1.11.0/darwin/bin/envoy",
+			libLocation:      "builds/standard/1.11.0/darwin/lib/somelib",
+			wantServerCalled: true,
+		},
+		{
+			name:             "Downloads and untars envoy and runtime libs to store/key/bin and store/key/lib",
+			key:              defaultDarwinKey,
+			tarballStructure: "envoy",
+			tarExtension:     ".tar.xz",
 			responseStatus:   http.StatusOK,
 			envoyLocation:    "builds/standard/1.11.0/darwin/bin/envoy",
 			libLocation:      "builds/standard/1.11.0/darwin/lib/somelib",
@@ -62,6 +74,7 @@ func TestRuntime_Fetch(t *testing.T) {
 			name:             "errors if it can't find an envoy binary in tarball",
 			key:              defaultDarwinKey,
 			tarballStructure: "noenvoy",
+			tarExtension:     ".tar.gz",
 			responseStatus:   http.StatusOK,
 			wantErr:          true,
 			wantServerCalled: true,
@@ -70,6 +83,7 @@ func TestRuntime_Fetch(t *testing.T) {
 			name:             "errors if it gets !200 from download",
 			key:              defaultDarwinKey,
 			tarballStructure: "noenvoy",
+			tarExtension:     ".tar.gz",
 			responseStatus:   http.StatusTeapot,
 			wantErr:          true,
 			wantServerCalled: true,
@@ -82,14 +96,14 @@ func TestRuntime_Fetch(t *testing.T) {
 			defer os.RemoveAll(tmpDir)
 			envoyLocation := filepath.Join(tmpDir, tc.envoyLocation)
 			libLocation := filepath.Join(tmpDir, tc.libLocation)
-			mock, gotCalled := mockServer(tc.responseStatus, tc.tarballStructure, tmpDir)
+			mock, gotCalled := mockServer(tc.responseStatus, tc.tarballStructure, tc.tarExtension, tmpDir)
 			if tc.alreadyLocal {
 				createLocalFile(envoyLocation)
 				createLocalFile(libLocation)
 			}
 
 			r := &Runtime{fetcher: fetcher{tmpDir}}
-			err := r.Fetch(tc.key, mock.URL)
+			err := r.Fetch(tc.key, mock.URL+"/"+tc.tarballStructure+tc.tarExtension)
 			if tc.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -113,13 +127,13 @@ func createLocalFile(location string) {
 	f.Close()
 }
 
-func mockServer(responseStatusCode int, tarballStructure, tmpDir string) (*httptest.Server, *bool) {
+func mockServer(responseStatusCode int, tarballStructure, tarExtension, tmpDir string) (*httptest.Server, *bool) {
 	called := false
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called = true
 		w.WriteHeader(responseStatusCode)
 		if responseStatusCode == http.StatusOK {
-			tarball := filepath.Join(tmpDir, tarballStructure+".tar.gz")
+			tarball := filepath.Join(tmpDir, tarballStructure+tarExtension)
 			archiver.Archive([]string{filepath.Join("testdata", tarballStructure)}, tarball)
 			bytes, _ := ioutil.ReadFile(tarball)
 			w.Write(bytes)
