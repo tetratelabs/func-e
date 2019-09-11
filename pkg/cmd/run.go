@@ -81,7 +81,7 @@ getenvoy run standard:1.11.1 -- --help
 				debug.EnableEnvoyAdminDataCollection,
 				debug.EnableEnvoyLogCollection,
 				debug.EnableNodeCollection,
-				controlplaneFunc(args), // should be last!
+				controlplaneFunc(args),
 			)
 			if err != nil {
 				return err
