@@ -20,7 +20,7 @@ import (
 	"testing"
 )
 
-func TestProcess(t *testing.T) { //nolint
+func TestProcess(t *testing.T) {
 	format := `[%START_TIME%] "%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%"` +
 		` %RESPONSE_CODE% %RESPONSE_FLAGS% "%DYNAMIC_METADATA(istio.mixer:status)%" "%REQ(USER-AGENT)%"`
 
@@ -106,6 +106,7 @@ func TestProcess(t *testing.T) { //nolint
 	piiFunc := func(string) string { return "pii" }
 
 	// defining subtest with t.Run
+	//nolint:gocritic,scopelint
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			actualLogs, actualErr := ProcessLogs(tc.in, tc.format, tc.pii, piiFunc)
