@@ -21,10 +21,10 @@ import (
 	"bitbucket.org/creachadair/shell"
 )
 
-// ProcessLogs process logs by filtering it using format and containsPII, Hash the resulting array of logs and return the final array.
+// ProcessLogs process in by filtering it using format and pii, Hash the resulting array of in and return the final array.
 // an empty array of strings and an error instance will be returned in the event of an error
-func ProcessLogs(logs []string, format string, containsPII map[string]bool) ([]string, error) {
-	// filter the valid logs according to the format str
+func ProcessLogs(logs []string, format string, containsPII map[string]bool, hash func(string) string) ([]string, error) {
+	// filter the valid in according to the format str
 	fieldNames, ok := shell.Split(format)
 	if !ok {
 		return []string{}, fmt.Errorf("error in splitting format string: %s", format)
@@ -34,17 +34,15 @@ func ProcessLogs(logs []string, format string, containsPII map[string]bool) ([]s
 	for _, log := range logs {
 		fieldValues, ok := shell.Split(log)
 		if !ok {
-			return []string{}, fmt.Errorf("error in splitting log: %s", log)
+			fmt.Printf("error in splitting log: %s", log)
+			continue
 		}
 
 		if len(fieldValues) == len(fieldNames) {
 			// pick the PII fields and Hash the fields
 			for j, name := range fieldNames {
 				if containsPII[name] {
-					hash, err := Hash(fieldValues[j])
-					if err != nil {
-						return []string{}, fmt.Errorf("error in hashing the field: %s", fieldValues[j])
-					}
+					hash := hash(fieldValues[j])
 					fieldValues[j] = hash
 				}
 			}
@@ -54,10 +52,10 @@ func ProcessLogs(logs []string, format string, containsPII map[string]bool) ([]s
 	return out, nil
 }
 
-// Hash returns the hashed value of s using sha256 hash function
+// hash returns the hashed value of s using sha256 hash function
 // TODO: salt the Hash
-func Hash(s string) (string, error) {
+func hash(s string) string {
 	h := sha256.New()
-	h.Write([]byte(s)) //nolint
-	return string(h.Sum(nil)), nil
+	_, _ = h.Write([]byte(s))
+	return string(h.Sum(nil))
 }
