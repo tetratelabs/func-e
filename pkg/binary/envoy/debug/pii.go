@@ -54,6 +54,7 @@ func ProcessLogs(logs []string, format string, containsPII map[string]bool, hash
 
 // hash returns the hashed value of s using sha256 hash function
 // TODO: salt the Hash
+//nolint: unused,deadcode
 func hash(s string) string {
 	h := sha256.New()
 	_, _ = h.Write([]byte(s))
