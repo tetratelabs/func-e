@@ -109,22 +109,24 @@ func TestProcess(t *testing.T) {
 	//nolint:gocritic,scopelint
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			actualLogs, actualErr := ProcessLogs(tc.in, tc.format, tc.pii, piiFunc)
+			actual, err := ProcessLogs(tc.in, tc.format, tc.pii, piiFunc)
 
-			if actualErr != nil {
+			if err != nil {
 				if tc.outErr == "" {
 					// expected no error but get error
-					t.Fatalf("ProcessLogs(%v, %v, %v, piiFunc) = %v, %v, expected no error", tc.in, tc.format, tc.pii, actualLogs, actualErr)
-				} else if !strings.Contains(actualErr.Error(), tc.outErr) {
+					t.Fatalf("ProcessLogs(%v, %v, %v, piiFunc) = %v, %v, expected no error", tc.in, tc.format, tc.pii, actual, err)
+				} else if !strings.Contains(err.Error(), tc.outErr) {
 					// actual error does not contain the expected error
-					t.Fatalf("ProcessLogs(%v, %v, %v, piiFunc) = %v, %v, but expected error: %v", tc.in, tc.format, tc.pii, actualLogs, actualErr, tc.outErr)
+					t.Fatalf("ProcessLogs(%v, %v, %v, piiFunc) = %v, %v, but expected error: %v", tc.in, tc.format, tc.pii, actual, err, tc.outErr)
 				}
 			} else if tc.outErr != "" {
 				// expect error but no acutal error
-				t.Fatalf("ProcessLogs(%v, %v, %v, piiFunc) = %v, %v, but expected error: %v", tc.in, tc.format, tc.pii, actualLogs, actualErr, tc.outErr)
-			} else if !reflect.DeepEqual(actualLogs, tc.outLogs) {
-				// expect and get no error but expected and actual in different
-				t.Fatalf("ProcessLogs(%v, %v, %v, piiFunc) = %v but expected output: %v", tc.in, tc.format, tc.pii, actualLogs, tc.outLogs)
+				t.Fatalf("ProcessLogs(%v, %v, %v, piiFunc) = %v, %v, but expected error: %v", tc.in, tc.format, tc.pii, actual, err, tc.outErr)
+			}
+
+			// always check if actual logs do match the expected logs
+			if !reflect.DeepEqual(actual, tc.outLogs) {
+				t.Fatalf("ProcessLogs(%v, %v, %v, piiFunc) = %v but expected output: %v", tc.in, tc.format, tc.pii, actual, tc.outLogs)
 			}
 
 		})
