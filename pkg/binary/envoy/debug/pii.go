@@ -21,15 +21,40 @@ import (
 	"bitbucket.org/creachadair/shell"
 )
 
-// ProcessLogs process in by filtering it using format and pii, Hash the resulting array of in and return the final array.
-// an empty array of strings and an error instance will be returned in the event of an error
-func ProcessLogs(logs []string, format string, containsPII map[string]bool, hash func(string) string) ([]string, error) {
-	// filter the valid in according to the format str
-	fieldNames, ok := shell.Split(format)
-	if !ok {
-		return []string{}, fmt.Errorf("error in splitting format string: %s", format)
-	}
+// defaultHash returns the hashed value of s using sha256 defaultHash function
+// TODO: salt the Hash
+//nolint: unused,deadcode
+func defaultHash(s string) string {
+	h := sha256.New()
+	_, _ = h.Write([]byte(s))
+	return string(h.Sum(nil))
+}
 
+var defaultFormat = `[%START_TIME%] "%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%"` +
+	` %RESPONSE_CODE% %RESPONSE_FLAGS% "%DYNAMIC_METADATA(istio.mixer:status)%" "%REQ(USER-AGENT)%"`
+var defaultPII = map[string]bool{
+	"[%START_TIME%]": true,
+}
+
+// Filter filters log fields using pii and modify all PII fields using f
+type Filter struct {
+	f      func(string) string
+	pii    map[string]bool
+	format []string
+}
+
+// NewFilter constructs a custom filter object
+func NewFilter(formatStr string, f func(string) string, pii map[string]bool) (Filter, error) {
+	// splitting formats and handle error
+	format, ok := shell.Split(formatStr)
+	if !ok {
+		return Filter{}, fmt.Errorf("error in splitting format string: %s", format)
+	}
+	return Filter{f: f, pii: pii, format: format}, nil
+}
+
+// process logs with f the filter, assumes that filter has valid fields
+func (filter Filter) process(logs []string) []string {
 	out := make([]string, 0, len(logs))
 	for _, log := range logs {
 		fieldValues, ok := shell.Split(log)
@@ -38,25 +63,28 @@ func ProcessLogs(logs []string, format string, containsPII map[string]bool, hash
 			continue
 		}
 
-		if len(fieldValues) == len(fieldNames) {
+		if len(fieldValues) == len(filter.format) {
 			// pick the PII fields and Hash the fields
-			for j, name := range fieldNames {
-				if containsPII[name] {
-					hash := hash(fieldValues[j])
+			for j, name := range filter.format {
+				if filter.pii[name] {
+					hash := filter.f(fieldValues[j])
 					fieldValues[j] = hash
 				}
 			}
 			out = append(out, shell.Join(fieldValues))
 		}
 	}
-	return out, nil
+	return out
 }
 
-// hash returns the hashed value of s using sha256 hash function
-// TODO: salt the Hash
-//nolint: unused,deadcode
-func hash(s string) string {
-	h := sha256.New()
-	_, _ = h.Write([]byte(s))
-	return string(h.Sum(nil))
+// ProcessLogs process logs with the default filter an empty array of logs
+// and an error instance is returned in an event of error
+func ProcessLogs(logs []string) ([]string, error) {
+	filter, err := NewFilter(defaultFormat, defaultHash, defaultPII)
+
+	if err != nil {
+		return []string{}, err
+	}
+	return filter.process(logs), nil
+
 }
