@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"text/tabwriter"
 
+	"github.com/shirou/gopsutil/net"
 	"github.com/shirou/gopsutil/process"
 	"github.com/tetratelabs/getenvoy/pkg/binary"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
@@ -34,6 +35,7 @@ func EnableNodeCollection(r *envoy.Runtime) {
 		return
 	}
 	r.RegisterPreTermination(ps)
+	r.RegisterPreTermination(networkInterfaces)
 }
 
 func ps(r binary.Runner) error {
@@ -117,4 +119,20 @@ func safeProc(p *process.Process) *proc {
 		pMem:     pMem,
 		cmd:      cmd,
 	}
+}
+
+func networkInterfaces(r binary.Runner) error {
+	f, err := os.Create(filepath.Join(r.DebugStore(), "node/network_interface.json"))
+	if err != nil {
+		return fmt.Errorf("unable to create file to write network interface output to: %v", err)
+	}
+	defer f.Close() //nolint
+
+	is, err := net.Interfaces()
+	if err != nil {
+		return fmt.Errorf("unable to fetch network Interfaces: %v", err)
+	}
+	fmt.Fprintln(f, is) // print with JSON format
+
+	return nil
 }

@@ -24,20 +24,23 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
 )
 
-func Test_ps(t *testing.T) {
+func Test_debugging_outputs(t *testing.T) {
 	t.Run("creates non-empty files", func(t *testing.T) {
 		r, _ := envoy.NewRuntime(EnableNodeCollection)
 		defer os.RemoveAll(r.DebugStore() + ".tar.gz")
 		defer os.RemoveAll(r.DebugStore())
 		envoytest.RunKill(r, filepath.Join("testdata", "null.yaml"), time.Second*10)
 
-		path := filepath.Join(r.DebugStore(), "node/ps.txt")
-		f, err := os.Stat(path)
-		if err != nil {
-			t.Errorf("error stating %v: %v", path, err)
-		}
-		if f.Size() < 1 {
-			t.Errorf("file %v was empty", path)
+		files := [...]string{"node/ps.txt", "node/network_interface.json"}
+		for _, file := range files {
+			path := filepath.Join(r.DebugStore(), file)
+			f, err := os.Stat(path)
+			if err != nil {
+				t.Errorf("error stating %v: %v", path, err)
+			}
+			if f.Size() < 1 {
+				t.Errorf("file %v was empty", path)
+			}
 		}
 	})
 }
