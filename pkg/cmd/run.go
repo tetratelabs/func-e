@@ -25,7 +25,6 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/controlplane"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/debug"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
-	"istio.io/pkg/log"
 )
 
 var (
@@ -81,7 +80,7 @@ getenvoy run standard:1.11.1 -- --help
 				debug.EnableEnvoyAdminDataCollection,
 				debug.EnableEnvoyLogCollection,
 				debug.EnableNodeCollection,
-				controlplaneFunc(args),
+				controlplaneFunc(),
 			)
 			if err != nil {
 				return err
@@ -153,15 +152,11 @@ func validateRequiresBootstrap() error {
 	return nil
 }
 
-func controlplaneFunc(args []string) func(r *envoy.Runtime) {
+func controlplaneFunc() func(r *envoy.Runtime) {
 	switch bootstrap {
 	case istio:
 		return controlplane.Istio
 	default:
-		if !controlplane.HasBootstrapArg(args) {
-			log.Info("No controlplane selected or bootstrap provided - using a default front proxy bootstrap to Google/Bing")
-			return controlplane.DefaultStaticBootstrap
-		}
 		return func(r *envoy.Runtime) {}
 	}
 }

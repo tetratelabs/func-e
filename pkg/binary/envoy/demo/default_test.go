@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package controlplane
+package demo
 
 import (
 	"io/ioutil"
@@ -35,7 +35,7 @@ func Test_DefaultConfig(t *testing.T) {
 	t.Run("writes and uses a default config", func(t *testing.T) {
 		runtime, _ := envoy.NewRuntime(
 			debug.EnableEnvoyAdminDataCollection,
-			DefaultStaticBootstrap,
+			StaticBootstrap,
 		)
 		defer os.RemoveAll(runtime.DebugStore() + ".tar.gz")
 		defer os.RemoveAll(runtime.DebugStore())

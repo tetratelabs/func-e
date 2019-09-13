@@ -26,6 +26,7 @@ func NewRoot() *cobra.Command {
 	rootCmd.AddCommand(NewListCmd())
 	rootCmd.AddCommand(NewFetchCmd())
 	rootCmd.AddCommand(NewDocCmd())
+	rootCmd.AddCommand(NewDemoCmd())
 
 	rootCmd.PersistentFlags().StringVar(&manifestURL, "manifest", manifest.DefaultURL, "sets the manifest URL")
 	rootCmd.PersistentFlags().MarkHidden("manifest") // nolint

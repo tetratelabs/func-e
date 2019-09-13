@@ -64,9 +64,11 @@ func (r *Runtime) RunPath(path string, args []string) error {
 	r.wg.Wait()
 
 	// Tar up the debug data and clean up
-	if err := archiver.Archive([]string{r.DebugStore()}, r.DebugStore()+".tar.gz"); err != nil {
+	tarball := r.DebugStore() + ".tar.gz"
+	if err := archiver.Archive([]string{r.DebugStore()}, tarball); err != nil {
 		return fmt.Errorf("unable to archive debug store directory %v: %v", r.DebugStore(), err)
 	}
+	log.Infof("Successfully saved debug information to %s", tarball)
 	return os.RemoveAll(r.DebugStore())
 }
 

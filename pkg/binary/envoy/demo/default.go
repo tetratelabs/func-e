@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package controlplane
+package demo
 
 import (
 	"fmt"
@@ -23,9 +23,9 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 )
 
-// DefaultStaticBootstrap can be used when there is no provided bootstrap
+// StaticBootstrap can be used when there is no provided bootstrap
 // It uses a basic front proxy bootstrap that directs between Google and Bing based on authority/host header
-func DefaultStaticBootstrap(r *envoy.Runtime) {
+func StaticBootstrap(r *envoy.Runtime) {
 	r.RegisterPreStart(defaultBootstrap)
 }
 
@@ -47,6 +47,19 @@ func HasBootstrapArg(args []string) bool {
 	}
 	return false
 }
+
+// Instructions tell users how to make HTTP request to demonstrate the demo bootstrap
+var Instructions = `
+The demo boostrap runs Envoy as a basic front proxy to Google/Bing
+
+To make a request to Google:
+` + "`curl -s -o /dev/null -vvv -H 'Host: google.com' localhost:15001/`" + `
+
+To make a request to Bing:
+` + "`curl -s -o /dev/null -vvv -H 'Host: bing.com' localhost:15001/`" + `
+
+Check the access logs below to see the requests being made.
+`
 
 var defaultFrontProxy = `
 static_resources:
