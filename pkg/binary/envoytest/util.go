@@ -17,9 +17,7 @@ package envoytest
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"path/filepath"
-	"strconv"
 	"syscall"
 	"time"
 
@@ -56,11 +54,6 @@ func Run(ctx context.Context, r binary.Runner, bootstrap string) error {
 	if bootstrap != "" {
 		args = append(args, "--config-path", bootstrap)
 	}
-	r.RegisterPreStart(func(binary.Runner) error {
-		rand.Seed(time.Now().UnixNano())
-		r.AppendArgs([]string{"--base-id", strconv.Itoa(rand.Intn(10000))})
-		return nil
-	})
 	go r.Run(key, args)
 	r.WaitWithContext(ctx, binary.StatusReady)
 	return ctx.Err()
