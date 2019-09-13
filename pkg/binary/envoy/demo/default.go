@@ -34,7 +34,7 @@ func defaultBootstrap(r binary.Runner) error {
 	if err := ioutil.WriteFile(path, []byte(defaultFrontProxy), 0644); err != nil {
 		return fmt.Errorf("error creating a default bootstrap: %v", err)
 	}
-	r.AppendArgs([]string{"-c", path})
+	r.AppendArgs([]string{"--config-path", path})
 	return nil
 }
 
