@@ -157,6 +157,7 @@ func controlplaneFunc() func(r *envoy.Runtime) {
 	case istio:
 		return controlplane.Istio
 	default:
+		// do nothing...
 		return func(r *envoy.Runtime) {}
 	}
 }
