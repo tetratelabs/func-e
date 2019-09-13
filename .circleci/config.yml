@@ -17,7 +17,7 @@ version: 2.0
 jobs:
   lint:
     docker:
-      - image: circleci/golang:1.13.0
+      - image: circleci/golang:1.12.9
     environment:
       # Run garbage collection more aggresively to avoid getting OOMed during the lint phase.
       GOGC: "20"
@@ -32,7 +32,7 @@ jobs:
   test:
     resource_class: small
     docker:
-      - image: circleci/golang:1.13.0
+      - image: circleci/golang:1.12.9
     steps:
       - checkout
       - run: ./ci/install-envoy
@@ -40,7 +40,7 @@ jobs:
       
   release:
     docker:
-      - image: circleci/golang:1.13.0
+      - image: circleci/golang:1.12.9
     steps:
       - checkout
       - setup_remote_docker
