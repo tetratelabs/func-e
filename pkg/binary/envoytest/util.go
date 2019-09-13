@@ -54,9 +54,10 @@ func Run(ctx context.Context, r binary.Runner, bootstrap string) error {
 	key, _ := manifest.NewKey(Reference)
 	args := []string{}
 	if bootstrap != "" {
-		args = append(args, "-c", bootstrap)
+		args = append(args, "--config-data", bootstrap)
 	}
 	r.RegisterPreStart(func(binary.Runner) error {
+		rand.Seed(time.Now().UnixNano())
 		r.AppendArgs([]string{"--base-id", strconv.Itoa(rand.Intn(10000))})
 		return nil
 	})
