@@ -37,9 +37,9 @@ func Test_DefaultConfig(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
 		envoytest.Run(ctx, runtime, "")
+		defer envoytest.Kill(ctx, runtime)
 		makeRequest(t, "google.com")
 		makeRequest(t, "bing.com")
-		envoytest.Kill(ctx, runtime)
 	})
 }
 
