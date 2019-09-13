@@ -17,7 +17,9 @@ package envoytest
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"path/filepath"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -54,12 +56,13 @@ func Run(ctx context.Context, r binary.Runner, bootstrap string) error {
 	if bootstrap != "" {
 		args = append(args, "-c", bootstrap)
 	}
+	r.AppendArgs([]string{"--base-id", strconv.Itoa(rand.Intn(10000))})
 	go r.Run(key, args)
 	r.WaitWithContext(ctx, binary.StatusReady)
 	return ctx.Err()
 }
 
-// Kill sends sigint to a running enboy, waits for termination, then unarchives the debug directory.
+// Kill sends sigint to a running envoy, waits for termination, then unarchives the debug directory.
 // It is blocking and will only return once terminated (nil) or context timeout is exceeded (error)
 func Kill(ctx context.Context, r binary.Runner) error {
 	r.SendSignal(syscall.SIGINT)
