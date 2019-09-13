@@ -45,14 +45,14 @@ func Test_DefaultConfig(t *testing.T) {
 }
 
 func makeRequest(t *testing.T, host string) {
-	req, _ := http.NewRequest("GET", "localhost:15001", nil)
+	req, _ := http.NewRequest("GET", "http://localhost:15001", nil)
 	req.Header.Add("Host", host)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		t.Errorf("got non-200 status code with host header %s: %v", host, resp.StatusCode)
+		t.Fatalf("got non-200 status code with host header %s: %v", host, resp.StatusCode)
 	}
 }
