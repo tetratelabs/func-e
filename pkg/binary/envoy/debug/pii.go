@@ -36,24 +36,24 @@ var defaultPII = map[string]bool{
 	"[%START_TIME%]": true,
 }
 
-// Filter filters log fields using pii and modify all PII fields using f
+// Filter filters log fields using pii and modify all PII fields using hash
 type Filter struct {
-	f      func(string) string
+	hash   func(string) string
 	pii    map[string]bool
 	format []string
 }
 
 // NewFilter constructs a custom filter object
-func NewFilter(formatStr string, f func(string) string, pii map[string]bool) (Filter, error) {
+func NewFilter(formatStr string, hash func(string) string, pii map[string]bool) (Filter, error) {
 	// splitting formats and handle error
 	format, ok := shell.Split(formatStr)
 	if !ok {
 		return Filter{}, fmt.Errorf("error in splitting format string: %s", format)
 	}
-	return Filter{f: f, pii: pii, format: format}, nil
+	return Filter{hash: hash, pii: pii, format: format}, nil
 }
 
-// process logs with f the filter, assumes that filter has valid fields
+// process logs with hash the filter, assumes that filter has valid fields
 func (filter Filter) process(logs []string) []string {
 	out := make([]string, 0, len(logs))
 	for _, log := range logs {
@@ -67,7 +67,7 @@ func (filter Filter) process(logs []string) []string {
 			// pick the PII fields and Hash the fields
 			for j, name := range filter.format {
 				if filter.pii[name] {
-					hash := filter.f(fieldValues[j])
+					hash := filter.hash(fieldValues[j])
 					fieldValues[j] = hash
 				}
 			}
