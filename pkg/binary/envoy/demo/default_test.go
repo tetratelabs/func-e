@@ -46,7 +46,7 @@ func Test_DefaultConfig(t *testing.T) {
 
 func makeRequest(t *testing.T, host string) {
 	req, _ := http.NewRequest("GET", "http://localhost:15001", nil)
-	req.Header.Add("Host", host)
+	req.Header.Set("Host", host)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)
