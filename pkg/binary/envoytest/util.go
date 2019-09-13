@@ -56,7 +56,10 @@ func Run(ctx context.Context, r binary.Runner, bootstrap string) error {
 	if bootstrap != "" {
 		args = append(args, "-c", bootstrap)
 	}
-	r.AppendArgs([]string{"--base-id", strconv.Itoa(rand.Intn(10000))})
+	r.RegisterPreStart(func(binary.Runner) error {
+		r.AppendArgs([]string{"--base-id", strconv.Itoa(rand.Intn(10000))})
+		return nil
+	})
 	go r.Run(key, args)
 	r.WaitWithContext(ctx, binary.StatusReady)
 	return ctx.Err()
