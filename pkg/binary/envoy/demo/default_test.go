@@ -21,7 +21,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
 )
@@ -37,10 +36,10 @@ func Test_DefaultConfig(t *testing.T) {
 		defer os.RemoveAll(runtime.DebugStore())
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
-		assert.NoError(t, envoytest.Run(ctx, runtime, ""))
+		envoytest.Run(ctx, runtime, "")
 		makeRequest(t, "google.com")
 		makeRequest(t, "bing.com")
-		assert.NoError(t, envoytest.Kill(ctx, runtime))
+		envoytest.Kill(ctx, runtime)
 	})
 }
 
