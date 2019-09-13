@@ -15,15 +15,14 @@
 package demo
 
 import (
-	"io/ioutil"
+	"context"
+	"net/http"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/debug"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
 )
 
@@ -33,14 +32,27 @@ func Test_DefaultConfig(t *testing.T) {
 		t.Fatalf("error fetching Envoy: %v", err)
 	}
 	t.Run("writes and uses a default config", func(t *testing.T) {
-		runtime, _ := envoy.NewRuntime(
-			debug.EnableEnvoyAdminDataCollection,
-			StaticBootstrap,
-		)
+		runtime, _ := envoy.NewRuntime(StaticBootstrap)
 		defer os.RemoveAll(runtime.DebugStore() + ".tar.gz")
 		defer os.RemoveAll(runtime.DebugStore())
-		assert.NoError(t, envoytest.RunKill(runtime, "", time.Second*5))
-		gotListeners, _ := ioutil.ReadFile(filepath.Join(runtime.DebugStore(), "listeners.txt"))
-		assert.Contains(t, string(gotListeners), "::0.0.0.0:15001")
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
+		assert.NoError(t, envoytest.Run(ctx, runtime, ""))
+		makeRequest(t, "google.com")
+		makeRequest(t, "bing.com")
+		assert.NoError(t, envoytest.Kill(ctx, runtime))
 	})
+}
+
+func makeRequest(t *testing.T, host string) {
+	req, _ := http.NewRequest("GET", "localhost:15001", nil)
+	req.Header.Add("Host", host)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Error(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("got non-200 status code with host header %s: %v", host, resp.StatusCode)
+	}
 }
