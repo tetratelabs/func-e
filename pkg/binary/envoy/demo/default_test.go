@@ -15,9 +15,13 @@
 package demo
 
 import (
+	"context"
 	"net/http"
+	"os"
 	"testing"
+	"time"
 
+	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
 )
 
@@ -26,17 +30,17 @@ func Test_DefaultConfig(t *testing.T) {
 	if err := envoytest.Fetch(); err != nil {
 		t.Fatalf("error fetching Envoy: %v", err)
 	}
-	// t.Run("writes and uses a default config", func(t *testing.T) {
-	// 	runtime, _ := envoy.NewRuntime(StaticBootstrap)
-	// 	defer os.RemoveAll(runtime.DebugStore() + ".tar.gz")
-	// 	defer os.RemoveAll(runtime.DebugStore())
-	// 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	// 	defer cancel()
-	// 	defer envoytest.Kill(ctx, runtime)
-	// 	envoytest.Run(ctx, runtime, "")
-	// 	makeRequest(t, "google.com")
-	// 	makeRequest(t, "bing.com")
-	// })
+	t.Run("writes and uses a default config", func(t *testing.T) {
+		runtime, _ := envoy.NewRuntime(StaticBootstrap)
+		defer os.RemoveAll(runtime.DebugStore() + ".tar.gz")
+		defer os.RemoveAll(runtime.DebugStore())
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
+		defer envoytest.Kill(ctx, runtime)
+		envoytest.Run(ctx, runtime, "")
+		makeRequest(t, "google.com")
+		makeRequest(t, "bing.com")
+	})
 }
 
 func makeRequest(t *testing.T, host string) {
