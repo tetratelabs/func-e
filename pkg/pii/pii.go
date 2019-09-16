@@ -12,14 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package debug
+package pii
 
 import (
 	"crypto/sha256"
 	"fmt"
 
 	"bitbucket.org/creachadair/shell"
+
+	l "github.com/tetratelabs/log"
 )
+
+var log = l.RegisterScope("pkg/pii", "filters log lines for PII data", 0)
 
 var defaultFilter, _ = Default()
 var istioFormat = `[%START_TIME%] "%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%"` +
