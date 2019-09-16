@@ -110,7 +110,7 @@ func TestProcess(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			filter, err := NewFilter(tc.format, piiFunc, tc.pii)
-			actual := filter.process(tc.in)
+			actual := filter.Process(tc.in)
 
 			if err != nil {
 				if tc.outErr == "" {

@@ -21,24 +21,15 @@ import (
 	"bitbucket.org/creachadair/shell"
 )
 
-// defaultHash returns the hashed value of s using sha256 defaultHash function
-// TODO: salt the Hash
-//nolint: unused,deadcode
-func defaultHash(s string) string {
-	h := sha256.New()
-	_, _ = h.Write([]byte(s))
-	return string(h.Sum(nil))
-}
-
-var defaultFormat = `[%START_TIME%] "%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%"` +
+var istioFormat = `[%START_TIME%] "%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%"` +
 	` %RESPONSE_CODE% %RESPONSE_FLAGS% "%DYNAMIC_METADATA(istio.mixer:status)%" "%REQ(USER-AGENT)%"`
 var defaultPII = map[string]bool{
 	"[%START_TIME%]": true,
 }
 
-// Filter filters log fields using pii and modify all PII fields using hash
+// Filter filters log fields using pii and modify all PII fields using f
 type Filter struct {
-	hash   func(string) string
+	f      func(string) string
 	pii    map[string]bool
 	format []string
 }
@@ -50,11 +41,11 @@ func NewFilter(formatStr string, hash func(string) string, pii map[string]bool) 
 	if !ok {
 		return Filter{}, fmt.Errorf("error in splitting format string: %s", format)
 	}
-	return Filter{hash: hash, pii: pii, format: format}, nil
+	return Filter{f: hash, pii: pii, format: format}, nil
 }
 
-// process logs with hash the filter, assumes that filter has valid fields
-func (filter Filter) process(logs []string) []string {
+// Process logs and hash the filter, assumes that filter has valid fields
+func (f Filter) Process(logs []string) []string {
 	out := make([]string, 0, len(logs))
 	for _, log := range logs {
 		fieldValues, ok := shell.Split(log)
@@ -63,12 +54,12 @@ func (filter Filter) process(logs []string) []string {
 			continue
 		}
 
-		if len(fieldValues) == len(filter.format) {
+		if len(fieldValues) == len(f.format) {
 			// pick the PII fields and Hash the fields
-			for j, name := range filter.format {
-				if filter.pii[name] {
-					hash := filter.hash(fieldValues[j])
-					fieldValues[j] = hash
+			for j, name := range f.format {
+				// TODO: may require further parsing name to verify if it matches as a key in the map with variables
+				if f.pii[name] {
+					fieldValues[j] = f.f(fieldValues[j])
 				}
 			}
 			out = append(out, shell.Join(fieldValues))
@@ -80,11 +71,19 @@ func (filter Filter) process(logs []string) []string {
 // ProcessLogs process logs with the default filter an empty array of logs
 // and an error instance is returned in an event of error
 func ProcessLogs(logs []string) ([]string, error) {
-	filter, err := NewFilter(defaultFormat, defaultHash, defaultPII)
+	filter, err := NewFilter(istioFormat, defaultHash, defaultPII)
 
 	if err != nil {
 		return []string{}, err
 	}
-	return filter.process(logs), nil
+	return filter.Process(logs), nil
+}
 
+// defaultHash returns the hashed value of s using sha256 defaultHash function
+// TODO: salt the Hash
+//nolint: unused,deadcode
+func defaultHash(s string) string {
+	h := sha256.New()
+	_, _ = h.Write([]byte(s))
+	return string(h.Sum(nil))
 }
