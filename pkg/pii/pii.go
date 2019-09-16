@@ -23,7 +23,7 @@ import (
 	l "github.com/tetratelabs/log"
 )
 
-var log = l.RegisterScope("pkg/pii", "filters log lines for PII data", 0)
+var logger = l.RegisterScope("pkg/pii", "filters log lines for PII data", 0)
 
 var defaultFilter, _ = Default()
 var istioFormat = `[%START_TIME%] "%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%"` +
@@ -98,7 +98,11 @@ func (f Filter) Process(logs []string) []string {
 	for _, log := range logs {
 		fieldValues, ok := shell.Split(log)
 		if !ok {
-			fmt.Printf("error in splitting log: %s", log)
+			if logger.DebugEnabled() {
+				logger.Debugf("error splitting log, skipping: %s", log)
+			} else {
+				logger.Info("error splitting log, skipping")
+			}
 			continue
 		}
 
