@@ -21,6 +21,7 @@ import (
 	"bitbucket.org/creachadair/shell"
 )
 
+var defaultFilter, _ = Default()
 var istioFormat = `[%START_TIME%] "%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%"` +
 	` %RESPONSE_CODE% %RESPONSE_FLAGS% "%DYNAMIC_METADATA(istio.mixer:status)%" "%REQ(USER-AGENT)%"`
 var defaultPII = map[string]bool{
@@ -114,12 +115,7 @@ func (f Filter) Process(logs []string) []string {
 // ProcessLogs process logs with the default filter
 // an empty array of logs and an error instance is returned in the event of an error
 func ProcessLogs(logs []string) ([]string, error) {
-	filter, err := NewFilter(istioFormat, defaultHash, defaultPII)
-
-	if err != nil {
-		return []string{}, err
-	}
-	return filter.Process(logs), nil
+	return defaultFilter.Process(logs), nil
 }
 
 // defaultHash returns the hashed value of s using sha256 defaultHash function
