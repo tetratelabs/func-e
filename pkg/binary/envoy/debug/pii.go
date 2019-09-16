@@ -82,6 +82,11 @@ func NewFilter(formatStr string, hash func(string) string, pii map[string]bool) 
 	return Filter{f: hash, pii: pii, format: format}, nil
 }
 
+// Default creates a filter with default fields for istio
+func Default() (Filter, error) {
+	return NewFilter(istioFormat, defaultHash, defaultPII)
+}
+
 // Process logs and hash the filter, assumes that filter has valid fields
 func (f Filter) Process(logs []string) []string {
 	out := make([]string, 0, len(logs))
@@ -106,8 +111,8 @@ func (f Filter) Process(logs []string) []string {
 	return out
 }
 
-// ProcessLogs process logs with the default filter an empty array of logs
-// and an error instance is returned in an event of error
+// ProcessLogs process logs with the default filter
+// an empty array of logs and an error instance is returned in the event of an error
 func ProcessLogs(logs []string) ([]string, error) {
 	filter, err := NewFilter(istioFormat, defaultHash, defaultPII)
 
