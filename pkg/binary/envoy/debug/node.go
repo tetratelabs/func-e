@@ -15,6 +15,7 @@
 package debug
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -132,7 +133,11 @@ func networkInterfaces(r binary.Runner) error {
 	if err != nil {
 		return fmt.Errorf("unable to fetch network Interfaces: %v", err)
 	}
-	fmt.Fprintln(f, is) // print with JSON format
+	out, err := json.Marshal(is)
+	if err != nil {
+		return fmt.Errorf("unable to convert to json representation: %v", err)
+	}
+	fmt.Fprintln(f, string(out))
 
 	return nil
 }
