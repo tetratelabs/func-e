@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"text/tabwriter"
 
+	d "github.com/shirou/gopsutil/disk"
 	"github.com/shirou/gopsutil/net"
 	"github.com/shirou/gopsutil/process"
 	"github.com/tetratelabs/getenvoy/pkg/binary"
@@ -37,6 +38,7 @@ func EnableNodeCollection(r *envoy.Runtime) {
 	}
 	r.RegisterPreTermination(ps)
 	r.RegisterPreTermination(networkInterfaces)
+	r.RegisterPreTermination(writeIOStats)
 }
 
 func ps(r binary.Runner) error {
@@ -138,6 +140,32 @@ func networkInterfaces(r binary.Runner) error {
 		return fmt.Errorf("unable to convert to json representation: %v", err)
 	}
 	fmt.Fprintln(f, string(out))
+
+	return nil
+}
+
+// writeIOStat write iostat of devices in the form of a dictionary to json file
+func writeIOStats(r binary.Runner) error {
+	f, err := os.Create(filepath.Join(r.DebugStore(), "node/iostats.json"))
+	defer f.Close() //nolint
+	if err != nil {
+		return fmt.Errorf("error in creating iostat.json: %v", err)
+	}
+
+	physicalPartitions, _ := d.Partitions(false)
+	deviceNames := make([]string, 0, len(physicalPartitions))
+	//nolint:gocritic
+	for _, p := range physicalPartitions {
+		deviceNames = append(deviceNames, p.Device)
+	}
+	IOCounterStatsMap, _ := d.IOCounters(deviceNames...)
+
+	// serialize map to json and write to file
+	jsonBytes, err := json.Marshal(IOCounterStatsMap)
+	if err != nil {
+		return fmt.Errorf("error in serializing IOCounterStatsMap: %v", err)
+	}
+	fmt.Fprintln(f, string(jsonBytes))
 
 	return nil
 }
