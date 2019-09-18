@@ -15,8 +15,11 @@
 package debug
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -40,6 +43,19 @@ func Test_debugging_outputs(t *testing.T) {
 			}
 			if f.Size() < 1 {
 				t.Errorf("file %v was empty", path)
+			}
+			if strings.HasSuffix(file, ".json") {
+				raw, err := ioutil.ReadFile(path)
+				if err != nil {
+					t.Errorf("error to read the file %v: %v", path, err)
+				}
+				var is []interface{}
+				if err := json.Unmarshal(raw, &is); err != nil {
+					t.Errorf("error to unmarshal json string, %v: \"%v\"", err, raw)
+				}
+				if len(is) < 1 {
+					t.Errorf("unmarshaled content is empty, expected to be a non-empty array: \"%v\"", raw)
+				}
 			}
 		}
 	})
