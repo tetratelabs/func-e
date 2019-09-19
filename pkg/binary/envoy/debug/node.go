@@ -162,15 +162,15 @@ func writeIOStats(r binary.Runner) error {
 	for _, p := range physicalPartitions {
 		deviceNames = append(deviceNames, p.Device)
 	}
-	IOCounterStatsMap, err := disk.IOCounters(deviceNames...)
+	ioCounterStatsMap, err := disk.IOCounters(deviceNames...)
 	if err != nil {
 		return fmt.Errorf("error in returning IO counters: %v", err)
 	}
 
 	// format map to array of IOCounterStat objects: to standardize with output of networkInterfaces
-	IOCounterStats := make([]interface{}, 0, len(IOCounterStatsMap))
+	IOCounterStats := make([]interface{}, 0, len(ioCounterStatsMap))
 	//nolint:gocritic
-	for _, v := range IOCounterStatsMap {
+	for _, v := range ioCounterStatsMap {
 		IOCounterStats = append(IOCounterStats, v)
 	}
 
