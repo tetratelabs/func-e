@@ -162,6 +162,7 @@ func writeIOStats(r binary.Runner) error {
 
 	// format map to array of IOCounterStat objects: to standardize with output of networkInterfaces
 	IOCounterStats := make([]interface{}, 0, len(IOCounterStatsMap))
+	//nolint:gocritic
 	for _, v := range IOCounterStatsMap {
 		IOCounterStats = append(IOCounterStats, v)
 	}
