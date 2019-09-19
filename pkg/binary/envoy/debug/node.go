@@ -22,7 +22,7 @@ import (
 	"path/filepath"
 	"text/tabwriter"
 
-	d "github.com/shirou/gopsutil/disk"
+	"github.com/shirou/gopsutil/disk"
 	"github.com/shirou/gopsutil/net"
 	"github.com/shirou/gopsutil/process"
 	"github.com/tetratelabs/getenvoy/pkg/binary"
@@ -152,13 +152,13 @@ func writeIOStats(r binary.Runner) error {
 		return fmt.Errorf("error in creating iostat.json: %v", err)
 	}
 
-	physicalPartitions, _ := d.Partitions(false)
+	physicalPartitions, _ := disk.Partitions(false)
 	deviceNames := make([]string, 0, len(physicalPartitions))
 	//nolint:gocritic
 	for _, p := range physicalPartitions {
 		deviceNames = append(deviceNames, p.Device)
 	}
-	IOCounterStatsMap, _ := d.IOCounters(deviceNames...)
+	IOCounterStatsMap, _ := disk.IOCounters(deviceNames...)
 
 	// serialize map to json and write to file
 	jsonBytes, err := json.Marshal(IOCounterStatsMap)
