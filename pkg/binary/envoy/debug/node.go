@@ -160,10 +160,16 @@ func writeIOStats(r binary.Runner) error {
 	}
 	IOCounterStatsMap, _ := disk.IOCounters(deviceNames...)
 
+	// format map to array of IOCounterStat objects: to standardize with output of networkInterfaces
+	IOCounterStats := make([]interface{}, 0, len(IOCounterStatsMap))
+	for _, v := range IOCounterStatsMap {
+		IOCounterStats = append(IOCounterStats, v)
+	}
+
 	// serialize map to json and write to file
-	jsonBytes, err := json.Marshal(IOCounterStatsMap)
+	jsonBytes, err := json.Marshal(IOCounterStats)
 	if err != nil {
-		return fmt.Errorf("error in serializing IOCounterStatsMap: %v", err)
+		return fmt.Errorf("error in serializing IOCounterStats: %v", err)
 	}
 	fmt.Fprintln(f, string(jsonBytes))
 
