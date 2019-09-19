@@ -152,13 +152,20 @@ func writeIOStats(r binary.Runner) error {
 		return fmt.Errorf("error in creating iostat.json: %v", err)
 	}
 
-	physicalPartitions, _ := disk.Partitions(false)
+	physicalPartitions, err := disk.Partitions(false)
+	if err != nil {
+		return fmt.Errorf("error in returning disk partitions: %v", err)
+	}
+
 	deviceNames := make([]string, 0, len(physicalPartitions))
 	//nolint:gocritic
 	for _, p := range physicalPartitions {
 		deviceNames = append(deviceNames, p.Device)
 	}
-	IOCounterStatsMap, _ := disk.IOCounters(deviceNames...)
+	IOCounterStatsMap, err := disk.IOCounters(deviceNames...)
+	if err != nil {
+		return fmt.Errorf("error in returning IO counters: %v", err)
+	}
 
 	// format map to array of IOCounterStat objects: to standardize with output of networkInterfaces
 	IOCounterStats := make([]interface{}, 0, len(IOCounterStatsMap))
