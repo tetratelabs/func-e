@@ -149,7 +149,6 @@ func networkInterfaces(r binary.Runner) error {
 	return nil
 }
 
-
 // writeIOStat write iostat of devices in the form of a dictionary to json file
 func writeIOStats(r binary.Runner) error {
 	f, err := os.Create(filepath.Join(r.DebugStore(), "node/iostats.json"))
@@ -259,4 +258,3 @@ func addLabelToConnection(orig *net.ConnectionStat) connStat {
 		Pid:    orig.Pid,
 	}
 }
-
