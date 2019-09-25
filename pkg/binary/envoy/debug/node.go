@@ -178,7 +178,7 @@ func activeConnections(r binary.Runner) error {
 		return fmt.Errorf("unable to fetch network Interfaces: %v", err)
 	}
 
-	var ret []connStat
+	ret := make([]connStat, 0, len(cs))
 	for _, c := range cs {
 		st := addLabelToConnection(c)
 		ret = append(ret, st)
