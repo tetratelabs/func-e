@@ -173,7 +173,7 @@ func activeConnections(r binary.Runner) error {
 	}
 	defer f.Close() //nolint
 
-	cs, _ := net.Connections("all")
+	cs, err := net.Connections("all")
 	if err != nil {
 		return fmt.Errorf("unable to fetch network Interfaces: %v", err)
 	}
