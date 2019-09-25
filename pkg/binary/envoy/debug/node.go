@@ -20,6 +20,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"syscall"
 	"text/tabwriter"
 
 	"github.com/shirou/gopsutil/net"
@@ -37,6 +38,7 @@ func EnableNodeCollection(r *envoy.Runtime) {
 	}
 	r.RegisterPreTermination(ps)
 	r.RegisterPreTermination(networkInterfaces)
+	r.RegisterPreTermination(activeConnections)
 }
 
 func ps(r binary.Runner) error {
@@ -140,4 +142,74 @@ func networkInterfaces(r binary.Runner) error {
 	fmt.Fprintln(f, string(out))
 
 	return nil
+}
+
+type connStat struct {
+	Fd     uint32   `json:"fd"`
+	Pid    int32    `json:"pid"`
+	Uids   []int32  `json:"uids"`
+	Family string   `json:"family"`
+	Type   string   `json:"type"`
+	Status string   `json:"status"`
+	Laddr  net.Addr `json:"localaddr"`
+	Raddr  net.Addr `json:"remoteaddr"`
+}
+
+var familyMap = map[uint32]string{
+	syscall.AF_INET:  "AF_INET",
+	syscall.AF_INET6: "AF_INET6",
+	syscall.AF_UNIX:  "AF_UNIX",
+}
+
+var typeMap = map[uint32]string{
+	syscall.SOCK_STREAM: "SOCK_STREAM",
+	syscall.SOCK_DGRAM:  "SOCK_DGRAM",
+}
+
+func activeConnections(r binary.Runner) error {
+	f, err := os.Create(filepath.Join(r.DebugStore(), "node/connections.json"))
+	if err != nil {
+		return fmt.Errorf("unable to create file to write network interface output to: %v", err)
+	}
+	defer f.Close() //nolint
+
+	cs, err := net.Connections("all")
+	if err != nil {
+		return fmt.Errorf("unable to fetch network Interfaces: %v", err)
+	}
+
+	ret := make([]connStat, 0, len(cs))
+	for i := range cs {
+		st := addLabelToConnection(&cs[i])
+		ret = append(ret, st)
+	}
+	out, err := json.Marshal(ret)
+	if err != nil {
+		return fmt.Errorf("unable to convert to json representation: %v", err)
+	}
+	fmt.Fprintln(f, string(out))
+
+	return nil
+}
+
+// Replace uint32 label to human readable string label.
+func addLabelToConnection(orig *net.ConnectionStat) connStat {
+	family, ok := familyMap[orig.Family]
+	if !ok {
+		family = fmt.Sprintf("unknown(%v)", orig.Family)
+	}
+	t, ok := typeMap[orig.Type]
+	if !ok {
+		t = fmt.Sprintf("unknown(%v)", orig.Type)
+	}
+	return connStat{
+		Fd:     orig.Fd,
+		Family: family,
+		Type:   t,
+		Laddr:  orig.Laddr,
+		Raddr:  orig.Raddr,
+		Status: orig.Status,
+		Uids:   orig.Uids,
+		Pid:    orig.Pid,
+	}
 }
