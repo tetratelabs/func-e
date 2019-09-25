@@ -146,13 +146,13 @@ func networkInterfaces(r binary.Runner) error {
 
 type connStat struct {
 	Fd     uint32   `json:"fd"`
+	Pid    int32    `json:"pid"`
+	Uids   []int32  `json:"uids"`
 	Family string   `json:"family"`
 	Type   string   `json:"type"`
+	Status string   `json:"status"`
 	Laddr  net.Addr `json:"localaddr"`
 	Raddr  net.Addr `json:"remoteaddr"`
-	Status string   `json:"status"`
-	Uids   []int32  `json:"uids"`
-	Pid    int32    `json:"pid"`
 }
 
 var familyMap = map[uint32]string{
@@ -179,8 +179,8 @@ func activeConnections(r binary.Runner) error {
 	}
 
 	ret := make([]connStat, 0, len(cs))
-	for _, c := range cs {
-		st := addLabelToConnection(c)
+	for i := range cs {
+		st := addLabelToConnection(&cs[i])
 		ret = append(ret, st)
 	}
 	out, err := json.Marshal(ret)
@@ -193,7 +193,7 @@ func activeConnections(r binary.Runner) error {
 }
 
 // Replace uint32 label to human readable string label.
-func addLabelToConnection(orig net.ConnectionStat) connStat {
+func addLabelToConnection(orig *net.ConnectionStat) connStat {
 	family, ok := familyMap[orig.Family]
 	if !ok {
 		family = fmt.Sprintf("unknown(%v)", orig.Family)
