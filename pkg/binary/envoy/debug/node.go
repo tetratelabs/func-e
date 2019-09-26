@@ -163,9 +163,9 @@ func writeIOStats(r binary.Runner) error {
 	}
 
 	deviceNames := make([]string, 0, len(physicalPartitions))
-	//nolint:gocritic
-	for _, p := range physicalPartitions {
-		deviceNames = append(deviceNames, p.Device)
+
+	for i := range physicalPartitions {
+		deviceNames = append(deviceNames, physicalPartitions[i].Device)
 	}
 	ioCounterStatsMap, err := disk.IOCounters(deviceNames...)
 	if err != nil {
@@ -174,9 +174,9 @@ func writeIOStats(r binary.Runner) error {
 
 	// format map to array of IOCounterStat objects: to standardize with output of networkInterfaces
 	IOCounterStats := make([]interface{}, 0, len(ioCounterStatsMap))
-	//nolint:gocritic
-	for _, v := range ioCounterStatsMap {
-		IOCounterStats = append(IOCounterStats, v)
+
+	for i := range ioCounterStatsMap {
+		IOCounterStats = append(IOCounterStats, ioCounterStatsMap[i])
 	}
 
 	// serialize map to json and write to file
