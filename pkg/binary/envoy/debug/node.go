@@ -62,7 +62,7 @@ func ps(r binary.Runner) error {
 
 func processPrinter(out io.Writer, processes []*process.Process) error {
 	w := tabwriter.NewWriter(out, 0, 8, 5, ' ', 0)
-	fmt.Fprintln(w, "PID\tUSERNAME\tSTATUS\tRSS\tVSZ\tMINFLT\tMAJFLT\tPCPU\tPMEM\tARGS")
+	fmt.Fprintln(w, "Pid\tUSERNAME\tSTATUS\tRSS\tVSZ\tMINFLT\tMAJFLT\tPCPU\tPMEM\tARGS")
 	for _, p := range processes {
 		proc := safeProc(p)
 		fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\t%v\t%v\t%.2f\t%.2f\t%v\n", proc.pid, proc.username, proc.status, proc.rss, proc.vms, proc.minflt,

@@ -23,7 +23,7 @@ import (
 
 func (r *Runtime) handleTermination() {
 	if r.cmd.ProcessState != nil {
-		log.Infof("Envoy process (PID=%d) terminated prematurely", r.cmd.Process.Pid)
+		log.Infof("Envoy process (Pid=%d) terminated prematurely", r.cmd.Process.Pid)
 		return
 	}
 
@@ -35,7 +35,7 @@ func (r *Runtime) handleTermination() {
 	}
 
 	// Forward on the SIGINT to Envoy
-	log.Infof("Sending Envoy process (PID=%d) SIGINT", r.cmd.Process.Pid)
+	log.Infof("Sending Envoy process (Pid=%d) SIGINT", r.cmd.Process.Pid)
 	r.cmd.Process.Signal(syscall.SIGINT) //nolint
 
 }
