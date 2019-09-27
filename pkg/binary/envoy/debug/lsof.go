@@ -18,11 +18,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"syscall"
 
 	"github.com/shirou/gopsutil/process"
 	"github.com/tetratelabs/getenvoy/pkg/binary"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
+	"github.com/tetratelabs/log"
 )
 
 // Lsof defines the structure of statistics about a single opened file
@@ -44,21 +46,26 @@ type Lsof struct {
 
 // EnableOpenFilesDataCollection is a preset option that registers collection of statistics of files opened by envoy instance(s)
 func EnableOpenFilesDataCollection(r *envoy.Runtime) {
+	if err := os.Mkdir(filepath.Join(r.DebugStore(), "lsof"), os.ModePerm); err != nil {
+		log.Errorf("error in creating a directory to write open file data of envoy to: %v", err)
+	}
 	r.RegisterPreTermination(retrieveOpenFilesData)
 }
 
+// retrieveOpenFilesData writes statistics of open files associated with envoy instance(s) to a json file
+// if succeeded, return nil, else return an error instance
 func retrieveOpenFilesData(r binary.Runner) error { //nolint:gocyclo
 	// get a list of processes
 	processes, err := process.Processes()
 	if err != nil {
-		fmt.Println("error in getting pids")
+		return fmt.Errorf("error in getting process pids")
 	}
 
 	// filter Process instances of envoy
 	isEnvoy := func(p *process.Process) bool {
-		name, err := p.Name()
+		name, err := p.Name() //nolint:govet
 		if err != nil {
-			fmt.Println("error in getting process name ")
+			log.Errorf("error in getting process name for %v", p)
 			return false
 		}
 		return name == "envoy"
@@ -69,49 +76,43 @@ func retrieveOpenFilesData(r binary.Runner) error { //nolint:gocyclo
 			envoys = append(envoys, p)
 		}
 	}
-	fmt.Println("------- filtered envoy processes ---------")
-	f, err := os.Create("./lsof.json")
+
+	f, err := os.Create(filepath.Join(r.DebugStore(), "lsof/lsof.json"))
 	if err != nil {
-		fmt.Println("unable to create file to write lisof output to", err)
+		return fmt.Errorf("unable to create file to write lisof output to: %v", err)
 	}
 	defer f.Close() //nolint
 
 	ofStatArr := make([]Lsof, 0)
 	// print open file stats for all envoy instances
-	for i, envoy := range envoys {
-		fmt.Printf("--------open file stat for envoy instance %d: %s------\n", i, envoy)
+	for _, envoy := range envoys {
 		// relevant fields of the process
 		username, _ := envoy.Username()
 		name, _ := envoy.Name()
 		pid := envoy.Pid
 
-		ofStatTemp, err := envoy.OpenFiles()
+		openFiles, err := envoy.OpenFiles() //nolint:govet
 		if err != nil {
-			fmt.Printf("error in getting ofStat for %v\n", envoy)
+			log.Debugf("error in getting ofStat for %v\n", envoy)
+			continue
 		}
-		fmt.Println(ofStatTemp)
 
-		for _, stat := range ofStatTemp {
-			statPath := stat.Path
-
+		for _, stat := range openFiles {
 			ofStat := Lsof{
 				Command: name,
 				Pid:     fmt.Sprint(pid),
 				User:    username,
 				Fd:      fmt.Sprint(stat.Fd),
-				Name:    statPath,
+				Name:    stat.Path,
 			}
 
-			fmt.Println("-------------current stat path-------------", statPath)
 			var fstat syscall.Stat_t
-			if err := syscall.Stat(statPath, &fstat); err != nil {
+			if err := syscall.Stat(stat.Path, &fstat); err != nil {
 				// continue if the path is invalid
 				ofStatArr = append(ofStatArr, ofStat)
 				continue
 			}
-			fmt.Printf("System info: %+v\n\n", fstat)
-			fmt.Println("Size in bytes:", fstat.Size)
-			fmt.Println("inode number: ", fstat.Ino)
+
 			ofStat.Node = fmt.Sprint(fstat.Ino)
 			ofStat.Size = fmt.Sprint(fstat.Size)
 			ofStatArr = append(ofStatArr, ofStat)
@@ -120,7 +121,7 @@ func retrieveOpenFilesData(r binary.Runner) error { //nolint:gocyclo
 
 	out, err := json.Marshal(ofStatArr)
 	if err != nil {
-		fmt.Println("unable to convert to json representation", err)
+		return fmt.Errorf("unable to convert to json representation: %v", err)
 	}
 	// write to file
 	fmt.Fprintln(f, string(out))
