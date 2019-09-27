@@ -23,7 +23,6 @@ import (
 	"syscall"
 	"text/tabwriter"
 
-	"github.com/shirou/gopsutil/disk"
 	"github.com/shirou/gopsutil/net"
 	"github.com/shirou/gopsutil/process"
 	"github.com/tetratelabs/getenvoy/pkg/binary"
@@ -39,11 +38,7 @@ func EnableNodeCollection(r *envoy.Runtime) {
 	}
 	r.RegisterPreTermination(ps)
 	r.RegisterPreTermination(networkInterfaces)
-
-	r.RegisterPreTermination(writeIOStats)
-
 	r.RegisterPreTermination(activeConnections)
-
 }
 
 func ps(r binary.Runner) error {
@@ -62,7 +57,7 @@ func ps(r binary.Runner) error {
 
 func processPrinter(out io.Writer, processes []*process.Process) error {
 	w := tabwriter.NewWriter(out, 0, 8, 5, ' ', 0)
-	fmt.Fprintln(w, "Pid\tUSERNAME\tSTATUS\tRSS\tVSZ\tMINFLT\tMAJFLT\tPCPU\tPMEM\tARGS")
+	fmt.Fprintln(w, "PID\tUSERNAME\tSTATUS\tRSS\tVSZ\tMINFLT\tMAJFLT\tPCPU\tPMEM\tARGS")
 	for _, p := range processes {
 		proc := safeProc(p)
 		fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\t%v\t%v\t%.2f\t%.2f\t%v\n", proc.pid, proc.username, proc.status, proc.rss, proc.vms, proc.minflt,
@@ -145,46 +140,6 @@ func networkInterfaces(r binary.Runner) error {
 		return fmt.Errorf("unable to convert to json representation: %v", err)
 	}
 	fmt.Fprintln(f, string(out))
-
-	return nil
-}
-
-// writeIOStat write iostat of devices in the form of a dictionary to json file
-func writeIOStats(r binary.Runner) error {
-	f, err := os.Create(filepath.Join(r.DebugStore(), "node/iostats.json"))
-	defer f.Close() //nolint
-	if err != nil {
-		return fmt.Errorf("error in creating iostat.json: %v", err)
-	}
-
-	physicalPartitions, err := disk.Partitions(false)
-	if err != nil {
-		return fmt.Errorf("error in returning disk partitions: %v", err)
-	}
-
-	deviceNames := make([]string, 0, len(physicalPartitions))
-
-	for i := range physicalPartitions {
-		deviceNames = append(deviceNames, physicalPartitions[i].Device)
-	}
-	ioCounterStatsMap, err := disk.IOCounters(deviceNames...)
-	if err != nil {
-		return fmt.Errorf("error in returning IO counters: %v", err)
-	}
-
-	// format map to array of IOCounterStat objects: to standardize with output of networkInterfaces
-	IOCounterStats := make([]interface{}, 0, len(ioCounterStatsMap))
-
-	for i := range ioCounterStatsMap {
-		IOCounterStats = append(IOCounterStats, ioCounterStatsMap[i])
-	}
-
-	// serialize map to json and write to file
-	jsonBytes, err := json.Marshal(IOCounterStats)
-	if err != nil {
-		return fmt.Errorf("error in serializing IOCounterStats: %v", err)
-	}
-	fmt.Fprintln(f, string(jsonBytes))
 
 	return nil
 }

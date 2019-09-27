@@ -109,10 +109,10 @@ func (r *Runtime) waitForTerminationSignals() {
 	// Block until we receive SIGINT or are canceled because Envoy has died
 	select {
 	case <-r.ctx.Done():
-		log.Infof("No Envoy processes remaining, terminating GetEnvoy process (Pid=%d)", os.Getpid())
+		log.Infof("No Envoy processes remaining, terminating GetEnvoy process (PID=%d)", os.Getpid())
 		return
 	case <-r.signals:
-		log.Infof("GetEnvoy process (Pid=%d) received SIGINT", os.Getpid())
+		log.Infof("GetEnvoy process (PID=%d) received SIGINT", os.Getpid())
 		return
 	}
 }
@@ -136,9 +136,9 @@ func (r *Runtime) runEnvoy(cancel context.CancelFunc) {
 
 	if err := r.cmd.Wait(); err != nil {
 		if r.cmd.ProcessState.ExitCode() == -1 {
-			log.Infof("Envoy process (Pid=%d) terminated via %v", r.cmd.Process.Pid, err)
+			log.Infof("Envoy process (PID=%d) terminated via %v", r.cmd.Process.Pid, err)
 		} else {
-			log.Infof("Envoy process (Pid=%d) terminated with an error: %v", r.cmd.Process.Pid, err)
+			log.Infof("Envoy process (PID=%d) terminated with an error: %v", r.cmd.Process.Pid, err)
 		}
 	}
 }

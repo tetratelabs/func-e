@@ -34,7 +34,7 @@ func Test_debugging_outputs(t *testing.T) {
 		defer os.RemoveAll(r.DebugStore())
 		envoytest.RunKill(r, filepath.Join("testdata", "null.yaml"), time.Second*10)
 
-		files := [...]string{"node/ps.txt", "node/network_interface.json", "node/connections.json", "node/iostats.json"}
+		files := [...]string{"node/ps.txt", "node/network_interface.json", "node/connections.json"}
 
 		for _, file := range files {
 			path := filepath.Join(r.DebugStore(), file)
