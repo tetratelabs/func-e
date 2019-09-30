@@ -27,8 +27,8 @@ import (
 	"github.com/tetratelabs/log"
 )
 
-// Lsof defines the structure of statistics about a single opened file
-type Lsof struct {
+// OpenFileStat defines the structure of statistics about a single opened file
+type OpenFileStat struct {
 	// string enclosed in `` are known as struct tags
 	// this particular tag is used by json.Marshal() to encode Command field in a specific manner
 	// process dependent information
@@ -83,7 +83,7 @@ func retrieveOpenFilesData(r binary.Runner) error { //nolint:gocyclo
 	}
 	defer f.Close() //nolint
 
-	ofStatArr := make([]Lsof, 0)
+	result := make([]OpenFileStat, 0)
 	// print open file stats for all envoy instances
 	for _, envoy := range envoys {
 		// relevant fields of the process
@@ -98,7 +98,7 @@ func retrieveOpenFilesData(r binary.Runner) error { //nolint:gocyclo
 		}
 
 		for _, stat := range openFiles {
-			ofStat := Lsof{
+			ofStat := OpenFileStat{
 				Command: name,
 				Pid:     fmt.Sprint(pid),
 				User:    username,
@@ -109,21 +109,21 @@ func retrieveOpenFilesData(r binary.Runner) error { //nolint:gocyclo
 			var fstat syscall.Stat_t
 			if err := syscall.Stat(stat.Path, &fstat); err != nil {
 				// continue if the path is invalid
-				ofStatArr = append(ofStatArr, ofStat)
+				result = append(result, ofStat)
 				continue
 			}
 
 			ofStat.Node = fmt.Sprint(fstat.Ino)
 			ofStat.Size = fmt.Sprint(fstat.Size)
-			ofStatArr = append(ofStatArr, ofStat)
+			result = append(result, ofStat)
 		}
 	}
 
-	out, err := json.Marshal(ofStatArr)
+	out, err := json.Marshal(result)
 	if err != nil {
 		return fmt.Errorf("unable to convert to json representation: %v", err)
 	}
-	// write to file
+
 	fmt.Fprintln(f, string(out))
 
 	return nil
