@@ -63,8 +63,8 @@ func retrieveOpenFilesData(r binary.Runner) error { //nolint:gocyclo
 
 	// filter Process instances of envoy
 	isEnvoy := func(p *process.Process) bool {
-		name, err := p.Name() //nolint:govet
-		if err != nil {
+		name, errName := p.Name()
+		if errName != nil {
 			log.Errorf("error in getting process name for %v", p)
 			return false
 		}
@@ -91,8 +91,8 @@ func retrieveOpenFilesData(r binary.Runner) error { //nolint:gocyclo
 		name, _ := envoy.Name()
 		pid := envoy.Pid
 
-		openFiles, err := envoy.OpenFiles() //nolint:govet
-		if err != nil {
+		openFiles, errOpen := envoy.OpenFiles()
+		if errOpen != nil {
 			log.Debugf("error in getting ofStat for %v\n", envoy)
 			continue
 		}
