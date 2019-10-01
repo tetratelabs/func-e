@@ -42,7 +42,6 @@ func EnableNodeCollection(r *envoy.Runtime) {
 	r.RegisterPreTermination(networkInterfaces)
 	r.RegisterPreTermination(writeIOStats)
 	r.RegisterPreTermination(activeConnections)
-
 }
 
 func ps(r binary.Runner) error {
