@@ -122,7 +122,7 @@ func (f Filter) Process(logs []string) []string {
 
 // ProcessLogs process logs with the default filter
 // an empty array of logs and an error instance is returned in the event of an error
-func ProcessLogs(logs []string) ([]string, error) {
+func Process(logs []string) ([]string, error) {
 	return defaultFilter.Process(logs), nil
 }
 
