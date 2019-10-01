@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -39,9 +40,7 @@ func EnableNodeCollection(r *envoy.Runtime) {
 	}
 	r.RegisterPreTermination(ps)
 	r.RegisterPreTermination(networkInterfaces)
-
 	r.RegisterPreTermination(writeIOStats)
-
 	r.RegisterPreTermination(activeConnections)
 
 }
@@ -151,12 +150,6 @@ func networkInterfaces(r binary.Runner) error {
 
 // writeIOStat write iostat of devices in the form of a dictionary to json file
 func writeIOStats(r binary.Runner) error {
-	f, err := os.Create(filepath.Join(r.DebugStore(), "node/iostats.json"))
-	defer f.Close() //nolint
-	if err != nil {
-		return fmt.Errorf("error in creating iostat.json: %v", err)
-	}
-
 	physicalPartitions, err := disk.Partitions(false)
 	if err != nil {
 		return fmt.Errorf("error in returning disk partitions: %v", err)
@@ -184,7 +177,10 @@ func writeIOStats(r binary.Runner) error {
 	if err != nil {
 		return fmt.Errorf("error in serializing IOCounterStats: %v", err)
 	}
-	fmt.Fprintln(f, string(jsonBytes))
+	err = ioutil.WriteFile(filepath.Join(r.DebugStore(), "node/iostats.json"), jsonBytes, 0444)
+	if err != nil {
+		return fmt.Errorf("error in writing iostats to file: %v", err)
+	}
 
 	return nil
 }
