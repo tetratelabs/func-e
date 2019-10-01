@@ -22,6 +22,7 @@ import (
 	"syscall"
 
 	"github.com/shirou/gopsutil/process"
+
 	"github.com/tetratelabs/getenvoy/pkg/binary"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/log"
@@ -55,68 +56,52 @@ func EnableOpenFilesDataCollection(r *envoy.Runtime) {
 // retrieveOpenFilesData writes statistics of open files associated with envoy instance(s) to a json file
 // if succeeded, return nil, else return an error instance
 func retrieveOpenFilesData(r binary.Runner) error { //nolint:gocyclo
-	// get a list of processes
-	processes, err := process.Processes()
+	// get pid of envoy instance
+	pid, err := r.GetPid()
 	if err != nil {
-		return fmt.Errorf("error in getting process pids")
+		return fmt.Errorf("error in getting pid of envoy instance: %v", err)
 	}
-
-	// filter Process instances of envoy
-	isEnvoy := func(p *process.Process) bool {
-		name, errName := p.Name()
-		if errName != nil {
-			log.Errorf("error in getting process name for %v", p)
-			return false
-		}
-		return name == "envoy"
-	}
-	envoys := make([]*process.Process, 0)
-	for _, p := range processes {
-		if isEnvoy(p) {
-			envoys = append(envoys, p)
-		}
+	envoyProcess, err := process.NewProcess(int32(pid))
+	if err != nil {
+		return fmt.Errorf("error in creating an envoy instance: %v", err)
 	}
 
 	f, err := os.Create(filepath.Join(r.DebugStore(), "lsof/lsof.json"))
 	if err != nil {
-		return fmt.Errorf("unable to create file to write lisof output to: %v", err)
+		return fmt.Errorf("error in creating a file to write open file statistics to: %v", err)
 	}
 	defer f.Close() //nolint
 
 	result := make([]OpenFileStat, 0)
 	// print open file stats for all envoy instances
-	for _, envoy := range envoys {
-		// relevant fields of the process
-		username, _ := envoy.Username()
-		name, _ := envoy.Name()
-		pid := envoy.Pid
+	// relevant fields of the process
+	username, _ := envoyProcess.Username()
+	name, _ := envoyProcess.Name()
 
-		openFiles, errOpen := envoy.OpenFiles()
-		if errOpen != nil {
-			log.Debugf("error in getting ofStat for %v\n", envoy)
+	openFiles, err := envoyProcess.OpenFiles()
+	if err != nil {
+		return fmt.Errorf("error in getting open file statistics: %v", err)
+	}
+
+	for _, stat := range openFiles {
+		ofStat := OpenFileStat{
+			Command: name,
+			Pid:     fmt.Sprint(pid),
+			User:    username,
+			Fd:      fmt.Sprint(stat.Fd),
+			Name:    stat.Path,
+		}
+
+		var fstat syscall.Stat_t
+		if errSyscall := syscall.Stat(stat.Path, &fstat); errSyscall != nil {
+			// continue if the path is invalid
+			result = append(result, ofStat)
 			continue
 		}
 
-		for _, stat := range openFiles {
-			ofStat := OpenFileStat{
-				Command: name,
-				Pid:     fmt.Sprint(pid),
-				User:    username,
-				Fd:      fmt.Sprint(stat.Fd),
-				Name:    stat.Path,
-			}
-
-			var fstat syscall.Stat_t
-			if err := syscall.Stat(stat.Path, &fstat); err != nil {
-				// continue if the path is invalid
-				result = append(result, ofStat)
-				continue
-			}
-
-			ofStat.Node = fmt.Sprint(fstat.Ino)
-			ofStat.Size = fmt.Sprint(fstat.Size)
-			result = append(result, ofStat)
-		}
+		ofStat.Node = fmt.Sprint(fstat.Ino)
+		ofStat.Size = fmt.Sprint(fstat.Size)
+		result = append(result, ofStat)
 	}
 
 	out, err := json.Marshal(result)
