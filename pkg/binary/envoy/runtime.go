@@ -91,6 +91,14 @@ func (r *Runtime) Status() int {
 	}
 }
 
+// GetPid returns the pid of the child process
+func (r *Runtime) GetPid() (int, error) {
+	if r.cmd == nil || r.cmd.Process == nil {
+		return 0, fmt.Errorf("envoy process not yet started")
+	}
+	return r.cmd.Process.Pid, nil
+}
+
 func (r *Runtime) envoyReady() bool {
 	// Once we have seen its ready once stop spamming the ready endpoint.
 	// If we expand the interface to support ready <-> not ready then
