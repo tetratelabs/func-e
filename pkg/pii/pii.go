@@ -25,50 +25,52 @@ import (
 
 var logger = l.RegisterScope("pkg/pii", "filters log lines for PII data", 0)
 
-var defaultFilter, _ = Default()
-var istioFormat = `[%START_TIME%] "%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%"` +
-	` %RESPONSE_CODE% %RESPONSE_FLAGS% "%DYNAMIC_METADATA(istio.mixer:status)%" "%REQ(USER-AGENT)%"`
-var defaultPII = map[string]bool{
-	// keys without variables
-	"[%START_TIME%]":                           true,
-	"[%BYTES_RECEIVED%]":                       true,
-	"%PROTOCOL%":                               true,
-	"%RESPONSE_CODE%":                          true,
-	"%RESPONSE_CODE_DETAILS%":                  true,
-	"%BYTES_SENT%":                             true,
-	"%DURATION%":                               true,
-	"%RESPONSE_DURATION%":                      true,
-	"%RESPONSE_FLAGS%":                         true,
-	"%RESPONSE_TX_DURATION%":                   true,
-	"%ROUTE_NAME%":                             true,
-	"%UPSTREAM_HOST%":                          true,
-	"%UPSTREAM_CLUSTER%":                       true,
-	"%UPSTREAM_LOCAL_ADDRESS%":                 true,
-	"%UPSTREAM_TRANSPORT_FAILURE_REASON%":      true,
-	"%DOWNSTREAM_REMOTE_ADDRESS%":              true,
-	"%DOWNSTREAM_REMOTE_ADDRESS_WITHOUT_PORT%": true,
-	"%DOWNSTREAM_LOCAL_ADDRESS%":               true,
-	"%DOWNSTREAM_LOCAL_ADDRESS_WITHOUT_PORT%":  true,
-	"%REQUESTED_SERVER_NAME%":                  true,
-	"%DOWNSTREAM_LOCAL_URI_SAN%":               true,
-	"%DOWNSTREAM_PEER_URI_SAN%":                true,
-	"%DOWNSTREAM_LOCAL_SUBJECT%":               true,
-	"%DOWNSTREAM_PEER_SUBJECT%":                true,
-	"%DOWNSTREAM_PEER_ISSUER%":                 true,
-	"%DOWNSTREAM_TLS_SESSION_ID%":              true,
-	"%DOWNSTREAM_TLS_CIPHER%":                  true,
-	"%DOWNSTREAM_TLS_VERSION%":                 true,
-	"%DOWNSTREAM_PEER_FINGERPRINT_256%":        true,
-	"%DOWNSTREAM_PEER_SERIAL%":                 true,
-	"%DOWNSTREAM_PEER_CERT%":                   true,
-	"%DOWNSTREAM_PEER_CERT_V_START%":           true,
-	"%DOWNSTREAM_PEER_CERT_V_END%":             true,
-	// keys with variables
-	"%REQ(X?Y):Z%":                         true,
-	"%RESP(X?Y):Z%":                        true,
-	"%TRAILER(X?Y):Z%":                     true,
-	"%DYNAMIC_METADATA(NAMESPACE:KEY*):Z%": true,
-}
+var (
+	defaultFilter, _ = Default()
+	istioFormat      = `[%START_TIME%] "%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%"` +
+		` %RESPONSE_CODE% %RESPONSE_FLAGS% "%DYNAMIC_METADATA(istio.mixer:status)%" "%REQ(USER-AGENT)%"`
+	defaultPII = map[string]bool{
+		// keys without variables
+		`[%START_TIME%]`:                           true,
+		`[%BYTES_RECEIVED%]`:                       true,
+		`%PROTOCOL%`:                               true,
+		`%RESPONSE_CODE%`:                          true,
+		`%RESPONSE_CODE_DETAILS%`:                  true,
+		`%BYTES_SENT%`:                             true,
+		`%DURATION%`:                               true,
+		`%RESPONSE_DURATION%`:                      true,
+		`%RESPONSE_FLAGS%`:                         true,
+		`%RESPONSE_TX_DURATION%`:                   true,
+		`%ROUTE_NAME%`:                             true,
+		`%UPSTREAM_HOST%`:                          true,
+		`%UPSTREAM_CLUSTER%`:                       true,
+		`%UPSTREAM_LOCAL_ADDRESS%`:                 true,
+		`%UPSTREAM_TRANSPORT_FAILURE_REASON%`:      true,
+		`%DOWNSTREAM_REMOTE_ADDRESS%`:              true,
+		`%DOWNSTREAM_REMOTE_ADDRESS_WITHOUT_PORT%`: true,
+		`%DOWNSTREAM_LOCAL_ADDRESS%`:               true,
+		`%DOWNSTREAM_LOCAL_ADDRESS_WITHOUT_PORT%`:  true,
+		`%REQUESTED_SERVER_NAME%`:                  true,
+		`%DOWNSTREAM_LOCAL_URI_SAN%`:               true,
+		`%DOWNSTREAM_PEER_URI_SAN%`:                true,
+		`%DOWNSTREAM_LOCAL_SUBJECT%`:               true,
+		`%DOWNSTREAM_PEER_SUBJECT%`:                true,
+		`%DOWNSTREAM_PEER_ISSUER%`:                 true,
+		`%DOWNSTREAM_TLS_SESSION_ID%`:              true,
+		`%DOWNSTREAM_TLS_CIPHER%`:                  true,
+		`%DOWNSTREAM_TLS_VERSION%`:                 true,
+		`%DOWNSTREAM_PEER_FINGERPRINT_256%`:        true,
+		`%DOWNSTREAM_PEER_SERIAL%`:                 true,
+		`%DOWNSTREAM_PEER_CERT%`:                   true,
+		`%DOWNSTREAM_PEER_CERT_V_START%`:           true,
+		`%DOWNSTREAM_PEER_CERT_V_END%`:             true,
+		// keys with variables
+		`%REQ(X?Y):Z%`:                         true,
+		`%RESP(X?Y):Z%`:                        true,
+		`%TRAILER(X?Y):Z%`:                     true,
+		`%DYNAMIC_METADATA(NAMESPACE:KEY*):Z%`: true,
+	}
+)
 
 // Filter filters log fields using pii and modify all PII fields using f
 type Filter struct {
@@ -120,7 +122,7 @@ func (f Filter) Process(logs []string) []string {
 	return out
 }
 
-// ProcessLogs process logs with the default filter
+// Process process logs with the default filter
 // an empty array of logs and an error instance is returned in the event of an error
 func Process(logs []string) ([]string, error) {
 	return defaultFilter.Process(logs), nil
@@ -128,7 +130,6 @@ func Process(logs []string) ([]string, error) {
 
 // defaultHash returns the hashed value of s using sha256 defaultHash function
 // TODO: salt the Hash
-//nolint: unused,deadcode
 func defaultHash(s string) string {
 	h := sha256.New()
 	_, _ = h.Write([]byte(s))
