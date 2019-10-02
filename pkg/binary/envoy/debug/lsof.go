@@ -55,7 +55,7 @@ func EnableOpenFilesDataCollection(r *envoy.Runtime) {
 
 // retrieveOpenFilesData writes statistics of open files associated with envoy instance(s) to a json file
 // if succeeded, return nil, else return an error instance
-func retrieveOpenFilesData(r binary.Runner) error { //nolint:gocyclo
+func retrieveOpenFilesData(r binary.Runner) error {
 	// get pid of envoy instance
 	pid, err := r.GetPid()
 	if err != nil {
