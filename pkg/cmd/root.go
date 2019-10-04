@@ -15,8 +15,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
@@ -27,7 +25,6 @@ var cliVersion string
 // NewRoot create a new root command and sets the cliVersion to the passed variable
 // TODO: Add version support on the command
 func NewRoot() *cobra.Command {
-	fmt.Println("########### NewRoot() entered ##########!", cliVersion, "!#####")
 	rootCmd.AddCommand(NewRunCmd())
 	rootCmd.AddCommand(NewListCmd())
 	rootCmd.AddCommand(NewFetchCmd())
