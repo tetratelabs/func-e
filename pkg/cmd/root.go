@@ -45,6 +45,7 @@ var (
 		Short:             "Fetch, deploy and debug Envoy",
 		Long: `Manage full lifecycle of Envoy including fetching binaries,
 bootstrap generation and automated collection of access logs, Envoy state and machine state.`,
+		Version: cliVersion,
 	}
 
 	manifestURL string
