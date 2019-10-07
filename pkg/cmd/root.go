@@ -19,6 +19,9 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
 
+// cliVersion exposed by goreleaser
+var cliVersion string
+
 // NewRoot create a new root command and sets the cliVersion to the passed variable
 // TODO: Add version support on the command
 func NewRoot() *cobra.Command {
@@ -39,6 +42,7 @@ var (
 		Short:             "Fetch, deploy and debug Envoy",
 		Long: `Manage full lifecycle of Envoy including fetching binaries,
 bootstrap generation and automated collection of access logs, Envoy state and machine state.`,
+		Version: cliVersion,
 	}
 
 	manifestURL string
