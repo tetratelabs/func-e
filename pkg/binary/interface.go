@@ -32,6 +32,7 @@ type Runner interface {
 	RegisterDone()
 	SendSignal(signal os.Signal)
 	Status() int
+	GetPid() (int, error)
 	AppendArgs([]string)
 	Wait(int)
 	WaitWithContext(context.Context, int)
