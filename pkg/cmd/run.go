@@ -80,6 +80,7 @@ getenvoy run standard:1.11.1 -- --help
 				debug.EnableEnvoyAdminDataCollection,
 				debug.EnableEnvoyLogCollection,
 				debug.EnableNodeCollection,
+				debug.EnableOpenFilesDataCollection,
 				controlplaneFunc(),
 			)
 			if err != nil {
