@@ -60,20 +60,25 @@ dockers:
 - image_templates: 
   - getenvoy/getenvoy:{{ .Version }}-standard-1.11.1
   dockerfile: Dockerfile
-  binary: getenvoy
+  binaries:
+    - getenvoy
   build_flag_templates:
   - "--build-arg=reference=standard:1.11.1"
+
 - image_templates: 
   - getenvoy/getenvoy:{{ .Version }}-standard-1.11.2
   dockerfile: Dockerfile
-  binary: getenvoy
+  binaries:
+    - getenvoy
   build_flag_templates:
   - "--build-arg=reference=standard:1.11.2"
+
 - image_templates: 
   - getenvoy/getenvoy:{{ .Version }}-standard-1.12.0
   - getenvoy/getenvoy:standard-latest
   dockerfile: Dockerfile
-  binary: getenvoy
+  binaries:
+    - getenvoy
   build_flag_templates:
   - "--build-arg=reference=standard:1.12.0"
 
