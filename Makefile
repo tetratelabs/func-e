@@ -24,3 +24,6 @@ build: deps
 
 docker: build
 	docker build -t $(HUB)/getenvoy:$(TAG) --build-arg reference=$(ENVOY) .
+
+release.dryrun:
+	goreleaser release --skip-publish --snapshot --rm-dist
