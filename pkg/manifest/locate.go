@@ -87,10 +87,11 @@ func Locate(key *Key, manifestLocation string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return locateBuild(key, manifest)
+	return LocateBuild(key, manifest)
 }
 
-func locateBuild(key *Key, manifest *api.Manifest) (string, error) {
+// LocateBuild returns the downloadLocationURL of the associated envoy binary in the manifest using the input key
+func LocateBuild(key *Key, manifest *api.Manifest) (string, error) {
 	// This is pretty horrible... Not sure there is a nicer way though.
 	if manifest.Flavors[key.Flavor] != nil && manifest.Flavors[key.Flavor].Versions[key.Version] != nil {
 		for _, build := range manifest.Flavors[key.Flavor].Versions[key.Version].Builds {
