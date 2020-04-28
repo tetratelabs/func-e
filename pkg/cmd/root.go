@@ -16,27 +16,21 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/tetratelabs/getenvoy/pkg/cmd/extension"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
 
-// cliVersion exposed by goreleaser
-var cliVersion string
+var (
+	// cliVersion exposed by goreleaser
+	cliVersion string
+
+	manifestURL string
+)
 
 // NewRoot create a new root command and sets the cliVersion to the passed variable
 // TODO: Add version support on the command
 func NewRoot() *cobra.Command {
-	rootCmd.AddCommand(NewRunCmd())
-	rootCmd.AddCommand(NewListCmd())
-	rootCmd.AddCommand(NewFetchCmd())
-	rootCmd.AddCommand(NewDocCmd())
-
-	rootCmd.PersistentFlags().StringVar(&manifestURL, "manifest", manifest.DefaultURL, "sets the manifest URL")
-	rootCmd.PersistentFlags().MarkHidden("manifest") // nolint
-	return rootCmd
-}
-
-var (
-	rootCmd = &cobra.Command{
+	rootCmd := &cobra.Command{
 		Use:               "getenvoy",
 		DisableAutoGenTag: true, // removes autogenerate on ___ from produced docs
 		Short:             "Fetch, deploy and debug Envoy",
@@ -45,5 +39,13 @@ bootstrap generation and automated collection of access logs, Envoy state and ma
 		Version: cliVersion,
 	}
 
-	manifestURL string
-)
+	rootCmd.AddCommand(NewRunCmd())
+	rootCmd.AddCommand(NewListCmd())
+	rootCmd.AddCommand(NewFetchCmd())
+	rootCmd.AddCommand(NewDocCmd())
+	rootCmd.AddCommand(extension.NewCmd())
+
+	rootCmd.PersistentFlags().StringVar(&manifestURL, "manifest", manifest.DefaultURL, "sets the manifest URL")
+	rootCmd.PersistentFlags().MarkHidden("manifest") // nolint
+	return rootCmd
+}

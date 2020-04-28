@@ -19,7 +19,10 @@ TAG ?= dev
 deps:
 	go mod download
 
-build: deps
+codegen:
+	go generate ./pkg/...
+
+build: deps codegen
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o getenvoy ./cmd/getenvoy/main.go
 
 docker: build
