@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Install Licenser
-wget -c https://github.com/liamawhite/licenser/releases/download/v0.5.1/licenser_0.5.1_Linux_x86_64.tar.gz -O - | sudo tar -xz -C /usr/bin
+wget -c https://github.com/liamawhite/licenser/releases/download/v0.6.0/licenser_0.6.0_Linux_x86_64.tar.gz -O - | sudo tar -xz -C /usr/bin
 
 # Install golangci-lint
 curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sudo sh -s -- -b /usr/bin v1.18.0
