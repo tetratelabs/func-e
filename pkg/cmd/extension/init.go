@@ -16,6 +16,7 @@ package extension
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 	scaffold "github.com/tetratelabs/getenvoy/pkg/extension/init"
@@ -77,7 +78,7 @@ Scaffold a new Envoy extension in a language of your choice.`,
 			opts.Language = language
 			opts.TemplateName = "default"
 
-			outputDir, err := osutil.InferOutputDir(optionalArg(args[:1]).ValueOr(""))
+			outputDir, err := filepath.Abs(filepath.Clean(optionalArg(args[:1]).ValueOr("")))
 			if err != nil {
 				return err
 			}
