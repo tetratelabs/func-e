@@ -38,9 +38,21 @@ const (
 	languageRust = "rust"
 )
 
+// options represents an exhaustive list of valid values.
+type options []string
+
+func (o options) Contains(value string) bool {
+	for _, option := range o {
+		if value == option {
+			return true
+		}
+	}
+	return false
+}
+
 var (
-	allSupportedCategories = []string{envoyHTTPFilter, envoyNetworkFilter, envoyAccessLogger}
-	allSupportedLanguages  = []string{languageRust}
+	allSupportedCategories = options{envoyHTTPFilter, envoyNetworkFilter, envoyAccessLogger}
+	allSupportedLanguages  = options{languageRust}
 )
 
 // NewInitCmd returns a command that generates the initial set of files
@@ -59,12 +71,14 @@ Scaffold a new Envoy extension in a language of your choice.`,
   getenvoy extension init --category envoy.filters.http --language rust`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts := scaffold.ScaffoldOpts{}
-			if opts.Category = parseExtensionCategory(category); opts.Category == "" {
+			if !allSupportedCategories.Contains(category) {
 				return fmt.Errorf("extension %q has invalid value %q", "category", category)
 			}
-			if opts.Language = parseExtensionLanguage(language); opts.Language == "" {
+			opts.Category = category
+			if !allSupportedLanguages.Contains(language) {
 				return fmt.Errorf("extension %q has invalid value %q", "language", language)
 			}
+			opts.Language = language
 			opts.TemplateName = "default"
 
 			outputDir, err := inferOutputDir(args[:1])
@@ -87,24 +101,6 @@ Scaffold a new Envoy extension in a language of your choice.`,
 	cmd.PersistentFlags().StringVar(&category, "category", "", "choose extension category. "+hintOneOf(allSupportedCategories...))
 	cmd.PersistentFlags().StringVar(&language, "language", "", "choose programming language. "+hintOneOf(allSupportedLanguages...))
 	return cmd
-}
-
-func parseExtensionCategory(value string) string {
-	switch value {
-	case envoyHTTPFilter, envoyNetworkFilter, envoyAccessLogger:
-		return value
-	default:
-		return ""
-	}
-}
-
-func parseExtensionLanguage(value string) string {
-	switch value {
-	case languageRust:
-		return value
-	default:
-		return ""
-	}
 }
 
 func inferOutputDir(args []string) (string, error) {
