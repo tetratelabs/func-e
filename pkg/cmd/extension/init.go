@@ -91,7 +91,14 @@ Scaffold a new Envoy extension in a language of your choice.`,
 				if err != nil {
 					return err
 				}
-				return fmt.Errorf("cowardly refusing to scaffold a new extension because output directory is not empty: %v", outputDir)
+				if len(args) == 0 {
+					return fmt.Errorf("unable to scaffold a new extension in the current working directory since it's not empty.\n"+
+						"\nHint: consider providing a name for a new directory to scaffold in, e.g.\n"+
+						"\n  getenvoy extension init my-new-extension --category=%s --language=%s\n",
+						category, language,
+					)
+				}
+				return fmt.Errorf("cowardly refusing to scaffold a new extension in a non-empty directory: %v", outputDir)
 			}
 			opts.OutputDir = outputDir
 			opts.ProgressHandler = scaffold.ProgressFuncs{
