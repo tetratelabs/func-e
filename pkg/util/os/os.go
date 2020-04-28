@@ -24,10 +24,7 @@ import (
 
 // EnsureDirExists makes sure a given directory exists.
 func EnsureDirExists(name string) error {
-	if err := os.MkdirAll(name, os.ModeDir|0755); err != nil {
-		return err
-	}
-	return nil
+	return os.MkdirAll(name, os.ModeDir|0755)
 }
 
 // IsEmptyDir checks whether a given directory is empty.
