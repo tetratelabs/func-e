@@ -78,7 +78,7 @@ Scaffold a new Envoy extension in a language of your choice.`,
 				if err != nil {
 					return err
 				}
-				return fmt.Errorf("covardly refusing to scaffold a new extension because output directory is not empty: %v", outputDir)
+				return fmt.Errorf("cowardly refusing to scaffold a new extension because output directory is not empty: %v", outputDir)
 			}
 			opts.OutputDir = outputDir
 			return scaffold.Scaffold(opts)
