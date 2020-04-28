@@ -15,7 +15,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/tetratelabs/getenvoy/pkg/cmd"
@@ -24,7 +23,6 @@ import (
 func main() {
 	root := cmd.NewRoot()
 	if err := root.Execute(); err != nil {
-		fmt.Println(err)
 		os.Exit(1)
 	}
 }
