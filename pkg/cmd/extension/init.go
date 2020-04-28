@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"path/filepath"
 
 	"github.com/hashicorp/go-multierror"
@@ -81,7 +80,7 @@ Scaffold a new Envoy extension in a language of your choice.`,
 			opts.Language = language
 			opts.TemplateName = "default"
 
-			outputDir, err := inferOutputDir(args[:1])
+			outputDir, err := inferOutputDir(optionalArg(args[:1]))
 			if err != nil {
 				return err
 			}
@@ -103,19 +102,34 @@ Scaffold a new Envoy extension in a language of your choice.`,
 	return cmd
 }
 
-func inferOutputDir(args []string) (string, error) {
+// optionalArg represents an optional command-line argument.
+type optionalArg []string
+
+func (o optionalArg) Present() bool {
+	return len(o) > 0
+}
+
+func (o optionalArg) ValueOr(defaultValue string) string {
+	if len(o) > 0 {
+		return o[0]
+	}
+	return defaultValue
+}
+
+func inferOutputDir(arg optionalArg) (string, error) {
+	subdir := ""
+	if arg.Present() {
+		dir := filepath.Clean(arg.ValueOr(""))
+		if filepath.IsAbs(dir) {
+			return dir, nil
+		}
+		subdir = dir
+	}
 	cwd, err := os.Getwd()
 	if err != nil {
 		return "", err
 	}
-	if len(args) > 0 {
-		dir := filepath.Clean(args[0])
-		if path.IsAbs(dir) {
-			return dir, nil
-		}
-		return filepath.Join(cwd, dir), nil
-	}
-	return cwd, nil
+	return filepath.Join(cwd, subdir), nil
 }
 
 func ensureDirExists(name string) error {
