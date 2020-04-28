@@ -16,13 +16,10 @@ package extension
 
 import (
 	"fmt"
-	"io"
-	"os"
-	"path/filepath"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/spf13/cobra"
 	scaffold "github.com/tetratelabs/getenvoy/pkg/extension/init"
+	osutil "github.com/tetratelabs/getenvoy/pkg/util/os"
 )
 
 // extension categories supported by `init` command.
@@ -80,14 +77,14 @@ Scaffold a new Envoy extension in a language of your choice.`,
 			opts.Language = language
 			opts.TemplateName = "default"
 
-			outputDir, err := inferOutputDir(optionalArg(args[:1]))
+			outputDir, err := osutil.InferOutputDir(optionalArg(args[:1]).ValueOr(""))
 			if err != nil {
 				return err
 			}
-			if err := ensureDirExists(outputDir); err != nil {
+			if err := osutil.EnsureDirExists(outputDir); err != nil {
 				return err
 			}
-			if empty, err := isEmptyDir(outputDir); err != nil || !empty {
+			if empty, err := osutil.IsEmptyDir(outputDir); err != nil || !empty {
 				if err != nil {
 					return err
 				}
@@ -105,53 +102,9 @@ Scaffold a new Envoy extension in a language of your choice.`,
 // optionalArg represents an optional command-line argument.
 type optionalArg []string
 
-func (o optionalArg) Present() bool {
-	return len(o) > 0
-}
-
 func (o optionalArg) ValueOr(defaultValue string) string {
 	if len(o) > 0 {
 		return o[0]
 	}
 	return defaultValue
-}
-
-func inferOutputDir(arg optionalArg) (string, error) {
-	subdir := ""
-	if arg.Present() {
-		dir := filepath.Clean(arg.ValueOr(""))
-		if filepath.IsAbs(dir) {
-			return dir, nil
-		}
-		subdir = dir
-	}
-	cwd, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(cwd, subdir), nil
-}
-
-func ensureDirExists(name string) error {
-	if err := os.MkdirAll(name, os.ModeDir|0755); err != nil {
-		return err
-	}
-	return nil
-}
-
-func isEmptyDir(name string) (empty bool, errs error) {
-	dir, err := os.Open(filepath.Clean(name))
-	if err != nil {
-		return false, err
-	}
-	defer func() {
-		if e := dir.Close(); e != nil {
-			errs = multierror.Append(errs, e)
-		}
-	}()
-	files, err := dir.Readdirnames(1)
-	if err != nil && err != io.EOF {
-		return false, err
-	}
-	return len(files) == 0, nil
 }
