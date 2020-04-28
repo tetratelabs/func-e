@@ -26,6 +26,42 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
+// ProgressHandler is a sink for progress events.
+type ProgressHandler interface {
+	OnStart()
+	OnFile(file string)
+	OnComplete()
+}
+
+// ProgressFuncs dispatches progress events to individual handler functions.
+type ProgressFuncs struct {
+	OnStartFunc    func()
+	OnFileFunc     func(file string)
+	OnCompleteFunc func()
+}
+
+// OnStart is called when scaffolding is about to get started.
+func (f ProgressFuncs) OnStart() {
+	if f.OnStartFunc != nil {
+		f.OnStartFunc()
+	}
+}
+
+// OnFile is called for every generated file.
+func (f ProgressFuncs) OnFile(file string) {
+	if f.OnFileFunc != nil {
+		f.OnFileFunc(file)
+	}
+
+}
+
+// OnComplete is called when scaffolding has finished successfully.
+func (f ProgressFuncs) OnComplete() {
+	if f.OnCompleteFunc != nil {
+		f.OnCompleteFunc()
+	}
+}
+
 // ScaffoldOpts represents configuration options supported by Scaffold().
 type ScaffoldOpts struct {
 	Language     string
@@ -33,21 +69,32 @@ type ScaffoldOpts struct {
 	TemplateName string
 
 	OutputDir string
+
+	ProgressHandler
 }
 
 // Scaffold generates the initial set of files to kick off development of a new extension.
-func Scaffold(opts ScaffoldOpts) error {
+func Scaffold(opts *ScaffoldOpts) (err error) {
 	templateDir, fs, err := getTemplateSource().GetTemplateDir(opts.Language, opts.Category, opts.TemplateName)
 	if err != nil {
 		return fmt.Errorf("no such template: %v", err)
 	}
+	if opts.ProgressHandler == nil {
+		opts.ProgressHandler = ProgressFuncs{}
+	}
+	opts.ProgressHandler.OnStart()
 	walker := &scaffolder{opts: opts, sourceFS: fs}
+	defer func() {
+		if err == nil {
+			opts.OnComplete()
+		}
+	}()
 	return walker.walk(templateDir, "")
 }
 
 // scaffolder generates the initial set of files to kick off development of a new extension.
 type scaffolder struct {
-	opts      ScaffoldOpts
+	opts      *ScaffoldOpts
 	sourceFS  http.FileSystem
 	transform func([]byte) ([]byte, error)
 }
@@ -109,5 +156,6 @@ func (s *scaffolder) visit(sourceDirName, destinationDirName string, sourceFileI
 	if err := ioutil.WriteFile(outputFileName, content, sourceFileInfo.Mode()); err != nil {
 		return err
 	}
+	s.opts.ProgressHandler.OnFile(relOutputFileName)
 	return nil
 }

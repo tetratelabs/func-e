@@ -62,10 +62,12 @@ func NewInitCmd() *cobra.Command {
 		Short: "Scaffold a new Envoy extension.",
 		Long: `
 Scaffold a new Envoy extension in a language of your choice.`,
-		Args: cobra.MaximumNArgs(1),
 		Example: `
   # Scaffold a new Envoy HTTP filter in Rust in the current working directory.
-  getenvoy extension init --category envoy.filters.http --language rust`,
+  getenvoy extension init --category envoy.filters.http --language rust
+
+  # Scaffold a new Envoy Access logger in Rust in the "my-access-logger" directory.
+  getenvoy extension init my-access-logger --category envoy.access_loggers --language rust`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts := scaffold.ScaffoldOpts{}
 			if !allSupportedCategories.Contains(category) {
@@ -92,7 +94,21 @@ Scaffold a new Envoy extension in a language of your choice.`,
 				return fmt.Errorf("cowardly refusing to scaffold a new extension because output directory is not empty: %v", outputDir)
 			}
 			opts.OutputDir = outputDir
-			return scaffold.Scaffold(opts)
+			opts.ProgressHandler = scaffold.ProgressFuncs{
+				OnStartFunc: func() {
+					cmd.Printf("Scaffolding a new extension in %s:\n", opts.OutputDir)
+					cmd.Print("\n")
+					cmd.Print("* Generating files:\n")
+				},
+				OnFileFunc: func(file string) {
+					cmd.Printf("  √ %s\n", file)
+				},
+				OnCompleteFunc: func() {
+					cmd.Print("\n")
+					cmd.Print("Done!\n")
+				},
+			}
+			return scaffold.Scaffold(&opts)
 		},
 	}
 	cmd.PersistentFlags().StringVar(&category, "category", "", "choose extension category. "+hintOneOf(allSupportedCategories...))
