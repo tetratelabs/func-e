@@ -24,6 +24,8 @@ import (
 	"path/filepath"
 
 	"github.com/hashicorp/go-multierror"
+
+	osutil "github.com/tetratelabs/getenvoy/pkg/util/os"
 )
 
 // ProgressHandler is a sink for progress events.
@@ -130,7 +132,7 @@ func (s *scaffolder) walk(sourceDirName, destinationDirName string) (errs error)
 func (s *scaffolder) visit(sourceDirName, destinationDirName string, sourceFileInfo os.FileInfo) (errs error) {
 	relOutputFileName := filepath.Join(destinationDirName, sourceFileInfo.Name())
 	outputFileName := filepath.Join(s.opts.OutputDir, relOutputFileName)
-	if err := os.MkdirAll(filepath.Dir(outputFileName), os.ModeDir|0755); err != nil {
+	if err := osutil.EnsureDirExists(filepath.Dir(outputFileName)); err != nil {
 		return err
 	}
 	sourceFile, err := s.sourceFS.Open(path.Join(sourceDirName, sourceFileInfo.Name()))
