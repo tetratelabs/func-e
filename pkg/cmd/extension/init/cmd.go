@@ -16,12 +16,11 @@ package extension
 
 import (
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
+
 	scaffold "github.com/tetratelabs/getenvoy/pkg/extension/init"
-	osutil "github.com/tetratelabs/getenvoy/pkg/util/os"
 )
 
 // extension categories supported by `init` command.
@@ -44,8 +43,7 @@ var (
 // NewCmd returns a command that generates the initial set of files
 // to kick off development of a new extension.
 func NewCmd() *cobra.Command {
-	var category string
-	var language string
+	params := newParams()
 	cmd := &cobra.Command{
 		Use:   "init [DIR]",
 		Short: "Scaffold a new Envoy extension.",
@@ -58,37 +56,23 @@ Scaffold a new Envoy extension in a language of your choice.`,
   # Scaffold a new Envoy Access logger in Rust in the "my-access-logger" directory.
   getenvoy extension init my-access-logger --category envoy.access_loggers --language rust`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			opts := scaffold.ScaffoldOpts{}
-			if !allSupportedCategories.Contains(category) {
-				return fmt.Errorf("%q is not a supported extension category", category)
-			}
-			opts.Category = category
-			if !allSupportedLanguages.Contains(language) {
-				return fmt.Errorf("%q is not a supported programming language", language)
-			}
-			opts.Language = language
-			opts.TemplateName = "default"
-
 			outputDir := ""
 			if len(args) > 0 {
 				outputDir = args[0]
 			}
-			outputDir, err := filepath.Abs(filepath.Clean(outputDir))
-			if err != nil {
-				return err
+			params.OutputDir.Value = outputDir
+
+			if err := params.Validate(); err != nil {
+				if err := newWizard(cmd).Fill(params); err != nil {
+					return err
+				}
 			}
-			err = osutil.EnsureDirExists(outputDir)
-			if err != nil {
-				return err
-			}
-			empty, err := osutil.IsEmptyDir(outputDir)
-			if err != nil {
-				return err
-			}
-			if !empty {
-				return fmt.Errorf("output directory must be empty or new: %v", outputDir)
-			}
-			opts.OutputDir = outputDir
+
+			opts := scaffold.ScaffoldOpts{}
+			opts.Category = params.Category.Value
+			opts.Language = params.Language.Value
+			opts.TemplateName = "default"
+			opts.OutputDir = params.OutputDir.Value
 			opts.ProgressHandler = scaffold.ProgressFuncs{
 				OnStartFunc: func() {
 					cmd.Printf("Scaffolding a new extension in %s:\n", opts.OutputDir)
@@ -106,8 +90,8 @@ Scaffold a new Envoy extension in a language of your choice.`,
 			return scaffold.Scaffold(&opts)
 		},
 	}
-	cmd.PersistentFlags().StringVar(&category, "category", "", "choose extension category. "+hintOneOf(allSupportedCategories...))
-	cmd.PersistentFlags().StringVar(&language, "language", "", "choose programming language. "+hintOneOf(allSupportedLanguages...))
+	cmd.PersistentFlags().StringVar(&params.Category.Value, "category", "", "choose extension category. "+hintOneOf(allSupportedCategories...))
+	cmd.PersistentFlags().StringVar(&params.Language.Value, "language", "", "choose programming language. "+hintOneOf(allSupportedLanguages...))
 	return cmd
 }
 
