@@ -17,6 +17,7 @@ package extension
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 	scaffold "github.com/tetratelabs/getenvoy/pkg/extension/init"
@@ -35,30 +36,18 @@ const (
 	languageRust = "rust"
 )
 
-// options represents an exhaustive list of valid values.
-type options []string
-
-func (o options) Contains(value string) bool {
-	for _, option := range o {
-		if value == option {
-			return true
-		}
-	}
-	return false
-}
-
 var (
 	allSupportedCategories = options{envoyHTTPFilter, envoyNetworkFilter, envoyAccessLogger}
 	allSupportedLanguages  = options{languageRust}
 )
 
-// NewInitCmd returns a command that generates the initial set of files
+// NewCmd returns a command that generates the initial set of files
 // to kick off development of a new extension.
-func NewInitCmd() *cobra.Command {
+func NewCmd() *cobra.Command {
 	var category string
 	var language string
 	cmd := &cobra.Command{
-		Use:   "init [dir]",
+		Use:   "init [DIR]",
 		Short: "Scaffold a new Envoy extension.",
 		Long: `
 Scaffold a new Envoy extension in a language of your choice.`,
@@ -71,34 +60,33 @@ Scaffold a new Envoy extension in a language of your choice.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts := scaffold.ScaffoldOpts{}
 			if !allSupportedCategories.Contains(category) {
-				return fmt.Errorf("extension %q has invalid value %q", "category", category)
+				return fmt.Errorf("%q is not a supported extension category", category)
 			}
 			opts.Category = category
 			if !allSupportedLanguages.Contains(language) {
-				return fmt.Errorf("extension %q has invalid value %q", "language", language)
+				return fmt.Errorf("%q is not a supported programming language", language)
 			}
 			opts.Language = language
 			opts.TemplateName = "default"
 
-			outputDir, err := filepath.Abs(filepath.Clean(optionalArg(args[:1]).ValueOr("")))
+			outputDir := ""
+			if len(args) > 0 {
+				outputDir = args[0]
+			}
+			outputDir, err := filepath.Abs(filepath.Clean(outputDir))
 			if err != nil {
 				return err
 			}
-			if err := osutil.EnsureDirExists(outputDir); err != nil {
+			err = osutil.EnsureDirExists(outputDir)
+			if err != nil {
 				return err
 			}
-			if empty, err := osutil.IsEmptyDir(outputDir); err != nil || !empty {
-				if err != nil {
-					return err
-				}
-				if len(args) == 0 {
-					return fmt.Errorf("unable to scaffold a new extension in the current working directory since it's not empty.\n"+
-						"\nHint: consider providing a name for a new directory to scaffold in, e.g.\n"+
-						"\n  getenvoy extension init my-new-extension --category=%s --language=%s\n",
-						category, language,
-					)
-				}
-				return fmt.Errorf("cowardly refusing to scaffold a new extension in a non-empty directory: %v", outputDir)
+			empty, err := osutil.IsEmptyDir(outputDir)
+			if err != nil {
+				return err
+			}
+			if !empty {
+				return fmt.Errorf("output directory must be empty or new: %v", outputDir)
 			}
 			opts.OutputDir = outputDir
 			opts.ProgressHandler = scaffold.ProgressFuncs{
@@ -123,12 +111,10 @@ Scaffold a new Envoy extension in a language of your choice.`,
 	return cmd
 }
 
-// optionalArg represents an optional command-line argument.
-type optionalArg []string
-
-func (o optionalArg) ValueOr(defaultValue string) string {
-	if len(o) > 0 {
-		return o[0]
+func hintOneOf(values ...string) string {
+	texts := make([]string, len(values))
+	for i := range values {
+		texts[i] = fmt.Sprintf("%q", values[i])
 	}
-	return defaultValue
+	return "One of: " + strings.Join(texts, ", ")
 }

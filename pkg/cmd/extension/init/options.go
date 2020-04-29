@@ -14,19 +14,22 @@
 
 package extension
 
-import (
-	"github.com/spf13/cobra"
+// options represents an exhaustive list of valid values.
+type options []string
 
-	scaffold "github.com/tetratelabs/getenvoy/pkg/cmd/extension/init"
-)
+func (o options) Contains(value string) bool {
+	return o.IndexOf(value) >= 0
+}
 
-// NewCmd returns a command that aggregates all extension-related commands.
-func NewCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "extension",
-		Short: "Delve into Envoy extensions.",
-		Long:  `Explore ready-to-use Envoy extensions or develop a new one.`,
+func (o options) Count() int {
+	return len(o)
+}
+
+func (o options) IndexOf(value string) int {
+	for i, option := range o {
+		if option == value {
+			return i
+		}
 	}
-	cmd.AddCommand(scaffold.NewCmd())
-	return cmd
+	return -1
 }
