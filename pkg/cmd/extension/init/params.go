@@ -21,6 +21,7 @@ import (
 	osutil "github.com/tetratelabs/getenvoy/pkg/util/os"
 )
 
+// param represents a single parameter to be filled in by a user.
 type param struct {
 	Title     string
 	Value     string
@@ -35,6 +36,7 @@ func (p *param) IsValid() bool {
 	return p.Validate() == nil
 }
 
+// params represents all parameters to be filled in by a user.
 type params struct {
 	Category  param
 	Language  param
@@ -57,7 +59,7 @@ func (o *params) Validate() error {
 func newParams() *params {
 	return &params{
 		Category: param{
-			Title: "category",
+			Title: "Category",
 			Validator: func(value string) error {
 				if !supportedCategories.Contains(value) {
 					return fmt.Errorf("%q is not a supported extension category", value)
@@ -66,7 +68,7 @@ func newParams() *params {
 			},
 		},
 		Language: param{
-			Title: "language",
+			Title: "Language",
 			Validator: func(value string) error {
 				if !supportedLanguages.Contains(value) {
 					return fmt.Errorf("%q is not a supported programming language", value)
@@ -75,7 +77,7 @@ func newParams() *params {
 			},
 		},
 		OutputDir: param{
-			Title: "output directory",
+			Title: "Output directory",
 			Validator: func(value string) error {
 				value = filepath.Clean(value)
 				outputDir, err := filepath.Abs(value)
