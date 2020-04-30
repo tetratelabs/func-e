@@ -10,6 +10,7 @@ require (
 	github.com/golang/protobuf v1.3.2
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/manifoldco/promptui v0.0.0-00010101000000-000000000000
+	github.com/mattn/go-isatty v0.0.4
 	github.com/mholt/archiver v3.1.1+incompatible
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/rakyll/statik v0.1.7

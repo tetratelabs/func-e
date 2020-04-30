@@ -23,6 +23,10 @@ import (
 	uiutil "github.com/tetratelabs/getenvoy/pkg/util/ui"
 )
 
+var (
+	underlineTextStyle = uiutil.MustTextStyle("{{ . | underline }}")
+)
+
 // printer is a contract between the wizard and the command output.
 type printer interface {
 	Println(...interface{})
@@ -40,12 +44,12 @@ type infoStyle struct {
 }
 
 func (s infoStyle) Format(data *infoData) string {
-	return s.TextStyle.Format(data)
+	return s.TextStyle.Apply(data)
 }
 
 // defaultInfoStyle returns the default style for rendering user's choices on the screen.
 func defaultInfoStyle() infoStyle {
-	return infoStyle{uiutil.MustTextStyle(fmt.Sprintf(`{{ "%s" | green }} {{ .Label | italic }} {{ .Value | faint }}`, promptui.IconGood))}
+	return infoStyle{uiutil.MustTextStyle(fmt.Sprintf(`{{ "%s" | green }} {{ .Label | italic }} {{ .Value | faint }}`, uiutil.IconGood))}
 }
 
 // wizard implements the interactive mode of the `init` command.
@@ -64,7 +68,7 @@ func newWizard(out printer) *wizard {
 
 // Fill runs the interactive UI to help a user to fill in parameters.
 func (w *wizard) Fill(params *params) error {
-	w.out.Println("What kind of extension would you like to create?")
+	w.out.Println(underlineTextStyle.Apply("What kind of extension would you like to create?"))
 	if err := w.choose(&params.Category, supportedCategories, w.newCategorySelector); err != nil {
 		return err
 	}

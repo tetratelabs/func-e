@@ -20,6 +20,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/globals"
 	scaffold "github.com/tetratelabs/getenvoy/pkg/extension/init"
 )
 
@@ -59,6 +60,9 @@ Scaffold a new Envoy extension in a language of your choice.`,
 			params.OutputDir.Value = outputDir
 
 			if err := params.Validate(); err != nil {
+				if globals.NoPrompt {
+					return err
+				}
 				if err := newWizard(cmd).Fill(params); err != nil {
 					return err
 				}
