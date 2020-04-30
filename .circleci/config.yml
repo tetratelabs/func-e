@@ -26,6 +26,7 @@ jobs:
       GOMAXPROCS: "2"
     steps:
       - checkout
+      - run: make init
       - run: ./ci/install-lint
       - run: ./ci/lint
           
@@ -35,6 +36,7 @@ jobs:
       - image: circleci/golang:1.13.3
     steps:
       - checkout
+      - run: make init
       - run: ./ci/install-envoy
       - run: ./ci/test
       
@@ -43,6 +45,7 @@ jobs:
       - image: circleci/golang:1.13.3
     steps:
       - checkout
+      - run: make init
       - setup_remote_docker
       - run: echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
       - run: curl -sL https://git.io/goreleaser | bash

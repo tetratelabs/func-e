@@ -17,7 +17,7 @@ env:
   - GO111MODULE=on
 before:
   hooks:
-    - go mod download
+    - make init
 builds:
 - binary: getenvoy
   ldflags: "-s -w -X github.com/tetratelabs/getenvoy/pkg/cmd.cliVersion={{.Version}}"
