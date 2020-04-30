@@ -13,6 +13,8 @@ require (
 	github.com/mattn/go-isatty v0.0.4
 	github.com/mholt/archiver v3.1.1+incompatible
 	github.com/mitchellh/go-homedir v1.1.0
+	github.com/onsi/ginkgo v1.12.0
+	github.com/onsi/gomega v1.9.0
 	github.com/rakyll/statik v0.1.7
 	github.com/schollz/progressbar/v2 v2.13.2
 	github.com/shirou/gopsutil v0.0.0-20190731134726-d80c43f9c984
