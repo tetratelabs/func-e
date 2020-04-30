@@ -59,7 +59,7 @@ func newParams() *params {
 		Category: param{
 			Title: "category",
 			Validator: func(value string) error {
-				if !allSupportedCategories.Contains(value) {
+				if !supportedCategories.Contains(value) {
 					return fmt.Errorf("%q is not a supported extension category", value)
 				}
 				return nil
@@ -68,7 +68,7 @@ func newParams() *params {
 		Language: param{
 			Title: "language",
 			Validator: func(value string) error {
-				if !allSupportedLanguages.Contains(value) {
+				if !supportedLanguages.Contains(value) {
 					return fmt.Errorf("%q is not a supported programming language", value)
 				}
 				return nil

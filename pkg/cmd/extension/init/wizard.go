@@ -93,11 +93,11 @@ func (w *wizard) prompt(param *param, newPrompt func(*param) *promptui.Prompt, t
 }
 
 func (w *wizard) newCategorySelector(param *param) *promptui.Select {
-	return w.newSelector("Choose extension category", param, allSupportedCategories)
+	return w.newSelector("Choose extension category", param, supportedCategories)
 }
 
 func (w *wizard) newLanguageSelector(param *param) *promptui.Select {
-	return w.newSelector("Choose programming language", param, allSupportedLanguages)
+	return w.newSelector("Choose programming language", param, supportedLanguages)
 }
 
 func (w *wizard) newOutputDirPrompt(param *param) *promptui.Prompt {

@@ -14,22 +14,43 @@
 
 package extension
 
-// options represents an exhaustive list of valid values.
-type options []string
+// option represents a valid configuration value.
+type option struct {
+	Value       string
+	DisplayText string
+}
+
+// options represents an exhaustive list of valid configuration values.
+type options []option
 
 func (o options) Contains(value string) bool {
 	return o.IndexOf(value) >= 0
 }
 
-func (o options) Count() int {
-	return len(o)
+func (o options) ByValue(value string) *option {
+	if i := o.IndexOf(value); i >= 0 {
+		return &o[i]
+	}
+	return nil
 }
 
 func (o options) IndexOf(value string) int {
-	for i, option := range o {
-		if option == value {
+	for i := range o {
+		if o[i].Value == value {
 			return i
 		}
 	}
 	return -1
+}
+
+func (o options) Values() []string {
+	values := make([]string, len(o))
+	for i := range o {
+		values[i] = o[i].Value
+	}
+	return values
+}
+
+func (o options) Count() int {
+	return len(o)
 }
