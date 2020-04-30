@@ -34,24 +34,15 @@ type infoData struct {
 	Value string
 }
 
-// infoStyle is a style for rendering user's choices on the screen.
-type infoStyle struct {
-	uiutil.TextStyle
-}
-
-func (s infoStyle) Format(data *infoData) string {
-	return s.TextStyle.Apply(data)
-}
-
 // defaultInfoStyle returns the default style for rendering user's choices on the screen.
-func defaultInfoStyle() infoStyle {
-	return infoStyle{uiutil.Style(fmt.Sprintf(`{{ "%s" | green }} {{ .Label | italic }} {{ .Value | faint }}`, uiutil.IconGood))}
+func defaultInfoStyle() uiutil.TextStyle {
+	return uiutil.Style(fmt.Sprintf(`{{ "%s" | green }} {{ .Label | italic }} {{ .Value | faint }}`, uiutil.IconGood))
 }
 
 // wizard implements the interactive mode of the `init` command.
 type wizard struct {
 	out       printer
-	infoStyle infoStyle
+	infoStyle uiutil.TextStyle
 }
 
 // newWizard returns a new wizard.
@@ -167,6 +158,6 @@ func (w *wizard) printInput(param *param) error {
 }
 
 func (w *wizard) print(data *infoData) error {
-	w.out.Println(w.infoStyle.Format(data))
+	w.out.Println(w.infoStyle.Apply(data))
 	return nil
 }
