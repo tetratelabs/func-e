@@ -30,8 +30,11 @@ import (
 
 // ProgressHandler is a sink for progress events.
 type ProgressHandler interface {
+	// OnStart is called when scaffolding is about to get started.
 	OnStart()
+	// OnFile is called for every generated file.
 	OnFile(file string)
+	// OnComplete is called when scaffolding has finished successfully.
 	OnComplete()
 }
 

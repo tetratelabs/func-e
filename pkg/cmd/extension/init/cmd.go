@@ -22,6 +22,7 @@ import (
 
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/globals"
 	scaffold "github.com/tetratelabs/getenvoy/pkg/extension/init"
+	uiutil "github.com/tetratelabs/getenvoy/pkg/util/ui"
 )
 
 var (
@@ -59,6 +60,7 @@ Scaffold a new Envoy extension in a language of your choice.`,
 			}
 			params.OutputDir.Value = outputDir
 
+			usedWizard := false
 			if err := params.Validate(); err != nil {
 				if globals.NoPrompt {
 					return err
@@ -66,6 +68,7 @@ Scaffold a new Envoy extension in a language of your choice.`,
 				if err := newWizard(cmd).Fill(params); err != nil {
 					return err
 				}
+				usedWizard = true
 			}
 
 			opts := scaffold.ScaffoldOpts{}
@@ -75,16 +78,21 @@ Scaffold a new Envoy extension in a language of your choice.`,
 			opts.OutputDir = params.OutputDir.Value
 			opts.ProgressHandler = scaffold.ProgressFuncs{
 				OnStartFunc: func() {
-					cmd.Printf("Scaffolding a new extension in %s:\n", opts.OutputDir)
-					cmd.Print("\n")
-					cmd.Print("* Generating files:\n")
+					cmd.Println(uiutil.MustTextStyle(`{{ . | underline }}`).Apply("Scaffolding a new extension:"))
+					cmd.Println(uiutil.MustTextStyle("Generating files in {{ . | faint }}:").Apply(opts.OutputDir))
 				},
 				OnFileFunc: func(file string) {
-					cmd.Printf("  √ %s\n", file)
+					cmd.Println(uiutil.MustTextStyle(fmt.Sprintf(`{{ "%s" | green }} {{ . }}`, uiutil.IconGood)).Apply(file))
 				},
 				OnCompleteFunc: func() {
-					cmd.Print("\n")
-					cmd.Print("Done!\n")
+					cmd.Println("Done!")
+					if usedWizard {
+						cmd.Println()
+						cmd.Println(uiutil.MustTextStyle(`{{ . | underline | faint }}`).Apply("Hint:"))
+						cmd.Println(uiutil.MustTextStyle(`{{ . | faint }}`).Apply("Next time you can skip the wizard by running"))
+						cmd.Println(uiutil.MustTextStyle(`{{ . | faint }}`).Apply(
+							fmt.Sprintf("  %s --category %s --language %s %s", cmd.CommandPath(), opts.Category, opts.Language, opts.OutputDir)))
+					}
 				},
 			}
 			return scaffold.Scaffold(&opts)
