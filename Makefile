@@ -16,17 +16,25 @@ ENVOY = standard:1.11.1
 HUB ?= docker.io/getenvoy
 TAG ?= dev
 
+.PHONY: init
+init: generate
+
+.PHONY: deps
 deps:
 	go mod download
 
+.PHONY: generate
 generate: deps
 	go generate ./pkg/...
 
+.PHONY: build
 build: generate
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o getenvoy ./cmd/getenvoy/main.go
 
+.PHONY: docker
 docker: build
 	docker build -t $(HUB)/getenvoy:$(TAG) --build-arg reference=$(ENVOY) .
 
+.PHONY: release.dryrun
 release.dryrun:
 	goreleaser release --skip-publish --snapshot --rm-dist
