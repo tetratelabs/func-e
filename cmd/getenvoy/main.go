@@ -18,11 +18,12 @@ import (
 	"os"
 
 	"github.com/tetratelabs/getenvoy/pkg/cmd"
+	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 
 func main() {
 	root := cmd.NewRoot()
-	if err := root.Execute(); err != nil {
+	if err := cmdutil.Execute(root); err != nil {
 		os.Exit(1)
 	}
 }
