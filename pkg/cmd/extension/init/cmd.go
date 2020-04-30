@@ -24,21 +24,17 @@ import (
 	osutil "github.com/tetratelabs/getenvoy/pkg/util/os"
 )
 
-// extension categories supported by `init` command.
-const (
-	envoyHTTPFilter    = "envoy.filters.http"
-	envoyNetworkFilter = "envoy.filters.network"
-	envoyAccessLogger  = "envoy.access_loggers"
-)
-
-// programming languages supported by `init` command.
-const (
-	languageRust = "rust"
-)
-
 var (
-	allSupportedCategories = options{envoyHTTPFilter, envoyNetworkFilter, envoyAccessLogger}
-	allSupportedLanguages  = options{languageRust}
+	// extension categories supported by the `init` command.
+	supportedCategories = options{
+		{Value: "envoy.filters.http", DisplayText: "HTTP Filter"},
+		{Value: "envoy.filters.network", DisplayText: "Network Filter"},
+		{Value: "envoy.access_loggers", DisplayText: "Access Logger"},
+	}
+	// programming languages supported by the `init` command.
+	supportedLanguages = options{
+		{Value: "rust", DisplayText: "Rust"},
+	}
 )
 
 // NewCmd returns a command that generates the initial set of files
@@ -59,11 +55,11 @@ Scaffold a new Envoy extension in a language of your choice.`,
   getenvoy extension init my-access-logger --category envoy.access_loggers --language rust`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts := scaffold.ScaffoldOpts{}
-			if !allSupportedCategories.Contains(category) {
+			if !supportedCategories.Contains(category) {
 				return fmt.Errorf("%q is not a supported extension category", category)
 			}
 			opts.Category = category
-			if !allSupportedLanguages.Contains(language) {
+			if !supportedLanguages.Contains(language) {
 				return fmt.Errorf("%q is not a supported programming language", language)
 			}
 			opts.Language = language
@@ -106,8 +102,8 @@ Scaffold a new Envoy extension in a language of your choice.`,
 			return scaffold.Scaffold(&opts)
 		},
 	}
-	cmd.PersistentFlags().StringVar(&category, "category", "", "choose extension category. "+hintOneOf(allSupportedCategories...))
-	cmd.PersistentFlags().StringVar(&language, "language", "", "choose programming language. "+hintOneOf(allSupportedLanguages...))
+	cmd.PersistentFlags().StringVar(&category, "category", "", "choose extension category. "+hintOneOf(supportedCategories.Values()...))
+	cmd.PersistentFlags().StringVar(&language, "language", "", "choose programming language. "+hintOneOf(supportedLanguages.Values()...))
 	return cmd
 }
 
