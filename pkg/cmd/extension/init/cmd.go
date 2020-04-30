@@ -22,7 +22,6 @@ import (
 
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/globals"
 	scaffold "github.com/tetratelabs/getenvoy/pkg/extension/init"
-	uiutil "github.com/tetratelabs/getenvoy/pkg/util/ui"
 )
 
 var (
@@ -71,31 +70,17 @@ Scaffold a new Envoy extension in a language of your choice.`,
 				usedWizard = true
 			}
 
-			opts := scaffold.ScaffoldOpts{}
+			opts := &scaffold.ScaffoldOpts{}
 			opts.Category = params.Category.Value
 			opts.Language = params.Language.Value
 			opts.TemplateName = "default"
 			opts.OutputDir = params.OutputDir.Value
-			opts.ProgressHandler = scaffold.ProgressFuncs{
-				OnStartFunc: func() {
-					cmd.Println(uiutil.MustTextStyle(`{{ . | underline }}`).Apply("Scaffolding a new extension:"))
-					cmd.Println(uiutil.MustTextStyle("Generating files in {{ . | faint }}:").Apply(opts.OutputDir))
-				},
-				OnFileFunc: func(file string) {
-					cmd.Println(uiutil.MustTextStyle(fmt.Sprintf(`{{ "%s" | green }} {{ . }}`, uiutil.IconGood)).Apply(file))
-				},
-				OnCompleteFunc: func() {
-					cmd.Println("Done!")
-					if usedWizard {
-						cmd.Println()
-						cmd.Println(uiutil.MustTextStyle(`{{ . | underline | faint }}`).Apply("Hint:"))
-						cmd.Println(uiutil.MustTextStyle(`{{ . | faint }}`).Apply("Next time you can skip the wizard by running"))
-						cmd.Println(uiutil.MustTextStyle(`{{ . | faint }}`).Apply(
-							fmt.Sprintf("  %s --category %s --language %s %s", cmd.CommandPath(), opts.Category, opts.Language, opts.OutputDir)))
-					}
-				},
+			opts.ProgressHandler = &feedback{
+				cmd:        cmd,
+				opts:       opts,
+				usedWizard: usedWizard,
 			}
-			return scaffold.Scaffold(&opts)
+			return scaffold.Scaffold(opts)
 		},
 	}
 	cmd.PersistentFlags().StringVar(&params.Category.Value, "category", "", "choose extension category. "+hintOneOf(supportedCategories.Values()...))

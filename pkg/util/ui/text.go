@@ -34,18 +34,22 @@ var (
 
 // TextStyle represents a style that can be applied to data to produce
 // rich text representation.
-type TextStyle interface {
-	// Apply returns rich text representation for given data.
-	Apply(data interface{}) string
+type TextStyle func(data interface{}) string
+
+// Apply returns rich text representation for given data.
+func (f TextStyle) Apply(data interface{}) string {
+	return f(data)
 }
 
-// MustTextStyle creates a new text style according to a given format string.
-func MustTextStyle(style string) TextStyle {
-	tpl, err := template.New("").Funcs(styleFuncs).Parse(style)
+// Style creates a new text style according to a given format string.
+func Style(format string) TextStyle {
+	tpl, err := template.New("").Funcs(styleFuncs).Parse(format)
 	if err != nil {
+		// must be caught by unit tests
 		panic(err)
 	}
-	return &textStyle{template: tpl}
+	style := &textStyle{template: tpl}
+	return style.Apply
 }
 
 // textStyle is an implementation of TextStyle on top of text/template.
