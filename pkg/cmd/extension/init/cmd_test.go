@@ -17,9 +17,11 @@ package init_test
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
@@ -39,7 +41,6 @@ var _ = Describe("getenvoy extension init", func() {
 				return given
 			}
 		}
-
 		DescribeTable("should validate parameters",
 			func(givenFn testCaseFn) {
 				given := givenFn()
@@ -77,6 +78,48 @@ var _ = Describe("getenvoy extension init", func() {
 					expectedErr: fmt.Sprintf(`output directory must be empty or new: %s`, cwd),
 				}
 			}),
+		)
+	})
+
+	Describe("generated source code", func() {
+		type testCase struct {
+			category string
+			language string
+		}
+		DescribeTable("should generate source code in the output directory",
+			func(given testCase) {
+				outputDirName, err := ioutil.TempDir("", "test")
+				Expect(err).ToNot(HaveOccurred())
+				defer func() {
+					Expect(os.RemoveAll(outputDirName)).To(Succeed())
+				}()
+
+				c := cmd.NewRoot()
+				c.SetOut(new(bytes.Buffer))
+
+				c.SetArgs([]string{"extension", "init", "--no-colors", "--category", given.category, "--language", given.language, outputDirName})
+				err = c.Execute()
+
+				Expect(err).ToNot(HaveOccurred())
+
+				outputDir, err := os.Open(outputDirName)
+				Expect(err).ToNot(HaveOccurred())
+				names, err := outputDir.Readdirnames(-1)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(names).NotTo(BeEmpty())
+			},
+			func() []table.TableEntry {
+				entries := []table.TableEntry{}
+				for _, category := range []string{"envoy.filters.http", "envoy.filters.network", "envoy.access_loggers"} {
+					for _, language := range []string{"rust"} {
+						entries = append(entries, Entry(fmt.Sprintf("%s + %s", category, language), testCase{
+							category: category,
+							language: language,
+						}))
+					}
+				}
+				return entries
+			}()...,
 		)
 	})
 })
