@@ -21,7 +21,6 @@ import (
 	"os"
 
 	. "github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
@@ -108,8 +107,8 @@ var _ = Describe("getenvoy extension init", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(names).NotTo(BeEmpty())
 			},
-			func() []table.TableEntry {
-				entries := []table.TableEntry{}
+			func() []TableEntry {
+				entries := []TableEntry{}
 				for _, category := range []string{"envoy.filters.http", "envoy.filters.network", "envoy.access_loggers"} {
 					for _, language := range []string{"rust"} {
 						entries = append(entries, Entry(fmt.Sprintf("category=%s language=%s", category, language), testCase{
