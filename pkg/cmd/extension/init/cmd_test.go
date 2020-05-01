@@ -30,7 +30,7 @@ import (
 
 var _ = Describe("getenvoy extension init", func() {
 
-	Describe("parameters", func() {
+	Describe("should validate parameters", func() {
 		type testCase struct {
 			args        []string
 			expectedErr string
@@ -41,7 +41,7 @@ var _ = Describe("getenvoy extension init", func() {
 				return given
 			}
 		}
-		DescribeTable("should validate parameters",
+		DescribeTable("should fail if a parameter is missing or has an invalid value",
 			func(givenFn testCaseFn) {
 				given := givenFn()
 
@@ -54,23 +54,23 @@ var _ = Describe("getenvoy extension init", func() {
 				Expect(err).To(HaveOccurred())
 				Expect(err).To(MatchError(given.expectedErr))
 			},
-			Entry("missing category", give(testCase{
+			Entry("extension category is missing", give(testCase{
 				args:        []string{},
 				expectedErr: `"" is not a supported extension category`,
 			})),
-			Entry("invalid category", give(testCase{
+			Entry("extension category is not valid", give(testCase{
 				args:        []string{"--category", "invalid.category"},
 				expectedErr: `"invalid.category" is not a supported extension category`,
 			})),
-			Entry("missing language", give(testCase{
+			Entry("programming language is missing", give(testCase{
 				args:        []string{"--category", "envoy.filters.http"},
 				expectedErr: `"" is not a supported programming language`,
 			})),
-			Entry("invalid language", give(testCase{
+			Entry("programming language is not valid", give(testCase{
 				args:        []string{"--category", "envoy.filters.http", "--language", "invalid.language"},
 				expectedErr: `"invalid.language" is not a supported programming language`,
 			})),
-			Entry("non-empty output directory", func() testCase {
+			Entry("output directory exists but is not empty", func() testCase {
 				cwd, err := os.Getwd()
 				Expect(err).ToNot(HaveOccurred())
 				return testCase{
@@ -81,7 +81,7 @@ var _ = Describe("getenvoy extension init", func() {
 		)
 	})
 
-	Describe("generated source code", func() {
+	Describe("should generate source code when all parameters are valid", func() {
 		type testCase struct {
 			category string
 			language string
@@ -112,7 +112,7 @@ var _ = Describe("getenvoy extension init", func() {
 				entries := []table.TableEntry{}
 				for _, category := range []string{"envoy.filters.http", "envoy.filters.network", "envoy.access_loggers"} {
 					for _, language := range []string{"rust"} {
-						entries = append(entries, Entry(fmt.Sprintf("%s + %s", category, language), testCase{
+						entries = append(entries, Entry(fmt.Sprintf("category=%s language=%s", category, language), testCase{
 							category: category,
 							language: language,
 						}))
