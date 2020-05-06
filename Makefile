@@ -16,6 +16,23 @@ ENVOY = standard:1.11.1
 HUB ?= docker.io/getenvoy
 TAG ?= dev
 
+BUILD_DIR ?= build
+COVERAGE_DIR ?= $(BUILD_DIR)/coverage
+COVERAGE_PROFILE := $(COVERAGE_DIR)/coverage.out
+COVERAGE_REPORT := $(COVERAGE_DIR)/coverage.html
+
+TEST_PKG_LIST ?= ./...
+GO_TEST_OPTS ?=
+GO_TEST_EXTRA_OPTS ?=
+
+# TODO(yskopets): include all packages into test run once blocking issues have been resolved, including
+# * https://github.com/tetratelabs/getenvoy/issues/87 `go test -race` fails
+# * https://github.com/tetratelabs/getenvoy/issues/88 `go test ./...` fails on Mac
+# * https://github.com/tetratelabs/getenvoy/issues/89 `go test github.com/tetratelabs/getenvoy/pkg/binary/envoy/controlplane` removes `/tmp` dir
+COVERAGE_PKG_LIST ?= $(shell go list ./... | grep -v -e github.com/tetratelabs/getenvoy/pkg/binary/envoy/controlplane -e github.com/tetratelabs/getenvoy/pkg/binary/envoy/debug)
+GO_COVERAGE_OPTS ?= -covermode=atomic -coverpkg=./...
+GO_COVERAGE_EXTRA_OPTS ?=
+
 .PHONY: init
 init: generate
 
@@ -38,3 +55,13 @@ docker: build
 .PHONY: release.dryrun
 release.dryrun:
 	goreleaser release --skip-publish --snapshot --rm-dist
+
+.PHONY: test
+test:
+	go test $(GO_TEST_OPTS) $(GO_TEST_EXTRA_OPTS) $(TEST_PKG_LIST)
+
+.PHONY: coverage
+coverage:
+	mkdir -p "$(shell dirname "$(COVERAGE_PROFILE)")"
+	go test $(GO_COVERAGE_OPTS) $(GO_COVERAGE_EXTRA_OPTS) -coverprofile="$(COVERAGE_PROFILE)" $(COVERAGE_PKG_LIST)
+	go tool cover -html="$(COVERAGE_PROFILE)" -o "$(COVERAGE_REPORT)"

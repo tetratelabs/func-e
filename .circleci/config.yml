@@ -39,6 +39,12 @@ jobs:
       - run: make init
       - run: ./ci/install-envoy
       - run: ./ci/test
+      - run:
+          name: "Measure test coverage (for now, on a subset of tests)"
+          command: make coverage
+      - store_artifacts:
+          path: build/coverage
+          destination: /coverage
       
   release:
     docker:
