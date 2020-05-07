@@ -27,13 +27,13 @@ type icon struct {
 
 var (
 	// iconGood indicates a success.
-	iconGood icon = icon{name: "good", rich: "✔", plain: "*"}
+	iconGood = icon{name: "good", rich: "✔", plain: "*"}
 
 	// iconWarn indicates user's attention is necessary.
-	iconWarn icon = icon{name: "warn", rich: "⚠", plain: "!"}
+	iconWarn = icon{name: "warn", rich: "⚠", plain: "!"}
 
 	// iconBad indicates an error.
-	iconBad icon = icon{name: "bad", rich: "✗", plain: "x"}
+	iconBad = icon{name: "bad", rich: "✗", plain: "x"}
 )
 
 // icons represents a collection of icons.
