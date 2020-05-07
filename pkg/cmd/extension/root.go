@@ -44,9 +44,9 @@ func NewCmd() *cobra.Command {
 }
 
 func noPromptDefault() bool {
-	return !(isatty.IsTerminal(os.Stdin.Fd()) && isatty.IsTerminal(os.Stdout.Fd()))
+	return !(isatty.IsTerminal(os.Stdin.Fd()) && isatty.IsTerminal(os.Stdout.Fd()) && isatty.IsTerminal(os.Stderr.Fd()))
 }
 
 func noColorsDefault() bool {
-	return !isatty.IsTerminal(os.Stdout.Fd())
+	return !(isatty.IsTerminal(os.Stdout.Fd()) && isatty.IsTerminal(os.Stderr.Fd()))
 }
