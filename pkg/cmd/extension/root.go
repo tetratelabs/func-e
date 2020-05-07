@@ -15,9 +15,15 @@
 package extension
 
 import (
+	"os"
+
+	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
 
+	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/globals"
 	scaffold "github.com/tetratelabs/getenvoy/pkg/cmd/extension/init"
+
+	uiutil "github.com/tetratelabs/getenvoy/pkg/util/ui"
 )
 
 // NewCmd returns a command that aggregates all extension-related commands.
@@ -26,7 +32,21 @@ func NewCmd() *cobra.Command {
 		Use:   "extension",
 		Short: "Delve into Envoy extensions.",
 		Long:  `Explore ready-to-use Envoy extensions or develop a new one.`,
+		PersistentPreRun: func(_ *cobra.Command, _ []string) {
+			uiutil.StylesEnabled = !globals.NoColors
+		},
 	}
 	cmd.AddCommand(scaffold.NewCmd())
+	cmd.PersistentFlags().BoolVar(&globals.NoPrompt, "no-prompt", noPromptDefault(),
+		"disable automatic switching into interactive mode whenever a parameter is missing or not valid")
+	cmd.PersistentFlags().BoolVar(&globals.NoColors, "no-colors", noColorsDefault(), "disable colored output")
 	return cmd
+}
+
+func noPromptDefault() bool {
+	return !(isatty.IsTerminal(os.Stdin.Fd()) && isatty.IsTerminal(os.Stdout.Fd()) && isatty.IsTerminal(os.Stderr.Fd()))
+}
+
+func noColorsDefault() bool {
+	return !(isatty.IsTerminal(os.Stdout.Fd()) && isatty.IsTerminal(os.Stderr.Fd()))
 }

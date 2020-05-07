@@ -16,12 +16,12 @@ package init
 
 import (
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
+
+	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/globals"
 	scaffold "github.com/tetratelabs/getenvoy/pkg/extension/init"
-	osutil "github.com/tetratelabs/getenvoy/pkg/util/os"
 )
 
 var (
@@ -40,8 +40,7 @@ var (
 // NewCmd returns a command that generates the initial set of files
 // to kick off development of a new extension.
 func NewCmd() *cobra.Command {
-	var category string
-	var language string
+	params := newParams()
 	cmd := &cobra.Command{
 		Use:   "init [DIR]",
 		Short: "Scaffold a new Envoy extension.",
@@ -54,43 +53,38 @@ Scaffold a new Envoy extension in a language of your choice.`,
   # Scaffold a new Envoy Access logger in Rust in the "my-access-logger" directory.
   getenvoy extension init my-access-logger --category envoy.access_loggers --language rust`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			opts := &scaffold.ScaffoldOpts{}
-			if !supportedCategories.Contains(category) {
-				return fmt.Errorf("%q is not a supported extension category", category)
-			}
-			opts.Category = category
-			if !supportedLanguages.Contains(language) {
-				return fmt.Errorf("%q is not a supported programming language", language)
-			}
-			opts.Language = language
-			opts.TemplateName = "default"
-
 			outputDir := ""
 			if len(args) > 0 {
 				outputDir = args[0]
 			}
-			outputDir, err := filepath.Abs(filepath.Clean(outputDir))
-			if err != nil {
-				return err
+			params.OutputDir.Value = outputDir
+
+			usedWizard := false
+			if err := params.Validate(); err != nil {
+				if globals.NoPrompt {
+					return err
+				}
+				if err := newWizard(cmd).Fill(params); err != nil {
+					return err
+				}
+				usedWizard = true
 			}
-			err = osutil.EnsureDirExists(outputDir)
-			if err != nil {
-				return err
+
+			opts := &scaffold.ScaffoldOpts{}
+			opts.Category = params.Category.Value
+			opts.Language = params.Language.Value
+			opts.TemplateName = "default"
+			opts.OutputDir = params.OutputDir.Value
+			opts.ProgressHandler = &feedback{
+				cmd:        cmd,
+				opts:       opts,
+				usedWizard: usedWizard,
 			}
-			empty, err := osutil.IsEmptyDir(outputDir)
-			if err != nil {
-				return err
-			}
-			if !empty {
-				return fmt.Errorf("output directory must be empty or new: %v", outputDir)
-			}
-			opts.OutputDir = outputDir
-			opts.ProgressHandler = &feedback{cmd: cmd, opts: opts}
 			return scaffold.Scaffold(opts)
 		},
 	}
-	cmd.PersistentFlags().StringVar(&category, "category", "", "choose extension category. "+hintOneOf(supportedCategories.Values()...))
-	cmd.PersistentFlags().StringVar(&language, "language", "", "choose programming language. "+hintOneOf(supportedLanguages.Values()...))
+	cmd.PersistentFlags().StringVar(&params.Category.Value, "category", "", "choose extension category. "+hintOneOf(supportedCategories.Values()...))
+	cmd.PersistentFlags().StringVar(&params.Language.Value, "language", "", "choose programming language. "+hintOneOf(supportedLanguages.Values()...))
 	return cmd
 }
 

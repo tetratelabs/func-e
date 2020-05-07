@@ -15,27 +15,36 @@
 package init
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 	scaffold "github.com/tetratelabs/getenvoy/pkg/extension/init"
+	uiutil "github.com/tetratelabs/getenvoy/pkg/util/ui"
 )
 
 // feedback communicates to a user progress of the `init` command.
 type feedback struct {
-	cmd  *cobra.Command
-	opts *scaffold.ScaffoldOpts
+	cmd        *cobra.Command
+	opts       *scaffold.ScaffoldOpts
+	usedWizard bool
 }
 
 func (f *feedback) OnStart() {
-	f.cmd.Printf("Scaffolding a new extension in %s:\n", f.opts.OutputDir)
-	f.cmd.Println()
-	f.cmd.Println("* Generating files:")
+	f.cmd.Println(uiutil.Underline("Scaffolding a new extension:"))
+	f.cmd.Println(uiutil.Style("Generating files in {{ . | faint }}:").Apply(f.opts.OutputDir))
 }
 
 func (f *feedback) OnFile(file string) {
-	f.cmd.Printf("  √ %s\n", file)
+	f.cmd.Println(uiutil.Style(`{{ icon "good" | green }} {{ . }}`).Apply(file))
 }
 
 func (f feedback) OnComplete() {
-	f.cmd.Println()
 	f.cmd.Println("Done!")
+	if f.usedWizard {
+		f.cmd.Println()
+		f.cmd.Println(uiutil.Style(`{{ . | underline | faint }}`).Apply("Hint:"))
+		f.cmd.Println(uiutil.Faint("Next time you can skip the wizard by running"))
+		f.cmd.Println(uiutil.Faint(
+			fmt.Sprintf("  %s --category %s --language %s %s", f.cmd.CommandPath(), f.opts.Category, f.opts.Language, f.opts.OutputDir)))
+	}
 }
