@@ -35,7 +35,7 @@ func (f *feedback) OnStart() {
 }
 
 func (f *feedback) OnFile(file string) {
-	f.cmd.Println(uiutil.Style(fmt.Sprintf(`{{ "%s" | green }} {{ . }}`, uiutil.IconGood)).Apply(file))
+	f.cmd.Println(uiutil.Style(`{{ icon "good" | green }} {{ . }}`).Apply(file))
 }
 
 func (f feedback) OnComplete() {

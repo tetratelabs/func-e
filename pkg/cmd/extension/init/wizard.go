@@ -36,7 +36,7 @@ type infoData struct {
 
 // defaultInfoStyle returns the default style for rendering user's choices on the screen.
 func defaultInfoStyle() uiutil.TextStyle {
-	return uiutil.Style(fmt.Sprintf(`{{ "%s" | green }} {{ .Label | italic }} {{ .Value | faint }}`, uiutil.IconGood))
+	return uiutil.Style(`{{ icon "good" | green }} {{ .Label | italic }} {{ .Value | faint }}`)
 }
 
 // wizard implements the interactive mode of the `init` command.

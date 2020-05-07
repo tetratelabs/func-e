@@ -14,13 +14,55 @@
 
 package ui
 
-var (
-	// IconGood indicates a success.
-	IconGood = "✔"
-
-	// IconWarn indicates user's attention is necessary.
-	IconWarn = "⚠"
-
-	// IconBad indicates an error.
-	IconBad = "✗"
+import (
+	"fmt"
 )
+
+// icon represents a graphical icon and its plain text substitute.
+type icon struct {
+	name  string
+	rich  string
+	plain string
+}
+
+var (
+	// iconGood indicates a success.
+	iconGood icon = icon{name: "good", rich: "✔", plain: "*"}
+
+	// iconWarn indicates user's attention is necessary.
+	iconWarn icon = icon{name: "warn", rich: "⚠", plain: "!"}
+
+	// iconBad indicates an error.
+	iconBad icon = icon{name: "bad", rich: "✗", plain: "x"}
+)
+
+// icons represents a collection of icons.
+type icons []icon
+
+func (icons icons) Index() map[string]icon {
+	index := map[string]icon{}
+	for i := range icons {
+		index[icons[i].name] = icons[i]
+	}
+	return index
+}
+
+var (
+	supportedIcons = icons{iconGood, iconWarn, iconBad}
+)
+
+// iconStyler returns a text/template function that knows how to style
+// a given set of icons.
+func iconStyler(icons icons) func(string) string {
+	index := icons.Index()
+	return func(name string) string {
+		icon, exists := index[name]
+		if !exists {
+			return fmt.Sprintf("icon(%s)", name)
+		}
+		if StylesEnabled {
+			return icon.rich
+		}
+		return icon.plain
+	}
+}

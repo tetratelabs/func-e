@@ -66,8 +66,8 @@ var _ = Describe("feedback", func() {
 				usedWizard: false,
 				expected: `Scaffolding a new extension:
 Generating files in /path/to/dir:
-✔ Cargo.toml
-✔ src/lib.rs
+* Cargo.toml
+* src/lib.rs
 Done!
 `,
 			}),
@@ -76,8 +76,8 @@ Done!
 				usedWizard: true,
 				expected: `Scaffolding a new extension:
 Generating files in /path/to/dir:
-✔ Cargo.toml
-✔ src/lib.rs
+* Cargo.toml
+* src/lib.rs
 Done!
 
 Hint:

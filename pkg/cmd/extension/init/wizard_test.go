@@ -74,9 +74,9 @@ var _ = Describe("interactive mode", func() {
 					return testCase{
 						noColors: true,
 						expected: fmt.Sprintf(`What kind of extension would you like to create?
-✔ Category HTTP Filter
-✔ Language Rust
-✔ Output directory %s
+* Category HTTP Filter
+* Language Rust
+* Output directory %s
 Great! Let me help you with that!
 
 `, tmpDir),

@@ -29,7 +29,7 @@ var (
 )
 
 var (
-	styleFuncs = makeSubstituteFuncMap(promptui.FuncMap)
+	styleFuncs = makeStyleFuncs(promptui.FuncMap)
 )
 
 // TextStyle represents a style that can be applied to data to produce
@@ -64,6 +64,13 @@ func (t *textStyle) Apply(data interface{}) string {
 		return fmt.Sprintf("%v", data)
 	}
 	return buf.String()
+}
+
+// makeStyleFuncs extends a given map of style functions.
+func makeStyleFuncs(source template.FuncMap) template.FuncMap {
+	styles := makeSubstituteFuncMap(source)
+	styles["icon"] = iconStyler(supportedIcons)
+	return styles
 }
 
 // makeSubstituteFuncMap returns a substitute func map
