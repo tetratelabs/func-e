@@ -485,6 +485,8 @@ github.com/yl2chen/cidranger v0.0.0-20180214081945-928b519e5268/go.mod h1:mq0zho
 github.com/yskopets/promptui v0.7.0/go.mod h1:n4zTdgP0vr0S3w7/O/g98U+e0gwLScEXGwov2nIKuGQ=
 github.com/yskopets/promptui v0.7.1-0.20200429230902-361491009c11 h1:MlzMpHq1fRfH1RYzfQ7Ch7JjdGnBq/m29jJtPOExWuw=
 github.com/yskopets/promptui v0.7.1-0.20200429230902-361491009c11/go.mod h1:n4zTdgP0vr0S3w7/O/g98U+e0gwLScEXGwov2nIKuGQ=
+github.com/yskopets/statik v0.1.8-0.20200501213002-c2d8dcc79889 h1:f62aKW+gryXYYtNut+3b6i5n1ioXCXJWpDgA11l6Pak=
+github.com/yskopets/statik v0.1.8-0.20200501213002-c2d8dcc79889/go.mod h1:AlZONWzMtEnMs7W4e/1LURLiI49pIMmp6V9Unghqrcc=
 github.com/yuin/gopher-lua v0.0.0-20180316054350-84ea3a3c79b3/go.mod h1:aEV29XrmTYFr3CiRxZeGHpkvbwq+prZduBqMaascyCU=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.opencensus.io v0.20.1/go.mod h1:6WKK9ahsWS3RSO+PY9ZHZUfv2irvY6gN279GOPZjmmk=

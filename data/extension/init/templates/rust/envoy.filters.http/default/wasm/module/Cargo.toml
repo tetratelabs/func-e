@@ -1,22 +1,19 @@
-[workspace]
-members = ["wasm/module"]
-default-members = ["wasm/module"]
-
 [package]
-name = "envoy-sample-access-logger"
-description = "Sample Envoy Access logger"
-version = "0.1.0"
+name = "envoy-sample-http-filter-module"
+description = "Sample Envoy HTTP filter (Wasm module)"
+version = "0.0.0"
+authors = ["Tetrate Labs <tetratelabs@tetrate.io>"]
 edition = "2018"
-keywords = ["envoy", "extension", "wasm", "access-logger"]
+keywords = ["envoy", "extension", "wasm", "http-filter"]
 categories = ["wasm"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
-crate-type = ["rlib"]
+crate-type = ["cdylib"]
 
 [dependencies]
+envoy-sample-http-filter = { path = "../.." }
 envoy-sdk = { git = "ssh://git@github.com/tetratelabs/envoy-wasm-rust-sdk.git" }
 proxy-wasm = { git = "https://github.com/yskopets/proxy-wasm-rust-sdk", branch = "latest" }
 log = "^0.4"
-chrono = "^0.4"
