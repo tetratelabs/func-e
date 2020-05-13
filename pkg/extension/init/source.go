@@ -14,7 +14,7 @@
 
 package init
 
-//go:generate go run github.com/rakyll/statik -p=templates -m -ns=extension/init/templates -src=../../../data/extension/init/templates
+//go:generate go run github.com/rakyll/statik -p=templates -m -ns=extension/init/templates -src=../../../data/extension/init/templates -a -include=*
 
 import (
 	"path"

@@ -1,1 +1,22 @@
-# TODO(yskopets)
+[workspace]
+members = ["wasm/module"]
+default-members = ["wasm/module"]
+
+[package]
+name = "envoy-sample-network-filter"
+description = "Sample Envoy Network filter"
+version = "0.1.0"
+edition = "2018"
+keywords = ["envoy", "extension", "wasm", "network-filter"]
+categories = ["wasm"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
+chrono = "^0.4"
+log = "^0.4"
+envoy-sdk = { git = "ssh://git@github.com/tetratelabs/envoy-wasm-rust-sdk.git" }
+proxy-wasm = { git = "https://github.com/yskopets/proxy-wasm-rust-sdk", branch = "latest" }

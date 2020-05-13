@@ -15,7 +15,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0
-	github.com/rakyll/statik v0.1.7
+	github.com/rakyll/statik v0.0.0-00010101000000-000000000000
 	github.com/schollz/progressbar/v2 v2.13.2
 	github.com/shirou/gopsutil v0.0.0-20190731134726-d80c43f9c984
 	github.com/spf13/cobra v0.0.5
@@ -29,3 +29,5 @@ require (
 )
 
 replace github.com/manifoldco/promptui => github.com/yskopets/promptui v0.7.1-0.20200429230902-361491009c11
+
+replace github.com/rakyll/statik => github.com/yskopets/statik v0.1.8-0.20200501213002-c2d8dcc79889
