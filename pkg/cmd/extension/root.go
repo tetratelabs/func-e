@@ -23,6 +23,7 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/globals"
 	scaffold "github.com/tetratelabs/getenvoy/pkg/cmd/extension/init"
 
+	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 	uiutil "github.com/tetratelabs/getenvoy/pkg/util/ui"
 )
 
@@ -32,9 +33,9 @@ func NewCmd() *cobra.Command {
 		Use:   "extension",
 		Short: "Delve into Envoy extensions.",
 		Long:  `Explore ready-to-use Envoy extensions or develop a new one.`,
-		PersistentPreRun: func(_ *cobra.Command, _ []string) {
+		PersistentPreRunE: cmdutil.CallParentPersistentPreRunE().Then(func(*cobra.Command, []string) {
 			uiutil.StylesEnabled = !globals.NoColors
-		},
+		}),
 	}
 	cmd.AddCommand(scaffold.NewCmd())
 	cmd.PersistentFlags().BoolVar(&globals.NoPrompt, "no-prompt", noPromptDefault(),

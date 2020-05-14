@@ -15,9 +15,13 @@
 package cmd
 
 import (
+	"os"
+	"strconv"
+
 	"github.com/spf13/cobra"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
+	"github.com/tetratelabs/log"
 )
 
 var (
@@ -30,6 +34,9 @@ var (
 // NewRoot create a new root command and sets the cliVersion to the passed variable
 // TODO: Add version support on the command
 func NewRoot() *cobra.Command {
+	logOpts := log.DefaultOptions()
+	configureLogging := enableLoggingConfig()
+
 	rootCmd := &cobra.Command{
 		Use:               "getenvoy",
 		DisableAutoGenTag: true, // removes autogenerate on ___ from produced docs
@@ -37,6 +44,12 @@ func NewRoot() *cobra.Command {
 		Long: `Manage full lifecycle of Envoy including fetching binaries,
 bootstrap generation and automated collection of access logs, Envoy state and machine state.`,
 		Version: cliVersion,
+		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
+			if configureLogging {
+				return log.Configure(logOpts)
+			}
+			return nil
+		},
 	}
 
 	rootCmd.AddCommand(NewRunCmd())
@@ -45,7 +58,22 @@ bootstrap generation and automated collection of access logs, Envoy state and ma
 	rootCmd.AddCommand(NewDocCmd())
 	rootCmd.AddCommand(extension.NewCmd())
 
+	if configureLogging {
+		logOpts.AttachFlags(rootCmd)
+	}
 	rootCmd.PersistentFlags().StringVar(&manifestURL, "manifest", manifest.DefaultURL, "sets the manifest URL")
 	rootCmd.PersistentFlags().MarkHidden("manifest") // nolint
 	return rootCmd
+}
+
+// enableLoggingConfig checks whether logging should be configurable.
+//
+// At the moment, logging configuration is disabled by default to avoid abundance of options.
+//
+// TODO(yskopets): consider introducing simplified configuration options.
+func enableLoggingConfig() bool {
+	if enable, err := strconv.ParseBool(os.Getenv("EXPERIMENTAL_GETENVOY_LOGGING_CONFIG")); err == nil {
+		return enable
+	}
+	return false
 }
