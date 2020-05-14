@@ -21,17 +21,15 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
+	"github.com/tetratelabs/getenvoy/pkg/version"
 	"github.com/tetratelabs/log"
 )
 
 var (
-	// cliVersion exposed by goreleaser
-	cliVersion string
-
 	manifestURL string
 )
 
-// NewRoot create a new root command and sets the cliVersion to the passed variable
+// NewRoot create a new root command and sets the version to the passed variable
 // TODO: Add version support on the command
 func NewRoot() *cobra.Command {
 	logOpts := log.DefaultOptions()
@@ -43,7 +41,7 @@ func NewRoot() *cobra.Command {
 		Short:             "Fetch, deploy and debug Envoy",
 		Long: `Manage full lifecycle of Envoy including fetching binaries,
 bootstrap generation and automated collection of access logs, Envoy state and machine state.`,
-		Version: cliVersion,
+		Version: version.Build.Version,
 		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
 			if configureLogging {
 				return log.Configure(logOpts)
