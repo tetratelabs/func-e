@@ -16,103 +16,121 @@ package cmd_test
 
 import (
 	"bytes"
-	"errors"
-	"testing"
+	"syscall"
+
+	"github.com/pkg/errors"
 
 	"github.com/spf13/cobra"
-	"github.com/stretchr/testify/assert"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/gomega"
 
 	. "github.com/tetratelabs/getenvoy/pkg/util/cmd"
+
+	commonerrors "github.com/tetratelabs/getenvoy/pkg/errors"
 )
 
-func Test_unknown_command(t *testing.T) {
-	rootCmd := &cobra.Command{
-		Use: "getenvoy",
-	}
-	rootCmd.AddCommand(&cobra.Command{
-		Use: "init",
-		RunE: func(_ *cobra.Command, _ []string) error {
-			return errors.New("unexpected error")
-		},
-	})
-	out := new(bytes.Buffer)
-	rootCmd.SetOut(out)
-	rootCmd.SetArgs([]string{"other", "command"})
+var _ = Describe("Execute()", func() {
+	Describe("should properly format errors", func() {
+		It(`should properly format "unknown command" error`, func() {
+			rootCmd := &cobra.Command{
+				Use: "getenvoy",
+			}
+			rootCmd.AddCommand(&cobra.Command{
+				Use: "init",
+				RunE: func(_ *cobra.Command, _ []string) error {
+					return errors.New("unexpected error")
+				},
+			})
+			out := new(bytes.Buffer)
+			rootCmd.SetOut(out)
+			rootCmd.SetArgs([]string{"other", "command"})
 
-	err := Execute(rootCmd)
+			err := Execute(rootCmd)
 
-	if assert.Error(t, err) {
-		assert.Equal(t, `Error: unknown command "other" for "getenvoy"
+			Expect(err).To(HaveOccurred())
+			Expect(out.String()).To(Equal(`Error: unknown command "other" for "getenvoy"
 
 Run 'getenvoy --help' for usage.
-`, out.String())
-	}
-}
+`))
+		})
 
-func Test_unknown_flag(t *testing.T) {
-	rootCmd := &cobra.Command{
-		Use: "getenvoy",
-		RunE: func(_ *cobra.Command, _ []string) error {
-			return errors.New("unexpected error")
-		},
-	}
-	out := new(bytes.Buffer)
-	rootCmd.SetOut(out)
-	rootCmd.SetArgs([]string{"--xyz"})
+		It(`should properly format "unknown flag" error`, func() {
+			rootCmd := &cobra.Command{
+				Use: "getenvoy",
+				RunE: func(_ *cobra.Command, _ []string) error {
+					return errors.New("unexpected error")
+				},
+			}
+			out := new(bytes.Buffer)
+			rootCmd.SetOut(out)
+			rootCmd.SetArgs([]string{"--xyz"})
 
-	err := Execute(rootCmd)
+			err := Execute(rootCmd)
 
-	if assert.Error(t, err) {
-		assert.Equal(t, `Error: unknown flag: --xyz
+			Expect(err).To(HaveOccurred())
+			Expect(out.String()).To(Equal(`Error: unknown flag: --xyz
 
-Usage:
-  getenvoy [flags]
+Run 'getenvoy --help' for usage.
+`))
+		})
 
-Flags:
-  -h, --help   help for getenvoy
+		Context("application-specific errors", func() {
+			type testCase struct {
+				err         error
+				expectedOut string
+			}
+			DescribeTable("should properly format application-specific errors",
+				func(given testCase) {
+					rootCmd := &cobra.Command{
+						Use: "getenvoy",
+						RunE: func(_ *cobra.Command, _ []string) error {
+							return given.err
+						},
+					}
+					out := new(bytes.Buffer)
+					rootCmd.SetOut(out)
+					rootCmd.SetArgs([]string{})
 
-`, out.String())
-	}
-}
+					err := Execute(rootCmd)
 
-func Test_command_returns_error(t *testing.T) {
-	rootCmd := &cobra.Command{
-		Use: "getenvoy",
-		RunE: func(_ *cobra.Command, _ []string) error {
-			return errors.New("expected error")
-		},
-	}
-	out := new(bytes.Buffer)
-	rootCmd.SetOut(out)
-	rootCmd.SetArgs([]string{})
+					Expect(err).To(Equal(given.err))
+					Expect(out.String()).To(Equal(given.expectedOut))
+				},
+				Entry("arbitrary error", testCase{
+					err: errors.New("expected error"),
+					expectedOut: `Error: expected error
 
-	err := Execute(rootCmd)
+Run 'getenvoy --help' for usage.
+`,
+				}),
+				Entry("shutdown error", testCase{
+					err: commonerrors.NewShutdownError(syscall.SIGINT),
+					expectedOut: `NOTE: Shutting down early because a Ctrl-C ("interrupt") was received.
+`,
+				}),
+				Entry("wrapped shutdown error", testCase{
+					err: errors.Wrap(commonerrors.NewShutdownError(syscall.SIGINT), "wrapped"),
+					expectedOut: `NOTE: Shutting down early because a Ctrl-C ("interrupt") was received.
+`,
+				}),
+			)
+		})
+	})
 
-	if assert.Error(t, err) {
-		assert.Equal(t, `Error: expected error
+	It(`should support commands that run without an error`, func() {
+		rootCmd := &cobra.Command{
+			Use: "getenvoy",
+			Run: func(_ *cobra.Command, _ []string) {},
+		}
+		out := new(bytes.Buffer)
+		rootCmd.SetOut(out)
+		rootCmd.SetArgs([]string{})
 
-Usage:
-  getenvoy [flags]
+		err := Execute(rootCmd)
 
-Flags:
-  -h, --help   help for getenvoy
-
-`, out.String())
-	}
-}
-
-func Test_successful_command(t *testing.T) {
-	rootCmd := &cobra.Command{
-		Use: "getenvoy",
-		Run: func(_ *cobra.Command, _ []string) {},
-	}
-	out := new(bytes.Buffer)
-	rootCmd.SetOut(out)
-	rootCmd.SetArgs([]string{})
-
-	err := Execute(rootCmd)
-
-	if assert.NoError(t, err) {
-		assert.Equal(t, ``, out.String())
-	}
-}
+		Expect(err).ToNot(HaveOccurred())
+		Expect(out.String()).To(Equal(``))
+	})
+})

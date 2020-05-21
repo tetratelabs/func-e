@@ -38,9 +38,9 @@ var (
 // The provided context is used to undo registration for signals if the context
 // becomes done before a signal is received for the second time.
 // Consequently, the returned channel might never get closed if the context
-// becomes doneo prior to the first signal.
-func SetupSignalHandler(ctx context.Context) <-chan struct{} {
-	stopCh := make(chan struct{})
+// becomes done prior to the first signal.
+func SetupSignalHandler(ctx context.Context) <-chan os.Signal {
+	stopCh := make(chan os.Signal, 1)
 
 	signalCh := make(chan os.Signal, 2)
 	signal.Notify(signalCh, shutdownSignals...)
@@ -51,7 +51,8 @@ func SetupSignalHandler(ctx context.Context) <-chan struct{} {
 		select {
 		case <-ctx.Done():
 			return
-		case <-signalCh:
+		case sig := <-signalCh:
+			stopCh <- sig
 			close(stopCh)
 		}
 

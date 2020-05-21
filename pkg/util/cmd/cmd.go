@@ -15,9 +15,13 @@
 package cmd
 
 import (
-	"strings"
-
 	"github.com/spf13/cobra"
+
+	cmderrors "github.com/tetratelabs/getenvoy/pkg/util/cmd/errors"
+)
+
+var (
+	errorHandlers = cmderrors.Handlers
 )
 
 // Execute executes a given command and formats errors consistently.
@@ -37,28 +41,8 @@ func Execute(rootCmd *cobra.Command) error {
 	if err == nil {
 		return nil
 	}
-	if cmd.CalledAs() == "" {
-		if cmd == rootCmd {
-			// since errors were silenced, we need to print the error message
-			printError(cmd, err)
-			cmd.Printf("Run '%v --help' for usage.\n", cmd.CommandPath())
-		}
-		return err
-	}
-	if !cmd.SilenceErrors {
-		printError(cmd, err)
-	}
-	if !cmd.SilenceUsage {
-		cmd.Println(cmd.UsageString())
+	if handler := errorHandlers.HandlerFor(err); handler != nil {
+		handler.Handle(cmd, err)
 	}
 	return err
-}
-
-// printError ensures that an error message is always followed by an empty line.
-func printError(cmd *cobra.Command, err error) {
-	message := err.Error()
-	cmd.Println("Error:", message)
-	if !strings.HasSuffix(message, "\n") {
-		cmd.Println()
-	}
 }

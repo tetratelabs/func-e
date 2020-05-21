@@ -31,7 +31,6 @@ jobs:
       - run: ./ci/lint
           
   test:
-    resource_class: small
     docker:
       - image: circleci/golang:1.13.3
     steps:

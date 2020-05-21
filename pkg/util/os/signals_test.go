@@ -51,7 +51,8 @@ var _ = Describe("SetupSignalHandler()", func() {
 
 			By("sending an irrelevant signal to the process")
 			Expect(syscall.Kill(syscall.Getpid(), irrelevantSignal)).To(Succeed())
-			Consistently(stopCh).ShouldNot(BeClosed())
+			Consistently(stopCh).ShouldNot(Receive())
+			Expect(stopCh).NotTo(BeClosed())
 		})
 
 		It("should close the returned channel on the first relevant signal", func() {
@@ -62,6 +63,7 @@ var _ = Describe("SetupSignalHandler()", func() {
 
 			By("sending a relevant signal to the process")
 			Expect(syscall.Kill(syscall.Getpid(), relevantSignal)).To(Succeed())
+			Eventually(stopCh).Should(Receive(Equal(relevantSignal)))
 			Eventually(stopCh).Should(BeClosed())
 		})
 
@@ -90,6 +92,7 @@ var _ = Describe("SetupSignalHandler()", func() {
 
 				By("sending first relevant signal to the process")
 				Expect(syscall.Kill(syscall.Getpid(), relevantSignal)).To(Succeed())
+				Eventually(stopCh).Should(Receive(Equal(relevantSignal)))
 				Eventually(stopCh).Should(BeClosed())
 				Consistently(terminateCh).ShouldNot(BeClosed())
 
@@ -112,12 +115,14 @@ var _ = Describe("SetupSignalHandler()", func() {
 
 				By("sending first relevant signal to the process")
 				Expect(syscall.Kill(syscall.Getpid(), relevantSignal)).To(Succeed())
-				Consistently(stopCh).ShouldNot(BeClosed())
+				Consistently(stopCh).ShouldNot(Receive())
+				Expect(stopCh).NotTo(BeClosed())
 				Consistently(terminateCh).ShouldNot(BeClosed())
 
 				By("sending second relevant signal to the process")
 				Expect(syscall.Kill(syscall.Getpid(), relevantSignal)).To(Succeed())
-				Consistently(stopCh).ShouldNot(BeClosed())
+				Consistently(stopCh).ShouldNot(Receive())
+				Expect(stopCh).NotTo(BeClosed())
 				Consistently(terminateCh).ShouldNot(BeClosed())
 			})
 
@@ -129,6 +134,7 @@ var _ = Describe("SetupSignalHandler()", func() {
 
 				By("sending first relevant signal to the process")
 				Expect(syscall.Kill(syscall.Getpid(), relevantSignal)).To(Succeed())
+				Eventually(stopCh).Should(Receive(Equal(relevantSignal)))
 				Eventually(stopCh).Should(BeClosed())
 				Consistently(terminateCh).ShouldNot(BeClosed())
 
