@@ -22,14 +22,14 @@ import (
 )
 
 var (
-	CliUserAgent  = fmt.Sprintf("GetEnvoy/%s", version.Version)
-	DefaultClient = NewClient(AddUserAgent(CliUserAgent))
+	cliUserAgent  = fmt.Sprintf("GetEnvoy/%s", version.Version)
+	defaultClient = NewClient(AddUserAgent(cliUserAgent))
 )
 
+// Options represents an argument of NewClient
 type Option func(http.RoundTripper) http.RoundTripper
 
 // NewClient returns HTTP client for use of GetEnvoy CLI.
-// User-Agent "GetEnvoy/{Version}" will be added to the client.
 func NewClient(opts ...Option) *http.Client {
 	tr := http.DefaultTransport
 	for _, opt := range opts {
@@ -39,6 +39,8 @@ func NewClient(opts ...Option) *http.Client {
 	return client
 }
 
+// AddUserAgent returns Option that adds passed user-agent to every requests.
+// It should be passed as an argument of NewClient.
 func AddUserAgent(ua string) Option {
 	return func(tr http.RoundTripper) http.RoundTripper {
 		return &funcTripper{roundTrip: func(r *http.Request) (*http.Response, error) {
@@ -58,5 +60,5 @@ func (f funcTripper) RoundTrip(r *http.Request) (*http.Response, error) {
 
 // Get is thin wrapper of net/http.Get.
 func Get(url string) (*http.Response, error) {
-	return DefaultClient.Get(url)
+	return defaultClient.Get(url)
 }
