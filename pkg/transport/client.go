@@ -26,7 +26,7 @@ var (
 	defaultClient = NewClient(AddUserAgent(cliUserAgent))
 )
 
-// Options represents an argument of NewClient
+// Option represents an argument of NewClient
 type Option func(http.RoundTripper) http.RoundTripper
 
 // NewClient returns HTTP client for use of GetEnvoy CLI.
