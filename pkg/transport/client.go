@@ -22,7 +22,7 @@ import (
 )
 
 var (
-	cliUserAgent  = fmt.Sprintf("GetEnvoy/%s", version.Version)
+	cliUserAgent  = fmt.Sprintf("GetEnvoy/%s", version.Build.Version)
 	defaultClient = NewClient(AddUserAgent(cliUserAgent))
 )
 

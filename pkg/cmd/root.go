@@ -20,7 +20,7 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/version"
 )
 
-// NewRoot create a new root command and sets the cliVersion to the passed variable
+// NewRoot create a new root command and sets the version to the passed variable
 // TODO: Add version support on the command
 func NewRoot() *cobra.Command {
 	rootCmd.AddCommand(NewRunCmd())
@@ -40,7 +40,7 @@ var (
 		Short:             "Fetch, deploy and debug Envoy",
 		Long: `Manage full lifecycle of Envoy including fetching binaries,
 bootstrap generation and automated collection of access logs, Envoy state and machine state.`,
-		Version: version.Version,
+		Version: version.Build.Version,
 	}
 
 	manifestURL string

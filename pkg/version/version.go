@@ -14,5 +14,19 @@
 
 package version
 
-// Version is populated at build time
-var Version string
+var (
+	// version is populated at build time via compiler options.
+	version string
+)
+
+// BuildInfo describes a particular build of getenvoy toolkit.
+type BuildInfo struct {
+	Version string
+}
+
+var (
+	// Build describes a version of the enclosing binary.
+	Build = BuildInfo{
+		Version: version,
+	}
+)
