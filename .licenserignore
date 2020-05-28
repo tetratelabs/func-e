@@ -1,3 +1,5 @@
+.editorconfig
+
 /LICENSE
 
 go.mod

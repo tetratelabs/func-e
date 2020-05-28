@@ -16,7 +16,7 @@
 
 # test stdin & stdout
 while IFS= read -r line; do
-  printf >&1 '%s' "$line"
+	printf >&1 '%s' "$line"
 done
 
 # test stderr
