@@ -16,7 +16,7 @@ package version
 
 var (
 	// version is populated at build time via compiler options.
-	version string
+	version = "dev"
 )
 
 // BuildInfo describes a particular build of getenvoy toolkit.

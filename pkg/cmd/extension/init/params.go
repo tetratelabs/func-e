@@ -15,8 +15,10 @@
 package init
 
 import (
-	"fmt"
+	"os"
 	"path/filepath"
+
+	"github.com/pkg/errors"
 
 	osutil "github.com/tetratelabs/getenvoy/pkg/util/os"
 )
@@ -62,7 +64,7 @@ func newParams() *params {
 			Title: "Category",
 			Validator: func(value string) error {
 				if !supportedCategories.Contains(value) {
-					return fmt.Errorf("%q is not a supported extension category", value)
+					return errors.Errorf("%q is not a supported extension category", value)
 				}
 				return nil
 			},
@@ -71,7 +73,7 @@ func newParams() *params {
 			Title: "Language",
 			Validator: func(value string) error {
 				if !supportedLanguages.Contains(value) {
-					return fmt.Errorf("%q is not a supported programming language", value)
+					return errors.Errorf("%q is not a supported programming language", value)
 				}
 				return nil
 			},
@@ -84,16 +86,22 @@ func newParams() *params {
 				if err != nil {
 					return err
 				}
-				err = osutil.EnsureDirExists(outputDir)
+				info, err := os.Stat(outputDir)
 				if err != nil {
+					if os.IsNotExist(err) {
+						return nil
+					}
 					return err
+				}
+				if !info.IsDir() {
+					return errors.Errorf("output path is not a directory: %s", outputDir)
 				}
 				empty, err := osutil.IsEmptyDir(outputDir)
 				if err != nil {
 					return err
 				}
 				if !empty {
-					return fmt.Errorf("output directory must be empty or new: %v", outputDir)
+					return errors.Errorf("output directory must be empty or new: %s", outputDir)
 				}
 				return nil
 			},

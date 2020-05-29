@@ -1,0 +1,7 @@
+#
+# Envoy Wasm extension created with getenvoy toolkit.
+#
+kind: Extension
+
+language: rust
+category: envoy.filters.http

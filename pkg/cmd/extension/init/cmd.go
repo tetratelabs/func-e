@@ -22,18 +22,19 @@ import (
 
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/globals"
 	scaffold "github.com/tetratelabs/getenvoy/pkg/extension/init"
+	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 )
 
 var (
 	// extension categories supported by the `init` command.
 	supportedCategories = options{
-		{Value: "envoy.filters.http", DisplayText: "HTTP Filter"},
-		{Value: "envoy.filters.network", DisplayText: "Network Filter"},
-		{Value: "envoy.access_loggers", DisplayText: "Access Logger"},
+		{Value: extension.EnvoyHTTPFilter.String(), DisplayText: "HTTP Filter"},
+		{Value: extension.EnvoyNetworkFilter.String(), DisplayText: "Network Filter"},
+		{Value: extension.EnvoyAccessLogger.String(), DisplayText: "Access Logger"},
 	}
 	// programming languages supported by the `init` command.
 	supportedLanguages = options{
-		{Value: "rust", DisplayText: "Rust"},
+		{Value: extension.LanguageRust.String(), DisplayText: "Rust"},
 	}
 )
 

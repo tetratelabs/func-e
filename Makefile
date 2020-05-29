@@ -21,6 +21,11 @@ COVERAGE_DIR ?= $(BUILD_DIR)/coverage
 COVERAGE_PROFILE := $(COVERAGE_DIR)/coverage.out
 COVERAGE_REPORT := $(COVERAGE_DIR)/coverage.html
 
+GOOS := $(shell go env GOOS)
+GOARCH := $(shell go env GOARCH)
+
+GO_LD_FLAGS := -ldflags="-s -w -X github.com/tetratelabs/getenvoy/pkg/version.version=$(TAG)"
+
 TEST_PKG_LIST ?= ./...
 GO_TEST_OPTS ?=
 GO_TEST_EXTRA_OPTS ?=
@@ -44,12 +49,17 @@ deps:
 generate: deps
 	go generate ./pkg/...
 
+.PHONY: build.linux-amd64
+build.linux-amd64: GOOS=linux
+build.linux-amd64: GOARCH=amd64
+build.linux-amd64: build
+
 .PHONY: build
 build: generate
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o getenvoy ./cmd/getenvoy/main.go
+	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build $(GO_LD_FLAGS) -o getenvoy ./cmd/getenvoy/main.go
 
 .PHONY: docker
-docker: build
+docker: build.linux-amd64
 	docker build -t $(HUB)/getenvoy:$(TAG) --build-arg reference=$(ENVOY) .
 
 .PHONY: release.dryrun
@@ -65,3 +75,10 @@ coverage:
 	mkdir -p "$(shell dirname "$(COVERAGE_PROFILE)")"
 	go test $(GO_COVERAGE_OPTS) $(GO_COVERAGE_EXTRA_OPTS) -coverprofile="$(COVERAGE_PROFILE)" $(COVERAGE_PKG_LIST)
 	go tool cover -html="$(COVERAGE_PROFILE)" -o "$(COVERAGE_REPORT)"
+
+.PHONY: builders
+builders: builder.rust
+
+.PHONY: builder.rust
+builder.rust:
+	docker build -t tetratelabs/getenvoy-extension-rust-builder:$(TAG) images/extension-builders/rust

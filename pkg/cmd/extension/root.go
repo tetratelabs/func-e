@@ -20,8 +20,11 @@ import (
 	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
 
+	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/build"
+	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/clean"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/globals"
 	scaffold "github.com/tetratelabs/getenvoy/pkg/cmd/extension/init"
+	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/test"
 
 	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 	uiutil "github.com/tetratelabs/getenvoy/pkg/util/ui"
@@ -38,6 +41,9 @@ func NewCmd() *cobra.Command {
 		}),
 	}
 	cmd.AddCommand(scaffold.NewCmd())
+	cmd.AddCommand(build.NewCmd())
+	cmd.AddCommand(test.NewCmd())
+	cmd.AddCommand(clean.NewCmd())
 	cmd.PersistentFlags().BoolVar(&globals.NoPrompt, "no-prompt", noPromptDefault(),
 		"disable automatic switching into interactive mode whenever a parameter is missing or not valid")
 	cmd.PersistentFlags().BoolVar(&globals.NoColors, "no-colors", noColorsDefault(), "disable colored output")

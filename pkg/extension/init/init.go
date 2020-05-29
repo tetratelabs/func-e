@@ -88,12 +88,15 @@ func Scaffold(opts *ScaffoldOpts) (err error) {
 		opts.ProgressHandler = ProgressFuncs{}
 	}
 	opts.ProgressHandler.OnStart()
-	walker := &scaffolder{opts: opts, sourceFS: fs}
 	defer func() {
 		if err == nil {
 			opts.OnComplete()
 		}
 	}()
+	if err := generateWorkspace(opts); err != nil {
+		return err
+	}
+	walker := &scaffolder{opts: opts, sourceFS: fs}
 	return walker.walk(templateDir, "")
 }
 

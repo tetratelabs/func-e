@@ -20,12 +20,32 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
+	"github.com/spf13/cobra"
 
 	"github.com/tetratelabs/getenvoy/pkg/cmd"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/globals"
+
+	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 
 var _ = Describe("getenvoy extension", func() {
+
+	var stdout *bytes.Buffer
+	var stderr *bytes.Buffer
+
+	BeforeEach(func() {
+		stdout = new(bytes.Buffer)
+		stderr = new(bytes.Buffer)
+	})
+
+	var c *cobra.Command
+
+	BeforeEach(func() {
+		c = cmd.NewRoot()
+		c.SetOut(stdout)
+		c.SetErr(stderr)
+	})
+
 	Describe("--no-prompt", func() {
 		type testCase struct {
 			args     []string
@@ -33,13 +53,17 @@ var _ = Describe("getenvoy extension", func() {
 		}
 		DescribeTable("should be available as `globals.NoPrompt` variable",
 			func(given testCase) {
-				c := cmd.NewRoot()
-				c.SetOut(new(bytes.Buffer))
-
+				By("running command")
 				c.SetArgs(append([]string{"extension"}, given.args...))
-				Expect(c.Execute()).To(Succeed())
+				err := cmdutil.Execute(c)
+				Expect(err).ToNot(HaveOccurred())
 
+				By("verifying side effects")
 				Expect(globals.NoPrompt).To(Equal(given.expected))
+
+				By("verifying command output")
+				Expect(stdout.String()).ToNot(BeEmpty())
+				Expect(stderr.String()).To(BeEmpty())
 			},
 			Entry("--no-prompt", testCase{
 				args:     []string{"--no-prompt"},
@@ -58,13 +82,17 @@ var _ = Describe("getenvoy extension", func() {
 		}
 		DescribeTable("should be available as `globals.NoColors` variable",
 			func(given testCase) {
-				c := cmd.NewRoot()
-				c.SetOut(new(bytes.Buffer))
-
+				By("running command")
 				c.SetArgs(append([]string{"extension"}, given.args...))
-				Expect(c.Execute()).To(Succeed())
+				err := cmdutil.Execute(c)
+				Expect(err).ToNot(HaveOccurred())
 
+				By("verifying side effects")
 				Expect(globals.NoColors).To(Equal(given.expected))
+
+				By("verifying command output")
+				Expect(stdout.String()).ToNot(BeEmpty())
+				Expect(stderr.String()).To(BeEmpty())
 			},
 			Entry("--no-colors", testCase{
 				args:     []string{"--no-colors"},

@@ -32,6 +32,15 @@ import (
 )
 
 var _ = Describe("Execute()", func() {
+
+	var stdout *bytes.Buffer
+	var stderr *bytes.Buffer
+
+	BeforeEach(func() {
+		stdout = new(bytes.Buffer)
+		stderr = new(bytes.Buffer)
+	})
+
 	Describe("should properly format errors", func() {
 		It(`should properly format "unknown command" error`, func() {
 			rootCmd := &cobra.Command{
@@ -43,14 +52,15 @@ var _ = Describe("Execute()", func() {
 					return errors.New("unexpected error")
 				},
 			})
-			out := new(bytes.Buffer)
-			rootCmd.SetOut(out)
+			rootCmd.SetOut(stdout)
+			rootCmd.SetErr(stderr)
 			rootCmd.SetArgs([]string{"other", "command"})
 
 			err := Execute(rootCmd)
-
 			Expect(err).To(HaveOccurred())
-			Expect(out.String()).To(Equal(`Error: unknown command "other" for "getenvoy"
+
+			Expect(stdout.String()).To(BeEmpty())
+			Expect(stderr.String()).To(Equal(`Error: unknown command "other" for "getenvoy"
 
 Run 'getenvoy --help' for usage.
 `))
@@ -63,14 +73,15 @@ Run 'getenvoy --help' for usage.
 					return errors.New("unexpected error")
 				},
 			}
-			out := new(bytes.Buffer)
-			rootCmd.SetOut(out)
+			rootCmd.SetOut(stdout)
+			rootCmd.SetErr(stderr)
 			rootCmd.SetArgs([]string{"--xyz"})
 
 			err := Execute(rootCmd)
-
 			Expect(err).To(HaveOccurred())
-			Expect(out.String()).To(Equal(`Error: unknown flag: --xyz
+
+			Expect(stdout.String()).To(BeEmpty())
+			Expect(stderr.String()).To(Equal(`Error: unknown flag: --xyz
 
 Run 'getenvoy --help' for usage.
 `))
@@ -89,14 +100,15 @@ Run 'getenvoy --help' for usage.
 							return given.err
 						},
 					}
-					out := new(bytes.Buffer)
-					rootCmd.SetOut(out)
+					rootCmd.SetOut(stdout)
+					rootCmd.SetErr(stderr)
 					rootCmd.SetArgs([]string{})
 
 					err := Execute(rootCmd)
-
 					Expect(err).To(Equal(given.err))
-					Expect(out.String()).To(Equal(given.expectedOut))
+
+					Expect(stdout.String()).To(BeEmpty())
+					Expect(stderr.String()).To(Equal(given.expectedOut))
 				},
 				Entry("arbitrary error", testCase{
 					err: errors.New("expected error"),
@@ -124,13 +136,14 @@ Run 'getenvoy --help' for usage.
 			Use: "getenvoy",
 			Run: func(_ *cobra.Command, _ []string) {},
 		}
-		out := new(bytes.Buffer)
-		rootCmd.SetOut(out)
+		rootCmd.SetOut(stdout)
+		rootCmd.SetErr(stderr)
 		rootCmd.SetArgs([]string{})
 
 		err := Execute(rootCmd)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(out.String()).To(Equal(``))
+		Expect(stdout.String()).To(BeEmpty())
+		Expect(stderr.String()).To(BeEmpty())
 	})
 })

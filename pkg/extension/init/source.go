@@ -38,6 +38,7 @@ func getTemplateSource() templateSource {
 	templatesOnce.Do(func() {
 		fileSystem, err := fs.NewWithNamespace("extension/init/templates")
 		if err != nil {
+			// must be caught by unit tests
 			panic(err)
 		}
 		templates = &fsTemplateSource{

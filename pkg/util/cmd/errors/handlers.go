@@ -16,6 +16,7 @@ package errors
 
 import (
 	stderrors "errors"
+	"fmt"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -38,16 +39,17 @@ func (h defaultErrorHandler) CanHandle(err error) bool {
 }
 
 func (h defaultErrorHandler) Handle(cmd *cobra.Command, err error) {
+	stderr := cmd.ErrOrStderr()
 	if !cmd.SilenceErrors {
 		message := err.Error()
-		cmd.Println("Error:", message)
+		fmt.Fprint(stderr, "Error: ", message, "\n")
 		// ensure that an error message is always followed by an empty line
 		if !strings.HasSuffix(message, "\n") {
-			cmd.Println()
+			fmt.Fprint(stderr, "\n")
 		}
 	}
 	if !cmd.SilenceUsage {
-		cmd.Printf("Run '%v --help' for usage.\n", cmd.CommandPath())
+		fmt.Fprintf(stderr, "Run '%v --help' for usage.\n", cmd.CommandPath())
 	}
 }
 
@@ -59,9 +61,10 @@ func (h shutdownErrorHandler) CanHandle(err error) bool {
 }
 
 func (h shutdownErrorHandler) Handle(cmd *cobra.Command, err error) {
+	stderr := cmd.ErrOrStderr()
 	if serr := h.asShutdownError(err); serr != nil {
 		// in case of ShutdownError, we want to avoid any wrapper messages
-		cmd.Println("NOTE:", serr.Error())
+		fmt.Fprint(stderr, "NOTE: ", serr.Error(), "\n")
 	}
 }
 

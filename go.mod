@@ -5,16 +5,19 @@ go 1.13
 require (
 	bitbucket.org/creachadair/shell v0.0.6
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
+	github.com/docker/distribution v2.7.1+incompatible
+	github.com/ghodss/yaml v1.0.0
 	github.com/go-ole/go-ole v1.2.4 // indirect
 	github.com/gogo/protobuf v1.2.2-0.20190730201129-28a6bbf47e48
-	github.com/golang/protobuf v1.3.2
+	github.com/golang/protobuf v1.4.2
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/manifoldco/promptui v0.0.0-00010101000000-000000000000
 	github.com/mattn/go-isatty v0.0.4
+	github.com/mattn/go-shellwords v1.0.10
 	github.com/mholt/archiver v3.1.1+incompatible
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/onsi/ginkgo v1.12.0
-	github.com/onsi/gomega v1.9.0
+	github.com/onsi/ginkgo v1.12.2
+	github.com/onsi/gomega v1.10.1
 	github.com/pkg/errors v0.9.1
 	github.com/rakyll/statik v0.0.0-00010101000000-000000000000
 	github.com/schollz/progressbar/v2 v2.13.2
@@ -23,6 +26,7 @@ require (
 	github.com/stretchr/testify v1.3.0
 	github.com/tetratelabs/getenvoy-package v0.0.0-20190730071641-da31aed4333e
 	github.com/tetratelabs/log v0.0.0-20190710134534-eb04d1e84fb8
+	github.com/tetratelabs/multierror v1.1.0
 	gotest.tools v2.2.0+incompatible
 	istio.io/api v0.0.0-20190815135234-0d1db548cf57
 	istio.io/istio v0.0.0-20190818012331-da84a1487471
