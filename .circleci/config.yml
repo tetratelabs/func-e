@@ -40,7 +40,7 @@ jobs:
       - run: ./ci/test
       - run:
           name: "Measure test coverage (for now, on a subset of tests)"
-          command: make coverage
+          command: make coverage GO_COVERAGE_EXTRA_OPTS="-p 1"
       - store_artifacts:
           path: build/coverage
           destination: /coverage
