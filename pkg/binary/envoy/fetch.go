@@ -32,6 +32,7 @@ import (
 	"github.com/mholt/archiver"
 	"github.com/schollz/progressbar/v2"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
+	"github.com/tetratelabs/getenvoy/pkg/transport"
 	"github.com/tetratelabs/log"
 )
 
@@ -91,7 +92,7 @@ func fetchEnvoy(dst, src string) error {
 
 func doDownload(dst, src string) (string, error) {
 	// #nosec -> src destination can be anywhere by design
-	resp, err := http.Get(src)
+	resp, err := transport.Get(src)
 	if err != nil {
 		return "", err
 	}

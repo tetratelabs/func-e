@@ -20,7 +20,7 @@ before:
     - go mod download
 builds:
 - binary: getenvoy
-  ldflags: "-s -w -X github.com/tetratelabs/getenvoy/pkg/cmd.cliVersion={{.Version}}"
+  ldflags: "-s -w -X github.com/tetratelabs/getenvoy/pkg/version.version={{.Version}}"
   main: ./cmd/getenvoy/main.go
   env:
   - CGO_ENABLED=0

@@ -22,6 +22,8 @@ import (
 	"sort"
 	"text/tabwriter"
 
+	"github.com/tetratelabs/getenvoy/pkg/transport"
+
 	"net/url"
 
 	"strings"
@@ -61,7 +63,7 @@ func platformFromEnum(s string) string {
 
 func fetch(manifestURL string) (*api.Manifest, error) {
 	// #nosec => This is by design, users can call out to wherever they like!
-	resp, err := http.Get(manifestURL)
+	resp, err := transport.Get(manifestURL)
 	if err != nil {
 		return nil, err
 	}
