@@ -16,31 +16,98 @@
 
 set -e
 
-BASEDIR=$( cd "$( dirname "${BASH_SOURCE[0]}")"  && pwd)
+SCRIPT_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}")"  && pwd)
+GETENVOY_WORKSPACE_DIR="${GETENVOY_WORKSPACE_DIR:-$PWD}"
 
-USAGE="usage: build
+USAGE="usage: build [--output-file PATH]
    or: test
-   or: clean"
+   or: clean
+
+examples:
+   # build Wasm extension (location of *.wasm file is undefined)
+   build
+
+   # build Wasm extension and copy *.wasm file to a given location
+   build --output-file target/extension.wasm
+
+options:
+   build:
+   --output-file PATH   Path relative to the workspace root to copy *.wasm file to
+"
 
 usage() {
-	printf >&2 '%s\n' "$USAGE"
+	echo "$USAGE" >&2
 	exit 1
 }
 
-. "$BASEDIR/commands.sh"
+log_message() {
+	echo "$*" >&2
+}
+
+error() {
+	log_message "error:" "$*"
+	exit 1
+}
+
+args_error() {
+	log_message "error:" "$*"
+	log_message
+	usage
+}
+
+. "${SCRIPT_DIR}/commands.sh"
+
+#######################################################
+# Parse command-line arguments and run 'build' command.
+#######################################################
+command_build()  {
+	local output_file=""
+
+	while [[ $# > 0 ]]; do
+		case "$1" in
+			--output-file)
+				if [[ $# < 2 ]]; then
+					args_error "--output-file value is missing"
+				fi
+				output_file="$2"
+				shift
+				;;
+			*)
+				usage
+				;;
+		esac
+		shift
+	done
+
+	extension_build "${output_file}"
+}
+
+#######################################################
+# Parse command-line arguments and run 'test' command.
+#######################################################
+command_test()  {
+	extension_build
+}
+
+#######################################################
+# Parse command-line arguments and run 'clean' command.
+#######################################################
+command_clean()  {
+	extension_clean
+}
 
 case "$1" in
 	build)
 		shift
-		extension_build "$@"
+		command_build "$@"
 		;;
 	test)
 		shift
-		extension_test "$@"
+		command_test "$@"
 		;;
 	clean)
 		shift
-		extension_clean "$@"
+		command_clean "$@"
 		;;
 	*)
 		usage

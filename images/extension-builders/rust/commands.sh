@@ -14,8 +14,50 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-${GETENVOY_WORKSPACE_DIR}/target}"
+
+#########################################################################
+# Build Wasm extension and copy *.wasm file to a given location.
+# Globals:
+#   CARGO_TARGET_DIR
+#   GETENVOY_WORKSPACE_DIR
+# Arguments:
+#   Path relative to the workspace root to copy *.wasm file to.
+#########################################################################
 extension_build()  {
-	cargo build:wasm
+	local target="wasm32-unknown-unknown"
+
+	cargo build --target-dir "${CARGO_TARGET_DIR}" --target "${target}"
+
+	local profile="debug"
+	local lib_name="extension"
+	local file_name="${lib_name}.wasm"
+	local cargo_output_file="${CARGO_TARGET_DIR}/${target}/${profile}/${file_name}"
+
+	if [[ ! -f "${cargo_output_file}" ]]; then
+		error "Cargo didn't build a *.wasm file at expected location: ${cargo_output_file}.
+
+help:  make sure Cargo workspace includes a library crate with name '${lib_name}' and type 'cdylib', e.g.
+
+       wasm/module/Cargo.toml:
+       ...
+       [lib]
+       name = \"${lib_name}\"
+       crate-type = [\"cdylib\"]
+       ...
+"
+	fi
+
+	local destination_file="$1"
+	if [[ -n "${destination_file}" ]]; then
+		log_message "     Copying *.wasm file to '${destination_file}'"
+
+		destination_file="${GETENVOY_WORKSPACE_DIR}/${destination_file}"
+		local tmp_file="${destination_file}.tmp"
+		mkdir -p "$(dirname "${tmp_file}")"
+		cp "${cargo_output_file}" "${tmp_file}"
+		mv "${tmp_file}" "${destination_file}"
+	fi
 }
 
 extension_test()  {
