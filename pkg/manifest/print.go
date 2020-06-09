@@ -20,11 +20,10 @@ import (
 	"io"
 	"net/http"
 	"sort"
+	"strings"
 	"text/tabwriter"
 
 	"net/url"
-
-	"strings"
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/tetratelabs/getenvoy-package/api"

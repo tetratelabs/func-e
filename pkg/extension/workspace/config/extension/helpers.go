@@ -20,6 +20,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config"
+	"github.com/tetratelabs/getenvoy/pkg/types"
 	"github.com/tetratelabs/multierror"
 )
 
@@ -105,6 +106,22 @@ func (d *Descriptor) Validate() (errs error) {
 	}
 	if d.Language == "" {
 		errs = multierror.Append(errs, errors.New("programming language cannot be empty"))
+	}
+	if err := d.Runtime.Validate(); err != nil {
+		errs = multierror.Append(errs, errors.Wrap(err, "runtime description is not valid"))
+	}
+	return
+}
+
+// Validate returns an error if Runtime is not valid.
+func (r *Runtime) Validate() (errs error) {
+	if r.Envoy.Version == "" {
+		errs = multierror.Append(errs, errors.New("Envoy version cannot be empty"))
+	}
+	if r.Envoy.Version != "" {
+		if _, err := types.ParseReference(r.Envoy.Version); err != nil {
+			errs = multierror.Append(errs, errors.Wrap(err, "Envoy version is not valid"))
+		}
 	}
 	return
 }

@@ -19,10 +19,10 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"regexp"
 	"strings"
 
 	"github.com/tetratelabs/getenvoy-package/api"
+	"github.com/tetratelabs/getenvoy/pkg/types"
 	"github.com/tetratelabs/log"
 )
 
@@ -39,16 +39,16 @@ func NewKey(reference string) (*Key, error) {
 	if reference == "@" {
 		reference = os.Getenv(referenceEnv)
 	}
-	r := regexp.MustCompile(`^([\w\d-\._]+):([\w\d-\._]+)/?([\w\d-\._]+)?$`)
-	matches := r.FindStringSubmatch(reference)
-	if len(matches) != 4 {
-		return nil, fmt.Errorf("reference %v is not of valid format <flavor>:<version>/<platform>", reference)
+	ref, err := types.ParseReference(reference)
+	if err != nil {
+		return nil, err
 	}
+	key := Key{Flavor: ref.Flavor, Version: ref.Version, Platform: platformToEnum(ref.Platform)}
 	// If platform is empty, fill it in.
-	if matches[3] == "" {
-		matches[3] = platform()
+	if key.Platform == "" {
+		key.Platform = platformToEnum(platform())
 	}
-	return &Key{strings.ToLower(matches[1]), strings.ToLower(matches[2]), platformToEnum(matches[3])}, nil
+	return &key, nil
 }
 
 func platformToEnum(s string) string {
@@ -58,11 +58,7 @@ func platformToEnum(s string) string {
 }
 
 // Key is the primary key used to locate Envoy builds in the manifest
-type Key struct {
-	Flavor   string
-	Version  string
-	Platform string
-}
+type Key types.Reference
 
 func (k Key) String() string {
 	return fmt.Sprintf("%v:%v/%v", k.Flavor, k.Version, platformFromEnum(k.Platform))

@@ -54,6 +54,24 @@ const (
 // Descriptor represents an extension created by getenvoy toolkit.
 type Descriptor struct {
 	config.Meta `json:",inline"`
-	Category    Category `json:"category"`
-	Language    Language `json:"language"`
+
+	// Extension category.
+	Category Category `json:"category"`
+	// Extension language.
+	Language Language `json:"language"`
+
+	// Runtime the extension is being developed against.
+	Runtime Runtime `json:"runtime"`
+}
+
+// Runtime describes the runtime the extension is being developed against.
+type Runtime struct {
+	// `Envoy` runtime.
+	Envoy EnvoyRuntime `json:"envoy"`
+}
+
+// EnvoyRuntime describes `Envoy` runtime the extension is being developed against.
+type EnvoyRuntime struct {
+	// Version of `Envoy` provided by getenvoy.io.
+	Version string `json:"version"`
 }

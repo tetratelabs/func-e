@@ -83,6 +83,11 @@ var _ = Describe("LoadToolchain()", func() {
 kind: Extension
 language: rust
 category: envoy.filters.http
+
+# Runtime the extension is being developed against.
+runtime:
+  envoy:
+    version: wasm:nightly
 `))
 		Expect(err).ToNot(HaveOccurred())
 

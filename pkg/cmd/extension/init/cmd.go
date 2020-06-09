@@ -36,6 +36,25 @@ var (
 	supportedLanguages = options{
 		{Value: extension.LanguageRust.String(), DisplayText: "Rust"},
 	}
+	// Envoy release the extension templates have been developed against.
+	//
+	// Notice that WebAssembly support in Envoy is still in the alpha stage.
+	// It is not possible to guarantee any compatibility between various Envoy releases.
+	// That is why we have to pin Envoy version by default.
+	//
+	// The value defined here will be included into extension descriptor to indicate
+	// what version of Envoy extension examples should run on if not specified explicitly.
+	// Extension developers will be able to explicitly associate each extension example with
+	// a separate version of Envoy.
+	// Extension users will be able to force getenvoy command to run an extension example
+	// on the Envoy version of choice.
+	//
+	// `getenvoy extension run` command will choose version of Envoy to run the extension example on
+	// using to the following rules (from the highest priority to the lowest):
+	// 1. according to command-line options
+	// 2. otherwise, according to the example-specific configuration (.getenvoy/extension/examples/<example>/example.yaml)
+	// 3. otherwise, according to extension descriptor (.getenvoy/extension/extension.yaml)
+	supportedEnvoyVersion = "wasm:nightly"
 )
 
 // NewCmd returns a command that generates the initial set of files
@@ -75,6 +94,7 @@ Scaffold a new Envoy extension in a language of your choice.`,
 			opts.Category = params.Category.Value
 			opts.Language = params.Language.Value
 			opts.TemplateName = "default"
+			opts.EnvoyVersion = supportedEnvoyVersion
 			opts.OutputDir = params.OutputDir.Value
 			opts.ProgressHandler = &feedback{
 				cmd:        cmd,

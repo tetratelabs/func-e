@@ -72,6 +72,7 @@ type ScaffoldOpts struct {
 	Language     string
 	Category     string
 	TemplateName string
+	EnvoyVersion string
 
 	OutputDir string
 

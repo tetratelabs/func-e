@@ -32,6 +32,11 @@ kind: Extension
 
 language: {{ .Language }}
 category: {{ .Category }}
+
+# Runtime the extension is being developed against.
+runtime:
+  envoy:
+    version: {{ .EnvoyVersion }}
 `
 )
 
