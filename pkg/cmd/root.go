@@ -25,13 +25,10 @@ import (
 	"github.com/tetratelabs/log"
 )
 
-var (
-	manifestURL string
-)
-
 // NewRoot create a new root command and sets the version to the passed variable
 // TODO: Add version support on the command
 func NewRoot() *cobra.Command {
+	manifestURL := manifest.GetURL()
 	logOpts := log.DefaultOptions()
 	configureLogging := enableLoggingConfig()
 
@@ -43,6 +40,9 @@ func NewRoot() *cobra.Command {
 bootstrap generation and automated collection of access logs, Envoy state and machine state.`,
 		Version: version.Build.Version,
 		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
+			if err := manifest.SetURL(manifestURL); err != nil {
+				return err
+			}
 			if configureLogging {
 				return log.Configure(logOpts)
 			}
@@ -59,7 +59,7 @@ bootstrap generation and automated collection of access logs, Envoy state and ma
 	if configureLogging {
 		logOpts.AttachFlags(rootCmd)
 	}
-	rootCmd.PersistentFlags().StringVar(&manifestURL, "manifest", manifest.DefaultURL, "sets the manifest URL")
+	rootCmd.PersistentFlags().StringVar(&manifestURL, "manifest", manifestURL, "sets the manifest URL")
 	rootCmd.PersistentFlags().MarkHidden("manifest") // nolint
 	return rootCmd
 }

@@ -15,11 +15,12 @@
 package manifest
 
 import (
-	"errors"
 	"fmt"
 	"net/url"
 	"os"
 	"strings"
+
+	"github.com/pkg/errors"
 
 	"github.com/tetratelabs/getenvoy-package/api"
 	"github.com/tetratelabs/getenvoy/pkg/types"
@@ -27,11 +28,32 @@ import (
 )
 
 const (
-	// DefaultURL is the official GetEnvoy manifest location
-	DefaultURL = "https://tetrate.bintray.com/getenvoy/manifest.json"
-
 	referenceEnv = "ENVOY_REFERENCE"
 )
+
+var (
+	// manifestURL defines location of the GetEnvoy manifest.
+	manifestURL = &url.URL{
+		Scheme: "https",
+		Host:   "tetrate.bintray.com",
+		Path:   "/getenvoy/manifest.json",
+	}
+)
+
+// GetURL returns location of the GetEnvoy manifest.
+func GetURL() string {
+	return manifestURL.String()
+}
+
+// SetURL sets location of the GetEnvoy manifest.
+func SetURL(rawurl string) error {
+	otherURL, err := url.Parse(rawurl)
+	if err != nil || otherURL.Host == "" || otherURL.Scheme == "" {
+		return errors.Errorf("%q is not a valid manifest URL", rawurl)
+	}
+	manifestURL = otherURL
+	return nil
+}
 
 // NewKey creates a manifest key based on the reference it is given
 func NewKey(reference string) (*Key, error) {
@@ -65,21 +87,14 @@ func (k Key) String() string {
 }
 
 // Locate returns the location of the binary for the passed parameters from the passed manifest
-// If manifestLocation is an empty string the DefaultURL is used
 // The build version is searched for as a prefix of the OperatingSystemVersion.
 // If the OperatingSystemVersion is empty it returns the first build listed for that operating system
-func Locate(key *Key, manifestLocation string) (string, error) {
+func Locate(key *Key) (string, error) {
 	if key == nil {
 		return "", errors.New("passed key was nil")
 	}
-	if manifestLocation == "" {
-		manifestLocation = DefaultURL
-	}
-	if u, err := url.Parse(manifestLocation); err != nil || u.Host == "" || u.Scheme == "" {
-		return "", errors.New("only URL manifest locations are supported")
-	}
-	log.Debugf("retrieving manifest %v", manifestLocation)
-	manifest, err := fetch(manifestLocation)
+	log.Debugf("retrieving manifest %s", GetURL())
+	manifest, err := fetch(GetURL())
 	if err != nil {
 		return "", err
 	}

@@ -37,6 +37,27 @@ import (
 
 const envoyLocation = "bin/envoy"
 
+// FetchAndRun downloads an Envoy binary, if necessary, and runs it.
+func (r *Runtime) FetchAndRun(reference string, args []string) error {
+	key, err := manifest.NewKey(reference)
+	if err != nil {
+		if _, err := os.Stat(reference); err != nil {
+			return fmt.Errorf("%q is neither a valid Envoy release provided by getenvoy.io nor a path to a custom Envoy binary", reference)
+		}
+		return r.RunPath(reference, args)
+	}
+	if !r.AlreadyDownloaded(key) {
+		location, err := manifest.Locate(key)
+		if err != nil {
+			return err
+		}
+		if err := r.Fetch(key, location); err != nil {
+			return err
+		}
+	}
+	return r.Run(key, args)
+}
+
 // Fetch downloads an Envoy binary from the passed location
 func (r *Runtime) Fetch(key *manifest.Key, binaryLocation string) error {
 	if !r.AlreadyDownloaded(key) {

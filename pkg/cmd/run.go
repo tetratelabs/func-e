@@ -17,14 +17,14 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/controlplane"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/debug"
-	"github.com/tetratelabs/getenvoy/pkg/manifest"
+
+	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 
 var (
@@ -76,7 +76,10 @@ getenvoy run standard:1.11.1 -- --help
 			)
 
 			runtime, err := envoy.NewRuntime(
-				func(r *envoy.Runtime) { r.Config = cfg },
+				func(r *envoy.Runtime) {
+					r.Config = cfg
+					r.IO = cmdutil.StreamsOf(cmd)
+				},
 				debug.EnableEnvoyAdminDataCollection,
 				debug.EnableEnvoyLogCollection,
 				debug.EnableNodeCollection,
@@ -87,23 +90,7 @@ getenvoy run standard:1.11.1 -- --help
 				return err
 			}
 
-			key, manifestErr := manifest.NewKey(args[0])
-			if manifestErr != nil {
-				if _, err := os.Stat(args[0]); err != nil {
-					return fmt.Errorf("%v isn't valid manifest reference or an existing filepath", args[0])
-				}
-				return runtime.RunPath(args[0], args[1:])
-			}
-			if !runtime.AlreadyDownloaded(key) {
-				location, err := manifest.Locate(key, manifestURL)
-				if err != nil {
-					return err
-				}
-				if err := runtime.Fetch(key, location); err != nil {
-					return err
-				}
-			}
-			return runtime.Run(key, args[1:])
+			return runtime.FetchAndRun(args[0], args[1:])
 		},
 	}
 	cmd.Flags().StringVarP(&bootstrap, "bootstrap", "b", "",

@@ -26,6 +26,8 @@ import (
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/tetratelabs/getenvoy/pkg/binary"
+
+	ioutil "github.com/tetratelabs/getenvoy/pkg/util/io"
 )
 
 // NewRuntime creates a new Runtime with the local file storage set to the home directory
@@ -63,6 +65,9 @@ type Runtime struct {
 	debugDir string
 	TmplDir  string
 	Config   *Config
+
+	WorkingDir string
+	IO         ioutil.StdStreams
 
 	cmd *exec.Cmd
 	ctx context.Context
