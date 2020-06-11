@@ -77,6 +77,9 @@ var _ = Describe("built-in toolchain factory", func() {
             kind: BuiltinToolchain
             container:
               image: tetratelabs/getenvoy-extension-rust-builder:dev
+            build:
+              output:
+                wasmFile: target/getenvoy/extension.wasm
 `,
 		}),
 		Entry("example config", testCase{
@@ -87,6 +90,9 @@ var _ = Describe("built-in toolchain factory", func() {
             kind: BuiltinToolchain
             container:
               image: tetratelabs/getenvoy-extension-rust-builder:dev
+            build:
+              output:
+                wasmFile: target/getenvoy/extension.wasm
 `,
 		}),
 		Entry("full config", testCase{
@@ -100,6 +106,8 @@ var _ = Describe("built-in toolchain factory", func() {
                 options:
                 - -e
                 - VAR=ALUE
+              output:
+                wasmFile: target/extension.wasm
             test:
               container:
                 image: tetratelabs/getenvoy-extension-rust-builder:7.8.9
@@ -117,6 +125,8 @@ var _ = Describe("built-in toolchain factory", func() {
                 options:
                 - -e
                 - VAR=ALUE
+              output:
+                wasmFile: target/extension.wasm
             test:
               container:
                 image: tetratelabs/getenvoy-extension-rust-builder:7.8.9

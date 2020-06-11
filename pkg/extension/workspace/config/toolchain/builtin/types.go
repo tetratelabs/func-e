@@ -40,6 +40,14 @@ type ToolchainConfig struct {
 type BuildConfig struct {
 	// Configuration of a Docker build container.
 	Container *ContainerConfig `json:"container,omitempty"`
+	// Build artifacts.
+	Output *BuildOutput `json:"output,omitempty"`
+}
+
+// BuildOutput represents configuration of build artifacts.
+type BuildOutput struct {
+	// Path to the *.wasm file (relative to the workspace root).
+	WasmFile string `json:"wasmFile,omitempty"`
 }
 
 // TestConfig represents configuration of `test` tool.

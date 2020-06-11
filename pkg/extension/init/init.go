@@ -25,6 +25,8 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 
+	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
+
 	osutil "github.com/tetratelabs/getenvoy/pkg/util/os"
 )
 
@@ -69,10 +71,8 @@ func (f ProgressFuncs) OnComplete() {
 
 // ScaffoldOpts represents configuration options supported by Scaffold().
 type ScaffoldOpts struct {
-	Language     string
-	Category     string
+	Extension    *extension.Descriptor
 	TemplateName string
-	EnvoyVersion string
 
 	OutputDir string
 
@@ -81,7 +81,7 @@ type ScaffoldOpts struct {
 
 // Scaffold generates the initial set of files to kick off development of a new extension.
 func Scaffold(opts *ScaffoldOpts) (err error) {
-	templateDir, fs, err := getTemplateSource().GetTemplateDir(opts.Language, opts.Category, opts.TemplateName)
+	templateDir, fs, err := getTemplateSource().GetTemplateDir(opts.Extension.Language, opts.Extension.Category, opts.TemplateName)
 	if err != nil {
 		return fmt.Errorf("no such template: %v", err)
 	}

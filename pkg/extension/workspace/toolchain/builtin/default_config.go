@@ -38,6 +38,11 @@ func defaultConfigFor(extension *extensionconfig.Descriptor) *builtinconfig.Tool
 	cfg.Container = &builtinconfig.ContainerConfig{
 		Image: defaultBuildImageFor(extension.Language),
 	}
+	cfg.Build = &builtinconfig.BuildConfig{
+		Output: &builtinconfig.BuildOutput{
+			WasmFile: defaultOutputPathFor(extension.Language),
+		},
+	}
 	return cfg
 }
 
@@ -48,5 +53,17 @@ func defaultBuildImageFor(language extensionconfig.Language) string {
 	default:
 		// must be caught by unit tests
 		panic(errors.Errorf("failed to determine default build image for unsupported programming language %q", language))
+	}
+}
+
+func defaultOutputPathFor(language extensionconfig.Language) string {
+	// choose location inside a build directory of that language
+	switch language {
+	case extensionconfig.LanguageRust:
+		// keep *.wasm file inside Cargo build dir (to be cleaned up automatically)
+		return "target/getenvoy/extension.wasm"
+	default:
+		// must be caught by unit tests
+		panic(errors.Errorf("failed to determine default output path for unsupported programming language %q", language))
 	}
 }

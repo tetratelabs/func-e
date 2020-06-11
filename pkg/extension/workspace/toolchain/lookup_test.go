@@ -54,7 +54,7 @@ var _ = Describe("LoadToolchain()", func() {
 
 		_, err = toolchains.LoadToolchain(toolchains.Default, workspace)
 		Expect(err).To(MatchError(fmt.Sprintf(`toolchain "default" has invalid configuration coming from "%s/.getenvoy/extension/toolchains/default.yaml": `+
-			`configuration of 'build' tool is not valid: container configuration is not valid: "?invalid value?" is not a valid image name: invalid reference format`, workspace.GetDir().GetRootDir())))
+			`'build' tool config is not valid: container configuration is not valid: "?invalid value?" is not a valid image name: invalid reference format`, workspace.GetDir().GetRootDir())))
 	})
 
 	It("should load toolchain with a valid config", func() {

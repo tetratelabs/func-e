@@ -44,30 +44,34 @@ type builtin struct {
 }
 
 func (t *builtin) Build(context types.BuildContext) error {
-	cmd := exec.Command("docker", t.dockerCliArgs(t.cfg.GetBuildContainer(), commandBuild)...)
+	cmd := exec.Command("docker", t.dockerCliArgs(t.cfg.GetBuildContainer()).
+		Add(commandBuild, "--output-file", t.cfg.GetBuildOutputWasmFile())...)
 	return executil.Run(cmd, context.IO)
 }
 
 func (t *builtin) Test(context types.TestContext) error {
-	cmd := exec.Command("docker", t.dockerCliArgs(t.cfg.GetTestContainer(), commandTest)...)
+	cmd := exec.Command("docker", t.dockerCliArgs(t.cfg.GetTestContainer()).Add(commandTest)...)
 	return executil.Run(cmd, context.IO)
 }
 
 func (t *builtin) Clean(context types.CleanContext) error {
-	cmd := exec.Command("docker", t.dockerCliArgs(t.cfg.GetCleanContainer(), commandClean)...)
+	cmd := exec.Command("docker", t.dockerCliArgs(t.cfg.GetCleanContainer()).Add(commandClean)...)
 	return executil.Run(cmd, context.IO)
 }
 
-func (t *builtin) dockerCliArgs(container *config.ContainerConfig, command string) []string {
-	args := []string{
+func (t *builtin) dockerCliArgs(container *config.ContainerConfig) argList {
+	return argList{
 		"run",
 		"--rm",
 		"-t", // to get interactive/colored output out of container
 		"-v", fmt.Sprintf("%s:%s", t.workspace.GetDir().GetRootDir(), "/source"),
 		"-w", "/source",
 		"--init", // to ensure container will be responsive to SIGTERM signal
-	}
-	args = append(args, container.Options...)
-	args = append(args, container.Image, command)
-	return args
+	}.Add(container.Options...).Add(container.Image)
+}
+
+type argList []string
+
+func (l argList) Add(values ...string) argList {
+	return append(l, values...)
 }

@@ -20,6 +20,7 @@ import (
 
 	"github.com/pkg/errors"
 	extensionconfig "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
+	builtinconfig "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/toolchain/builtin"
 )
 
 var (
@@ -31,63 +32,72 @@ var (
 kind: BuiltinToolchain
 
 #
-# Default configuration for a build container.
+# Configuration of the default build container.
 #
 
 ## container:
 ##   # Builder image.
-##   image: {{ .BuildImage }}
+##   image: {{ .Container.Image }}
 ##   # Docker cli options.
 ##   options: []
 
 #
-# Configuration for the 'build' command.
+# Configuration of the 'build' command.
 #
-# If omitted, the default configuration for a build container will be used instead.
+# If omitted, configuration of the default build container will be used instead.
 #
 
 ## build:
 ##   container:
 ##     # Builder image.
-##     image: {{ .BuildImage }}
+##     image: {{ .Container.Image }}
 ##     # Docker cli options.
 ##     options: []
+##   output:
+##     # Output *.wasm file.
+##     wasmFile: {{ .Build.Output.WasmFile }}
 
 #
-# Configuration for the 'test' command.
+# Configuration of the 'test' command.
 #
-# If omitted, the default configuration for a build container will be used instead.
+# If omitted, configuration of the default build container will be used instead.
 #
 
 ## test:
 ##   container:
 ##     # Builder image.
-##     image: {{ .BuildImage }}
+##     image: {{ .Container.Image }}
+##     # Docker cli options.
+##     options: []
+
+#
+# Configuration of the 'clean' command.
+#
+# If omitted, configuration of the default build container will be used instead.
+#
+
+## clean:
+##   container:
+##     # Builder image.
+##     image: {{ .Container.Image }}
 ##     # Docker cli options.
 ##     options: []
 `
 )
 
-type exampleConfigTemplateArgs struct {
-	BuildImage string
-}
-
 // ExampleConfig returns an example toolchain config for a given extension.
 func ExampleConfig(extension *extensionconfig.Descriptor) []byte {
-	args := exampleConfigTemplateArgs{
-		BuildImage: defaultBuildImageFor(extension.Language),
-	}
-	return renderExampleConfigTemplate(args)
+	return renderExampleConfigTemplate(defaultConfigFor(extension))
 }
 
-func renderExampleConfigTemplate(args exampleConfigTemplateArgs) []byte {
+func renderExampleConfigTemplate(toolchain *builtinconfig.ToolchainConfig) []byte {
 	tmpl, err := template.New("").Parse(exampleConfigTemplate)
 	if err != nil {
 		// must be caught by unit tests
 		panic(err)
 	}
 	var out bytes.Buffer
-	err = tmpl.Execute(&out, args)
+	err = tmpl.Execute(&out, toolchain)
 	if err != nil {
 		// must be caught by unit tests
 		panic(errors.Wrap(err, "failed to render example configuration template"))

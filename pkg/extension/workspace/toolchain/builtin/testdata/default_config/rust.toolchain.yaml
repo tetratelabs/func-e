@@ -1,0 +1,6 @@
+kind: BuiltinToolchain
+container:
+  image: tetratelabs/getenvoy-extension-rust-builder:dev
+build:
+  output:
+    wasmFile: target/getenvoy/extension.wasm

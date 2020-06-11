@@ -90,11 +90,15 @@ Scaffold a new Envoy extension in a language of your choice.`,
 				usedWizard = true
 			}
 
+			descriptor, err := scaffold.NewExtension(params.Category.Value, params.Language.Value)
+			if err != nil {
+				return err
+			}
+			descriptor.Runtime.Envoy.Version = supportedEnvoyVersion
+
 			opts := &scaffold.ScaffoldOpts{}
-			opts.Category = params.Category.Value
-			opts.Language = params.Language.Value
+			opts.Extension = descriptor
 			opts.TemplateName = "default"
-			opts.EnvoyVersion = supportedEnvoyVersion
 			opts.OutputDir = params.OutputDir.Value
 			opts.ProgressHandler = &feedback{
 				cmd:        cmd,

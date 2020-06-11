@@ -45,6 +45,6 @@ func (f feedback) OnComplete() {
 		f.cmd.Println(uiutil.Style(`{{ . | underline | faint }}`).Apply("Hint:"))
 		f.cmd.Println(uiutil.Faint("Next time you can skip the wizard by running"))
 		f.cmd.Println(uiutil.Faint(
-			fmt.Sprintf("  %s --category %s --language %s %s", f.cmd.CommandPath(), f.opts.Category, f.opts.Language, f.opts.OutputDir)))
+			fmt.Sprintf("  %s --category %s --language %s %s", f.cmd.CommandPath(), f.opts.Extension.Category, f.opts.Extension.Language, f.opts.OutputDir)))
 	}
 }

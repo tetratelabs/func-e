@@ -50,15 +50,24 @@ var (
 	categoryIndex = Categories.Index()
 )
 
+// ParseCategory parses text representation of the extension category.
+func ParseCategory(text string) (Category, error) {
+	category, valid := categoryIndex[text]
+	if !valid {
+		return "", errors.Errorf("%q is not a valid extension category", text)
+	}
+	return category, nil
+}
+
 // UnmarshalJSON implements the json.Unmarshaller interface.
 func (c *Category) UnmarshalJSON(b []byte) error {
 	var value string
 	if err := json.Unmarshal(b, &value); err != nil {
 		return err
 	}
-	category, valid := categoryIndex[value]
-	if !valid {
-		return errors.Errorf("%q is not a valid extension category", value)
+	category, err := ParseCategory(value)
+	if err != nil {
+		return err
 	}
 	*c = category
 	return nil
@@ -81,15 +90,24 @@ var (
 	languageIndex = Languages.Index()
 )
 
+// ParseLanguage parses text representation of the extension language.
+func ParseLanguage(text string) (Language, error) {
+	language, valid := languageIndex[text]
+	if !valid {
+		return "", errors.Errorf("%q is not a valid programming language", text)
+	}
+	return language, nil
+}
+
 // UnmarshalJSON implements the json.Unmarshaller interface.
 func (l *Language) UnmarshalJSON(b []byte) error {
 	var value string
 	if err := json.Unmarshal(b, &value); err != nil {
 		return err
 	}
-	language, valid := languageIndex[value]
-	if !valid {
-		return errors.Errorf("%q is not a valid programming language", value)
+	language, err := ParseLanguage(value)
+	if err != nil {
+		return err
 	}
 	*l = language
 	return nil

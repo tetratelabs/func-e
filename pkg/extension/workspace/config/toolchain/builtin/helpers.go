@@ -15,6 +15,8 @@
 package builtin
 
 import (
+	"path"
+
 	"github.com/pkg/errors"
 
 	"github.com/docker/distribution/reference"
@@ -56,10 +58,26 @@ func (c *BuildConfig) DefaultTo(defaultConfig *BuildConfig) {
 	if defaultConfig == nil {
 		return
 	}
+	// Container
 	if c.Container == nil && defaultConfig.Container != nil {
 		c.Container = new(ContainerConfig)
 	}
 	c.Container.DefaultTo(defaultConfig.Container)
+	// Output
+	if c.Output == nil && defaultConfig.Output != nil {
+		c.Output = new(BuildOutput)
+	}
+	c.Output.DefaultTo(defaultConfig.Output)
+}
+
+// DefaultTo sets default values according to a given config.
+func (c *BuildOutput) DefaultTo(defaultConfig *BuildOutput) {
+	if defaultConfig == nil {
+		return
+	}
+	if c.WasmFile == "" {
+		c.WasmFile = defaultConfig.WasmFile
+	}
 }
 
 // DefaultTo sets default values according to a given config.
@@ -102,61 +120,76 @@ func (c *ToolchainConfig) Validate() (errs error) {
 	if c.Container == nil {
 		errs = multierror.Append(errs, errors.New("configuration of the default build container cannot be empty"))
 	}
-	if c.Container != nil {
-		if err := c.Container.Validate(); err != nil {
-			errs = multierror.Append(errs, errors.Wrap(err, "configuration of the default build container is not valid"))
-		}
+	if err := c.Container.Validate(); err != nil {
+		errs = multierror.Append(errs, errors.Wrap(err, "configuration of the default build container is not valid"))
 	}
-	if c.Build != nil {
-		if err := c.Build.Validate(); err != nil {
-			errs = multierror.Append(errs, errors.Wrap(err, "configuration of 'build' tool is not valid"))
-		}
+	if err := c.Build.Validate(); err != nil {
+		errs = multierror.Append(errs, errors.Wrap(err, "'build' tool config is not valid"))
 	}
-	if c.Test != nil {
-		if err := c.Test.Validate(); err != nil {
-			errs = multierror.Append(errs, errors.Wrap(err, "configuration of 'test' tool is not valid"))
-		}
+	if err := c.Test.Validate(); err != nil {
+		errs = multierror.Append(errs, errors.Wrap(err, "'test' tool config is not valid"))
 	}
-	if c.Clean != nil {
-		if err := c.Clean.Validate(); err != nil {
-			errs = multierror.Append(errs, errors.Wrap(err, "configuration of 'clean' tool is not valid"))
-		}
+	if err := c.Clean.Validate(); err != nil {
+		errs = multierror.Append(errs, errors.Wrap(err, "'clean' tool config is not valid"))
 	}
 	return
 }
 
 // Validate returns an error if BuildConfig is not valid.
 func (c *BuildConfig) Validate() (errs error) {
-	if c.Container != nil {
-		if err := c.Container.Validate(); err != nil {
-			errs = multierror.Append(errs, errors.Wrap(err, "container configuration is not valid"))
-		}
+	if c == nil {
+		return
+	}
+	if err := c.Container.Validate(); err != nil {
+		errs = multierror.Append(errs, errors.Wrap(err, "container configuration is not valid"))
+	}
+	if err := c.Output.Validate(); err != nil {
+		errs = multierror.Append(errs, errors.Wrap(err, "output configuration is not valid"))
+	}
+	return
+}
+
+// Validate returns an error if BuildOutput is not valid.
+func (c *BuildOutput) Validate() (errs error) {
+	if c == nil {
+		return
+	}
+	if c.WasmFile == "" {
+		errs = multierror.Append(errs, errors.New("*.wasm file output path cannot be empty"))
+	}
+	if path.IsAbs(c.WasmFile) {
+		errs = multierror.Append(errs, errors.New("*.wasm file output path must be relative to the workspace root"))
 	}
 	return
 }
 
 // Validate returns an error if TestConfig is not valid.
 func (c *TestConfig) Validate() (errs error) {
-	if c.Container != nil {
-		if err := c.Container.Validate(); err != nil {
-			errs = multierror.Append(errs, errors.Wrap(err, "container configuration is not valid"))
-		}
+	if c == nil {
+		return
+	}
+	if err := c.Container.Validate(); err != nil {
+		errs = multierror.Append(errs, errors.Wrap(err, "container configuration is not valid"))
 	}
 	return
 }
 
 // Validate returns an error if CleanConfig is not valid.
 func (c *CleanConfig) Validate() (errs error) {
-	if c.Container != nil {
-		if err := c.Container.Validate(); err != nil {
-			errs = multierror.Append(errs, errors.Wrap(err, "container configuration is not valid"))
-		}
+	if c == nil {
+		return
+	}
+	if err := c.Container.Validate(); err != nil {
+		errs = multierror.Append(errs, errors.Wrap(err, "container configuration is not valid"))
 	}
 	return
 }
 
 // Validate returns an error if ContainerConfig is not valid.
 func (c *ContainerConfig) Validate() (errs error) {
+	if c == nil {
+		return
+	}
 	if c.Image == "" {
 		errs = multierror.Append(errs, errors.New("image name cannot be empty"))
 	}
@@ -174,6 +207,14 @@ func (c *ToolchainConfig) GetBuildContainer() *ContainerConfig {
 		return c.Build.Container
 	}
 	return c.Container
+}
+
+// GetBuildOutputWasmFile returns effective *.wasm file output file used by 'build' tool.
+func (c *ToolchainConfig) GetBuildOutputWasmFile() string {
+	if c.Build != nil && c.Build.Output != nil && c.Build.Output.WasmFile != "" {
+		return c.Build.Output.WasmFile
+	}
+	return "extension.wasm"
 }
 
 // GetTestContainer returns effective configuration of a container used by 'test' tool.

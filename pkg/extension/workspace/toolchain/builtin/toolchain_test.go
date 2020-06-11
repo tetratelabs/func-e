@@ -87,6 +87,7 @@ var _ = Describe("built-in toolchain", func() {
 	parseConfig := func(yaml string) *builtinconfig.ToolchainConfig {
 		var cfg builtinconfig.ToolchainConfig
 		Expect(config.Unmarshal([]byte(yaml), &cfg)).To(Succeed())
+		Expect(cfg.Validate()).To(Succeed())
 		return &cfg
 	}
 
@@ -98,6 +99,11 @@ var _ = Describe("built-in toolchain", func() {
 	test := func(toolchain types.Toolchain) error {
 		By("running 'test' tool")
 		return toolchain.Test(types.TestContext{IO: stdio})
+	}
+
+	clean := func(toolchain types.Toolchain) error {
+		By("running 'clean' tool")
+		return toolchain.Clean(types.CleanContext{IO: stdio})
 	}
 
 	DescribeTable("should execute `docker run` with a given container image and Docker cli options",
@@ -120,32 +126,73 @@ var _ = Describe("built-in toolchain", func() {
 			Expect(stdout.String()).To(Equal(given.expectedStdOut))
 			Expect(stderr.String()).To(Equal("docker stderr\n"))
 		},
+		Entry("build using default container image", func() testCase {
+			return testCase{
+				config: `
+                kind: BuiltinToolchain
+                container:
+                  image: default/image
+`,
+				tool:           build,
+				expectedStdOut: fmt.Sprintf("testdata/toolchain/docker run --rm -t -v %s:/source -w /source --init default/image build --output-file extension.wasm\n", workspace.GetDir().GetRootDir()),
+			}
+		}),
+		Entry("test using default container image", func() testCase {
+			return testCase{
+				config: `
+                kind: BuiltinToolchain
+                container:
+                  image: default/image
+`,
+				tool:           test,
+				expectedStdOut: fmt.Sprintf("testdata/toolchain/docker run --rm -t -v %s:/source -w /source --init default/image test\n", workspace.GetDir().GetRootDir()),
+			}
+		}),
+		Entry("clean using default container image", func() testCase {
+			return testCase{
+				config: `
+                kind: BuiltinToolchain
+                container:
+                  image: default/image
+`,
+				tool:           clean,
+				expectedStdOut: fmt.Sprintf("testdata/toolchain/docker run --rm -t -v %s:/source -w /source --init default/image clean\n", workspace.GetDir().GetRootDir()),
+			}
+		}),
 		Entry("build using given container image", func() testCase {
 			return testCase{
 				config: `
                 kind: BuiltinToolchain
+                container:
+                  image: default/image
                 build:
                   container:
                     image: build/image
+                  output:
+                    wasmFile: output/file.wasm
                 # 'test' tool config should not affect 'build'
                 test:
                   container:
                     image: test/image
 `,
 				tool:           build,
-				expectedStdOut: fmt.Sprintf("testdata/toolchain/docker run --rm -t -v %s:/source -w /source --init build/image build\n", workspace.GetDir().GetRootDir()),
+				expectedStdOut: fmt.Sprintf("testdata/toolchain/docker run --rm -t -v %s:/source -w /source --init build/image build --output-file output/file.wasm\n", workspace.GetDir().GetRootDir()),
 			}
 		}),
 		Entry("build using given container image and Docker cli options", func() testCase {
 			return testCase{
 				config: `
                 kind: BuiltinToolchain
+                container:
+                  image: default/image
                 build:
                   container:
                     image: build/image
                     options:
                     - -e
                     - VAR=VALUE
+                  output:
+                    wasmFile: output/file.wasm
                 # 'test' tool config should not affect 'build'
                 test:
                   container:
@@ -155,33 +202,41 @@ var _ = Describe("built-in toolchain", func() {
                     - /host/path=/container/path
 `,
 				tool:           build,
-				expectedStdOut: fmt.Sprintf("testdata/toolchain/docker run --rm -t -v %s:/source -w /source --init -e VAR=VALUE build/image build\n", workspace.GetDir().GetRootDir()),
+				expectedStdOut: fmt.Sprintf("testdata/toolchain/docker run --rm -t -v %s:/source -w /source --init -e VAR=VALUE build/image build --output-file output/file.wasm\n", workspace.GetDir().GetRootDir()),
 			}
 		}),
 		Entry("build fails with a non-0 exit code", func() testCase {
 			return testCase{
 				config: `
                 kind: BuiltinToolchain
+                container:
+                  image: default/image
                 build:
                   container:
                     image: build/image
                     options:
                     - -e
                     - EXIT_CODE=3
+                  output:
+                    wasmFile: output/file.wasm
 `,
 				tool:           build,
-				expectedStdOut: fmt.Sprintf("testdata/toolchain/docker run --rm -t -v %s:/source -w /source --init -e EXIT_CODE=3 build/image build\n", workspace.GetDir().GetRootDir()),
-				expectedErr:    fmt.Sprintf("failed to execute an external command \"testdata/toolchain/docker run --rm -t -v %s:/source -w /source --init -e EXIT_CODE=3 build/image build\": exit status 3", workspace.GetDir().GetRootDir()),
+				expectedStdOut: fmt.Sprintf("testdata/toolchain/docker run --rm -t -v %s:/source -w /source --init -e EXIT_CODE=3 build/image build --output-file output/file.wasm\n", workspace.GetDir().GetRootDir()),
+				expectedErr:    fmt.Sprintf("failed to execute an external command \"testdata/toolchain/docker run --rm -t -v %s:/source -w /source --init -e EXIT_CODE=3 build/image build --output-file output/file.wasm\": exit status 3", workspace.GetDir().GetRootDir()),
 			}
 		}),
 		Entry("test using given container image", func() testCase {
 			return testCase{
 				config: `
                 kind: BuiltinToolchain
+                container:
+                  image: default/image
                 # 'build' tool config should not affect 'test'
                 build:
                   container:
                     image: build/image
+                  output:
+                    wasmFile: output/file.wasm
                 test:
                   container:
                     image: test/image
@@ -194,6 +249,8 @@ var _ = Describe("built-in toolchain", func() {
 			return testCase{
 				config: `
                 kind: BuiltinToolchain
+                container:
+                  image: default/image
                 # 'build' tool config should not affect 'test'
                 build:
                   container:
@@ -201,6 +258,8 @@ var _ = Describe("built-in toolchain", func() {
                     options:
                     - -e
                     - VAR=VALUE
+                  output:
+                    wasmFile: output/file.wasm
                 test:
                   container:
                     image: test/image
@@ -216,6 +275,8 @@ var _ = Describe("built-in toolchain", func() {
 			return testCase{
 				config: `
                 kind: BuiltinToolchain
+                container:
+                  image: default/image
                 test:
                   container:
                     image: test/image
@@ -226,6 +287,70 @@ var _ = Describe("built-in toolchain", func() {
 				tool:           test,
 				expectedStdOut: fmt.Sprintf("testdata/toolchain/docker run --rm -t -v %s:/source -w /source --init -e EXIT_CODE=3 test/image test\n", workspace.GetDir().GetRootDir()),
 				expectedErr:    fmt.Sprintf("failed to execute an external command \"testdata/toolchain/docker run --rm -t -v %s:/source -w /source --init -e EXIT_CODE=3 test/image test\": exit status 3", workspace.GetDir().GetRootDir()),
+			}
+		}),
+		Entry("clean using given container image", func() testCase {
+			return testCase{
+				config: `
+                kind: BuiltinToolchain
+                container:
+                  image: default/image
+                # 'build' tool config should not affect 'test'
+                build:
+                  container:
+                    image: build/image
+                  output:
+                    wasmFile: output/file.wasm
+                clean:
+                  container:
+                    image: clean/image
+`,
+				tool:           clean,
+				expectedStdOut: fmt.Sprintf("testdata/toolchain/docker run --rm -t -v %s:/source -w /source --init clean/image clean\n", workspace.GetDir().GetRootDir()),
+			}
+		}),
+		Entry("clean using given container image and Docker cli options", func() testCase {
+			return testCase{
+				config: `
+                kind: BuiltinToolchain
+                container:
+                  image: default/image
+                # 'build' tool config should not affect 'test'
+                build:
+                  container:
+                    image: build/image
+                    options:
+                    - -e
+                    - VAR=VALUE
+                  output:
+                    wasmFile: output/file.wasm
+                clean:
+                  container:
+                    image: clean/image
+                    options:
+                    - -v
+                    - /host/path=/container/path
+`,
+				tool:           clean,
+				expectedStdOut: fmt.Sprintf("testdata/toolchain/docker run --rm -t -v %s:/source -w /source --init -v /host/path=/container/path clean/image clean\n", workspace.GetDir().GetRootDir()),
+			}
+		}),
+		Entry("clean fails with a non-0 exit code", func() testCase {
+			return testCase{
+				config: `
+                kind: BuiltinToolchain
+                container:
+                  image: default/image
+                clean:
+                  container:
+                    image: clean/image
+                    options:
+                    - -e
+                    - EXIT_CODE=3
+`,
+				tool:           clean,
+				expectedStdOut: fmt.Sprintf("testdata/toolchain/docker run --rm -t -v %s:/source -w /source --init -e EXIT_CODE=3 clean/image clean\n", workspace.GetDir().GetRootDir()),
+				expectedErr:    fmt.Sprintf("failed to execute an external command \"testdata/toolchain/docker run --rm -t -v %s:/source -w /source --init -e EXIT_CODE=3 clean/image clean\": exit status 3", workspace.GetDir().GetRootDir()),
 			}
 		}),
 	)

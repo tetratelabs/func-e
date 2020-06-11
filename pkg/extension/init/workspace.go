@@ -19,6 +19,8 @@ import (
 	"html/template"
 
 	"github.com/pkg/errors"
+
+	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/fs"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
 )
@@ -30,24 +32,24 @@ var (
 #
 kind: Extension
 
-language: {{ .Language }}
 category: {{ .Category }}
+language: {{ .Language }}
 
 # Runtime the extension is being developed against.
 runtime:
   envoy:
-    version: {{ .EnvoyVersion }}
+    version: {{ .Runtime.Envoy.Version }}
 `
 )
 
-func generateExtensionDescriptor(opts *ScaffoldOpts) ([]byte, error) {
+func generateExtensionDescriptor(descriptor *extension.Descriptor) ([]byte, error) {
 	tmpl, err := template.New("").Parse(extensionDescriptorTemplate)
 	if err != nil {
 		// must be caught by unit tests
 		panic(err)
 	}
 	var out bytes.Buffer
-	err = tmpl.Execute(&out, opts)
+	err = tmpl.Execute(&out, descriptor)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to render extension descriptor template")
 	}
@@ -59,7 +61,7 @@ func generateWorkspace(opts *ScaffoldOpts) error {
 	if err != nil {
 		return err
 	}
-	descriptor, err := generateExtensionDescriptor(opts)
+	descriptor, err := generateExtensionDescriptor(opts.Extension)
 	if err != nil {
 		return err
 	}

@@ -24,6 +24,7 @@ import (
 	"github.com/spf13/cobra"
 
 	scaffold "github.com/tetratelabs/getenvoy/pkg/extension/init"
+	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 	uiutil "github.com/tetratelabs/getenvoy/pkg/util/ui"
 )
 
@@ -47,8 +48,10 @@ var _ = Describe("feedback", func() {
 				f := &feedback{
 					cmd: c,
 					opts: &scaffold.ScaffoldOpts{
-						Category:  "envoy.filters.http",
-						Language:  "rust",
+						Extension: &extension.Descriptor{
+							Category: extension.EnvoyHTTPFilter,
+							Language: extension.LanguageRust,
+						},
 						OutputDir: "/path/to/dir",
 					},
 					usedWizard: given.usedWizard,

@@ -19,22 +19,25 @@ import (
 	"net/http"
 
 	"github.com/hashicorp/go-multierror"
+
+	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 )
 
 // templateSource represents a source of extension templates.
 type templateSource interface {
 	// GetTemplateDir returns a directory with template source code.
-	GetTemplateDir(language, category, template string) (string, http.FileSystem, error)
+	GetTemplateDir(language extension.Language, category extension.Category, template string) (string, http.FileSystem, error)
 }
 
 // fsTemplateSource represents a source of extension templates backend by
 // an in-memory file system.
 type fsTemplateSource struct {
 	fs           http.FileSystem
-	namingScheme func(language, category, template string) string
+	namingScheme func(language extension.Language, category extension.Category, template string) string
 }
 
-func (s *fsTemplateSource) GetTemplateDir(language, category, template string) (dirName string, fs http.FileSystem, errs error) {
+func (s *fsTemplateSource) GetTemplateDir(language extension.Language, category extension.Category,
+	template string) (dirName string, fs http.FileSystem, errs error) {
 	dirName = s.namingScheme(language, category, template)
 	dir, err := s.fs.Open(dirName)
 	if err != nil {

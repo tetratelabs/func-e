@@ -22,6 +22,8 @@ import (
 
 	"github.com/rakyll/statik/fs"
 
+	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
+
 	// force execution of auto generated code
 	_ "github.com/tetratelabs/getenvoy/pkg/extension/init/templates"
 )
@@ -43,8 +45,8 @@ func getTemplateSource() templateSource {
 		}
 		templates = &fsTemplateSource{
 			fs: fileSystem,
-			namingScheme: func(language, category, template string) string {
-				return "/" + path.Join(language, category, template)
+			namingScheme: func(language extension.Language, category extension.Category, template string) string {
+				return "/" + path.Join(language.String(), category.String(), template)
 			},
 		}
 	})

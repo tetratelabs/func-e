@@ -134,7 +134,7 @@ Run 'getenvoy extension build --help' for usage.
 			Expect(err).ToNot(HaveOccurred())
 
 			By("verifying command output")
-			Expect(stdout.String()).To(Equal(fmt.Sprintf("%s/docker run --rm -t -v %s:/source -w /source --init tetratelabs/getenvoy-extension-rust-builder:dev build\n", dockerDir, workspaceDir)))
+			Expect(stdout.String()).To(Equal(fmt.Sprintf("%s/docker run --rm -t -v %s:/source -w /source --init tetratelabs/getenvoy-extension-rust-builder:dev build --output-file target/getenvoy/extension.wasm\n", dockerDir, workspaceDir)))
 			Expect(stderr.String()).To(Equal("docker stderr\n"))
 		})
 
@@ -151,7 +151,7 @@ Run 'getenvoy extension build --help' for usage.
 			Expect(err).ToNot(HaveOccurred())
 
 			By("verifying command output")
-			Expect(stdout.String()).To(Equal(fmt.Sprintf("%s/docker run --rm -t -v %s:/source -w /source --init -e VAR=VALUE -v /host:/container build/image build\n", dockerDir, workspaceDir)))
+			Expect(stdout.String()).To(Equal(fmt.Sprintf("%s/docker run --rm -t -v %s:/source -w /source --init -e VAR=VALUE -v /host:/container build/image build --output-file target/getenvoy/extension.wasm\n", dockerDir, workspaceDir)))
 			Expect(stderr.String()).To(Equal("docker stderr\n"))
 		})
 
@@ -168,9 +168,9 @@ Run 'getenvoy extension build --help' for usage.
 			Expect(err).To(HaveOccurred())
 
 			By("verifying command output")
-			Expect(stdout.String()).To(Equal(fmt.Sprintf("%s/docker run --rm -t -v %s:/source -w /source --init -e EXIT_CODE=3 build/image build\n", dockerDir, workspaceDir)))
+			Expect(stdout.String()).To(Equal(fmt.Sprintf("%s/docker run --rm -t -v %s:/source -w /source --init -e EXIT_CODE=3 build/image build --output-file target/getenvoy/extension.wasm\n", dockerDir, workspaceDir)))
 			Expect(stderr.String()).To(Equal(fmt.Sprintf(`docker stderr
-Error: failed to build Envoy extension using "default" toolchain: failed to execute an external command "%s/docker run --rm -t -v %s:/source -w /source --init -e EXIT_CODE=3 build/image build": exit status 3
+Error: failed to build Envoy extension using "default" toolchain: failed to execute an external command "%s/docker run --rm -t -v %s:/source -w /source --init -e EXIT_CODE=3 build/image build --output-file target/getenvoy/extension.wasm": exit status 3
 
 Run 'getenvoy extension build --help' for usage.
 `, dockerDir, workspaceDir)))
