@@ -75,7 +75,6 @@ func setupMockPilot() (*bootstrap.Server, util.TearDownFunc) {
 		args.Config.FileDir = "testdata"
 		args.Plugins = bootstrap.DefaultPlugins
 		args.Mesh.MixerAddress = ""
-		args.Mesh.RdsRefreshDelay = nil
 		args.Service.Registries = []string{}
 	})
 }
