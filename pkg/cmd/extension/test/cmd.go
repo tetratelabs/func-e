@@ -22,7 +22,6 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/common"
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
 	builtinconfig "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/toolchain/builtin"
-	toolchains "github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain/types"
 	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
@@ -30,6 +29,10 @@ import (
 // cmdOpts represents configuration options of the `test` command.
 type cmdOpts struct {
 	Toolchain common.ToolchainOpts
+}
+
+func (opts *cmdOpts) GetToolchainName() string {
+	return opts.Toolchain.Name
 }
 
 // ApplyTo applies toolchain-related command options to a given toolchain config.
@@ -72,12 +75,7 @@ Run unit tests on Envoy extension.`,
 			if err != nil {
 				return err
 			}
-			builder, err := toolchains.LoadToolchain(opts.Toolchain.Name, workspace)
-			if err != nil {
-				return err
-			}
-			opts.ApplyTo(builder.GetConfig())
-			toolchain, err := builder.Build()
+			toolchain, err := common.LoadToolchain(workspace, opts)
 			if err != nil {
 				return err
 			}

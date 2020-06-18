@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/hashicorp/go-multierror"
+	"github.com/tetratelabs/multierror"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 )

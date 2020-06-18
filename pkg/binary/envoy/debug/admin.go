@@ -22,7 +22,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/hashicorp/go-multierror"
+	"github.com/tetratelabs/multierror"
+
 	"github.com/tetratelabs/getenvoy/pkg/binary"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 )

@@ -21,7 +21,9 @@ import (
 	"github.com/docker/distribution/reference"
 
 	builtinconfig "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/toolchain/builtin"
+	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
 	toolchains "github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain"
+	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain/types"
 	argutil "github.com/tetratelabs/getenvoy/pkg/util/args"
 )
 
@@ -89,4 +91,25 @@ func AddToolchainFlags(cmd *cobra.Command, opts *ToolchainOpts) {
 		`Run build container using given image`)
 	cmd.PersistentFlags().StringArrayVar(&opts.Builtin.ContainerOptions, "toolchain-container-options", nil,
 		`Run build container using extra Docker cli options`)
+}
+
+// ToolchainCustomizer knows how to customize toolchain config.
+type ToolchainCustomizer interface {
+	GetToolchainName() string
+	ApplyTo(config interface{})
+}
+
+// LoadToolchain loads a toolchain by its name and customizes its configuration according to
+// command-line flags.
+func LoadToolchain(workspace model.Workspace, opts ToolchainCustomizer) (types.Toolchain, error) {
+	builder, err := toolchains.LoadToolchain(opts.GetToolchainName(), workspace)
+	if err != nil {
+		return nil, err
+	}
+	opts.ApplyTo(builder.GetConfig())
+	toolchain, err := builder.Build()
+	if err != nil {
+		return nil, err
+	}
+	return toolchain, nil
 }

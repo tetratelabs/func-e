@@ -18,10 +18,10 @@ import (
 	"path"
 
 	"github.com/pkg/errors"
+	"github.com/tetratelabs/multierror"
 
 	"github.com/docker/distribution/reference"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config"
-	"github.com/tetratelabs/multierror"
 )
 
 // NewToolchainConfig returns a new built-in toolchain config.
@@ -209,7 +209,7 @@ func (c *ToolchainConfig) GetBuildContainer() *ContainerConfig {
 	return c.Container
 }
 
-// GetBuildOutputWasmFile returns effective *.wasm file output file used by 'build' tool.
+// GetBuildOutputWasmFile returns effective *.wasm file output path used by 'build' tool.
 func (c *ToolchainConfig) GetBuildOutputWasmFile() string {
 	if c.Build != nil && c.Build.Output != nil && c.Build.Output.WasmFile != "" {
 		return c.Build.Output.WasmFile

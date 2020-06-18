@@ -169,6 +169,7 @@ Run 'getenvoy extension init --help' for usage.
 				By("verifying that extension files have been generated")
 				outputDir, err := os.Open(outputDirName)
 				Expect(err).ToNot(HaveOccurred())
+				defer func() { Expect(outputDir.Close()).To(Succeed()) }()
 				names, err := outputDir.Readdirnames(-1)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(names).NotTo(BeEmpty())
