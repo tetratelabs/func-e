@@ -16,26 +16,22 @@ package registry
 
 import (
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
-	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain/types"
+
+	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
+)
+
+const (
+	// DefaultExample represents a name of the example that is always available.
+	DefaultExample = "default"
 )
 
 // Entry represents a registry entry.
 type Entry struct {
-	Kind       string
-	LoadConfig LoadConfigFunc
+	Category   extension.Category
+	Name       string
+	NewExample NewExampleFunc
 }
 
-// LoadConfigFunc represents a function responsible for loading toolchain config.
-type LoadConfigFunc func(args LoadConfigArgs) (types.ToolchainBuilder, error)
-
-// LoadConfigArgs represents arguments to LoadConfigFunc.
-type LoadConfigArgs struct {
-	Workspace model.Workspace
-	Toolchain ToolchainConfig
-}
-
-// ToolchainConfig represents toolchain config.
-type ToolchainConfig struct {
-	Name   string
-	Config *model.File
-}
+// NewExampleFunc represents a function responsible for generating an example
+// for a given extension.
+type NewExampleFunc func(descriptor *extension.Descriptor) (model.Example, error)

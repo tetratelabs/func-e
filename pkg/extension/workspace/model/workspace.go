@@ -15,7 +15,6 @@
 package model
 
 import (
-	"os"
 	"path/filepath"
 
 	"github.com/pkg/errors"
@@ -29,8 +28,10 @@ const (
 	// including extension descriptor, built-in toolchain config, custom toolchain config, etc.
 	configExtension = ".yaml"
 	// DescriptorFile represents a relative path of the extension descriptor file.
-	DescriptorFile = "extension" + configExtension
-	toolchainsDir  = "toolchains"
+	DescriptorFile        = "extension" + configExtension
+	toolchainsDir         = "toolchains"
+	examplesDir           = "examples"
+	exampleDescriptorFile = "example" + configExtension
 )
 
 // WorkspaceAt returns a workspace at a given directory.
@@ -77,34 +78,86 @@ func (w workspace) GetExtensionDescriptor() *extension.Descriptor {
 	return w.extension
 }
 
-func (w workspace) HasToolchain(toolchain string) (bool, error) {
-	path := w.toolchainConfigFile(toolchain)
-	return w.dir.HasFile(path, func(info os.FileInfo) error {
-		if !info.Mode().IsRegular() {
-			return errors.Errorf("toolchain configuration must be stored in a regular file, however given file is not regular: %s", w.dir.Abs(path))
-		}
-		return nil
-	})
+func (w workspace) HasToolchain(toolchainName string) (bool, error) {
+	return w.dir.HasFile(toolchainLayout(toolchainName).ConfigFile())
 }
 
-func (w workspace) GetToolchainConfigBytes(toolchain string) (string, []byte, error) {
-	path := w.toolchainConfigFile(toolchain)
-	data, err := w.dir.ReadFile(path)
+func (w workspace) GetToolchainConfig(toolchainName string) (*File, error) {
+	return w.readFile(toolchainLayout(toolchainName).ConfigFile())
+}
+
+func (w workspace) SaveToolchainConfig(toolchainName string, data []byte) error {
+	return w.writeFile(toolchainLayout(toolchainName).ConfigFile(), data)
+}
+
+func (w workspace) HasExample(exampleName string) (bool, error) {
+	return w.dir.HasDir(exampleLayout(exampleName).RootDir())
+}
+
+func (w workspace) GetExample(exampleName string) (Example, error) {
+	fileNames, err := w.dir.ListFiles(exampleLayout(exampleName).RootDir())
 	if err != nil {
-		return "", nil, errors.Wrapf(err, "failed to read toolchain configuration: %s", w.dir.Abs(path))
+		return nil, err
 	}
-	return w.dir.Abs(path), data, nil
+	fileSet := NewFileSet()
+	for _, fileName := range fileNames {
+		file, err := w.readFile(exampleLayout(exampleName).File(fileName))
+		if err != nil {
+			return nil, err
+		}
+		fileSet.Add(fileName, file)
+	}
+	return NewExample(fileSet)
 }
 
-func (w workspace) SaveToolchainConfigBytes(toolchain string, data []byte) error {
-	path := w.toolchainConfigFile(toolchain)
-	err := w.dir.WriteFile(path, data)
-	if err != nil {
-		return errors.Wrapf(err, "failed to write toolchain configuration: %s", w.dir.Abs(path))
+func (w workspace) SaveExample(exampleName string, example Example) error {
+	if err := w.removeAll(exampleLayout(exampleName).RootDir()); err != nil {
+		return err
+	}
+	for _, fileName := range example.GetFiles().GetNames() {
+		if err := w.writeFile(exampleLayout(exampleName).File(fileName), example.GetFiles().Get(fileName).Content); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func (w workspace) toolchainConfigFile(toolchain string) string {
-	return filepath.Join(toolchainsDir, toolchain+configExtension)
+func (w workspace) readFile(path string) (*File, error) {
+	data, err := w.dir.ReadFile(path)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to read: %s", w.dir.Abs(path))
+	}
+	return &File{Source: w.dir.Abs(path), Content: data}, nil
+}
+
+func (w workspace) writeFile(path string, data []byte) error {
+	err := w.dir.WriteFile(path, data)
+	if err != nil {
+		return errors.Wrapf(err, "failed to write: %s", w.dir.Abs(path))
+	}
+	return nil
+}
+
+func (w workspace) removeAll(path string) error {
+	err := w.dir.RemoveAll(path)
+	if err != nil {
+		return errors.Wrapf(err, "failed to remove: %s", w.dir.Abs(path))
+	}
+	return nil
+}
+
+type toolchainLayout string
+
+func (toolchain toolchainLayout) ConfigFile() string {
+	return filepath.Join(toolchainsDir, string(toolchain)+configExtension)
+}
+
+type exampleLayout string
+
+func (example exampleLayout) RootDir() string {
+	return filepath.Join(examplesDir, string(example))
+}
+
+func (example exampleLayout) File(name string) string {
+	return filepath.Join(example.RootDir(), name)
 }

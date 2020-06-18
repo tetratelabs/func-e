@@ -19,6 +19,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/pkg/errors"
+
 	osutil "github.com/tetratelabs/getenvoy/pkg/util/os"
 )
 
@@ -41,19 +43,8 @@ func (d workspaceDir) Abs(path string) string {
 	return filepath.Join(d.GetMetaDir(), path)
 }
 
-func (d workspaceDir) HasFile(path string, test func(os.FileInfo) error) (bool, error) {
-	path = d.Abs(path)
-	info, err := os.Stat(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return false, nil
-		}
-		return false, err
-	}
-	if err := test(info); err != nil {
-		return false, err
-	}
-	return true, nil
+func (d workspaceDir) HasFile(path string) (bool, error) {
+	return d.hasFile(path, isRegularFile)
 }
 
 func (d workspaceDir) ReadFile(path string) ([]byte, error) {
@@ -67,4 +58,65 @@ func (d workspaceDir) WriteFile(path string, data []byte) error {
 		return err
 	}
 	return ioutil.WriteFile(path, data, 0644)
+}
+
+func (d workspaceDir) HasDir(path string) (bool, error) {
+	return d.hasFile(path, isDir)
+}
+
+func (d workspaceDir) ListFiles(path string) ([]string, error) {
+	root := d.Abs(path)
+	fileNames := make([]string, 0)
+	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		relPath, err := filepath.Rel(root, path)
+		if err != nil {
+			return err
+		}
+		fileNames = append(fileNames, relPath)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return fileNames, nil
+}
+
+func (d workspaceDir) RemoveAll(path string) error {
+	path = d.Abs(path)
+	return os.RemoveAll(path)
+}
+
+func (d workspaceDir) hasFile(path string, test func(string, os.FileInfo) error) (bool, error) {
+	path = d.Abs(path)
+	info, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	if err := test(path, info); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func isRegularFile(path string, info os.FileInfo) error {
+	if !info.Mode().IsRegular() {
+		return errors.Errorf("unexpected file type: expected a regular file at a given path: %s", path)
+	}
+	return nil
+}
+
+func isDir(path string, info os.FileInfo) error {
+	if !info.Mode().IsDir() {
+		return errors.Errorf("unexpected file type: expected a directory at a given path: %s", path)
+	}
+	return nil
 }

@@ -54,9 +54,11 @@ var _ = Describe("built-in toolchain factory", func() {
 			builder, err := factory.LoadConfig(registry.LoadConfigArgs{
 				Workspace: workspace,
 				Toolchain: registry.ToolchainConfig{
-					Name:         "example",
-					ConfigSource: "<memory>",
-					ConfigBytes:  []byte(given.config),
+					Name: "example",
+					Config: &model.File{
+						Source:  "<memory>",
+						Content: []byte(given.config),
+					},
 				},
 			})
 			Expect(err).ToNot(HaveOccurred())

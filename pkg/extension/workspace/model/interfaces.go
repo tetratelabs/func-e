@@ -15,6 +15,7 @@
 package model
 
 import (
+	exampleconfig "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/example"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/fs"
 )
@@ -29,9 +30,43 @@ type Workspace interface {
 
 	// HasToolchain returns true if workspace includes configuration for a toolchain
 	// with a given name.
-	HasToolchain(toolchain string) (bool, error)
-	// GetToolchainConfigBytes returns configuration of a toolchain with a given name.
-	GetToolchainConfigBytes(toolchain string) (source string, data []byte, err error)
-	// SaveToolchainConfigBytes persists given toolchain configuration.
-	SaveToolchainConfigBytes(toolchain string, data []byte) error
+	HasToolchain(toolchainName string) (bool, error)
+	// GetToolchainConfig returns configuration of a toolchain with a given name.
+	GetToolchainConfig(toolchainName string) (*File, error)
+	// SaveToolchainConfig persists given toolchain configuration.
+	SaveToolchainConfig(toolchainName string, data []byte) error
+
+	// HasExample returns true if workspace includes an example with a given name.
+	HasExample(exampleName string) (bool, error)
+	// GetExample returns an example with a given name.
+	GetExample(exampleName string) (Example, error)
+	// SaveExample persists a given example.
+	SaveExample(exampleName string, example Example) error
+}
+
+// Example represents an example.
+type Example interface {
+	GetFiles() ImmutableFileSet
+	GetDescriptor() *exampleconfig.Descriptor
+	GetEnvoyConfig() *File
+	GetExtensionConfig() *File
+}
+
+// ImmutableFileSet represents an immutable set of configuration files.
+type ImmutableFileSet interface {
+	GetNames() []string
+	Has(name string) bool
+	Get(name string) *File
+}
+
+// FileSet represents a mutable set of configuration files.
+type FileSet interface {
+	ImmutableFileSet
+	Add(name string, file *File)
+}
+
+// File represents a configuration file.
+type File struct {
+	Source  string
+	Content []byte
 }

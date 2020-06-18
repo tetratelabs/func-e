@@ -22,6 +22,7 @@ require (
 	github.com/rakyll/statik v0.0.0-00010101000000-000000000000
 	github.com/schollz/progressbar/v2 v2.13.2
 	github.com/shirou/gopsutil v0.0.0-20190731134726-d80c43f9c984
+	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749
 	github.com/spf13/cobra v0.0.5
 	github.com/stretchr/testify v1.4.0
 	github.com/tetratelabs/getenvoy-package v0.0.0-20190730071641-da31aed4333e

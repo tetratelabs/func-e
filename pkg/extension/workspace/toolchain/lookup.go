@@ -52,7 +52,7 @@ func ensureDefaultToolchainExists(workspace model.Workspace) error {
 	}
 	extension := workspace.GetExtensionDescriptor()
 	cfg := builtin.ExampleConfig(extension)
-	return workspace.SaveToolchainConfigBytes(Default, cfg)
+	return workspace.SaveToolchainConfig(Default, cfg)
 }
 
 func loadToolchain(name string, workspace model.Workspace) (types.ToolchainBuilder, error) {
@@ -63,15 +63,15 @@ func loadToolchain(name string, workspace model.Workspace) (types.ToolchainBuild
 	if !exists {
 		return nil, errors.Errorf("unknown toolchain %q", name)
 	}
-	source, data, err := workspace.GetToolchainConfigBytes(name)
+	file, err := workspace.GetToolchainConfig(name)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to obtain configuration for toolchain %q", name)
+		return nil, errors.Wrapf(err, "failed to load configuration for toolchain %q", name)
 	}
 	configErr := func(err error) error {
-		return errors.Wrapf(err, "toolchain %q has invalid configuration coming from %q", name, source)
+		return errors.Wrapf(err, "toolchain %q has invalid configuration coming from %q", name, file.Source)
 	}
 	meta := new(config.Meta)
-	err = config.Unmarshal(data, meta)
+	err = config.Unmarshal(file.Content, meta)
 	if err != nil {
 		return nil, configErr(err)
 	}
@@ -82,9 +82,8 @@ func loadToolchain(name string, workspace model.Workspace) (types.ToolchainBuild
 	builder, err := factory.LoadConfig(registry.LoadConfigArgs{
 		Workspace: workspace,
 		Toolchain: registry.ToolchainConfig{
-			Name:         name,
-			ConfigSource: source,
-			ConfigBytes:  data,
+			Name:   name,
+			Config: file,
 		},
 	})
 	if err != nil {

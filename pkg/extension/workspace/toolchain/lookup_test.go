@@ -105,8 +105,9 @@ runtime:
 		Expect(toolchain).ToNot(BeNil())
 
 		Expect(workspace.HasToolchain(toolchains.Default)).To(BeTrue())
-		_, data, err := workspace.GetToolchainConfigBytes(toolchains.Default)
+		file, err := workspace.GetToolchainConfig(toolchains.Default)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(data).ToNot(BeEmpty())
+		Expect(file).ToNot(BeNil())
+		Expect(file.Content).ToNot(BeEmpty())
 	})
 })

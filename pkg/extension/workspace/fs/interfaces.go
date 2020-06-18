@@ -14,8 +14,6 @@
 
 package fs
 
-import "os"
-
 const (
 	// extensionMetaDir identifies a directory that holds meta information
 	// about an extension created by getenvoy toolkit.
@@ -36,9 +34,18 @@ type WorkspaceDir interface {
 	Abs(path string) string
 
 	// HasFile checks whether meta dir includes a file with a given name.
-	HasFile(path string, test func(os.FileInfo) error) (bool, error)
+	HasFile(path string) (bool, error)
 	// ReadFile reads from a given file in the meta dir.
 	ReadFile(path string) ([]byte, error)
 	// WriteFile writes into a given file in the meta dir.
 	WriteFile(path string, data []byte) error
+
+	// HasDir checks whether meta dir includes a directory with a given name.
+	HasDir(path string) (bool, error)
+
+	// ListFiles recursively lists files under a given path.
+	ListFiles(path string) ([]string, error)
+
+	// RemoveAll recursively removes all files under a given path.
+	RemoveAll(path string) error
 }

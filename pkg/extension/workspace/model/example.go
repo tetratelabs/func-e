@@ -1,0 +1,93 @@
+// Copyright 2020 Tetrate
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package model
+
+import (
+	"github.com/pkg/errors"
+
+	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config"
+	exampleconfig "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/example"
+)
+
+var (
+	exampleEnvoyBootstrapFileAltNames  = []string{"envoy.yaml.tmpl", "envoy.json.tmpl"}
+	exampleExtensionConfigFileAltNames = []string{"extension.yaml", "extension.json", "extension"}
+)
+
+// NewExample returns a new Example that consists of a given set of files.
+func NewExample(files ImmutableFileSet) (Example, error) {
+	if !files.Has(exampleDescriptorFile) {
+		return nil, errors.Errorf("extension descriptor file %q is missing", exampleDescriptorFile)
+	}
+	descriptor, err := parseExampleDescriptor(files.Get(exampleDescriptorFile))
+	if err != nil {
+		return nil, err
+	}
+	exampl := &example{
+		files:      files,
+		descriptor: descriptor,
+	}
+	if exampl.GetEnvoyConfig() == nil {
+		return nil, errors.Errorf("Envoy bootstrap config file is missing: every example must include one of %v", exampleEnvoyBootstrapFileAltNames)
+	}
+	if exampl.GetExtensionConfig() == nil {
+		return nil, errors.Errorf("extension config file is missing: every example must include one of %v", exampleExtensionConfigFileAltNames)
+	}
+	return exampl, nil
+}
+
+func parseExampleDescriptor(file *File) (*exampleconfig.Descriptor, error) {
+	descriptor := exampleconfig.NewExampleDescriptor()
+	err := config.Unmarshal(file.Content, descriptor)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to unmarshal example descriptor: %s", file.Source)
+	}
+	descriptor.Default()
+	err = descriptor.Validate()
+	if err != nil {
+		return nil, errors.Wrapf(err, "example descriptor is not valid: %s", file.Source)
+	}
+	return descriptor, nil
+}
+
+type example struct {
+	files      ImmutableFileSet
+	descriptor *exampleconfig.Descriptor
+}
+
+func (e *example) GetFiles() ImmutableFileSet {
+	return e.files
+}
+
+func (e *example) GetDescriptor() *exampleconfig.Descriptor {
+	return e.descriptor
+}
+
+func (e *example) GetEnvoyConfig() *File {
+	return e.getFirstPresentFile(exampleEnvoyBootstrapFileAltNames)
+}
+
+func (e *example) GetExtensionConfig() *File {
+	return e.getFirstPresentFile(exampleExtensionConfigFileAltNames)
+}
+
+func (e *example) getFirstPresentFile(altNames []string) *File {
+	for _, fileName := range altNames {
+		if e.files.Has(fileName) {
+			return e.files.Get(fileName)
+		}
+	}
+	return nil
+}
