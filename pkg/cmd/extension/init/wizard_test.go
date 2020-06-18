@@ -64,6 +64,7 @@ var _ = Describe("interactive mode", func() {
 					params.Category.Value = "envoy.filters.http"
 					params.Language.Value = "rust"
 					params.OutputDir.Value = tmpDir
+					params.Name.Value = "mycompany.filters.http.custom_metrics"
 
 					err := newWizard(cmd).Fill(params)
 					Expect(err).ToNot(HaveOccurred())
@@ -77,6 +78,7 @@ var _ = Describe("interactive mode", func() {
 * Category HTTP Filter
 * Language Rust
 * Output directory %s
+* Extension name mycompany.filters.http.custom_metrics
 Great! Let me help you with that!
 
 `, tmpDir),
@@ -89,6 +91,7 @@ Great! Let me help you with that!
 							"\x1b[32m✔\x1b[0m \x1b[3mCategory\x1b[0m \x1b[2mHTTP Filter\x1b[0m\n" +
 							"\x1b[32m✔\x1b[0m \x1b[3mLanguage\x1b[0m \x1b[2mRust\x1b[0m\n" +
 							fmt.Sprintf("\x1b[32m✔\x1b[0m \x1b[3mOutput directory\x1b[0m \x1b[2m%s\x1b[0m\n", tmpDir) +
+							"\x1b[32m✔\x1b[0m \x1b[3mExtension name\x1b[0m \x1b[2mmycompany.filters.http.custom_metrics\x1b[0m\n" +
 							"Great! Let me help you with that!\n" +
 							"\n",
 					}

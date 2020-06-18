@@ -60,6 +60,7 @@ var _ = Describe("getenvoy extension init", func() {
 				return given
 			}
 		}
+		//nolint:lll
 		DescribeTable("should fail if a parameter is missing or has an invalid value",
 			func(givenFn testCaseFn) {
 				given := givenFn()
@@ -75,7 +76,7 @@ var _ = Describe("getenvoy extension init", func() {
 			},
 			Entry("extension category is missing", give(testCase{
 				args: []string{},
-				expectedStdErr: `Error: "" is not a supported extension category
+				expectedStdErr: `Error: extension category cannot be empty
 
 Run 'getenvoy extension init --help' for usage.
 `,
@@ -89,7 +90,7 @@ Run 'getenvoy extension init --help' for usage.
 			})),
 			Entry("programming language is missing", give(testCase{
 				args: []string{"--category", "envoy.filters.http"},
-				expectedStdErr: `Error: "" is not a supported programming language
+				expectedStdErr: `Error: programming language cannot be empty
 
 Run 'getenvoy extension init --help' for usage.
 `,
@@ -112,6 +113,36 @@ Run 'getenvoy extension init --help' for usage.
 `, cwd),
 				}
 			}),
+			Entry("extension name is missing", func() testCase {
+				outputDirName, err := ioutil.TempDir("", "test")
+				Expect(err).ToNot(HaveOccurred())
+				defer func() {
+					Expect(os.RemoveAll(outputDirName)).To(Succeed())
+				}()
+
+				return testCase{
+					args: []string{"--category", "envoy.filters.http", "--language", "rust", outputDirName},
+					expectedStdErr: `Error: extension name cannot be empty
+
+Run 'getenvoy extension init --help' for usage.
+`,
+				}
+			}),
+			Entry("extension name is not valid", func() testCase {
+				outputDirName, err := ioutil.TempDir("", "test")
+				Expect(err).ToNot(HaveOccurred())
+				defer func() {
+					Expect(os.RemoveAll(outputDirName)).To(Succeed())
+				}()
+
+				return testCase{
+					args: []string{"--category", "envoy.filters.http", "--language", "rust", "--name", "?!", outputDirName},
+					expectedStdErr: `Error: "?!" is not a valid extension name. Extension name must match the format "^[a-z0-9_]+(\\.[a-z0-9_]+)*$". E.g., 'mycompany.filters.http.custom_metrics'
+
+Run 'getenvoy extension init --help' for usage.
+`,
+				}
+			}),
 		)
 	})
 
@@ -128,8 +159,10 @@ Run 'getenvoy extension init --help' for usage.
 					Expect(os.RemoveAll(outputDirName)).To(Succeed())
 				}()
 
+				name := fmt.Sprintf("mycompany.%s.example", given.category)
+
 				By("running command")
-				c.SetArgs([]string{"extension", "init", "--no-colors", "--category", given.category, "--language", given.language, outputDirName})
+				c.SetArgs([]string{"extension", "init", "--no-colors", "--category", given.category, "--language", given.language, "--name", name, outputDirName})
 				err = cmdutil.Execute(c)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -146,8 +179,10 @@ Run 'getenvoy extension init --help' for usage.
 
 				By("verifying contents of the extension descriptor file")
 				descriptor := workspace.GetExtensionDescriptor()
+				Expect(descriptor.Name).To(Equal(name))
 				Expect(descriptor.Category.String()).To(Equal(given.category))
 				Expect(descriptor.Language.String()).To(Equal(given.language))
+				Expect(descriptor.Runtime.Envoy.Version).To(Equal("wasm:nightly"))
 
 				By("verifying command output")
 				Expect(stdout.String()).ToNot(BeEmpty())

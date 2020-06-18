@@ -81,8 +81,11 @@ var _ = Describe("LoadToolchain()", func() {
 
 		err = dir.WriteFile(model.DescriptorFile, []byte(`
 kind: Extension
-language: rust
+
+name: mycompany.filters.http.custom_metrics
+
 category: envoy.filters.http
+language: rust
 
 # Runtime the extension is being developed against.
 runtime:

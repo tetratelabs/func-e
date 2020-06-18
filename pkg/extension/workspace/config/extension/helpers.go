@@ -16,6 +16,8 @@ package extension
 
 import (
 	"encoding/json"
+	"regexp"
+	"strings"
 
 	"github.com/pkg/errors"
 
@@ -113,12 +115,54 @@ func (l *Language) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+var (
+	referenceNameFormat      = regexp.MustCompile(`^[a-z0-9_]+(\.[a-z0-9_]+)*$`)
+	referenceNameUnsafeChars = regexp.MustCompile(`[^a-z0-9_]`)
+)
+
+// ValidateExtensionName returns an error if a given value is not a valid
+// extension name.
+func ValidateExtensionName(text string) error {
+	if !referenceNameFormat.MatchString(text) {
+		return errors.Errorf("%q is not a valid extension name. Extension name must match the format %q."+
+			" E.g., 'mycompany.filters.http.custom_metrics'", text, referenceNameFormat)
+	}
+	return nil
+}
+
+// SanitizeExtensionName returns an extension name that consists of
+// given segments, sanitized if necessary.
+func SanitizeExtensionName(segments ...string) string {
+	parts := make([]string, 0, len(segments))
+	for _, segment := range segments {
+		if part := SanitizeExtensionNameSegment(segment); part != "" {
+			parts = append(parts, part)
+		}
+	}
+	return strings.Join(parts, ".")
+}
+
+// SanitizeExtensionNameSegment replaces unsafe characters in a given segment
+// of the extension name.
+func SanitizeExtensionNameSegment(text string) string {
+	text = strings.ToLower(text)
+	return referenceNameUnsafeChars.ReplaceAllString(text, "_")
+}
+
 // Default sets default values to optional fields.
 func (d *Descriptor) Default() {
 }
 
 // Validate returns an error if Descriptor is not valid.
 func (d *Descriptor) Validate() (errs error) {
+	if d.Name == "" {
+		errs = multierror.Append(errs, errors.New("extension name cannot be empty"))
+	}
+	if d.Name != "" {
+		if err := ValidateExtensionName(d.Name); err != nil {
+			errs = multierror.Append(errs, err)
+		}
+	}
 	if d.Category == "" {
 		errs = multierror.Append(errs, errors.New("extension category cannot be empty"))
 	}

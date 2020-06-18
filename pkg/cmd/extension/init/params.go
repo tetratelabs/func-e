@@ -20,6 +20,9 @@ import (
 
 	"github.com/pkg/errors"
 
+	scaffold "github.com/tetratelabs/getenvoy/pkg/extension/init"
+	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
+
 	osutil "github.com/tetratelabs/getenvoy/pkg/util/os"
 )
 
@@ -43,6 +46,7 @@ type params struct {
 	Category  param
 	Language  param
 	OutputDir param
+	Name      param
 }
 
 func (o *params) Validate() error {
@@ -55,14 +59,39 @@ func (o *params) Validate() error {
 	if err := o.OutputDir.Validate(); err != nil {
 		return err
 	}
+	if err := o.Name.Validate(); err != nil {
+		return err
+	}
 	return nil
 }
 
+func (o *params) DefaultName() {
+	if o.Name.Value != "" {
+		return
+	}
+	category, err := extension.ParseCategory(o.Category.Value)
+	if err != nil {
+		return
+	}
+	outputDir := filepath.Clean(o.OutputDir.Value)
+	if outputDir == "." {
+		outputDir, err = os.Getwd()
+		if err != nil {
+			return
+		}
+	}
+	o.Name.Value = scaffold.GenerateExtensionName(category, outputDir)
+}
+
+//nolint:gocyclo
 func newParams() *params {
 	return &params{
 		Category: param{
 			Title: "Category",
 			Validator: func(value string) error {
+				if value == "" {
+					return errors.New("extension category cannot be empty")
+				}
 				if !supportedCategories.Contains(value) {
 					return errors.Errorf("%q is not a supported extension category", value)
 				}
@@ -72,6 +101,9 @@ func newParams() *params {
 		Language: param{
 			Title: "Language",
 			Validator: func(value string) error {
+				if value == "" {
+					return errors.New("programming language cannot be empty")
+				}
 				if !supportedLanguages.Contains(value) {
 					return errors.Errorf("%q is not a supported programming language", value)
 				}
@@ -104,6 +136,15 @@ func newParams() *params {
 					return errors.Errorf("output directory must be empty or new: %s", outputDir)
 				}
 				return nil
+			},
+		},
+		Name: param{
+			Title: "Extension name",
+			Validator: func(value string) error {
+				if value == "" {
+					return errors.New("extension name cannot be empty")
+				}
+				return extension.ValidateExtensionName(value)
 			},
 		},
 	}

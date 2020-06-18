@@ -15,6 +15,8 @@
 package extension_test
 
 import (
+	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -43,6 +45,8 @@ var _ = Describe("Extension", func() {
 #
 kind: Extension
 
+name: mycompany.filters.http.custom_metrics
+
 language: invalid
 category: envoy.filters.http
 `,
@@ -53,6 +57,8 @@ category: envoy.filters.http
 # Envoy Wasm extension created with getenvoy toolkit.
 #
 kind: Extension
+
+name: mycompany.filters.http.custom_metrics
 
 language: rust
 category: invalid
@@ -81,13 +87,15 @@ category: invalid
 				},
 				Entry("empty", testCase{
 					input:       ``,
-					expectedErr: `3 errors occurred: extension category cannot be empty; programming language cannot be empty; runtime description is not valid: Envoy version cannot be empty`,
+					expectedErr: `4 errors occurred: extension name cannot be empty; extension category cannot be empty; programming language cannot be empty; runtime description is not valid: Envoy version cannot be empty`,
 				}),
 				Entry("invalid Envoy version", testCase{
 					input: `#
 # Envoy Wasm extension created with getenvoy toolkit.
 #
 kind: Extension
+
+name: mycompany.filters.http.custom_metrics
 
 language: rust
 category: envoy.filters.http
@@ -99,12 +107,45 @@ runtime:
 `,
 					expectedErr: `runtime description is not valid: Envoy version is not valid: "invalid value" is not a valid GetEnvoy reference. Expected format: <flavor>:<version>[/<platform>]`,
 				}),
+				Entry("missing extension name", testCase{
+					input: `#
+# Envoy Wasm extension created with getenvoy toolkit.
+#
+kind: Extension
+
+category: envoy.filters.http
+language: rust
+
+# Runtime the extension is being developed against.
+runtime:
+  envoy:
+    version: wasm:nightly
+`,
+					expectedErr: `extension name cannot be empty`,
+				}),
+				Entry("invalid extension name", testCase{
+					input: `#
+# Envoy Wasm extension created with getenvoy toolkit.
+#
+kind: Extension
+
+name: ?!@#$%
+
+category: envoy.filters.http
+language: rust
+
+# Runtime the extension is being developed against.
+runtime:
+  envoy:
+    version: wasm:nightly
+`,
+					expectedErr: `"?!@#$%" is not a valid extension name. Extension name must match the format "^[a-z0-9_]+(\\.[a-z0-9_]+)*$". E.g., 'mycompany.filters.http.custom_metrics'`,
+				}),
 			)
 		})
 		Describe("in case of valid input", func() {
 			type testCase struct {
-				input    string
-				expected Descriptor
+				input string
 			}
 			DescribeTable("should not return any error",
 				func(given testCase) {
@@ -115,7 +156,9 @@ runtime:
 					err = descriptor.Validate()
 					Expect(err).ToNot(HaveOccurred())
 
-					Expect(descriptor).To(Equal(given.expected))
+					actual, err := config.Marshal(&descriptor)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(actual).To(MatchYAML(given.input))
 				},
 				Entry("invalid Envoy version", testCase{
 					input: `#
@@ -123,28 +166,81 @@ runtime:
 #
 kind: Extension
 
-language: rust
+name: mycompany.filters.http.custom_metrics
+
 category: envoy.filters.http
+language: rust
 
 # Runtime the extension is being developed against.
 runtime:
   envoy:
     version: wasm:nightly
 `,
-					expected: Descriptor{
-						Meta: config.Meta{
-							Kind: Kind,
-						},
-						Language: LanguageRust,
-						Category: EnvoyHTTPFilter,
-						Runtime: Runtime{
-							Envoy: EnvoyRuntime{
-								Version: "wasm:nightly",
-							},
-						},
-					},
 				}),
 			)
 		})
 	})
+})
+
+var _ = Describe("ValidateExtensionName()", func() {
+	DescribeTable("should accept valid names",
+		func(given string) {
+			err := ValidateExtensionName(given)
+			Expect(err).ToNot(HaveOccurred())
+		},
+		Entry("Envoy-like name", "mycompany.filters.http.custom_metrics"),
+		Entry("no segments", "myextension"),
+		Entry("numbers", "911.i18n.v2"),
+		Entry("'_'", "_._"),
+	)
+	//nolint:lll
+	DescribeTable("should reject invalid names",
+		func(given string) {
+			err := ValidateExtensionName(given)
+			Expect(err).To(MatchError(fmt.Sprintf(`%q is not a valid extension name. Extension name must match the format "^[a-z0-9_]+(\\.[a-z0-9_]+)*$". E.g., 'mycompany.filters.http.custom_metrics'`, given)))
+		},
+		Entry("trailing '.'", "myextension."),
+		Entry("upper-case", "MYEXTENSION"),
+		Entry("'-'", "-.-"),
+		Entry("non alpha-num characters", `!@#$%^&*()-+<>?~:;"'\[]{}`),
+	)
+})
+
+var _ = Describe("SanitizeExtensionName()", func() {
+	type testCase struct {
+		input    []string
+		expected string
+	}
+	DescribeTable("should replace unsafe characters",
+		func(given testCase) {
+			actual := SanitizeExtensionName(given.input...)
+			Expect(actual).To(Equal(given.expected))
+			Expect(ValidateExtensionName(actual)).To(Succeed())
+		},
+		Entry("upper-case, non-alpha-num and empty", testCase{
+			input:    []string{`My-C0mpany.com`, ``, `e!x@t#`},
+			expected: `my_c0mpany_com.e_x_t_`,
+		}),
+	)
+})
+
+var _ = Describe("SanitizeExtensionNameSegment()", func() {
+	type testCase struct {
+		input    string
+		expected string
+	}
+	DescribeTable("should replace unsafe characters",
+		func(given testCase) {
+			actual := SanitizeExtensionNameSegment(given.input)
+			Expect(actual).To(Equal(given.expected))
+		},
+		Entry("upper-case", testCase{
+			input:    `My-C0mpany.com`,
+			expected: `my_c0mpany_com`,
+		}),
+		Entry("non alpha-num characters", testCase{
+			input:    `!@#$%^&*()-+<>?~:;"'\[]{}`,
+			expected: `_________________________`,
+		}),
+	)
 })

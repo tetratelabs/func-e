@@ -67,11 +67,14 @@ func NewCmd() *cobra.Command {
 		Long: `
 Scaffold a new Envoy extension in a language of your choice.`,
 		Example: `
-  # Scaffold a new Envoy HTTP filter in Rust in the current working directory.
-  getenvoy extension init --category envoy.filters.http --language rust
+  # Scaffold a new extension in interactive mode.
+  getenvoy extension init
 
-  # Scaffold a new Envoy Access logger in Rust in the "my-access-logger" directory.
-  getenvoy extension init my-access-logger --category envoy.access_loggers --language rust`,
+  # Scaffold a new extension according to command options: Envoy HTTP filter, in Rust, with a given name, in the current working directory.
+  getenvoy extension init --category envoy.filters.http --language rust --name mycompany.filters.http.custom_metrics
+
+  # Scaffold a new extension according to command options: Envoy Access logger, in Rust, with a given name, in the "my-access-logger" directory.
+  getenvoy extension init my-access-logger --category envoy.access_loggers --language rust --name mycompany.access_loggers.custom_log`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			outputDir := ""
 			if len(args) > 0 {
@@ -94,6 +97,7 @@ Scaffold a new Envoy extension in a language of your choice.`,
 			if err != nil {
 				return err
 			}
+			descriptor.Name = params.Name.Value
 			descriptor.Runtime.Envoy.Version = supportedEnvoyVersion
 
 			opts := &scaffold.ScaffoldOpts{}
@@ -108,8 +112,9 @@ Scaffold a new Envoy extension in a language of your choice.`,
 			return scaffold.Scaffold(opts)
 		},
 	}
-	cmd.PersistentFlags().StringVar(&params.Category.Value, "category", "", "choose extension category. "+hintOneOf(supportedCategories.Values()...))
-	cmd.PersistentFlags().StringVar(&params.Language.Value, "language", "", "choose programming language. "+hintOneOf(supportedLanguages.Values()...))
+	cmd.PersistentFlags().StringVar(&params.Category.Value, "category", "", "Choose extension category. "+hintOneOf(supportedCategories.Values()...))
+	cmd.PersistentFlags().StringVar(&params.Language.Value, "language", "", "Choose programming language. "+hintOneOf(supportedLanguages.Values()...))
+	cmd.PersistentFlags().StringVar(&params.Name.Value, "name", "", `Choose extension name, e.g. "mycompany.filters.http.custom_metrics"`)
 	return cmd
 }
 

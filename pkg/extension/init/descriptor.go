@@ -15,6 +15,11 @@
 package init
 
 import (
+	"path/filepath"
+	"strings"
+
+	"github.com/pkg/errors"
+
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 )
 
@@ -32,4 +37,25 @@ func NewExtension(category, language string) (*extension.Descriptor, error) {
 		Category: extensionCategory,
 		Language: extensionLanguage,
 	}, nil
+}
+
+// GenerateExtensionName generates an extension name.
+func GenerateExtensionName(category extension.Category, outputDir string) string {
+	kind := func(category extension.Category) string {
+		switch category {
+		case extension.EnvoyHTTPFilter:
+			return "filters.http"
+		case extension.EnvoyNetworkFilter:
+			return "filters.network"
+		case extension.EnvoyAccessLogger:
+			return "access_loggers"
+		default:
+			// must be caught by unit tests
+			panic(errors.Errorf("unknown extension category %q", category))
+		}
+	}
+	segments := []string{"mycompany"}
+	segments = append(segments, strings.Split(kind(category), ".")...)
+	segments = append(segments, filepath.Base(outputDir))
+	return extension.SanitizeExtensionName(segments...)
 }

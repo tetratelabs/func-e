@@ -32,6 +32,8 @@ var (
 #
 kind: Extension
 
+name: {{ .Name }}
+
 category: {{ .Category }}
 language: {{ .Language }}
 

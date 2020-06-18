@@ -53,6 +53,11 @@ func newWizard(out printer) *wizard {
 	}
 }
 
+type promptOpts struct {
+	init      func()
+	transform func(string) (string, error)
+}
+
 // Fill runs the interactive UI to help a user to fill in parameters.
 func (w *wizard) Fill(params *params) error {
 	w.out.Println(uiutil.Underline("What kind of extension would you like to create?"))
@@ -62,7 +67,10 @@ func (w *wizard) Fill(params *params) error {
 	if err := w.choose(&params.Language, supportedLanguages, w.newLanguageSelector); err != nil {
 		return err
 	}
-	if err := w.prompt(&params.OutputDir, w.newOutputDirPrompt, filepath.Abs); err != nil {
+	if err := w.prompt(&params.OutputDir, w.newOutputDirPrompt, promptOpts{transform: filepath.Abs}); err != nil {
+		return err
+	}
+	if err := w.prompt(&params.Name, w.newNamePrompt, promptOpts{init: params.DefaultName}); err != nil {
 		return err
 	}
 	w.out.Println("Great! Let me help you with that!")
@@ -83,15 +91,18 @@ func (w *wizard) choose(param *param, options options, newSelect func(*param, op
 	return w.printChoice(param, options)
 }
 
-func (w *wizard) prompt(param *param, newPrompt func(*param) *promptui.Prompt, transform func(string) (string, error)) error {
+func (w *wizard) prompt(param *param, newPrompt func(*param) *promptui.Prompt, opts promptOpts) error {
 	// only show the editor when the parameter hasn't been set on the command line or has an invalid value
 	if !param.IsValid() {
+		if opts.init != nil {
+			opts.init()
+		}
 		value, err := newPrompt(param).Run()
 		if err != nil {
 			return err
 		}
-		if transform != nil {
-			value, err = transform(value)
+		if opts.transform != nil {
+			value, err = opts.transform(value)
 			if err != nil {
 				return err
 			}
@@ -112,6 +123,10 @@ func (w *wizard) newLanguageSelector(param *param, options options) *promptui.Se
 
 func (w *wizard) newOutputDirPrompt(param *param) *promptui.Prompt {
 	return w.newPrompt("Provide output directory", param)
+}
+
+func (w *wizard) newNamePrompt(param *param) *promptui.Prompt {
+	return w.newPrompt("Provide extension name", param)
 }
 
 func (w *wizard) newSelector(prompt string, param *param, options options) *promptui.Select {

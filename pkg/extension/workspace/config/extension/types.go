@@ -55,6 +55,33 @@ const (
 type Descriptor struct {
 	config.Meta `json:",inline"`
 
+	// Extension reference name.
+	//
+	// E.g., `mycompany.filters.http.custom_metrics`.
+	//
+	// Extension reference name is part of a contract between Envoy and a
+	// WebAssembly module.
+	// Envoy acts in assumption that a single WebAssembly module might include
+	// multiple extensions.
+	// To clarify which of the extensions needs to be instanciated,
+	// Envoy configuration will use the respective reference name.
+	//
+	// ATTENTION: Beware that extension reference name appears in several places:
+	//             1) in the source code (optionally)
+	//             2) in the extension descriptor file
+	//
+	//            The value in the source code determines the actual behavior
+	//            at runtime. In case a WebAssembly module includes only one
+	//            extension, it might choose to ignore the reference name at all.
+	//
+	//            The value in the descriptor is used by getenvoy toolkit itself,
+	//            e.g. to automate creation of example Envoy configurations.
+	//
+	//            At the moment, it is the responsibility of the extension developer
+	//            to keep those values in sync.
+	//
+	// It is advised to give every extension a globally unique name.
+	Name string `json:"name"`
 	// Extension category.
 	Category Category `json:"category"`
 	// Extension language.
