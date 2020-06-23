@@ -14,7 +14,7 @@
 
 FROM gcr.io/distroless/cc
 
-COPY getenvoy /
+COPY build/bin/linux/amd64/getenvoy /
 
 ARG reference
 ENV ENVOY_REFERENCE=$reference

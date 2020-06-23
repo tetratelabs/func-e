@@ -16,7 +16,6 @@ package init
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/manifoldco/promptui"
 
@@ -54,8 +53,7 @@ func newWizard(out printer) *wizard {
 }
 
 type promptOpts struct {
-	init      func()
-	transform func(string) (string, error)
+	init func()
 }
 
 // Fill runs the interactive UI to help a user to fill in parameters.
@@ -67,7 +65,7 @@ func (w *wizard) Fill(params *params) error {
 	if err := w.choose(&params.Language, supportedLanguages, w.newLanguageSelector); err != nil {
 		return err
 	}
-	if err := w.prompt(&params.OutputDir, w.newOutputDirPrompt, promptOpts{transform: filepath.Abs}); err != nil {
+	if err := w.prompt(&params.OutputDir, w.newOutputDirPrompt, promptOpts{}); err != nil {
 		return err
 	}
 	if err := w.prompt(&params.Name, w.newNamePrompt, promptOpts{init: params.DefaultName}); err != nil {
@@ -100,12 +98,6 @@ func (w *wizard) prompt(param *param, newPrompt func(*param) *promptui.Prompt, o
 		value, err := newPrompt(param).Run()
 		if err != nil {
 			return err
-		}
-		if opts.transform != nil {
-			value, err = opts.transform(value)
-			if err != nil {
-				return err
-			}
 		}
 		param.Value = value
 	}

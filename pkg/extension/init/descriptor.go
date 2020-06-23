@@ -59,3 +59,8 @@ func GenerateExtensionName(category extension.Category, outputDir string) string
 	segments = append(segments, filepath.Base(outputDir))
 	return extension.SanitizeExtensionName(segments...)
 }
+
+// NormalizeOutputPath returns a normalized version of a given path.
+func NormalizeOutputPath(path string) (string, error) {
+	return filepath.Abs(path)
+}

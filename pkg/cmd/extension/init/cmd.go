@@ -100,10 +100,15 @@ Scaffold a new Envoy extension in a language of your choice.`,
 			descriptor.Name = params.Name.Value
 			descriptor.Runtime.Envoy.Version = supportedEnvoyVersion
 
+			outputDir, err = scaffold.NormalizeOutputPath(params.OutputDir.Value)
+			if err != nil {
+				return err
+			}
+
 			opts := &scaffold.ScaffoldOpts{}
 			opts.Extension = descriptor
 			opts.TemplateName = "default"
-			opts.OutputDir = params.OutputDir.Value
+			opts.OutputDir = outputDir
 			opts.ProgressHandler = &feedback{
 				cmd:        cmd,
 				opts:       opts,

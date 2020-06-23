@@ -113,8 +113,7 @@ func newParams() *params {
 		OutputDir: param{
 			Title: "Output directory",
 			Validator: func(value string) error {
-				value = filepath.Clean(value)
-				outputDir, err := filepath.Abs(value)
+				outputDir, err := scaffold.NormalizeOutputPath(value)
 				if err != nil {
 					return err
 				}

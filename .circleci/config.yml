@@ -12,12 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-version: 2.0
+version: 2.1
+
+executors:
+  builder:
+    docker:
+      - image: circleci/golang:1.13.3
+
+  e2e_vm_linux:
+    machine:
+      # See https://circleci.com/docs/2.0/configuration-reference/#available-machine-images
+      # Ubuntu 16.04, docker 19.03.8, docker-compose 1.25.5
+      image: ubuntu-1604:202004-01
 
 jobs:
   lint:
-    docker:
-      - image: circleci/golang:1.13.3
+    executor: builder
     environment:
       # Run garbage collection more aggresively to avoid getting OOMed during the lint phase.
       GOGC: "20"
@@ -31,8 +41,7 @@ jobs:
       - run: ./ci/lint
           
   test:
-    docker:
-      - image: circleci/golang:1.13.3
+    executor: builder
     steps:
       - checkout
       - run: make init
@@ -44,10 +53,41 @@ jobs:
       - store_artifacts:
           path: build/coverage
           destination: /coverage
-      
+
+  bin:
+    executor: builder
+    steps:
+      - checkout
+      - run: make init
+      - run:
+          name: "Build `getenvoy` and `e2e` binaries for use in e2e tests"
+          command: make bin
+      # share `getenvoy` and `e2e` binaries with the downstream jobs
+      - persist_to_workspace:
+          root: build
+          paths:
+            - bin
+
+  e2e_linux:
+    executor: e2e_vm_linux
+    steps:
+      - checkout
+      # re-use `getenvoy` and `e2e` binaries built by the upstream job
+      - attach_workspace:
+          at: build
+      - run:
+          name: "Build language-specific Docker build images"
+          command: make builders
+      - run:
+          name: "Run e2e tests using `getenvoy` and `e2e` binaries built by the upstream job"
+          environment:
+            # run e2e tests on a `getenvoy` binary built by the upstream job
+            E2E_GETENVOY_BINARY: /home/circleci/project/build/bin/linux/amd64/getenvoy
+          # run e2e tests using `e2e` binary built by the upstream job
+          command: build/bin/linux/amd64/e2e -ginkgo.v
+
   release:
-    docker:
-      - image: circleci/golang:1.13.3
+    executor: builder
     steps:
       - checkout
       - run: make init
@@ -57,10 +97,14 @@ jobs:
 
 workflows:
   version: 2
-  all:
+  commit:
     jobs:
       - lint
       - test
+      - bin
+      - e2e_linux:
+          requires:
+            - bin
   release:
     jobs:
       - release:
