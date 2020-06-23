@@ -27,6 +27,8 @@ import (
 
 	"github.com/tetratelabs/getenvoy/pkg/cmd"
 
+	testcontext "github.com/tetratelabs/getenvoy/pkg/test/cmd/extension"
+
 	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 
@@ -67,6 +69,8 @@ var _ = Describe("getenvoy extension clean", func() {
 			Expect(os.Chdir(cwdBackup)).To(Succeed())
 		}
 	})
+
+	testcontext.SetDefaultUser() // UID:GID == 1001:1002
 
 	var stdout *bytes.Buffer
 	var stderr *bytes.Buffer
@@ -134,7 +138,7 @@ Run 'getenvoy extension clean --help' for usage.
 			Expect(err).ToNot(HaveOccurred())
 
 			By("verifying command output")
-			Expect(stdout.String()).To(Equal(fmt.Sprintf("%s/docker run --rm -t -v %s:/source -w /source --init tetratelabs/getenvoy-extension-rust-builder:dev clean\n", dockerDir, workspaceDir)))
+			Expect(stdout.String()).To(Equal(fmt.Sprintf("%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init tetratelabs/getenvoy-extension-rust-builder:dev clean\n", dockerDir, workspaceDir)))
 			Expect(stderr.String()).To(Equal("docker stderr\n"))
 		})
 
@@ -151,7 +155,7 @@ Run 'getenvoy extension clean --help' for usage.
 			Expect(err).ToNot(HaveOccurred())
 
 			By("verifying command output")
-			Expect(stdout.String()).To(Equal(fmt.Sprintf("%s/docker run --rm -t -v %s:/source -w /source --init -e VAR=VALUE -v /host:/container clean/image clean\n", dockerDir, workspaceDir)))
+			Expect(stdout.String()).To(Equal(fmt.Sprintf("%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init -e VAR=VALUE -v /host:/container clean/image clean\n", dockerDir, workspaceDir)))
 			Expect(stderr.String()).To(Equal("docker stderr\n"))
 		})
 
@@ -168,9 +172,9 @@ Run 'getenvoy extension clean --help' for usage.
 			Expect(err).To(HaveOccurred())
 
 			By("verifying command output")
-			Expect(stdout.String()).To(Equal(fmt.Sprintf("%s/docker run --rm -t -v %s:/source -w /source --init -e EXIT_CODE=3 clean/image clean\n", dockerDir, workspaceDir)))
+			Expect(stdout.String()).To(Equal(fmt.Sprintf("%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init -e EXIT_CODE=3 clean/image clean\n", dockerDir, workspaceDir)))
 			Expect(stderr.String()).To(Equal(fmt.Sprintf(`docker stderr
-Error: failed to clean build directory of Envoy extension using "default" toolchain: failed to execute an external command "%s/docker run --rm -t -v %s:/source -w /source --init -e EXIT_CODE=3 clean/image clean": exit status 3
+Error: failed to clean build directory of Envoy extension using "default" toolchain: failed to execute an external command "%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init -e EXIT_CODE=3 clean/image clean": exit status 3
 
 Run 'getenvoy extension clean --help' for usage.
 `, dockerDir, workspaceDir)))

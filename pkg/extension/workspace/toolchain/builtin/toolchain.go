@@ -17,6 +17,7 @@ package builtin
 import (
 	"fmt"
 	"os/exec"
+	"os/user"
 
 	config "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/toolchain/builtin"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
@@ -29,6 +30,11 @@ const (
 	commandBuild = "build"
 	commandTest  = "test"
 	commandClean = "clean"
+)
+
+// overridable by unit tests
+var (
+	GetCurrentUser = user.Current
 )
 
 // NewToolchain returns a builtin toolchain with a given configuration.
@@ -44,30 +50,46 @@ type builtin struct {
 }
 
 func (t *builtin) Build(context types.BuildContext) error {
-	cmd := exec.Command("docker", t.dockerCliArgs(t.cfg.GetBuildContainer()).
-		Add(commandBuild, "--output-file", t.cfg.GetBuildOutputWasmFile())...)
+	args, err := t.dockerCliArgs(t.cfg.GetBuildContainer())
+	if err != nil {
+		return err
+	}
+	cmd := exec.Command("docker", args.Add(commandBuild).Add("--output-file", t.cfg.GetBuildOutputWasmFile())...)
 	return executil.Run(cmd, context.IO)
 }
 
 func (t *builtin) Test(context types.TestContext) error {
-	cmd := exec.Command("docker", t.dockerCliArgs(t.cfg.GetTestContainer()).Add(commandTest)...)
+	args, err := t.dockerCliArgs(t.cfg.GetTestContainer())
+	if err != nil {
+		return err
+	}
+	cmd := exec.Command("docker", args.Add(commandTest)...)
 	return executil.Run(cmd, context.IO)
 }
 
 func (t *builtin) Clean(context types.CleanContext) error {
-	cmd := exec.Command("docker", t.dockerCliArgs(t.cfg.GetCleanContainer()).Add(commandClean)...)
+	args, err := t.dockerCliArgs(t.cfg.GetCleanContainer())
+	if err != nil {
+		return err
+	}
+	cmd := exec.Command("docker", args.Add(commandClean)...)
 	return executil.Run(cmd, context.IO)
 }
 
-func (t *builtin) dockerCliArgs(container *config.ContainerConfig) argList {
+func (t *builtin) dockerCliArgs(container *config.ContainerConfig) (argList, error) {
+	user, err := GetCurrentUser()
+	if err != nil {
+		return nil, err
+	}
 	return argList{
 		"run",
+		"-u", fmt.Sprintf("%s:%s", user.Uid, user.Gid), // to get proper ownership on files created by the container
 		"--rm",
 		"-t", // to get interactive/colored output out of container
 		"-v", fmt.Sprintf("%s:%s", t.workspace.GetDir().GetRootDir(), "/source"),
 		"-w", "/source",
 		"--init", // to ensure container will be responsive to SIGTERM signal
-	}.Add(container.Options...).Add(container.Image)
+	}.Add(container.Options...).Add(container.Image), nil
 }
 
 type argList []string

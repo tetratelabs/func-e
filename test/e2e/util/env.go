@@ -22,7 +22,8 @@ import (
 
 //nolint:golint
 const (
-	E2E_GETENVOY_BINARY = "E2E_GETENVOY_BINARY"
+	E2E_GETENVOY_BINARY                     = "E2E_GETENVOY_BINARY"
+	E2E_BUILTIN_TOOLCHAIN_CONTAINER_OPTIONS = "E2E_BUILTIN_TOOLCHAIN_CONTAINER_OPTIONS"
 )
 
 var (
@@ -38,4 +39,12 @@ func (env) GetEnvoyBinary() (string, error) {
 		return "", errors.Errorf("Mandatory environment variable %s is not set.", E2E_GETENVOY_BINARY)
 	}
 	return value, nil
+}
+
+func (env) GetBuiltinContainerOptions() []string {
+	value := os.Getenv(E2E_BUILTIN_TOOLCHAIN_CONTAINER_OPTIONS)
+	if value == "" {
+		return nil
+	}
+	return []string{"--toolchain-container-options", value}
 }
