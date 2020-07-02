@@ -15,9 +15,13 @@
 #
 # Builder image for Envoy Wasm extensions written in Rust.
 #
-FROM rust:1.43.1
+FROM rust:1.44
 
 RUN rustup target add wasm32-unknown-unknown
+
+# Unset CARGO_HOME. This way we will be able to determine when a user
+# provides an override value.
+ENV CARGO_HOME=
 
 COPY ./entrypoint.sh /usr/local/getenvoy/extension/builder/entrypoint.sh
 COPY ./commands.sh /usr/local/getenvoy/extension/builder/commands.sh

@@ -14,7 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-${GETENVOY_WORKSPACE_DIR}/target}"
+# Ensure location of the build directory.
+export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-${GETENVOY_WORKSPACE_DIR}/target}"
+
+# Keep Cargo cache inside the build directory, unless a user explicitly
+# overrides CARGO_HOME.
+export CARGO_HOME="${CARGO_HOME:-${CARGO_TARGET_DIR}/.cache/getenvoy/extension/rust-builder/cargo}"
 
 #########################################################################
 # Build Wasm extension and copy *.wasm file to a given location.
@@ -27,7 +32,7 @@ CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-${GETENVOY_WORKSPACE_DIR}/target}"
 extension_build()  {
 	local target="wasm32-unknown-unknown"
 
-	cargo build --target-dir "${CARGO_TARGET_DIR}" --target "${target}"
+	cargo build --target "${target}"
 
 	local profile="debug"
 	local lib_name="extension"
