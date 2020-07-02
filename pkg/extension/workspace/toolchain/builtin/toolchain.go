@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"os/exec"
 	"os/user"
+	"path/filepath"
 
 	config "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/toolchain/builtin"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
@@ -49,6 +50,14 @@ type builtin struct {
 	workspace model.Workspace
 }
 
+func (t *builtin) GetName() string {
+	return t.name
+}
+
+func (t *builtin) GetBuildOutputWasmFile() string {
+	return filepath.Join(t.workspace.GetDir().GetRootDir(), t.cfg.GetBuildOutputWasmFile())
+}
+
 func (t *builtin) Build(context types.BuildContext) error {
 	args, err := t.dockerCliArgs(t.cfg.GetBuildContainer())
 	if err != nil {
@@ -76,12 +85,12 @@ func (t *builtin) Clean(context types.CleanContext) error {
 	return executil.Run(cmd, context.IO)
 }
 
-func (t *builtin) dockerCliArgs(container *config.ContainerConfig) (argList, error) {
+func (t *builtin) dockerCliArgs(container *config.ContainerConfig) (executil.Args, error) {
 	user, err := GetCurrentUser()
 	if err != nil {
 		return nil, err
 	}
-	return argList{
+	return executil.Args{
 		"run",
 		"-u", fmt.Sprintf("%s:%s", user.Uid, user.Gid), // to get proper ownership on files created by the container
 		"--rm",
@@ -90,10 +99,4 @@ func (t *builtin) dockerCliArgs(container *config.ContainerConfig) (argList, err
 		"-w", "/source",
 		"--init", // to ensure container will be responsive to SIGTERM signal
 	}.Add(container.Options...).Add(container.Image), nil
-}
-
-type argList []string
-
-func (l argList) Add(values ...string) argList {
-	return append(l, values...)
 }

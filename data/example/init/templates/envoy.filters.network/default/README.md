@@ -5,7 +5,7 @@
 | File              | Description              | Purpose                                                                 |
 | ----------------- | ------------------------ | ----------------------------------------------------------------------- |
 | `example.yaml`    | `Example` descriptor     | Describes runtime requirements, e.g. a specific version of `Envoy`      |
-| `envoy.yaml.tmpl` | `Envoy` bootstrap config | Provides `Envoy` config that demoes extension in action                 |
+| `envoy.tmpl.yaml` | `Envoy` bootstrap config | Provides `Envoy` config that demoes extension in action                 |
 | `extension.json`  | `Extension` config       | Provides configuration for extension itself                             |
 
 ## Components

@@ -111,5 +111,5 @@ func LocateBuild(key *Key, manifest *api.Manifest) (string, error) {
 			}
 		}
 	}
-	return "", fmt.Errorf("unable to find matching build for %v", key)
+	return "", fmt.Errorf("unable to find matching GetEnvoy build for reference %q", key)
 }

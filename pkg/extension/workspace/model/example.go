@@ -22,7 +22,9 @@ import (
 )
 
 var (
-	exampleEnvoyBootstrapFileAltNames  = []string{"envoy.yaml.tmpl", "envoy.json.tmpl"}
+	// notice that the file is named `envoy.tmpl.yaml` rather than `envoy.tmpl.yaml`
+	// in order to meet constraints of Envoy.
+	exampleEnvoyBootstrapFileAltNames  = []string{"envoy.tmpl.yaml", "envoy.tmpl.json"}
 	exampleExtensionConfigFileAltNames = []string{"extension.yaml", "extension.json", "extension"}
 )
 
@@ -39,10 +41,10 @@ func NewExample(files ImmutableFileSet) (Example, error) {
 		files:      files,
 		descriptor: descriptor,
 	}
-	if exampl.GetEnvoyConfig() == nil {
+	if _, file := exampl.GetEnvoyConfig(); file == nil {
 		return nil, errors.Errorf("Envoy bootstrap config file is missing: every example must include one of %v", exampleEnvoyBootstrapFileAltNames)
 	}
-	if exampl.GetExtensionConfig() == nil {
+	if _, file := exampl.GetExtensionConfig(); file == nil {
 		return nil, errors.Errorf("extension config file is missing: every example must include one of %v", exampleExtensionConfigFileAltNames)
 	}
 	return exampl, nil
@@ -75,19 +77,19 @@ func (e *example) GetDescriptor() *exampleconfig.Descriptor {
 	return e.descriptor
 }
 
-func (e *example) GetEnvoyConfig() *File {
+func (e *example) GetEnvoyConfig() (string, *File) {
 	return e.getFirstPresentFile(exampleEnvoyBootstrapFileAltNames)
 }
 
-func (e *example) GetExtensionConfig() *File {
+func (e *example) GetExtensionConfig() (string, *File) {
 	return e.getFirstPresentFile(exampleExtensionConfigFileAltNames)
 }
 
-func (e *example) getFirstPresentFile(altNames []string) *File {
+func (e *example) getFirstPresentFile(altNames []string) (string, *File) {
 	for _, fileName := range altNames {
 		if e.files.Has(fileName) {
-			return e.files.Get(fileName)
+			return fileName, e.files.Get(fileName)
 		}
 	}
-	return nil
+	return "", nil
 }

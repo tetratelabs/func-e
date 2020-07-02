@@ -1,0 +1,14 @@
+#
+# Envoy Wasm extension created with getenvoy toolkit.
+#
+kind: Extension
+
+name: mycompany.filters.http.custom_metrics
+
+category: envoy.filters.http
+language: rust
+
+# Runtime the extension is being developed against.
+runtime:
+  envoy:
+    version: wasm:nightly

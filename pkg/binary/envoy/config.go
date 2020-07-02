@@ -15,6 +15,7 @@
 package envoy
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
@@ -68,6 +69,19 @@ type Config struct {
 	ALSAddresss    string
 	DrainDuration  *durationpb.Duration
 	ConnectTimeout *durationpb.Duration
+	AdminAddress   string
 	AdminPort      int32
 	StatNameLength int32
+}
+
+// GetAdminAddress returns a host:port formatted address of the Envoy admin listener.
+func (c *Config) GetAdminAddress() string {
+	if c.AdminPort == 0 {
+		return ""
+	}
+	address := c.AdminAddress
+	if address == "" {
+		address = "localhost"
+	}
+	return fmt.Sprintf("%s:%d", address, c.AdminPort)
 }

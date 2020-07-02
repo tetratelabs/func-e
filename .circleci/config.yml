@@ -28,12 +28,13 @@ executors:
 jobs:
   lint:
     executor: builder
+    resource_class: medium+
     environment:
       # Run garbage collection more aggresively to avoid getting OOMed during the lint phase.
       GOGC: "20"
       # Circle CI executor has many cores (> 30) but throttles CPU and RAM. If we don't limit
       # this to the number of allocated cores, the job is likely to get OOMed and killed.
-      GOMAXPROCS: "2"
+      GOMAXPROCS: "3"
     steps:
       - checkout
       - run: make init

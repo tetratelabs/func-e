@@ -6,6 +6,7 @@ require (
 	bitbucket.org/creachadair/shell v0.0.6
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/docker/distribution v2.7.1+incompatible
+	github.com/envoyproxy/go-control-plane v0.9.5
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-ole/go-ole v1.2.4 // indirect
 	github.com/gogo/protobuf v1.3.0
@@ -18,6 +19,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/onsi/ginkgo v1.12.1
 	github.com/onsi/gomega v1.10.0
+	github.com/otiai10/copy v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/rakyll/statik v0.0.0-00010101000000-000000000000
 	github.com/schollz/progressbar/v2 v2.13.2

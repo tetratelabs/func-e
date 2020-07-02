@@ -19,7 +19,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/hashicorp/go-multierror"
+	"github.com/pkg/errors"
+	"github.com/tetratelabs/multierror"
 )
 
 // EnsureDirExists makes sure a given directory exists.
@@ -43,4 +44,31 @@ func IsEmptyDir(name string) (empty bool, errs error) {
 		return false, err
 	}
 	return len(files) == 0, nil
+}
+
+// IsRegularFile returns an error if there is no regular file at a given path.
+func IsRegularFile(name string) error {
+	info, err := os.Stat(name)
+	if err != nil {
+		return err
+	}
+	if info.IsDir() {
+		return errors.New("there is a directory at a given path instead of a regular file")
+	}
+	return nil
+}
+
+// IsExecutable returns an error if there is no executable file at a given path.
+func IsExecutable(name string) error {
+	info, err := os.Stat(name)
+	if err != nil {
+		return err
+	}
+	if info.IsDir() {
+		return errors.New("there is a directory at a given path instead of a regular file")
+	}
+	if info.Mode()&0111 == 0 {
+		return errors.New("file is not executable")
+	}
+	return nil
 }

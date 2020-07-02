@@ -24,6 +24,7 @@ import (
 	builtinconfig "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/toolchain/builtin"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain/types"
 	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
+	ioutil "github.com/tetratelabs/getenvoy/pkg/util/io"
 )
 
 // cmdOpts represents configuration options of the `build` command.
@@ -79,15 +80,20 @@ Build Envoy extension.`,
 			if err != nil {
 				return err
 			}
-			err = toolchain.Build(types.BuildContext{
-				IO: cmdutil.StreamsOf(cmd),
-			})
-			if err != nil {
-				return errors.Wrapf(err, "failed to build Envoy extension using %q toolchain", opts.Toolchain.Name)
-			}
-			return nil
+			return Build(toolchain, cmdutil.StreamsOf(cmd))
 		},
 	}
 	common.AddToolchainFlags(cmd, &opts.Toolchain)
 	return cmd
+}
+
+// Build builds the extension using a given toolchain.
+func Build(toolchain types.Toolchain, stdio ioutil.StdStreams) error {
+	err := toolchain.Build(types.BuildContext{
+		IO: stdio,
+	})
+	if err != nil {
+		return errors.Wrapf(err, "failed to build Envoy extension using %q toolchain", toolchain.GetName())
+	}
+	return nil
 }

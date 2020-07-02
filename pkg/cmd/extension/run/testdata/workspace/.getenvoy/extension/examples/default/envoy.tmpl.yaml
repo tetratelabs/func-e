@@ -3,6 +3,10 @@
 #
 admin: {{ .GetEnvoy.DefaultValue "admin" }}
 
+dynamic_resources:
+  lds_config:
+    path: placeholders.tmpl.yaml
+
 static_resources:
   listeners:
     - name: ingress
@@ -28,19 +32,18 @@ static_resources:
                           route:
                             cluster: mock_service
                 http_filters:
-                  - name: envoy.router
-                access_log:
-                  - name: envoy.access_loggers.wasm
+                  - name: envoy.filters.http.wasm
                     typed_config:
-                      "@type": type.googleapis.com/envoy.extensions.access_loggers.wasm.v3.WasmAccessLog
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
                       config:
                         configuration: {{ .GetEnvoy.Extension.Config }}
-                        name: access-logger-example
-                        root_id: examples.access-logger
+                        name: {{ .GetEnvoy.Extension.Name }}
+                        root_id: {{ .GetEnvoy.Extension.Name }}
                         vm_config:
-                          vm_id: access-logger-example-vm
+                          vm_id: {{ .GetEnvoy.Extension.Name }}
                           runtime: envoy.wasm.runtime.v8
                           code: {{ .GetEnvoy.Extension.Code }}
+                  - name: envoy.router
 
     - name: mock
       address:

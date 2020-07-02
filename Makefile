@@ -87,7 +87,7 @@ release.dryrun:
 	goreleaser release --skip-publish --snapshot --rm-dist
 
 .PHONY: test
-test:
+test: generate
 	go test $(GO_TEST_OPTS) $(GO_TEST_EXTRA_OPTS) $(TEST_PKG_LIST)
 
 .PHONY: e2e
@@ -104,7 +104,7 @@ bin/getenvoy: $(foreach os,$(GOOSES),$(foreach arch,$(GOARCHS), $(call GETENVOY_
 bin/e2e: $(foreach os,$(GOOSES),$(foreach arch,$(GOARCHS), $(call E2E_OUT_PATH,$(os),$(arch))))
 
 .PHONY: coverage
-coverage:
+coverage: generate
 	mkdir -p "$(shell dirname "$(COVERAGE_PROFILE)")"
 	go test $(GO_COVERAGE_OPTS) $(GO_COVERAGE_EXTRA_OPTS) -coverprofile="$(COVERAGE_PROFILE)" $(COVERAGE_PKG_LIST)
 	go tool cover -html="$(COVERAGE_PROFILE)" -o "$(COVERAGE_REPORT)"

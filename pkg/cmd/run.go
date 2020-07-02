@@ -75,16 +75,13 @@ getenvoy run standard:1.11.1 -- --help
 				},
 			)
 
-			runtime, err := envoy.NewRuntime(
+			runtime, err := envoy.NewRuntime(envoy.RuntimeOption(
 				func(r *envoy.Runtime) {
 					r.Config = cfg
 					r.IO = cmdutil.StreamsOf(cmd)
-				},
-				debug.EnableEnvoyAdminDataCollection,
-				debug.EnableEnvoyLogCollection,
-				debug.EnableNodeCollection,
-				debug.EnableOpenFilesDataCollection,
-				controlplaneFunc(),
+				}).
+				AndAll(debug.EnableAll()).
+				And(controlplaneFunc())...,
 			)
 			if err != nil {
 				return err

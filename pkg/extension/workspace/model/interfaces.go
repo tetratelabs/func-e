@@ -48,8 +48,8 @@ type Workspace interface {
 type Example interface {
 	GetFiles() ImmutableFileSet
 	GetDescriptor() *exampleconfig.Descriptor
-	GetEnvoyConfig() *File
-	GetExtensionConfig() *File
+	GetEnvoyConfig() (string, *File)
+	GetExtensionConfig() (string, *File)
 }
 
 // ImmutableFileSet represents an immutable set of configuration files.

@@ -24,6 +24,7 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/clean"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/globals"
 	scaffold "github.com/tetratelabs/getenvoy/pkg/cmd/extension/init"
+	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/run"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/test"
 
 	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
@@ -44,6 +45,7 @@ func NewCmd() *cobra.Command {
 	cmd.AddCommand(build.NewCmd())
 	cmd.AddCommand(test.NewCmd())
 	cmd.AddCommand(clean.NewCmd())
+	cmd.AddCommand(run.NewCmd())
 	cmd.PersistentFlags().BoolVar(&globals.NoPrompt, "no-prompt", noPromptDefault(),
 		"disable automatic switching into interactive mode whenever a parameter is missing or not valid")
 	cmd.PersistentFlags().BoolVar(&globals.NoColors, "no-colors", noColorsDefault(), "disable colored output")

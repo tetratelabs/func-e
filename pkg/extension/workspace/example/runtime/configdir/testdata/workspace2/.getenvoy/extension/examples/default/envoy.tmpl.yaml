@@ -3,6 +3,12 @@
 #
 admin: {{ .GetEnvoy.DefaultValue "admin" }}
 
+dynamic_resources:
+  lds_config:
+    path: lds.tmpl.yaml
+  cds_config:
+    path: cds.yaml
+
 static_resources:
   listeners:
     - name: ingress
@@ -12,34 +18,22 @@ static_resources:
           port_value: 10000
       filter_chains:
         - filters:
-            - name: envoy.filters.network.http_connection_manager
+            - name: envoy.filters.network.wasm
               typed_config:
-                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
-                stat_prefix: ingress_http
-                route_config:
-                  name: local_route
-                  virtual_hosts:
-                    - name: local_service
-                      domains:
-                        - "*"
-                      routes:
-                        - match:
-                            prefix: "/"
-                          route:
-                            cluster: mock_service
-                http_filters:
-                  - name: envoy.filters.http.wasm
-                    typed_config:
-                      "@type": type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
-                      config:
-                        configuration: {{ .GetEnvoy.Extension.Config }}
-                        name: http-filter-example
-                        root_id: examples.http-filter
-                        vm_config:
-                          vm_id: http-filter-example-vm
-                          runtime: envoy.wasm.runtime.v8
-                          code: {{ .GetEnvoy.Extension.Code }}
-                  - name: envoy.router
+                "@type": type.googleapis.com/envoy.extensions.filters.network.wasm.v3.Wasm
+                config:
+                  configuration: {{ .GetEnvoy.Extension.Config }}
+                  name: {{ .GetEnvoy.Extension.Name }}
+                  root_id: {{ .GetEnvoy.Extension.Name }}
+                  vm_config:
+                    vm_id: {{ .GetEnvoy.Extension.Name }}
+                    runtime: envoy.wasm.runtime.v8
+                    code: {{ .GetEnvoy.Extension.Code }}
+            - name: envoy.filters.network.tcp_proxy
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
+                stat_prefix: ingress
+                cluster: mock_service
 
     - name: mock
       address:

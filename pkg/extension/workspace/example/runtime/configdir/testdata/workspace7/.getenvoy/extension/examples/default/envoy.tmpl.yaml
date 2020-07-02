@@ -3,6 +3,12 @@
 #
 admin: {{ .GetEnvoy.DefaultValue "admin" }}
 
+dynamic_resources:
+  lds_config:
+    path: lds.tmpl.yaml
+  cds_config:
+    path: cds.tmpl.yaml
+
 static_resources:
   listeners:
     - name: ingress
@@ -17,10 +23,10 @@ static_resources:
                 "@type": type.googleapis.com/envoy.extensions.filters.network.wasm.v3.Wasm
                 config:
                   configuration: {{ .GetEnvoy.Extension.Config }}
-                  name: network-filter-example
-                  root_id: examples.network-filter
+                  name: {{ .GetEnvoy.Extension.Name }}
+                  root_id: {{ .GetEnvoy.Extension.Name }}
                   vm_config:
-                    vm_id: network-filter-example-vm
+                    vm_id: {{ .GetEnvoy.Extension.Name }}
                     runtime: envoy.wasm.runtime.v8
                     code: {{ .GetEnvoy.Extension.Code }}
             - name: envoy.filters.network.tcp_proxy
