@@ -1,0 +1,66 @@
+# `name` value will appear "as is" in the badge.
+# See https://docs.github.com/en/actions/configuring-and-managing-workflows/configuring-a-workflow#adding-a-workflow-status-badge-to-your-repository
+name: "build"
+
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - '**'
+
+jobs:
+  bin:
+    name: "Build `getenvoy` and `e2e` binaries for use in e2e tests"
+    runs-on: ubuntu-latest
+    steps:
+    - name: "Checkout"
+      uses: actions/checkout@v2
+
+    - name: "Install Go"
+      uses: actions/setup-go@v2
+      with:
+        go-version: '1.13.3'
+
+    - name: "Init on first use"
+      run: make init
+
+    - name: "Build `getenvoy` and `e2e` binaries"
+      run: make bin/darwin
+
+    - name: "Share `getenvoy` and `e2e` binaries with the downstream jobs"
+      uses: actions/upload-artifact@v2
+      with:
+        name: bin
+        path: build/bin
+
+  e2e_macos:
+    name: "Run e2e tests on MacOS"
+    needs: [bin]
+    runs-on: macos-latest
+    steps:
+    - name: "Checkout"
+      uses: actions/checkout@v2
+
+    - name: "Re-use `getenvoy` and `e2e` binaries pre-built by the upstream job"
+      uses: actions/download-artifact@v2
+      with:
+        name: bin
+        path: build/bin
+
+    - name: "Install 'Docker for Mac' (an older version that can be installed in CI environment)"
+      run: ./ci/e2e/macos/install_docker.sh
+
+    - name: "Build language-specific Docker build images"
+      run: make builders
+
+    - name: "Run e2e tests using `getenvoy` and `e2e` binaries built by the upstream job"
+      env:
+        # Key of a GitHub "machine user" that has access to all private repositories needed by e2e tests:
+        #   user:           https://github.com/getenvoy-ci
+        #   key fingeprint: MD5:ae:8d:18:6a:1b:44:17:dc:b8:c8:0f:a9:48:44:be:2b
+        #
+        # See https://developer.github.com/v3/guides/managing-deploy-keys/#machine-users
+        E2E_GITHUB_MACHINE_USER_KEY: ${{ secrets.E2E_GITHUB_MACHINE_USER_KEY }}
+      run: ./ci/e2e/macos/run_tests.sh

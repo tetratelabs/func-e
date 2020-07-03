@@ -44,7 +44,6 @@ E2E_EXTRA_OPTS ?=
 
 GOOSES := linux darwin
 GOARCHS := amd64
-BINARIES:= getenvoy e2e
 
 GETENVOY_OUT_PATH = $(BIN_DIR)/$(1)/$(2)/getenvoy
 
@@ -95,13 +94,19 @@ e2e: $(call GETENVOY_OUT_PATH,$(GOOS),$(GOARCH)) $(call E2E_OUT_PATH,$(GOOS),$(G
 	E2E_GETENVOY_BINARY=$(PWD)/$(call GETENVOY_OUT_PATH,$(GOOS),$(GOARCH)) $(call E2E_OUT_PATH,$(GOOS),$(GOARCH)) $(GO_TEST_OPTS) $(GO_TEST_EXTRA_OPTS) $(E2E_OPTS) $(E2E_EXTRA_OPTS)
 
 .PHONY: bin
-bin: $(foreach binary,$(BINARIES), bin/$(binary))
+bin: $(foreach os,$(GOOSES), bin/$(os))
 
-.PHONY: bin/getenvoy
-bin/getenvoy: $(foreach os,$(GOOSES),$(foreach arch,$(GOARCHS), $(call GETENVOY_OUT_PATH,$(os),$(arch))))
+define GEN_BIN_GOOS_TARGET
+.PHONY: bin/$(1)
+bin/$(1): $(foreach arch,$(GOARCHS), bin/$(1)/$(arch))
+endef
+$(foreach os,$(GOOSES),$(eval $(call GEN_BIN_GOOS_TARGET,$(os))))
 
-.PHONY: bin/e2e
-bin/e2e: $(foreach os,$(GOOSES),$(foreach arch,$(GOARCHS), $(call E2E_OUT_PATH,$(os),$(arch))))
+define GEN_BIN_GOOS_GOARCH_TARGET
+.PHONY: bin/$(1)/$(2)
+bin/$(1)/$(2): $(call GETENVOY_OUT_PATH,$(1),$(2)) $(call E2E_OUT_PATH,$(1),$(2))
+endef
+$(foreach os,$(GOOSES),$(foreach arch,$(GOARCHS),$(eval $(call GEN_BIN_GOOS_GOARCH_TARGET,$(os),$(arch)))))
 
 .PHONY: coverage
 coverage: generate
