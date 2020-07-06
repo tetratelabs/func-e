@@ -15,7 +15,7 @@
 #
 # Builder image for Envoy Wasm extensions written in Rust.
 #
-FROM rust:1.44
+FROM rust:1.44.1
 
 RUN rustup target add wasm32-unknown-unknown
 

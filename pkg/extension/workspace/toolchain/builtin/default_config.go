@@ -25,11 +25,18 @@ import (
 
 var (
 	// defaultBuildImageOrg represents organization name of the default builder images in a Docker registry.
-	defaultBuildImageOrg = "tetratelabs"
+	defaultBuildImageOrg = "getenvoy"
 	// defaultBuildImageTag represents a tag of the default builder images in a Docker registry.
-	defaultBuildImageTag = version.Build.Version
+	defaultBuildImageTag = func() string {
+		if version.IsDevBuild() {
+			// in case of development builds, fallback to the 'latest' version of a builder image
+			return "latest"
+		}
+		// by default, use a builder image of the same version as getenvoy binary
+		return version.Build.Version
+	}()
 	// defaultRustBuildImage represents a full name of the default Rust builder image in a Docker registry.
-	defaultRustBuildImage = dockerutil.ImageName{Org: defaultBuildImageOrg, Name: "getenvoy-extension-rust-builder", Tag: defaultBuildImageTag}.String()
+	defaultRustBuildImage = dockerutil.ImageName{Org: defaultBuildImageOrg, Name: "extension-rust-builder", Tag: defaultBuildImageTag}.String()
 )
 
 // defaultConfigFor returns a default toolchain config for a given extension.

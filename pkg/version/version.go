@@ -14,9 +14,15 @@
 
 package version
 
+const (
+	// defaultVersion represents a more descriptive default value for those
+	// cases where a binary or unit tests get built ad-hoc.
+	defaultVersion = "dev"
+)
+
 var (
 	// version is populated at build time via compiler options.
-	version = "dev"
+	version = defaultVersion
 )
 
 // BuildInfo describes a particular build of getenvoy toolkit.
@@ -30,3 +36,10 @@ var (
 		Version: version,
 	}
 )
+
+// IsDevBuild returns true if a version of the enclosing binary
+// has not been set, which can normally happen in those case where
+// the binary or unit tests get built ad-hoc.
+func IsDevBuild() bool {
+	return Build.Version == defaultVersion
+}

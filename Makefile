@@ -14,7 +14,8 @@
 
 ENVOY = standard:1.11.1
 HUB ?= docker.io/getenvoy
-TAG ?= dev
+GETENVOY_TAG ?= dev
+BUILDERS_TAG ?= latest
 
 BUILD_DIR ?= build
 BIN_DIR ?= $(BUILD_DIR)/bin
@@ -25,7 +26,7 @@ COVERAGE_REPORT := $(COVERAGE_DIR)/coverage.html
 GOOS := $(shell go env GOOS)
 GOARCH := $(shell go env GOARCH)
 
-GO_LD_FLAGS := -ldflags="-s -w -X github.com/tetratelabs/getenvoy/pkg/version.version=$(TAG)"
+GO_LD_FLAGS := -ldflags="-s -w -X github.com/tetratelabs/getenvoy/pkg/version.version=$(GETENVOY_TAG)"
 
 TEST_PKG_LIST ?= ./pkg/...
 GO_TEST_OPTS ?=
@@ -79,7 +80,7 @@ build: $(call GETENVOY_OUT_PATH,$(GOOS),$(GOARCH))
 
 .PHONY: docker
 docker: $(call GETENVOY_OUT_PATH,linux,amd64)
-	docker build -t $(HUB)/getenvoy:$(TAG) --build-arg reference=$(ENVOY) .
+	docker build -t $(HUB)/getenvoy:$(GETENVOY_TAG) --build-arg reference=$(ENVOY) .
 
 .PHONY: release.dryrun
 release.dryrun:
@@ -119,4 +120,8 @@ builders: builder.rust
 
 .PHONY: builder.rust
 builder.rust:
-	docker build -t tetratelabs/getenvoy-extension-rust-builder:$(TAG) images/extension-builders/rust
+	docker build -t getenvoy/extension-rust-builder:$(BUILDERS_TAG) images/extension-builders/rust
+
+.PHONY: builders.push
+builders.push: builders
+	docker push getenvoy/extension-rust-builder:$(BUILDERS_TAG)

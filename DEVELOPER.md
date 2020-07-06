@@ -19,7 +19,7 @@ Run:
 make builders
 ```
 which will produce `Docker` build images, e.g.
-* `tetratelabs/getenvoy-extension-rust-builder:dev`
+* `getenvoy/extension-rust-builder:latest`
 
 ### How to run Unit Tests
 

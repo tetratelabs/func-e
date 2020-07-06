@@ -9,7 +9,7 @@ kind: BuiltinToolchain
 
 ## container:
 ##   # Builder image.
-##   image: tetratelabs/getenvoy-extension-rust-builder:dev
+##   image: getenvoy/extension-rust-builder:latest
 ##   # Docker cli options.
 ##   options: []
 
@@ -22,7 +22,7 @@ kind: BuiltinToolchain
 ## build:
 ##   container:
 ##     # Builder image.
-##     image: tetratelabs/getenvoy-extension-rust-builder:dev
+##     image: getenvoy/extension-rust-builder:latest
 ##     # Docker cli options.
 ##     options: []
 ##   output:
@@ -38,7 +38,7 @@ kind: BuiltinToolchain
 ## test:
 ##   container:
 ##     # Builder image.
-##     image: tetratelabs/getenvoy-extension-rust-builder:dev
+##     image: getenvoy/extension-rust-builder:latest
 ##     # Docker cli options.
 ##     options: []
 
@@ -51,6 +51,6 @@ kind: BuiltinToolchain
 ## clean:
 ##   container:
 ##     # Builder image.
-##     image: tetratelabs/getenvoy-extension-rust-builder:dev
+##     image: getenvoy/extension-rust-builder:latest
 ##     # Docker cli options.
 ##     options: []

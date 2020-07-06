@@ -477,7 +477,7 @@ Run 'getenvoy extension run --help' for usage.
 			Expect(err).ToNot(HaveOccurred())
 
 			By("verifying command output")
-			Expect(stdout.String()).To(Equal(fmt.Sprintf(`%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init tetratelabs/getenvoy-extension-rust-builder:dev build --output-file target/getenvoy/extension.wasm
+			Expect(stdout.String()).To(Equal(fmt.Sprintf(`%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init getenvoy/extension-rust-builder:latest build --output-file target/getenvoy/extension.wasm
 %s/builds/wasm/nightly/%s/bin/envoy -c %s/envoy.tmpl.yaml
 `, dockerDir, workspaceDir, getenvoyHomeDir, platform, envoyCaptured.cwd())))
 			Expect(stderr.String()).To(Equal("docker stderr\nenvoy stderr\n"))
@@ -539,7 +539,7 @@ Run 'getenvoy extension run --help' for usage.
 			Expect(err).NotTo(HaveOccurred())
 
 			By("verifying command output")
-			Expect(stdout.String()).To(Equal(fmt.Sprintf(`%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init tetratelabs/getenvoy-extension-rust-builder:dev build --output-file target/getenvoy/extension.wasm
+			Expect(stdout.String()).To(Equal(fmt.Sprintf(`%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init getenvoy/extension-rust-builder:latest build --output-file target/getenvoy/extension.wasm
 %s/builds/wasm/stable/%s/bin/envoy -c %s/envoy.tmpl.yaml
 `, dockerDir, workspaceDir, getenvoyHomeDir, platform, envoyCaptured.cwd())))
 			Expect(stderr.String()).To(Equal("docker stderr\nenvoy stderr\n"))
@@ -558,7 +558,7 @@ Run 'getenvoy extension run --help' for usage.
 			Expect(err).NotTo(HaveOccurred())
 
 			By("verifying command output")
-			Expect(stdout.String()).To(Equal(fmt.Sprintf("%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init tetratelabs/getenvoy-extension-rust-builder:dev build --output-file target/getenvoy/extension.wasm\n", dockerDir, workspaceDir)))
+			Expect(stdout.String()).To(Equal(fmt.Sprintf("%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init getenvoy/extension-rust-builder:latest build --output-file target/getenvoy/extension.wasm\n", dockerDir, workspaceDir)))
 			Expect(stderr.String()).To(Equal(fmt.Sprintf(`docker stderr
 Error: failed to run "default" example: unable to find matching GetEnvoy build for reference %q
 
@@ -576,7 +576,7 @@ Run 'getenvoy extension run --help' for usage.
 			Expect(err).NotTo(HaveOccurred())
 
 			By("verifying command output")
-			Expect(stdout.String()).To(Equal(fmt.Sprintf(`%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init tetratelabs/getenvoy-extension-rust-builder:dev build --output-file target/getenvoy/extension.wasm
+			Expect(stdout.String()).To(Equal(fmt.Sprintf(`%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init getenvoy/extension-rust-builder:latest build --output-file target/getenvoy/extension.wasm
 %s -c %s/envoy.tmpl.yaml
 `, dockerDir, workspaceDir, filepath.Join(envoySubstituteArchiveDir, "bin/envoy"), envoyCaptured.cwd())))
 			Expect(stderr.String()).To(Equal("docker stderr\nenvoy stderr\n"))
@@ -592,7 +592,7 @@ Run 'getenvoy extension run --help' for usage.
 			Expect(err).NotTo(HaveOccurred())
 
 			By("verifying command output")
-			Expect(stdout.String()).To(Equal(fmt.Sprintf(`%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init tetratelabs/getenvoy-extension-rust-builder:dev build --output-file target/getenvoy/extension.wasm
+			Expect(stdout.String()).To(Equal(fmt.Sprintf(`%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init getenvoy/extension-rust-builder:latest build --output-file target/getenvoy/extension.wasm
 %s/builds/wasm/nightly/%s/bin/envoy -c %s/envoy.tmpl.yaml --concurrency 2 --component-log-level wasm:debug,config:trace
 `, dockerDir, workspaceDir, getenvoyHomeDir, platform, envoyCaptured.cwd())))
 			Expect(stderr.String()).To(Equal("docker stderr\nenvoy stderr\n"))
@@ -646,7 +646,7 @@ Run 'getenvoy extension run --help' for usage.
 			Expect(err).NotTo(HaveOccurred())
 
 			By("verifying command output")
-			Expect(stdout.String()).To(Equal(fmt.Sprintf(`%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init tetratelabs/getenvoy-extension-rust-builder:dev build --output-file target/getenvoy/extension.wasm
+			Expect(stdout.String()).To(Equal(fmt.Sprintf(`%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init getenvoy/extension-rust-builder:latest build --output-file target/getenvoy/extension.wasm
 %s/builds/wasm/nightly/%s/bin/envoy -c %s/envoy.tmpl.yaml
 `, dockerDir, workspaceDir, getenvoyHomeDir, platform, envoyCaptured.cwd())))
 			Expect(stderr.String()).To(Equal("docker stderr\nenvoy stderr\n"))
@@ -675,7 +675,7 @@ Run 'getenvoy extension run --help' for usage.
 			Expect(err).ToNot(HaveOccurred())
 
 			By("verifying command output")
-			Expect(stdout.String()).To(Equal(fmt.Sprintf(`%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init tetratelabs/getenvoy-extension-rust-builder:dev build --output-file target/getenvoy/extension.wasm
+			Expect(stdout.String()).To(Equal(fmt.Sprintf(`%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init getenvoy/extension-rust-builder:latest build --output-file target/getenvoy/extension.wasm
 %s/builds/wasm/nightly/%s/bin/envoy -c %s/envoy.tmpl.yaml
 `, dockerDir, workspaceDir, getenvoyHomeDir, platform, envoyCaptured.cwd())))
 			Expect(stderr.String()).To(Equal("docker stderr\nenvoy stderr\n"))

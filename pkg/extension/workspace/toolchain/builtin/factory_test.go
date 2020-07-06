@@ -78,7 +78,7 @@ var _ = Describe("built-in toolchain factory", func() {
 			expected: `
             kind: BuiltinToolchain
             container:
-              image: tetratelabs/getenvoy-extension-rust-builder:dev
+              image: getenvoy/extension-rust-builder:latest
             build:
               output:
                 wasmFile: target/getenvoy/extension.wasm
@@ -91,7 +91,7 @@ var _ = Describe("built-in toolchain factory", func() {
 			expected: `
             kind: BuiltinToolchain
             container:
-              image: tetratelabs/getenvoy-extension-rust-builder:dev
+              image: getenvoy/extension-rust-builder:latest
             build:
               output:
                 wasmFile: target/getenvoy/extension.wasm

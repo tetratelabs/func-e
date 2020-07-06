@@ -1,0 +1,35 @@
+name: builders
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+    - images/extension-builders/**
+  pull_request:
+    branches: [ master ]
+    paths:
+    - images/extension-builders/**
+
+jobs:
+  builders:
+    runs-on: ubuntu-18.04
+
+    steps:
+    - uses: actions/checkout@v2
+  
+    - name: Build the Docker image
+      run: make builders BUILDERS_TAG=${{ github.sha }}
+
+    - uses: azure/docker-login@v1
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      if: github.event_name == 'push'
+    
+    - name: Push the Docker image
+      run: make builders.push BUILDERS_TAG=${{ github.sha }}
+      if: github.event_name == 'push'
+    
+    - name: Mark the Docker image latest
+      run: make builders.push BUILDERS_TAG=latest
+      if: github.ref == 'refs/heads/master' && github.event_name == 'push'

@@ -138,7 +138,7 @@ Run 'getenvoy extension clean --help' for usage.
 			Expect(err).ToNot(HaveOccurred())
 
 			By("verifying command output")
-			Expect(stdout.String()).To(Equal(fmt.Sprintf("%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init tetratelabs/getenvoy-extension-rust-builder:dev clean\n", dockerDir, workspaceDir)))
+			Expect(stdout.String()).To(Equal(fmt.Sprintf("%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init getenvoy/extension-rust-builder:latest clean\n", dockerDir, workspaceDir)))
 			Expect(stderr.String()).To(Equal("docker stderr\n"))
 		})
 
