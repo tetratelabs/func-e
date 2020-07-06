@@ -22,6 +22,9 @@ import (
 )
 
 func (r *Runtime) handleTermination() {
+	if r.cmd.Process == nil {
+		return // Envoy hasn't started at all
+	}
 	if r.cmd.ProcessState != nil {
 		if r.cmd.ProcessState.Success() {
 			log.Infof("Envoy process (PID=%d) exited successfully", r.cmd.Process.Pid)

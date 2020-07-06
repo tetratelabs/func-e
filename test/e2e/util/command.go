@@ -19,6 +19,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"syscall"
 
 	argutil "github.com/tetratelabs/getenvoy/pkg/util/args"
 )
@@ -58,4 +59,32 @@ func (b *cmdBuilder) Exec() (string, string, error) {
 	b.cmd.Stderr = io.MultiWriter(os.Stderr, stderr)
 	err := b.cmd.Run()
 	return stdout.String(), stderr.String(), err
+}
+
+func (b *cmdBuilder) Start() (io.Reader, io.Reader, func() error, <-chan error) {
+	stdout := newSyncBuffer()
+	stderr := newSyncBuffer()
+	b.cmd.Stdout = io.MultiWriter(os.Stdout, stdout) // we want to see full `getenvoy` output in the test log
+	b.cmd.Stderr = io.MultiWriter(os.Stderr, stderr)
+	errs := make(chan error, 1)
+	if err := b.cmd.Start(); err != nil {
+		errs <- err
+		close(errs)
+		return stdout, stderr, func() error { return nil }, errs
+	}
+	go func() {
+		defer close(errs)
+		if err := b.cmd.Wait(); err != nil {
+			errs <- err
+		}
+	}()
+	canceled := false
+	cancel := func() error {
+		if canceled {
+			return nil
+		}
+		canceled = true
+		return b.cmd.Process.Signal(syscall.SIGTERM)
+	}
+	return stdout, stderr, cancel, errs
 }

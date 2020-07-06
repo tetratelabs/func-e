@@ -135,6 +135,7 @@ func (r *Runtime) runEnvoy(cancel context.CancelFunc) {
 	log.Infof("Envoy command: %v", r.cmd.Args)
 	if err := r.cmd.Start(); err != nil {
 		log.Errorf("Unable to start Envoy process: %v", err)
+		return
 	}
 
 	if err := r.cmd.Wait(); err != nil {
