@@ -2,8 +2,6 @@ package postgres
 
 import (
 	"fmt"
-	"os"
-	"text/template"
 	"github.com/tetratelabs/getenvoy/pkg/flavors"
 )
 
@@ -40,16 +38,38 @@ func (PostgresFlavor) CreateConfig(params map[string]string) (error, string) {
 		return fmt.Errorf("Template params %s were not specified", notFound), ""
 	}
 
-	// NOw run the template substitution
-	tmpl := template.New("config")
-	tmpl, err := tmpl.Parse(configTemplate)
-	if err != nil {
-		return fmt.Errorf("Supplied template for flavor %s is incorrect.", "postgres"), ""
-	}
-	tmpl.Execute(os.Stdout, postgresFlavor) 
-
 	return nil, ""
 }
+ 
+
+func (PostgresFlavor) CheckParams(params map[string]string) (error, interface{}) {
+	required := map[string]int {"Endpoint": 0}
+
+	for  param, _ := range params {
+		if _, ok := required[param]; ok {
+			required[param]++
+			postgresFlavor.Endpoint = params[param]
+		}
+	}
+
+	// Check if all required params have been found in the parameter list
+	var notFound string
+	for key, count := range required {
+		if count == 0 {
+			notFound += key + " "
+		}
+	}
+	if len(notFound) != 0 {
+		return fmt.Errorf("Required template params %s were not specified", notFound), nil
+	}
+
+	return nil, postgresFlavor
+}
+
+func (PostgresFlavor) GetTemplate() string {
+	return configTemplate
+}
+ 
 
 var configTemplate string = 
 `static_resources:
