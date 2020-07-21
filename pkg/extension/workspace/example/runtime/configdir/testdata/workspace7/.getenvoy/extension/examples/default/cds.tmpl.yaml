@@ -8,7 +8,12 @@ resources:
   connect_timeout: 0.25s
   type: STATIC
   lb_policy: ROUND_ROBIN
-  hosts:
-    - socket_address:
-        address: 127.0.0.1
-        port_value: 20001
+  load_assignment:
+    cluster_name: xds_mock_service
+    endpoints:
+    - lb_endpoints:
+      - endpoint:
+          address:
+            socket_address:
+              address: 127.0.0.1
+              port_value: 20001
