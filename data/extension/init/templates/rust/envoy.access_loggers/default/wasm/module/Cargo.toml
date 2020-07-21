@@ -14,6 +14,6 @@ crate-type = ["cdylib"]
 
 [dependencies]
 envoy-sample-access-logger = { path = "../.." }
-envoy-sdk = { version = "^0.0.1" }
-proxy-wasm = { package="proxy-wasm-experimental", version = "^0.1.0-alpha.2" }
+envoy-sdk = { version = "=0.0.1-1" }
+proxy-wasm = { package="proxy-wasm-experimental", version = "^0.0.2" }
 log = "^0.4"
