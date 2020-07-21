@@ -74,22 +74,25 @@ type Config struct {
 	StatNameLength int32
 }
 
-func (r *Runtime) SaveConfig(name string, config string) (string, error) {
+// SaveConfig saves configuration string in getenvoy
+// directory.
+func (r *Runtime) SaveConfig(name, config string) (string, error) {
 	configDir := filepath.Join(r.RootDir, "configs")
 	if err := os.MkdirAll(configDir, 0750); err != nil {
-		return "", fmt.Errorf("unable to create directory %q: %v", configDir, err)
+		return "", fmt.Errorf("Unable to create directory %q: %v", configDir, err)
 	}
+	filename := name + ".yaml"
 
-	f, err := os.OpenFile(filepath.Join(configDir, name+".yaml"), os.O_RDWR|os.O_CREATE, 0660)
+	f, err := os.OpenFile(filepath.Join(configDir, filename), os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil {
-		return "", fmt.Errorf("Cannot create config directory %s: %s", configDir, err)
+		return "", fmt.Errorf("Cannot create config file %s: %s", configDir, err)
 	}
 
-	defer f.Close()
+	defer f.Close() //nolint
 
 	if _, err = f.WriteString(config); err != nil {
-		return "", fmt.Errorf("Cannot save config file %s: %s", filepath.Join(configDir, name+".yaml"), err)
+		return "", fmt.Errorf("Cannot save config file %s: %s", filepath.Join(configDir, filename), err)
 	}
 
-	return filepath.Join(configDir, name+".yaml"), nil
+	return filepath.Join(configDir, filename), nil
 }

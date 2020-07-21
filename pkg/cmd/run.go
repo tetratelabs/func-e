@@ -26,7 +26,7 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/controlplane"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/debug"
 	"github.com/tetratelabs/getenvoy/pkg/flavors"
-	_ "github.com/tetratelabs/getenvoy/pkg/flavors/postgres"
+	_ "github.com/tetratelabs/getenvoy/pkg/flavors/postgres" //nolint 
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
 

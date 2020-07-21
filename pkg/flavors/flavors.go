@@ -22,7 +22,6 @@ import (
 
 // FlavorConfigTemplate - interface to individual flavors.
 type FlavorConfigTemplate interface {
-	//CreateConfig(params map[string]string) (error, string)
 	CheckParams(params map[string]string) (interface{}, error)
 	GetTemplate() string
 }
@@ -36,7 +35,7 @@ type templateStore struct {
 
 var store = templateStore{templates: make(map[string]FlavorConfigTemplate)}
 
-// AddTemplate - function is used by individual flavours (like postgres)
+// AddTemplate - function is used by individual flavors (like postgres)
 // to add the flavor to main repo.
 func AddTemplate(flavor string, configTemplate FlavorConfigTemplate) {
 	store.templates[flavor] = configTemplate
@@ -45,15 +44,15 @@ func AddTemplate(flavor string, configTemplate FlavorConfigTemplate) {
 // GetTemplate - function returns FlavorConfigTemplate structure associated
 // with flavor.
 func GetTemplate(flavor string) (FlavorConfigTemplate, error) {
-	template, ok := store.templates[flavor]
+	tmplString, ok := store.templates[flavor]
 	if !ok {
 		return nil, fmt.Errorf("Cannot find template for flavor %s", flavor)
 	}
 
-	return template, nil
+	return tmplString, nil
 }
 
-// CreateConfig - function checks flavor specific paramaters, get flavor's template and
+// CreateConfig - function checks flavor specific parameters, get flavor's template and
 // create a config.
 func CreateConfig(flavor string, params map[string]string) (string, error) {
 	flavorData, err := GetTemplate(flavor)
@@ -73,9 +72,9 @@ func CreateConfig(flavor string, params map[string]string) (string, error) {
 	if err != nil {
 		// Template is not supplied by a user, but is compiled-in, so this error should
 		// happen only during development time.
-		return "", fmt.Errorf("Supplied template for flavor %s is incorrect.", flavor)
+		return "", fmt.Errorf("Supplied template for flavor %s is incorrect", flavor)
 	}
 	var buf bytes.Buffer
-	tmpl.Execute(&buf, data)
+	tmpl.Execute(&buf, data) //nolint
 	return buf.String(), nil
 }

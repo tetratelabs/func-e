@@ -70,7 +70,7 @@ func (Flavor) CheckParams(params map[string]string) (interface{}, error) {
 			notFound += key + " "
 		}
 	}
-	if len(notFound) != 0 {
+	if notFound != "" {
 		return nil, fmt.Errorf("Required template params %s were not specified", notFound)
 	}
 
