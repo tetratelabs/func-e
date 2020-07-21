@@ -26,7 +26,7 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/controlplane"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/debug"
 	"github.com/tetratelabs/getenvoy/pkg/flavors"
-	_ "github.com/tetratelabs/getenvoy/pkg/flavors/postgres" //nolint 
+	_ "github.com/tetratelabs/getenvoy/pkg/flavors/postgres" //nolint
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
 
@@ -60,20 +60,8 @@ getenvoy run ./envoy -- --config-path ./bootstrap.yaml
 getenvoy run standard:1.11.1 -- --help
 `,
 		Args: func(cmd *cobra.Command, args []string) error {
-			if len(args) == 0 {
-				return errors.New("missing binary parameter")
-			}
-			if err := validateMode(); err != nil {
-				return err
-			}
-			if err := validateBootstrap(); err != nil {
-				return err
-			}
-			templateParams = make(map[string]string)
-			if err := validateTemplateArg(); err != nil {
-				return err
-			}
-			return validateRequiresBootstrap()
+			return validateCmdArgs(args)
+
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := envoy.NewConfig(
@@ -102,22 +90,11 @@ getenvoy run standard:1.11.1 -- --help
 			// If they were passed, config must be created based on
 			// template.
 			if len(templateParams) > 0 {
-				// When template params are specified, config should not be in envoy params
-				for _, envoyParam := range args {
-					if strings.HasPrefix(envoyParam, "--config") {
-						return fmt.Errorf("--templateArg and %s cannot be specified at the same time", envoyParam)
-					}
-				}
-				config, err := flavors.CreateConfig(key.Flavor, templateParams)
+				cmdArg, err := processTemplateArgs(key.Flavor, args, templateParams, runtime.(*envoy.Runtime))
 				if err != nil {
 					return err
 				}
-				// Save config in getenvoy directory
-				path, err := runtime.SaveConfig(key.Flavor, config)
-				if err != nil {
-					return err
-				}
-				args = append(args, "--config-path "+path)
+				args = append(args, cmdArg)
 			}
 
 			if manifestErr != nil {
@@ -201,6 +178,23 @@ func validateTemplateArg() error {
 	return nil
 }
 
+func validateCmdArgs(args []string) error {
+	if len(args) == 0 {
+		return errors.New("missing binary parameter")
+	}
+	if err := validateMode(); err != nil {
+		return err
+	}
+	if err := validateBootstrap(); err != nil {
+		return err
+	}
+	templateParams = make(map[string]string)
+	if err := validateTemplateArg(); err != nil {
+		return err
+	}
+	return validateRequiresBootstrap()
+}
+
 func controlplaneFunc() func(r *envoy.Runtime) {
 	switch bootstrap {
 	case istio:
@@ -209,4 +203,25 @@ func controlplaneFunc() func(r *envoy.Runtime) {
 		// do nothing...
 		return func(r *envoy.Runtime) {}
 	}
+}
+
+// Function verifies template parameters passed in getenvoy command line.
+// If verification is successful, it returns a string which must be added to
+// Envoy command line to invoke a proper config.
+func processTemplateArgs(flavor string, args []string, templateParams map[string]string, runtime *envoy.Runtime) (string, error) {
+	for _, envoyParam := range args {
+		if strings.HasPrefix(envoyParam, "--config") {
+			return "", fmt.Errorf("--templateArg and %s cannot be specified at the same time", envoyParam)
+		}
+	}
+	config, err := flavors.CreateConfig(flavor, templateParams)
+	if err != nil {
+		return "", err
+	}
+	// Save config in getenvoy directory
+	path, err := runtime.SaveConfig(flavor, config)
+	if err != nil {
+		return "", err
+	}
+	return "--config-path " + path, nil
 }
