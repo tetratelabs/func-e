@@ -108,12 +108,12 @@ getenvoy run standard:1.11.1 -- --help
 						return fmt.Errorf("--templateArg and %s cannot be specified at the same time", envoyParam)
 					}
 				}
-				err, config := flavor.CreateConfig(key.Flavor, templateParams)
+				config, err := flavors.CreateConfig(key.Flavor, templateParams)
 				if err != nil {
 					return err
 				}
 				// Save config in getenvoy directory
-				err, path := runtime.SaveConfig(key.Flavor, config)
+				path, err := runtime.SaveConfig(key.Flavor, config)
 				if err != nil {
 					return err
 				}

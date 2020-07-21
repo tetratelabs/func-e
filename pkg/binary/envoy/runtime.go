@@ -34,7 +34,7 @@ func NewRuntime(options ...func(*Runtime)) (binary.FetchRunner, error) {
 	local := filepath.Join(usrDir, ".getenvoy")
 	runtime := &Runtime{
 		Config:         NewConfig(),
-		RootDir:	local,
+		RootDir:        local,
 		fetcher:        fetcher{local},
 		TmplDir:        filepath.Join(local, "templates"),
 		wg:             &sync.WaitGroup{},

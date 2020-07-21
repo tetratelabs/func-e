@@ -39,7 +39,7 @@ type Runner interface {
 	DebugStore() string
 	SetStdout(w io.Writer)
 	SetStderr(w io.Writer)
-	SaveConfig(name string, config string) (error, string)
+	SaveConfig(name string, config string) (string, error)
 }
 
 const (

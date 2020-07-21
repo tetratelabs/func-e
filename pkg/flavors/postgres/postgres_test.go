@@ -14,13 +14,14 @@
 package postgres
 
 import (
-	"github.com/tetratelabs/getenvoy/pkg/flavors"
 	"testing"
+
+	"github.com/tetratelabs/getenvoy/pkg/flavors"
 )
 
 // Test verifies that postgres flavor is registered when module is loaded.
 func TestInit(t *testing.T) {
-	err, _ := flavor.GetTemplate("postgres")
+	_, err := flavors.GetTemplate("postgres")
 
 	if err != nil {
 		t.Error("postgres flavor should be registered at init phase.")
@@ -34,9 +35,9 @@ func TestMissingParam(t *testing.T) {
 	params := map[string]string{
 		"blah": "bleh",
 	}
-	var testFlavor PostgresFlavor
+	var testFlavor Flavor
 
-	err, _ := testFlavor.CheckParams(params)
+	_, err := testFlavor.CheckParams(params)
 
 	if err == nil {
 		t.Error("Not specifying mandatory template args does not trigger error")
@@ -46,19 +47,19 @@ func TestMissingParam(t *testing.T) {
 // Verify that passing all required params does not trigger any arror.
 func TestAllParams(t *testing.T) {
 	params := map[string]string{
-		"Endpoint": "127.0.0.1",
+		"endpoint": "127.0.0.1",
 	}
-	var testFlavor PostgresFlavor
+	var testFlavor Flavor
 
-	err, data := testFlavor.CheckParams(params)
+	data, err := testFlavor.CheckParams(params)
 
 	if err != nil {
 		t.Errorf("All required params were passed but check failed: %s", err)
 	}
 
-	// Type assertion from generic interface{} to PostgresFlavor.
-	postgresData := data.(PostgresFlavor)
-	if postgresData.Endpoint != "127.0.0.1" {
+	// Type assertion from generic interface{} to Flavor.
+	postgresData := data.(Flavor)
+	if postgresData.endpoint != "127.0.0.1" {
 		t.Errorf("Parsing template params does not create proper structure")
 	}
 }
@@ -67,27 +68,27 @@ func TestAllParams(t *testing.T) {
 // is successful
 func TestExtraParams(t *testing.T) {
 	params := map[string]string{
-		"Endpoint": "127.0.0.1",
+		"endpoint": "127.0.0.1",
 		"blah":     "blah",
 	}
-	var testFlavor PostgresFlavor
+	var testFlavor Flavor
 
-	err, data := testFlavor.CheckParams(params)
+	data, err := testFlavor.CheckParams(params)
 
 	if err != nil {
 		t.Errorf("All required params were passed but check failed: %s", err)
 	}
 
-	// Type assertion from generic interface{} to PostgresFlavor.
-	postgresData := data.(PostgresFlavor)
-	if postgresData.Endpoint != "127.0.0.1" {
+	// Type assertion from generic interface{} to Flavor.
+	postgresData := data.(Flavor)
+	if postgresData.endpoint != "127.0.0.1" {
 		t.Errorf("Parsing template params does not create proper structure")
 	}
 }
 
 // Make sure the GetTemplate returns the correct config.
 func TestGetTemplate(t *testing.T) {
-	var testFlavor PostgresFlavor
+	var testFlavor Flavor
 	if configTemplate != testFlavor.GetTemplate() {
 		t.Errorf("Wrong config template returned.")
 	}

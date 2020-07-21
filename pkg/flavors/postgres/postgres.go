@@ -16,45 +16,48 @@ package postgres
 
 import (
 	"fmt"
+
 	valid "github.com/asaskevich/govalidator"
 	"github.com/tetratelabs/getenvoy/pkg/flavors"
 )
 
 // Define template parameter names
-const Endpoint string = "Endpoint"
-const InPort string = "InPort"
+const endpoint string = "endpoint"
+const inport string = "inport"
 
-type PostgresFlavor struct {
+// Flavor implements flavor.FlavorConfigTemplate interface
+// and stores config data specific to Postgres template.
+type Flavor struct {
 	// Location of the postgres server
-	Endpoint string
+	endpoint string
 	// Envoy's listener port
-	InPort string
+	inport string
 }
 
-var postgresFlavor PostgresFlavor
+var flavor Flavor
 
 func init() {
 	// Set default values.
 	// Default values are not required to be present in cmd line.
-	postgresFlavor.InPort = "5432"
-	flavor.AddTemplate("postgres", postgresFlavor)
+	flavor.inport = "5432"
+	flavors.AddTemplate("postgres", flavor)
 }
 
-// Method verifies that passed template arguments are correct and
+// CheckParams verifies that passed template arguments are correct and
 // are sufficient for creating a valid config from template.
-func (PostgresFlavor) CheckParams(params map[string]string) (error, interface{}) {
-	required := map[string]int{Endpoint: 0}
+func (Flavor) CheckParams(params map[string]string) (interface{}, error) {
+	required := map[string]int{endpoint: 0}
 
 	for param, value := range params {
 		switch param {
-		case Endpoint:
+		case endpoint:
 			required[param]++
-			postgresFlavor.Endpoint = value
-		case InPort:
+			flavor.endpoint = value
+		case inport:
 			if !valid.IsInt(value) {
-				return fmt.Errorf("Value for templateArg %s must be integer number", param), nil
+				return nil, fmt.Errorf("Value for templateArg %s must be integer number", param)
 			}
-			postgresFlavor.InPort = value
+			flavor.inport = value
 		default:
 			fmt.Printf("Ignoring unrecognized template parameter: %s", param)
 		}
@@ -68,24 +71,25 @@ func (PostgresFlavor) CheckParams(params map[string]string) (error, interface{})
 		}
 	}
 	if len(notFound) != 0 {
-		return fmt.Errorf("Required template params %s were not specified", notFound), nil
+		return nil, fmt.Errorf("Required template params %s were not specified", notFound)
 	}
 
-	return nil, postgresFlavor
+	return flavor, nil
 }
 
-func (PostgresFlavor) GetTemplate() string {
+// GetTemplate returns unprocessed template for Envoy.
+func (Flavor) GetTemplate() string {
 	return configTemplate
 }
 
 // Postgres specific config file.
-var configTemplate string = `static_resources:
+var configTemplate = `static_resources:
   listeners:
   - name: postgres_listener
     address:
       socket_address:
         address: 0.0.0.0
-        port_value: {{ .InPort }}
+        port_value: {{ .inport }}
     filter_chains:
     - filters:
       - name: envoy.filters.network.postgres_proxy
@@ -109,7 +113,7 @@ var configTemplate string = `static_resources:
         - endpoint:
             address:
               socket_address:
-                address: {{ .Endpoint}} 
+                address: {{ .endpoint}} 
                 port_value: 5432
 
 admin:

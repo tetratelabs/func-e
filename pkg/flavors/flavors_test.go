@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package flavor
+package flavors
 
 import (
 	"testing"
@@ -24,14 +24,14 @@ type TestFlavor struct {
 
 var flavor TestFlavor
 
-func (TestFlavor) CreateConfig(params map[string]string) (error, string) {
-	return nil, "CreateTestConfig"
+func (TestFlavor) CreateConfig(params map[string]string) (string, error) {
+	return "CreateTestConfig", nil
 }
 
-func (TestFlavor) CheckParams(params map[string]string) (error, interface{}) {
+func (TestFlavor) CheckParams(params map[string]string) (interface{}, error) {
 	// Just set the
 	flavor.Test = "UnitTest"
-	return nil, flavor
+	return flavor, nil
 }
 
 func (TestFlavor) GetTemplate() string {
@@ -42,7 +42,7 @@ func (TestFlavor) GetTemplate() string {
 func TestAdd(t *testing.T) {
 	AddTemplate("test", flavor)
 
-	err, out := GetTemplate("test")
+	out, err := GetTemplate("test")
 
 	if err != nil {
 		t.Error("Just added template cannot be located")
@@ -57,7 +57,7 @@ func TestAdd(t *testing.T) {
 func TestGetNonExisting(t *testing.T) {
 	AddTemplate("test", flavor)
 
-	err, _ := GetTemplate("test1")
+	_, err := GetTemplate("test1")
 
 	if err == nil {
 		t.Error("Error should be returned for non-existing template")
@@ -71,7 +71,7 @@ func TestCreateConfig(t *testing.T) {
 	AddTemplate("test", flavor)
 
 	params := map[string]string{"Test": "UnitTest"}
-	err, config := CreateConfig("test", params)
+	config, err := CreateConfig("test", params)
 
 	if err != nil {
 		t.Error("Creating config failed with proper parameters")

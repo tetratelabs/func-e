@@ -74,25 +74,22 @@ type Config struct {
 	StatNameLength int32
 }
 
-func (r *Runtime) SaveConfig(name string, config string) (error, string) {
+func (r *Runtime) SaveConfig(name string, config string) (string, error) {
 	configDir := filepath.Join(r.RootDir, "configs")
-		if err := os.MkdirAll(configDir, 0750); err != nil {
-			return fmt.Errorf("unable to create directory %q: %v", configDir, err), ""
-		}
+	if err := os.MkdirAll(configDir, 0750); err != nil {
+		return "", fmt.Errorf("unable to create directory %q: %v", configDir, err)
+	}
 
-  f, err := os.OpenFile(filepath.Join(configDir, name + ".yaml"), os.O_RDWR|os.O_CREATE, 0660)
-  if err != nil {
-	  return fmt.Errorf("Cannot create config directory %s: %s", configDir, err), ""
-  }
-	 
-  defer f.Close()
+	f, err := os.OpenFile(filepath.Join(configDir, name+".yaml"), os.O_RDWR|os.O_CREATE, 0660)
+	if err != nil {
+		return "", fmt.Errorf("Cannot create config directory %s: %s", configDir, err)
+	}
 
-  if _, err = f.WriteString(config); err != nil {
-	  return fmt.Errorf("Cannot save config file %s: %s", filepath.Join(configDir, name + ".yaml"), err), ""
-  }
+	defer f.Close()
 
-	// r.AppendArgs("--config-path ")
-	//r.AppendArgs([]string{"--config-path ", filepath.Join(configDir, name + ".yaml")})
-		
-  return nil, filepath.Join(configDir, name + ".yaml")
+	if _, err = f.WriteString(config); err != nil {
+		return "", fmt.Errorf("Cannot save config file %s: %s", filepath.Join(configDir, name+".yaml"), err)
+	}
+
+	return filepath.Join(configDir, name+".yaml"), nil
 }
