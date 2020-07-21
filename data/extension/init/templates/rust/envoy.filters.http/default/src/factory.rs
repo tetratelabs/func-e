@@ -63,7 +63,7 @@ impl<'a> extension::Factory for SampleHttpFilterFactory<'a> {
     /// The reference name for sample HTTP filter.
     ///
     /// This name appears in Envoy configuration as a value of group_name (aka, root_id) field.
-    const NAME: &'static str = "";
+    const NAME: &'static str = "{{ .Extension.Name }}";
 
     /// Is called when Envoy creates a new Listener that uses sample HTTP filter.
     fn on_configure(

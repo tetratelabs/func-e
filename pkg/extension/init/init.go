@@ -15,6 +15,7 @@
 package init
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -22,7 +23,9 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"text/template"
 
+	"github.com/pkg/errors"
 	"github.com/tetratelabs/multierror"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
@@ -97,7 +100,7 @@ func Scaffold(opts *ScaffoldOpts) (err error) {
 	if err := generateWorkspace(opts); err != nil {
 		return err
 	}
-	walker := &scaffolder{opts: opts, sourceFS: fs}
+	walker := &scaffolder{opts: opts, sourceFS: fs, transform: interpolate(opts.Extension)}
 	return walker.walk(templateDir, "")
 }
 
@@ -105,7 +108,7 @@ func Scaffold(opts *ScaffoldOpts) (err error) {
 type scaffolder struct {
 	opts      *ScaffoldOpts
 	sourceFS  http.FileSystem
-	transform func([]byte) ([]byte, error)
+	transform func(string, []byte) ([]byte, error)
 }
 
 func (s *scaffolder) walk(sourceDirName, destinationDirName string) (errs error) {
@@ -156,7 +159,7 @@ func (s *scaffolder) visit(sourceDirName, destinationDirName string, sourceFileI
 		return err
 	}
 	if s.transform != nil {
-		data, err := s.transform(content)
+		data, err := s.transform(relOutputFileName, content)
 		if err != nil {
 			return err
 		}
@@ -167,4 +170,27 @@ func (s *scaffolder) visit(sourceDirName, destinationDirName string, sourceFileI
 	}
 	s.opts.ProgressHandler.OnFile(relOutputFileName)
 	return nil
+}
+
+// interpolateData represents the data object a source code template will be applied to.
+type interpolateData struct {
+	Extension *extension.Descriptor
+}
+
+// interpolate resolves placeholders in a given source file.
+func interpolate(descriptor *extension.Descriptor) func(string, []byte) ([]byte, error) {
+	data := &interpolateData{Extension: descriptor}
+	return func(file string, content []byte) ([]byte, error) {
+		tmpl, err := template.New(file).Parse(string(content))
+		if err != nil {
+			// must be caught by unit tests
+			panic(err)
+		}
+		var out bytes.Buffer
+		err = tmpl.Execute(&out, data)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to render %q", file)
+		}
+		return out.Bytes(), nil
+	}
 }
