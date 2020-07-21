@@ -1,8 +1,6 @@
 use std::rc::Rc;
 use std::time::Duration;
 
-use super::config::SampleNetworkFilterConfig;
-
 use log::info;
 
 use envoy_sdk::extension::filter::network;
@@ -10,39 +8,48 @@ use envoy_sdk::extension::{InstanceId, Result};
 use envoy_sdk::host::services::clients;
 use envoy_sdk::host::services::time;
 
-extern crate chrono;
 use chrono::offset::Local;
 use chrono::DateTime;
+
+use super::config::SampleNetworkFilterConfig;
+use super::stats::SampleNetworkFilterStats;
 
 /// Sample network filter.
 pub struct SampleNetworkFilter<'a> {
     // This example shows how multiple filter instances could share
     // the same configuration.
     config: Rc<SampleNetworkFilterConfig>,
+    // This example shows how multiple filter instances could share
+    // metrics.
+    stats: Rc<SampleNetworkFilterStats>,
     instance_id: InstanceId,
-    // This example shows how to use Time API and HTTP Client API
-    // provided by Envoy host.
+    // This example shows how to use Time API, HTTP Client API and
+    // Metrics API provided by Envoy host.
     time_service: &'a dyn time::Service,
     http_client: &'a dyn clients::http::Client,
 
     active_request: Option<clients::http::RequestHandle>,
+    response_body_size: u64,
 }
 
 impl<'a> SampleNetworkFilter<'a> {
     /// Creates a new instance of sample network filter.
     pub fn new(
         config: Rc<SampleNetworkFilterConfig>,
+        stats: Rc<SampleNetworkFilterStats>,
         instance_id: InstanceId,
         time_service: &'a dyn time::Service,
         http_client: &'a dyn clients::http::Client,
-    ) -> SampleNetworkFilter<'a> {
+    ) -> Self {
         // Inject dependencies on Envoy host APIs
         SampleNetworkFilter {
             config,
+            stats,
             instance_id,
             time_service,
             http_client,
             active_request: None,
+            response_body_size: 0,
         }
     }
 }
@@ -50,14 +57,17 @@ impl<'a> SampleNetworkFilter<'a> {
 impl<'a> network::Filter for SampleNetworkFilter<'a> {
     /// Is called when a new TCP connection is opened.
     fn on_new_connection(&mut self) -> Result<network::FilterStatus> {
+        // Update stats
+        self.stats.requests_active().inc()?;
+
         let current_time = self.time_service.get_current_time()?;
         let datetime: DateTime<Local> = current_time.into();
 
         info!(
-            "#{} new TCP connection starts at {} with config: {}",
+            "#{} new TCP connection starts at {} with config: {:?}",
             self.instance_id,
             datetime.format("%+"),
-            self.config.value
+            self.config,
         );
 
         self.active_request = Some(self.http_client.send_request(
@@ -80,8 +90,27 @@ impl<'a> network::Filter for SampleNetworkFilter<'a> {
         Ok(network::FilterStatus::Pause)
     }
 
+    /// Is called on response body part.
+    fn on_upstream_data(
+        &mut self,
+        data_size: usize,
+        _end_of_stream: bool,
+        _ops: &dyn network::UpstreamDataOps,
+    ) -> Result<network::FilterStatus> {
+        self.response_body_size += data_size as u64;
+
+        Ok(network::FilterStatus::Continue)
+    }
+
     /// Is called when the TCP connection is complete.
     fn on_connection_complete(&mut self) -> Result<()> {
+        // Update stats
+        self.stats.requests_active().dec()?;
+        self.stats.requests_total().inc()?;
+        self.stats
+            .response_body_size_bytes()
+            .record(self.response_body_size)?;
+
         info!("#{} TCP connection ended", self.instance_id);
         Ok(())
     }

@@ -86,7 +86,7 @@ command_build()  {
 # Parse command-line arguments and run 'test' command.
 #######################################################
 command_test()  {
-	extension_build
+	extension_test
 }
 
 #######################################################

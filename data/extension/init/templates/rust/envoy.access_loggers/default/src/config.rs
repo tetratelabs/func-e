@@ -1,14 +1,21 @@
+use std::convert::TryFrom;
+
+use serde::Deserialize;
+
+use envoy_sdk::extension;
+
 /// Configuration for a sample access logger.
+#[derive(Deserialize, Debug)]
 pub struct SampleAccessLoggerConfig {
-    pub value: String,
+    #[serde(default)]
+    pub param: String,
 }
 
-impl SampleAccessLoggerConfig {
-    /// Creates a new configuration.
-    pub fn new<T: Into<String>>(value: T) -> SampleAccessLoggerConfig {
-        SampleAccessLoggerConfig {
-            value: value.into(),
-        }
+impl TryFrom<&[u8]> for SampleAccessLoggerConfig {
+    type Error = extension::Error;
+
+    fn try_from(value: &[u8]) -> extension::Result<Self> {
+        serde_json::from_slice(value).map_err(extension::Error::new)
     }
 }
 
@@ -16,7 +23,7 @@ impl Default for SampleAccessLoggerConfig {
     /// Creates the default configuration.
     fn default() -> Self {
         SampleAccessLoggerConfig {
-            value: String::new(),
+            param: String::new(),
         }
     }
 }

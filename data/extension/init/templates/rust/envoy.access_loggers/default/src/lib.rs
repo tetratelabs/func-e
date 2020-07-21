@@ -1,4 +1,5 @@
+pub use logger::SampleAccessLogger;
+
 mod config;
 mod logger;
-
-pub use logger::SampleAccessLogger;
+mod stats;
