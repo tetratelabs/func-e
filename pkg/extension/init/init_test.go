@@ -124,6 +124,14 @@ var _ = Describe("Scaffold()", func() {
 			file:     "src/factory.rs",
 			expected: `const NAME: &'static str = "my_company.my_extension";`,
 		}),
-		// TODO(yskopets): add a test case for `envoy.access_logger
+		Entry("rust/access_logger", testCase{
+			extension: &extension.Descriptor{
+				Name:     "my_company.my_extension",
+				Category: extension.EnvoyAccessLogger,
+				Language: extension.LanguageRust,
+			},
+			file:     "src/logger.rs",
+			expected: `const NAME: &'static str = "my_company.my_extension";`,
+		}),
 	)
 })

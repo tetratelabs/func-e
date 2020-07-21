@@ -1,6 +1,6 @@
 # Sample Access Logger
 
-Example of an Envoy Access logger.
+Example of an `Envoy` `Access Logger`.
 
 See [envoy-wasm-rust-sdk/examples/access-logger](https://github.com/tetratelabs/envoy-wasm-rust-sdk/tree/master/examples/access-logger)
 for more details.

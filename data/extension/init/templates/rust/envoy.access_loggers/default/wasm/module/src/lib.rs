@@ -1,30 +1,16 @@
-use proxy_wasm::traits::RootContext;
-use proxy_wasm::types::LogLevel;
-
-use envoy_sdk::extension;
-use envoy_sdk::start;
+use envoy::extension::{entrypoint, Module, Result};
 
 use envoy_sample_access_logger::SampleAccessLogger;
 
-// Generate a `_start` function that is called by Envoy
-// when a new instance of WebAssembly module is created.
-start! { on_module_start(); }
+// Generate the `_start` function that will be called by `Envoy` to let
+// WebAssembly module initialize itself.
+entrypoint! { initialize }
 
 /// Does one-time initialization.
-fn on_module_start() {
-    proxy_wasm::set_log_level(LogLevel::Info);
-
-    // Register Access logger extension
-    proxy_wasm::set_root_context(|_| -> Box<dyn RootContext> {
-        // Inject dependencies on Envoy host APIs
-        let logger =
-            SampleAccessLogger::with_default_ops().expect("unable to initialize extension");
-
-        // Bridge between Access logger abstraction and Envoy ABI
-        Box::new(extension::access_logger::LoggerContext::with_default_ops(
-            logger,
-        ))
-    });
+///
+/// Returns a registry of extensions provided by this module.
+fn initialize() -> Result<Module> {
+    Module::new().add_access_logger(|_instance_id| SampleAccessLogger::default())
 }
 
 #[cfg(test)]
@@ -32,7 +18,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn should_start() {
-        on_module_start()
+    fn should_initialize() {
+        assert!(initialize().is_ok());
     }
 }

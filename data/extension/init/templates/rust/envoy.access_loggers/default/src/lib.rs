@@ -1,4 +1,4 @@
-pub use logger::SampleAccessLogger;
+pub use self::logger::SampleAccessLogger;
 
 mod config;
 mod logger;

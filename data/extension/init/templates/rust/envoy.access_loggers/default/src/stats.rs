@@ -1,32 +1,16 @@
-use envoy_sdk::host::services::metrics::{Counter, Gauge};
+use envoy::host::stats::Counter;
 
 // Sample stats.
 pub struct SampleAccessLoggerStats {
-    requests_total: Box<dyn Counter>,
-    reports_active: Box<dyn Gauge>,
-    reports_total: Box<dyn Counter>,
+    log_entries_total: Box<dyn Counter>,
 }
 
 impl SampleAccessLoggerStats {
-    pub fn new(
-        requests_total: Box<dyn Counter>,
-        reports_active: Box<dyn Gauge>,
-        reports_total: Box<dyn Counter>,
-    ) -> Self {
-        SampleAccessLoggerStats {
-            requests_total,
-            reports_active,
-            reports_total,
-        }
+    pub fn new(log_entries_total: Box<dyn Counter>) -> Self {
+        SampleAccessLoggerStats { log_entries_total }
     }
 
-    pub fn requests_total(&self) -> &dyn Counter {
-        &*self.requests_total
-    }
-    pub fn reports_active(&self) -> &dyn Gauge {
-        &*self.reports_active
-    }
-    pub fn reports_total(&self) -> &dyn Counter {
-        &*self.reports_total
+    pub fn log_entries_total(&self) -> &dyn Counter {
+        &*self.log_entries_total
     }
 }

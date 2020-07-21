@@ -1,32 +1,16 @@
-use envoy_sdk::host::services::metrics::{Counter, Gauge, Histogram};
+use envoy::host::stats::Counter;
 
 // Sample stats.
 pub struct SampleNetworkFilterStats {
-    requests_total: Box<dyn Counter>,
-    requests_active: Box<dyn Gauge>,
-    response_body_size_bytes: Box<dyn Histogram>,
+    connections_total: Box<dyn Counter>,
 }
 
 impl SampleNetworkFilterStats {
-    pub fn new(
-        requests_total: Box<dyn Counter>,
-        requests_active: Box<dyn Gauge>,
-        response_body_size_bytes: Box<dyn Histogram>,
-    ) -> Self {
-        SampleNetworkFilterStats {
-            requests_total,
-            requests_active,
-            response_body_size_bytes,
-        }
+    pub fn new(connections_total: Box<dyn Counter>) -> Self {
+        SampleNetworkFilterStats { connections_total }
     }
 
-    pub fn requests_total(&self) -> &dyn Counter {
-        &*self.requests_total
-    }
-    pub fn requests_active(&self) -> &dyn Gauge {
-        &*self.requests_active
-    }
-    pub fn response_body_size_bytes(&self) -> &dyn Histogram {
-        &*self.response_body_size_bytes
+    pub fn connections_total(&self) -> &dyn Counter {
+        &*self.connections_total
     }
 }

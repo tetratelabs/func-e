@@ -1,4 +1,4 @@
-pub use factory::SampleHttpFilterFactory;
+pub use self::factory::SampleHttpFilterFactory;
 
 mod config;
 mod factory;
