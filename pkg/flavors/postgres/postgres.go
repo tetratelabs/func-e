@@ -3,22 +3,32 @@ package postgres
 import (
 	"fmt"
 	"github.com/tetratelabs/getenvoy/pkg/flavors"
+	valid "github.com/asaskevich/govalidator"
 )
 
+// Define template parameter names
+const Endpoint string = "Endpoint"
+const InPort   string = "InPort"
+
 type PostgresFlavor struct {
-	// The following params are required for template to be processed successfully
+	// Location of the postgres server 
 	Endpoint string
+	// Envoy's listener port
+	InPort   string
 }
 
 var postgresFlavor PostgresFlavor
 
 func init () {
+	// Set default values.
+	// Default values are not required to be present in cmd line.
+	postgresFlavor.InPort = "5432"
 	flavor.AddTemplate("postgres", postgresFlavor)
 }
 
 
 func (PostgresFlavor) CreateConfig(params map[string]string) (error, string) {
-	required := map[string]int {"Endpoint": 0}
+	required := map[string]int {Endpoint: 0}
 
 	for  param, _ := range params {
 		if _, ok := required[param]; ok {
@@ -43,12 +53,20 @@ func (PostgresFlavor) CreateConfig(params map[string]string) (error, string) {
  
 
 func (PostgresFlavor) CheckParams(params map[string]string) (error, interface{}) {
-	required := map[string]int {"Endpoint": 0}
+	required := map[string]int {Endpoint: 0}
 
-	for  param, _ := range params {
-		if _, ok := required[param]; ok {
+	for  param, value := range params {
+		switch param {
+		case Endpoint:
 			required[param]++
-			postgresFlavor.Endpoint = params[param]
+			postgresFlavor.Endpoint = value 
+		case InPort:
+			if !valid.IsInt(value) {
+				return fmt.Errorf("Value for templateArg %s must be integer number", param), nil
+			}
+			postgresFlavor.InPort = value 
+		default:
+			fmt.Printf("Ignoring unrecognized template parameter: %s", param)
 		}
 	}
 
@@ -71,6 +89,8 @@ func (PostgresFlavor) GetTemplate() string {
 }
  
 
+
+// Postgres specific config file.
 var configTemplate string = 
 `static_resources:
   listeners:
@@ -78,7 +98,7 @@ var configTemplate string =
     address:
       socket_address:
         address: 0.0.0.0
-        port_value: 1968
+        port_value: {{ .InPort }}
     filter_chains:
     - filters:
       - name: envoy.filters.network.postgres_proxy

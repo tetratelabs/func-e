@@ -18,12 +18,15 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/controlplane"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/debug"
+	"github.com/tetratelabs/getenvoy/pkg/flavors"
+	_ "github.com/tetratelabs/getenvoy/pkg/flavors/postgres"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
 
@@ -32,6 +35,8 @@ var (
 	accessLogServerAddress string
 	mode                   string
 	bootstrap              string
+	templateArg            []string
+	templateParams         map[string]string
 )
 
 // NewRunCmd create a command responsible for starting an Envoy process
@@ -64,6 +69,10 @@ getenvoy run standard:1.11.1 -- --help
 			if err := validateBootstrap(); err != nil {
 				return err
 			}
+			templateParams = make(map[string]string)
+			if err := validateTemplateArg(); err != nil {
+				return err
+			}
 			return validateRequiresBootstrap()
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -88,6 +97,29 @@ getenvoy run standard:1.11.1 -- --help
 			}
 
 			key, manifestErr := manifest.NewKey(args[0])
+
+			// Check if the templateArgs were passed to the cmd line.
+			// If they were passed, config must be created based on
+			// template.
+			if len(templateParams) > 0 {
+				// When template params are specified, config should not be in envoy params
+				for _, envoyParam := range args {
+					if strings.HasPrefix(envoyParam, "--config") {
+						return fmt.Errorf("--templateArg and %s cannot be specified at the same time", envoyParam)
+					}
+				}
+				err, config := flavor.CreateConfig(key.Flavor, templateParams)
+				if err != nil {
+					return err
+				}
+				// Save config in getenvoy directory
+				err, path := runtime.SaveConfig(key.Flavor, config)
+				if err != nil {
+					return err
+				}
+				args = append(args, "--config-path "+path)
+			}
+
 			if manifestErr != nil {
 				if _, err := os.Stat(args[0]); err != nil {
 					return fmt.Errorf("%v isn't valid manifest reference or an existing filepath", args[0])
@@ -114,6 +146,8 @@ getenvoy run standard:1.11.1 -- --help
 		"(experimental) location of Envoy's access log server <host|ip:port> (requires bootstrap flag)")
 	cmd.Flags().StringVar(&mode, "mode", "",
 		fmt.Sprintf("(experimental) mode to run Envoy in <%v> (requires bootstrap flag)", strings.Join(envoy.SupportedModes, "|")))
+	cmd.Flags().StringSliceVarP(&templateArg, "templateArg", "", []string{},
+		"arguments passed to a config template for substitution")
 	return cmd
 }
 
@@ -149,6 +183,20 @@ func validateRequiresBootstrap() error {
 				return fmt.Errorf("--%v requires --bootstrap to be set", *requiresBootstrap[i])
 			}
 		}
+	}
+	return nil
+}
+
+func validateTemplateArg() error {
+	// Parse the templateArg. It must have a form of name=value.
+	pattern := regexp.MustCompile(`(\w+)=(\w+)`)
+
+	for _, arg := range templateArg {
+		if !pattern.MatchString(arg) {
+			return fmt.Errorf("templateArg must have format item=value")
+		}
+		result := strings.Split(arg, "=")
+		templateParams[result[0]] = result[1]
 	}
 	return nil
 }
