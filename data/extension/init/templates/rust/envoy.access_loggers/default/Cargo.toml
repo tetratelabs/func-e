@@ -16,7 +16,7 @@ categories = ["wasm"]
 crate-type = ["rlib"]
 
 [dependencies]
-envoy-sdk = { git = "ssh://git@github.com/tetratelabs/envoy-wasm-rust-sdk.git" }
-proxy-wasm = { git = "https://github.com/yskopets/proxy-wasm-rust-sdk", branch = "proxy-wasm-spec-0.1.0" }
+envoy-sdk = { version = "^0.0.1" }
+proxy-wasm = { package="proxy-wasm-experimental", version = "^0.1.0-alpha.2" }
 log = "^0.4"
 chrono = "^0.4"
