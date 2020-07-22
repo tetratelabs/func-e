@@ -87,6 +87,13 @@ getenvoy run postgres:nightly --templateArg Endpoint=127.0.0.0 --templateArg InP
 
 			key, manifestErr := manifest.NewKey(args[0])
 
+			if manifestErr != nil {
+				if _, err := os.Stat(args[0]); err != nil {
+					return fmt.Errorf("%v isn't valid manifest reference or an existing filepath", args[0])
+				}
+				return runtime.RunPath(args[0], args[1:])
+			}
+
 			// Check if the templateArgs were passed to the cmd line.
 			// If they were passed, config must be created based on
 			// template.
@@ -98,12 +105,6 @@ getenvoy run postgres:nightly --templateArg Endpoint=127.0.0.0 --templateArg InP
 				args = append(args, cmdArg)
 			}
 
-			if manifestErr != nil {
-				if _, err := os.Stat(args[0]); err != nil {
-					return fmt.Errorf("%v isn't valid manifest reference or an existing filepath", args[0])
-				}
-				return runtime.RunPath(args[0], args[1:])
-			}
 			if !runtime.AlreadyDownloaded(key) {
 				location, err := manifest.Locate(key, manifestURL)
 				if err != nil {
