@@ -18,7 +18,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"regexp"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -35,8 +34,7 @@ var (
 	accessLogServerAddress string
 	mode                   string
 	bootstrap              string
-	templateArg            []string
-	templateParams         map[string]string
+	templateArgs           map[string]string
 )
 
 // NewRunCmd create a command responsible for starting an Envoy process
@@ -58,6 +56,9 @@ getenvoy run ./envoy -- --config-path ./bootstrap.yaml
 
 # List available Envoy flags.
 getenvoy run standard:1.11.1 -- --help
+
+# Run with Postgres specific configuration bootstrapped
+getenvoy run postgres:nightly --templateArg Endpoint=127.0.0.0 --templateArg InPort=1114
 `,
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validateCmdArgs(args)
@@ -89,8 +90,8 @@ getenvoy run standard:1.11.1 -- --help
 			// Check if the templateArgs were passed to the cmd line.
 			// If they were passed, config must be created based on
 			// template.
-			if len(templateParams) > 0 {
-				cmdArg, err := processTemplateArgs(key.Flavor, args, templateParams, runtime.(*envoy.Runtime))
+			if len(templateArgs) > 0 {
+				cmdArg, err := processTemplateArgs(key.Flavor, args, templateArgs, runtime.(*envoy.Runtime))
 				if err != nil {
 					return err
 				}
@@ -123,7 +124,7 @@ getenvoy run standard:1.11.1 -- --help
 		"(experimental) location of Envoy's access log server <host|ip:port> (requires bootstrap flag)")
 	cmd.Flags().StringVar(&mode, "mode", "",
 		fmt.Sprintf("(experimental) mode to run Envoy in <%v> (requires bootstrap flag)", strings.Join(envoy.SupportedModes, "|")))
-	cmd.Flags().StringSliceVarP(&templateArg, "templateArg", "", []string{},
+	cmd.Flags().StringToStringVarP(&templateArgs, "templateArg", "", map[string]string{},
 		"arguments passed to a config template for substitution")
 	return cmd
 }
@@ -164,20 +165,6 @@ func validateRequiresBootstrap() error {
 	return nil
 }
 
-func validateTemplateArg() error {
-	// Parse the templateArg. It must have a form of name=value.
-	pattern := regexp.MustCompile(`(\w+)=(\w+)`)
-
-	for _, arg := range templateArg {
-		if !pattern.MatchString(arg) {
-			return fmt.Errorf("templateArg must have format item=value")
-		}
-		result := strings.Split(arg, "=")
-		templateParams[result[0]] = result[1]
-	}
-	return nil
-}
-
 func validateCmdArgs(args []string) error {
 	if len(args) == 0 {
 		return errors.New("missing binary parameter")
@@ -186,10 +173,6 @@ func validateCmdArgs(args []string) error {
 		return err
 	}
 	if err := validateBootstrap(); err != nil {
-		return err
-	}
-	templateParams = make(map[string]string)
-	if err := validateTemplateArg(); err != nil {
 		return err
 	}
 	return validateRequiresBootstrap()
@@ -208,13 +191,13 @@ func controlplaneFunc() func(r *envoy.Runtime) {
 // Function verifies template parameters passed in getenvoy command line.
 // If verification is successful, it returns a string which must be added to
 // Envoy command line to invoke a proper config.
-func processTemplateArgs(flavor string, args []string, templateParams map[string]string, runtime *envoy.Runtime) (string, error) {
+func processTemplateArgs(flavor string, args []string, templateArgs map[string]string, runtime *envoy.Runtime) (string, error) {
 	for _, envoyParam := range args {
 		if strings.HasPrefix(envoyParam, "--config") {
 			return "", fmt.Errorf("--templateArg and %s cannot be specified at the same time", envoyParam)
 		}
 	}
-	config, err := flavors.CreateConfig(flavor, templateParams)
+	config, err := flavors.CreateConfig(flavor, templateArgs)
 	if err != nil {
 		return "", err
 	}

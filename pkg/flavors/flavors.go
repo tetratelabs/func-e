@@ -22,28 +22,28 @@ import (
 
 // FlavorConfigTemplate - interface to individual flavors.
 type FlavorConfigTemplate interface {
-	CheckParams(params map[string]string) (interface{}, error)
+	CheckParseParams(params map[string]string) error
 	GetTemplate() string
 }
 
 // Main repo for templates.
-type templateStore struct {
+type flavorStore struct {
 	// This is a map indexed by flavor pointing to the individual
 	// implementaions of each flavor.
 	templates map[string]FlavorConfigTemplate
 }
 
-var store = templateStore{templates: make(map[string]FlavorConfigTemplate)}
+var store = flavorStore{templates: make(map[string]FlavorConfigTemplate)}
 
-// AddTemplate - function is used by individual flavors (like postgres)
+// AddFlavor - function is used by individual flavors (like postgres)
 // to add the flavor to main repo.
-func AddTemplate(flavor string, configTemplate FlavorConfigTemplate) {
+func AddFlavor(flavor string, configTemplate FlavorConfigTemplate) {
 	store.templates[flavor] = configTemplate
 }
 
-// GetTemplate - function returns FlavorConfigTemplate structure associated
+// GetFlavor - function returns FlavorConfigTemplate structure associated
 // with flavor.
-func GetTemplate(flavor string) (FlavorConfigTemplate, error) {
+func GetFlavor(flavor string) (FlavorConfigTemplate, error) {
 	tmplString, ok := store.templates[flavor]
 	if !ok {
 		return nil, fmt.Errorf("Cannot find template for flavor %s", flavor)
@@ -55,13 +55,13 @@ func GetTemplate(flavor string) (FlavorConfigTemplate, error) {
 // CreateConfig - function checks flavor specific parameters, get flavor's template and
 // create a config.
 func CreateConfig(flavor string, params map[string]string) (string, error) {
-	flavorData, err := GetTemplate(flavor)
+	flavorData, err := GetFlavor(flavor)
 
 	if err != nil {
 		return "", err
 	}
 
-	data, err := flavorData.CheckParams(params)
+	err = flavorData.CheckParseParams(params)
 	if err != nil {
 		return "", err
 	}
@@ -75,6 +75,6 @@ func CreateConfig(flavor string, params map[string]string) (string, error) {
 		return "", fmt.Errorf("Supplied template for flavor %s is incorrect", flavor)
 	}
 	var buf bytes.Buffer
-	tmpl.Execute(&buf, data) //nolint
+	tmpl.Execute(&buf, flavorData) //nolint
 	return buf.String(), nil
 }

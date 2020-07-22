@@ -11,10 +11,12 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package flavors
+package flavors_test
 
 import (
 	"testing"
+
+	"github.com/tetratelabs/getenvoy/pkg/flavors"
 )
 
 // Flavor for mocking and testing.
@@ -24,40 +26,38 @@ type TestFlavor struct {
 
 var flavor TestFlavor
 
-func (TestFlavor) CreateConfig(params map[string]string) (string, error) {
-	return "CreateTestConfig", nil
-}
-
-func (TestFlavor) CheckParams(params map[string]string) (interface{}, error) {
+func (f *TestFlavor) CheckParseParams(params map[string]string) error {
 	// Just set the
-	flavor.Test = "UnitTest"
-	return flavor, nil
+	f.Test = "UnitTest"
+	return nil
 }
 
-func (TestFlavor) GetTemplate() string {
-	return "This is {{ .Test }} template"
+const testTemplate string = "This is {{ .Test }} template"
+
+func (*TestFlavor) GetTemplate() string {
+	return testTemplate
 }
 
 // Test adding and retrieving config template
 func TestAdd(t *testing.T) {
-	AddTemplate("test", flavor)
+	flavors.AddFlavor("test", &flavor)
 
-	out, err := GetTemplate("test")
+	out, err := flavors.GetFlavor("test")
 
 	if err != nil {
 		t.Error("Just added template cannot be located")
 	}
 
-	if flavor != out {
+	if testTemplate != out.GetTemplate() {
 		t.Error("Added and retrieved templates are different")
 	}
 }
 
 // Test retrieving non-existing template
 func TestGetNonExisting(t *testing.T) {
-	AddTemplate("test", flavor)
+	flavors.AddFlavor("test", &flavor)
 
-	_, err := GetTemplate("test1")
+	_, err := flavors.GetFlavor("test1")
 
 	if err == nil {
 		t.Error("Error should be returned for non-existing template")
@@ -68,10 +68,10 @@ func TestGetNonExisting(t *testing.T) {
 // Test verifies that after adding TestFlavor to the list
 // of known flavors, it can create a proper config.
 func TestCreateConfig(t *testing.T) {
-	AddTemplate("test", flavor)
+	flavors.AddFlavor("test", &flavor)
 
 	params := map[string]string{"Test": "UnitTest"}
-	config, err := CreateConfig("test", params)
+	config, err := flavors.CreateConfig("test", params)
 
 	if err != nil {
 		t.Error("Creating config failed with proper parameters")

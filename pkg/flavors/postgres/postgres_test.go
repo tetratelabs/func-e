@@ -21,7 +21,7 @@ import (
 
 // Test verifies that postgres flavor is registered when module is loaded.
 func TestInit(t *testing.T) {
-	_, err := flavors.GetTemplate("postgres")
+	_, err := flavors.GetFlavor("postgres")
 
 	if err != nil {
 		t.Error("postgres flavor should be registered at init phase.")
@@ -29,15 +29,15 @@ func TestInit(t *testing.T) {
 }
 
 // Create set of template argumments which do not include
-// required one called "endpoint"
+// required one called "Endpoint"
 func TestMissingParam(t *testing.T) {
 
 	params := map[string]string{
 		"blah": "bleh",
 	}
-	var testFlavor Flavor
+	var testFlavor = &flavor
 
-	_, err := testFlavor.CheckParams(params)
+	err := testFlavor.CheckParseParams(params)
 
 	if err == nil {
 		t.Error("Not specifying mandatory template args does not trigger error")
@@ -47,19 +47,17 @@ func TestMissingParam(t *testing.T) {
 // Verify that passing all required params does not trigger any arror.
 func TestAllParams(t *testing.T) {
 	params := map[string]string{
-		"endpoint": "127.0.0.1",
+		"Endpoint": "127.0.0.1",
 	}
-	var testFlavor Flavor
+	var testFlavor = &flavor
 
-	data, err := testFlavor.CheckParams(params)
+	err := testFlavor.CheckParseParams(params)
 
 	if err != nil {
 		t.Errorf("All required params were passed but check failed: %s", err)
 	}
 
-	// Type assertion from generic interface{} to Flavor.
-	postgresData := data.(Flavor)
-	if postgresData.endpoint != "127.0.0.1" {
+	if testFlavor.Endpoint != "127.0.0.1" {
 		t.Errorf("Parsing template params does not create proper structure")
 	}
 }
@@ -68,20 +66,18 @@ func TestAllParams(t *testing.T) {
 // is successful
 func TestExtraParams(t *testing.T) {
 	params := map[string]string{
-		"endpoint": "127.0.0.1",
+		"Endpoint": "127.0.0.1",
 		"blah":     "blah",
 	}
-	var testFlavor Flavor
+	var testFlavor = &flavor
 
-	data, err := testFlavor.CheckParams(params)
+	err := testFlavor.CheckParseParams(params)
 
 	if err != nil {
 		t.Errorf("All required params were passed but check failed: %s", err)
 	}
 
-	// Type assertion from generic interface{} to Flavor.
-	postgresData := data.(Flavor)
-	if postgresData.endpoint != "127.0.0.1" {
+	if testFlavor.Endpoint != "127.0.0.1" {
 		t.Errorf("Parsing template params does not create proper structure")
 	}
 }

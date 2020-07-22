@@ -22,42 +22,42 @@ import (
 )
 
 // Define template parameter names
-const endpoint string = "endpoint"
-const inport string = "inport"
+const endpoint string = "Endpoint"
+const inport string = "InPort"
 
 // Flavor implements flavor.FlavorConfigTemplate interface
 // and stores config data specific to Postgres template.
 type Flavor struct {
 	// Location of the postgres server
-	endpoint string
+	Endpoint string
 	// Envoy's listener port
-	inport string
+	InPort string
 }
 
-var flavor Flavor
+var flavor = Flavor{
+	InPort: "5432",
+}
 
 func init() {
-	// Set default values.
-	// Default values are not required to be present in cmd line.
-	flavor.inport = "5432"
-	flavors.AddTemplate("postgres", flavor)
+	// Register postgres flavor.
+	flavors.AddFlavor("postgres", &flavor)
 }
 
-// CheckParams verifies that passed template arguments are correct and
+// CheckParseParams verifies that passed template arguments are correct and
 // are sufficient for creating a valid config from template.
-func (Flavor) CheckParams(params map[string]string) (interface{}, error) {
+func (f *Flavor) CheckParseParams(params map[string]string) error {
 	required := map[string]int{endpoint: 0}
 
 	for param, value := range params {
 		switch param {
 		case endpoint:
 			required[param]++
-			flavor.endpoint = value
+			f.Endpoint = value
 		case inport:
 			if !valid.IsInt(value) {
-				return nil, fmt.Errorf("Value for templateArg %s must be integer number", param)
+				return fmt.Errorf("Value for templateArg %s must be integer number", param)
 			}
-			flavor.inport = value
+			f.InPort = value
 		default:
 			fmt.Printf("Ignoring unrecognized template parameter: %s", param)
 		}
@@ -71,14 +71,14 @@ func (Flavor) CheckParams(params map[string]string) (interface{}, error) {
 		}
 	}
 	if notFound != "" {
-		return nil, fmt.Errorf("Required template params %s were not specified", notFound)
+		return fmt.Errorf("Required template params %s were not specified", notFound)
 	}
 
-	return flavor, nil
+	return nil
 }
 
 // GetTemplate returns unprocessed template for Envoy.
-func (Flavor) GetTemplate() string {
+func (*Flavor) GetTemplate() string {
 	return configTemplate
 }
 
@@ -89,7 +89,7 @@ var configTemplate = `static_resources:
     address:
       socket_address:
         address: 0.0.0.0
-        port_value: {{ .inport }}
+        port_value: {{ .InPort }}
     filter_chains:
     - filters:
       - name: envoy.filters.network.postgres_proxy
@@ -113,7 +113,7 @@ var configTemplate = `static_resources:
         - endpoint:
             address:
               socket_address:
-                address: {{ .endpoint}} 
+                address: {{ .Endpoint}} 
                 port_value: 5432
 
 admin:
@@ -121,4 +121,4 @@ admin:
   address:
     socket_address:
       address: 0.0.0.0
-      port_value: 8001`
+      port_value: 15000`
