@@ -26,30 +26,23 @@ type TestFlavor struct {
 
 var flavor TestFlavor
 
-func (f *TestFlavor) CheckParseParams(params map[string]string) error {
-	// Just set the
-	f.Test = "UnitTest"
-	return nil
-}
+const testConfig string = "This is UnitTest config"
 
-const testTemplate string = "This is {{ .Test }} template"
-
-func (*TestFlavor) GetTemplate() string {
-	return testTemplate
+func (f *TestFlavor) GenerateConfig(params map[string]string) (string, error) {
+	// Just return predefined value.
+	// Normally a flavor would use template but
+	// here using templates is not part of the test.
+	return testConfig, nil
 }
 
 // Test adding and retrieving config template
 func TestAdd(t *testing.T) {
 	flavors.AddFlavor("test", &flavor)
 
-	out, err := flavors.GetFlavor("test")
+	_, err := flavors.GetFlavor("test")
 
 	if err != nil {
 		t.Error("Just added template cannot be located")
-	}
-
-	if testTemplate != out.GetTemplate() {
-		t.Error("Added and retrieved templates are different")
 	}
 }
 
@@ -77,7 +70,7 @@ func TestCreateConfig(t *testing.T) {
 		t.Error("Creating config failed with proper parameters")
 	}
 
-	if config != "This is UnitTest template" {
+	if config != testConfig {
 		t.Errorf("Created config %s not as expected", config)
 	}
 }

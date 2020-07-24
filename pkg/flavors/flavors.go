@@ -15,15 +15,12 @@
 package flavors
 
 import (
-	"bytes"
 	"fmt"
-	"text/template"
 )
 
 // FlavorConfigTemplate - interface to individual flavors.
 type FlavorConfigTemplate interface {
-	CheckParseParams(params map[string]string) error
-	GetTemplate() string
+	GenerateConfig(params map[string]string) (string, error)
 }
 
 // Main repo for templates.
@@ -61,20 +58,5 @@ func CreateConfig(flavor string, params map[string]string) (string, error) {
 		return "", err
 	}
 
-	err = flavorData.CheckParseParams(params)
-	if err != nil {
-		return "", err
-	}
-
-	// NOw run the template substitution
-	tmpl := template.New(flavor)
-	tmpl, err = tmpl.Parse(flavorData.GetTemplate())
-	if err != nil {
-		// Template is not supplied by a user, but is compiled-in, so this error should
-		// happen only during development time.
-		return "", fmt.Errorf("Supplied template for flavor %s is incorrect", flavor)
-	}
-	var buf bytes.Buffer
-	tmpl.Execute(&buf, flavorData) //nolint
-	return buf.String(), nil
+	return flavorData.GenerateConfig(params)
 }

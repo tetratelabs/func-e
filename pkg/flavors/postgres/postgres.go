@@ -15,23 +15,34 @@
 package postgres
 
 import (
+	"bytes"
 	"fmt"
+	"net"
+	"strings"
+	"text/template"
 
 	valid "github.com/asaskevich/govalidator"
 	"github.com/tetratelabs/getenvoy/pkg/flavors"
 )
 
 // Define template parameter names
-const endpoint string = "Endpoint"
-const inport string = "InPort"
+const endpoint string = "endpoint"
+const inport string = "inport"
 
 // Flavor implements flavor.FlavorConfigTemplate interface
 // and stores config data specific to Postgres template.
 type Flavor struct {
 	// Location of the postgres server
-	Endpoint string
+	endpoints []*clusterEndpoint
 	// Envoy's listener port
-	InPort string
+	InPort      string
+	ClusterType string
+}
+
+type clusterEndpoint struct {
+	EndpointAddr string
+	EndpointPort string
+	IsIP         bool
 }
 
 var flavor = Flavor{
@@ -43,16 +54,47 @@ func init() {
 	flavors.AddFlavor("postgres", &flavor)
 }
 
-// CheckParseParams verifies that passed template arguments are correct and
-// are sufficient for creating a valid config from template.
-func (f *Flavor) CheckParseParams(params map[string]string) error {
-	required := map[string]int{endpoint: 0}
+// GenerateConfig method takes command line parameters and creates
+// Postgres specific Envoy config.
+func (f *Flavor) GenerateConfig(params map[string]string) (string, error) {
+	var err error
+	var config string
+
+	err = f.parseInputParams(params)
+	if err != nil {
+		return "", err
+	}
+	// Now process the main template. This includes everything except endpoints.
+	// NOw run the template substitution
+	mainConfig, err := f.generateMainConfig()
+	if err != nil {
+		return "", err
+	}
+	config += mainConfig
+
+	endpointsConfig, err := f.generateEndpointSetConfig()
+	if err != nil {
+		return "", err
+	}
+	config += endpointsConfig
+
+	return config, nil
+}
+
+// Utility functions.
+
+// Function parses and verifies inout params for consistency
+// and correctness.
+func (f *Flavor) parseInputParams(params map[string]string) error {
+	var err error
 
 	for param, value := range params {
 		switch param {
 		case endpoint:
-			required[param]++
-			f.Endpoint = value
+			f.endpoints, err = parseEndpointSet(value)
+			if err != nil {
+				return err
+			}
 		case inport:
 			if !valid.IsInt(value) {
 				return fmt.Errorf("Value for templateArg %s must be integer number", param)
@@ -64,26 +106,123 @@ func (f *Flavor) CheckParseParams(params map[string]string) error {
 	}
 
 	// Check if all required params have been found in the parameter list
-	var notFound string
-	for key, count := range required {
-		if count == 0 {
-			notFound += key + " "
-		}
-	}
-	if notFound != "" {
-		return fmt.Errorf("Required template params %s were not specified", notFound)
+	if len(f.endpoints) == 0 {
+		return fmt.Errorf("endpoint parameter must be specified")
 	}
 
+	// Verify that all endpoints are of the same type:
+	// All are IP address or all are domain name.
+	clusterType := f.endpoints[0].IsIP
+	for _, singleEndpoint := range f.endpoints[1:] {
+		if singleEndpoint.IsIP != clusterType {
+			return fmt.Errorf("Endpoints must be of the same type type: IP addresses or hostnames")
+		}
+	}
 	return nil
 }
 
-// GetTemplate returns unprocessed template for Envoy.
-func (*Flavor) GetTemplate() string {
-	return configTemplate
+// Endpoint may have the following forms:
+// IP address: like 127.0.0.1
+// IP address and port: 127.0.0.1:5432
+// domain name: postgres
+// domain name and port: postgres:5432
+func parseSingleEndpoint(endpoint string) (*clusterEndpoint, error) {
+	var host, port string
+	var err error
+	parts := strings.Split(endpoint, ":")
+	if len(parts) > 2 {
+		return nil, fmt.Errorf("%s endpoint has incorrect format. Should be endpoint[:port]", endpoint)
+	}
+
+	if len(parts) == 2 {
+		host, port, err = net.SplitHostPort(endpoint)
+		if err != nil {
+			return nil, fmt.Errorf("%s endpoint has incorrect format. Should be endpoint[:port]", endpoint)
+		}
+		if !valid.IsInt(port) {
+			return nil, fmt.Errorf("Port value in endpoint:port must be integer not %s", port)
+		}
+	} else {
+		host = parts[0]
+		port = "5432"
+	}
+
+	// This is just IP address or domain name.
+	isIP := (net.ParseIP(host) != nil)
+
+	return &clusterEndpoint{
+		EndpointAddr: host,
+		EndpointPort: port,
+		IsIP:         isIP}, nil
+
+}
+
+// Function parses a string of comma separated endpoints.
+func parseEndpointSet(endpoints string) ([]*clusterEndpoint, error) {
+	// endpoints is comma separated list of endpoints
+	singleEndpoints := strings.Split(endpoints, ",")
+
+	clusterEndpoints := make([]*clusterEndpoint, 0, len(singleEndpoints))
+
+	for _, endpoint := range singleEndpoints {
+		singleClusterEndpoint, err := parseSingleEndpoint(endpoint)
+		if err != nil {
+			return nil, err
+		}
+		clusterEndpoints = append(clusterEndpoints, singleClusterEndpoint)
+	}
+
+	return clusterEndpoints, nil
+}
+
+func (f *Flavor) generateEndpointSetConfig() (string, error) {
+	var buf bytes.Buffer
+
+	tmpl := template.New("postgres-endpoint")
+	tmpl, err := tmpl.Parse(clusterEndpointTemplate)
+	if err != nil {
+		// Template is not supplied by a user, but is compiled-in, so this error should
+		// happen only during development time.
+		return "", fmt.Errorf("Supplied postgres-main template is incorrect")
+	}
+
+	for _, singleEndpoint := range f.endpoints {
+		tmpl.Execute(&buf, singleEndpoint) //nolint
+	}
+
+	return buf.String(), nil
+}
+
+func (f *Flavor) generateMainConfig() (string, error) {
+	var buf bytes.Buffer
+
+	if f.endpoints[0].IsIP {
+		f.ClusterType = "static"
+	} else {
+		f.ClusterType = "strict_dns"
+	}
+	tmpl := template.New("postgres-main")
+	tmpl, err := tmpl.Parse(configTemplate)
+	if err != nil {
+		// Template is not supplied by a user, but is compiled-in, so this error should
+		// happen only during development time.
+		return "", fmt.Errorf("Supplied postgres-main template is incorrect")
+	}
+	tmpl.Execute(&buf, f) //nolint
+
+	return buf.String(), nil
 }
 
 // Postgres specific config file.
-var configTemplate = `static_resources:
+var configTemplate = `
+admin:
+  access_log_path: "/dev/null"
+  address:
+    socket_address:
+      address: 0.0.0.0
+      port_value: 15000
+
+static_resources:
   listeners:
   - name: postgres_listener
     address:
@@ -105,20 +244,15 @@ var configTemplate = `static_resources:
   clusters:
   - name: postgres_cluster
     connect_timeout: 1s
-    type: static
+    type: {{ .ClusterType }}
     load_assignment:
       cluster_name: postgres_cluster
       endpoints:
-      - lb_endpoints:
+      - lb_endpoints:`
+
+var clusterEndpointTemplate = `
         - endpoint:
             address:
               socket_address:
-                address: {{ .Endpoint}} 
-                port_value: 5432
-
-admin:
-  access_log_path: "/dev/null"
-  address:
-    socket_address:
-      address: 0.0.0.0
-      port_value: 15000`
+                address: {{ .EndpointAddr }} 
+                port_value: {{ .EndpointPort }}`
