@@ -39,6 +39,9 @@ type Runner interface {
 	DebugStore() string
 	SetStdout(w io.Writer)
 	SetStderr(w io.Writer)
+	// TODO(cpakulski) Maybe Runner is not the best place for SaveConfig.
+	// It was added here because it needs location of .getenvoy
+	// directory.
 	SaveConfig(name string, config string) (string, error)
 }
 

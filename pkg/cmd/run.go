@@ -58,7 +58,7 @@ getenvoy run ./envoy -- --config-path ./bootstrap.yaml
 getenvoy run standard:1.11.1 -- --help
 
 # Run with Postgres specific configuration bootstrapped
-getenvoy run postgres:nightly --templateArg Endpoint=127.0.0.0 --templateArg InPort=1114
+getenvoy run postgres:nightly --templateArg endpoint=127.0.0.1:5432 --templateArg inport=5555
 `,
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validateCmdArgs(args)
@@ -125,7 +125,7 @@ getenvoy run postgres:nightly --templateArg Endpoint=127.0.0.0 --templateArg InP
 		"(experimental) location of Envoy's access log server <host|ip:port> (requires bootstrap flag)")
 	cmd.Flags().StringVar(&mode, "mode", "",
 		fmt.Sprintf("(experimental) mode to run Envoy in <%v> (requires bootstrap flag)", strings.Join(envoy.SupportedModes, "|")))
-	cmd.Flags().StringToStringVarP(&templateArgs, "templateArg", "", map[string]string{},
+	cmd.Flags().StringToStringVar(&templateArgs, "templateArg", map[string]string{},
 		"arguments passed to a config template for substitution")
 	return cmd
 }

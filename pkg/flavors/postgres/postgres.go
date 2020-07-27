@@ -183,11 +183,14 @@ func (f *Flavor) generateEndpointSetConfig() (string, error) {
 	if err != nil {
 		// Template is not supplied by a user, but is compiled-in, so this error should
 		// happen only during development time.
-		return "", fmt.Errorf("Supplied postgres-main template is incorrect")
+		return "", fmt.Errorf("Cannot parse postgres endpoint template")
 	}
 
 	for _, singleEndpoint := range f.endpoints {
-		tmpl.Execute(&buf, singleEndpoint) //nolint
+		err = tmpl.Execute(&buf, singleEndpoint)
+		if err != nil {
+			return "", fmt.Errorf("Cannot execute postgres endpoint template")
+		}
 	}
 
 	return buf.String(), nil
@@ -206,9 +209,12 @@ func (f *Flavor) generateMainConfig() (string, error) {
 	if err != nil {
 		// Template is not supplied by a user, but is compiled-in, so this error should
 		// happen only during development time.
-		return "", fmt.Errorf("Supplied postgres-main template is incorrect")
+		return "", fmt.Errorf("Cannot parse postgres main template")
 	}
-	tmpl.Execute(&buf, f) //nolint
+	err = tmpl.Execute(&buf, f)
+	if err != nil {
+		return "", fmt.Errorf("Cannot execute postgres main template")
+	}
 
 	return buf.String(), nil
 }
