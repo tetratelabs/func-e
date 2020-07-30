@@ -58,7 +58,7 @@ getenvoy run ./envoy -- --config-path ./bootstrap.yaml
 getenvoy run standard:1.11.1 -- --help
 
 # Run with Postgres specific configuration bootstrapped
-getenvoy run postgres:nightly --templateArg endpoint=127.0.0.1:5432 --templateArg inport=5555
+getenvoy run postgres:nightly --templateArg endpoints=127.0.0.1:5432,192.168.0.101:5432 --templateArg inport=5555
 `,
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validateCmdArgs(args)

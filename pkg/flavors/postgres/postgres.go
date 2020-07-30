@@ -26,8 +26,8 @@ import (
 )
 
 // Define template parameter names
-const endpoint string = "endpoint"
-const inport string = "inport"
+const endpointsParam string = "endpoints"
+const inportParam string = "inport"
 
 // Flavor implements flavor.FlavorConfigTemplate interface
 // and stores config data specific to Postgres template.
@@ -90,12 +90,12 @@ func (f *Flavor) parseInputParams(params map[string]string) error {
 
 	for param, value := range params {
 		switch param {
-		case endpoint:
+		case endpointsParam:
 			f.endpoints, err = parseEndpointSet(value)
 			if err != nil {
 				return err
 			}
-		case inport:
+		case inportParam:
 			if !valid.IsInt(value) {
 				return fmt.Errorf("Value for templateArg %s must be integer number", param)
 			}
@@ -107,7 +107,7 @@ func (f *Flavor) parseInputParams(params map[string]string) error {
 
 	// Check if all required params have been found in the parameter list
 	if len(f.endpoints) == 0 {
-		return fmt.Errorf("endpoint parameter must be specified")
+		return fmt.Errorf("Parameter endpoints must be specified")
 	}
 
 	// Verify that all endpoints are of the same type:

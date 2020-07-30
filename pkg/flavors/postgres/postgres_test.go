@@ -30,7 +30,7 @@ func TestInit(t *testing.T) {
 }
 
 type testInputEndpoint struct {
-	endpoint    string
+	endpoints   string
 	parseResult clusterEndpoint
 	result      bool
 }
@@ -57,15 +57,15 @@ func TestParseSingleEndpoint(t *testing.T) {
 	}
 
 	for _, testCase := range input {
-		parsed, err := parseSingleEndpoint(testCase.endpoint)
+		parsed, err := parseSingleEndpoint(testCase.endpoints)
 		if testCase.result != (err == nil) {
-			t.Errorf("Parsing result for %s not as expected", testCase.endpoint)
+			t.Errorf("Parsing result for %s not as expected", testCase.endpoints)
 		}
 		if err != nil {
 			continue
 		}
 		if *parsed != testCase.parseResult {
-			t.Errorf("Parsed structure %v for %s is not as expected", *parsed, testCase.endpoint)
+			t.Errorf("Parsed structure %v for %s is not as expected", *parsed, testCase.endpoints)
 		}
 	}
 }
@@ -117,14 +117,14 @@ type testInputCmdParams struct {
 func TestInputCmdParams(t *testing.T) {
 	var testFlavor Flavor
 	input := []testInputCmdParams{
-		{map[string]string{"endpoint": "127.0.0.1:3456"}, true},
-		{map[string]string{"endpoint1": "127.0.0.1:3456"}, false},
-		{map[string]string{"endpoint1": "127.0.0.1:3456", "endpoint": "128.0.0.1"}, true},
-		{map[string]string{"endpoint1": "127.0.0.1:3456", "inport": "128.0.0.1"}, false},
-		{map[string]string{"endpoint": "127.0.0.1:3456", "inport": "128.0.0.1"}, false},
-		{map[string]string{"endpoint": "127.0.0.1:3456", "inport": "5432"}, true},
-		{map[string]string{"endpoint": "127.0.0.1:blah", "inport": "5432"}, false},
-		{map[string]string{"endpoint": "127.0.0.1:3456,postgres:1234"}, false},
+		{map[string]string{"endpoints": "127.0.0.1:3456"}, true},
+		{map[string]string{"endpoints1": "127.0.0.1:3456"}, false},
+		{map[string]string{"endpoints1": "127.0.0.1:3456", "endpoints": "128.0.0.1"}, true},
+		{map[string]string{"endpoints1": "127.0.0.1:3456", "inport": "128.0.0.1"}, false},
+		{map[string]string{"endpoints": "127.0.0.1:3456", "inport": "128.0.0.1"}, false},
+		{map[string]string{"endpoints": "127.0.0.1:3456", "inport": "5432"}, true},
+		{map[string]string{"endpoints": "127.0.0.1:blah", "inport": "5432"}, false},
+		{map[string]string{"endpoints": "127.0.0.1:3456,postgres:1234"}, false},
 	}
 
 	for _, testCase := range input {
@@ -153,10 +153,10 @@ func TestCreateEndpointsConfig(t *testing.T) {
 	var testFlavor Flavor
 
 	input := []testEndpointSetConfig{
-		{map[string]string{"endpoint": "127.0.0.1:3456"}, []string{"127.0.0.1", "3456"}},
-		{map[string]string{"endpoint": "127.0.0.1:3456,128.0.0.1"}, []string{"127.0.0.1", "3456", "128.0.0.1", "5432"}},
-		{map[string]string{"endpoint": "postgres:3456"}, []string{"postgres", "3456"}},
-		{map[string]string{"endpoint": "postgres1:3456,postgres2"}, []string{"postgres1", "3456", "postgres2", "5432"}},
+		{map[string]string{"endpoints": "127.0.0.1:3456"}, []string{"127.0.0.1", "3456"}},
+		{map[string]string{"endpoints": "127.0.0.1:3456,128.0.0.1"}, []string{"127.0.0.1", "3456", "128.0.0.1", "5432"}},
+		{map[string]string{"endpoints": "postgres:3456"}, []string{"postgres", "3456"}},
+		{map[string]string{"endpoints": "postgres1:3456,postgres2"}, []string{"postgres1", "3456", "postgres2", "5432"}},
 	}
 
 	for index, testCase := range input {
@@ -186,10 +186,10 @@ func TestCreateMainConfig(t *testing.T) {
 	var testFlavor Flavor
 
 	input := []testEndpointSetConfig{
-		{map[string]string{"endpoint": "127.0.0.1:3456"}, []string{"static"}},
-		{map[string]string{"endpoint": "127.0.0.1:3456,128.0.0.1"}, []string{"static"}},
-		{map[string]string{"endpoint": "postgres:3456"}, []string{"strict_dns"}},
-		{map[string]string{"endpoint": "postgres1:3456,postgres2"}, []string{"strict_dns"}},
+		{map[string]string{"endpoints": "127.0.0.1:3456"}, []string{"static"}},
+		{map[string]string{"endpoints": "127.0.0.1:3456,128.0.0.1"}, []string{"static"}},
+		{map[string]string{"endpoints": "postgres:3456"}, []string{"strict_dns"}},
+		{map[string]string{"endpoints": "postgres1:3456,postgres2"}, []string{"strict_dns"}},
 	}
 
 	for index, testCase := range input {
