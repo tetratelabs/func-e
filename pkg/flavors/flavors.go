@@ -18,7 +18,7 @@ import (
 	"fmt"
 )
 
-// FlavorConfigTemplate - interface to individual flavors.
+// FlavorConfigTemplate represents interface to individual flavors.
 type FlavorConfigTemplate interface {
 	GenerateConfig(params map[string]string) (string, error)
 }
@@ -32,13 +32,13 @@ type flavorStore struct {
 
 var store = flavorStore{templates: make(map[string]FlavorConfigTemplate)}
 
-// AddFlavor - function is used by individual flavors (like postgres)
+// AddFlavor function is used by individual flavors (like postgres)
 // to add the flavor to main repo.
 func AddFlavor(flavor string, configTemplate FlavorConfigTemplate) {
 	store.templates[flavor] = configTemplate
 }
 
-// GetFlavor - function returns FlavorConfigTemplate structure associated
+// GetFlavor function returns FlavorConfigTemplate structure associated
 // with flavor.
 func GetFlavor(flavor string) (FlavorConfigTemplate, error) {
 	tmplString, ok := store.templates[flavor]
@@ -49,7 +49,7 @@ func GetFlavor(flavor string) (FlavorConfigTemplate, error) {
 	return tmplString, nil
 }
 
-// CreateConfig - function checks flavor specific parameters, get flavor's template and
+// CreateConfig function checks flavor specific parameters, get flavor's template and
 // create a config.
 func CreateConfig(flavor string, params map[string]string) (string, error) {
 	flavorData, err := GetFlavor(flavor)

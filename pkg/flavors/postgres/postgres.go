@@ -23,6 +23,7 @@ import (
 
 	valid "github.com/asaskevich/govalidator"
 	"github.com/tetratelabs/getenvoy/pkg/flavors"
+	"github.com/tetratelabs/log"
 )
 
 // Define template parameter names
@@ -101,7 +102,7 @@ func (f *Flavor) parseInputParams(params map[string]string) error {
 			}
 			f.InPort = value
 		default:
-			fmt.Printf("Ignoring unrecognized template parameter: %s", param)
+			log.Warnf("Ignoring unrecognized template parameter: %s", param)
 		}
 	}
 
@@ -148,7 +149,7 @@ func parseSingleEndpoint(endpoint string) (*clusterEndpoint, error) {
 	}
 
 	// This is just IP address or domain name.
-	isIP := (net.ParseIP(host) != nil)
+	isIP := net.ParseIP(host) != nil
 
 	return &clusterEndpoint{
 		EndpointAddr: host,

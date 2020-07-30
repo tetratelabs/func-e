@@ -115,7 +115,6 @@ type testInputCmdParams struct {
 // Test verifies that parsing input parameters should fail
 // when endpoint is not specified and when specified port has wrong format.
 func TestInputCmdParams(t *testing.T) {
-	var testFlavor Flavor
 	input := []testInputCmdParams{
 		{map[string]string{"endpoints": "127.0.0.1:3456"}, true},
 		{map[string]string{"endpoints1": "127.0.0.1:3456"}, false},
@@ -128,7 +127,7 @@ func TestInputCmdParams(t *testing.T) {
 	}
 
 	for _, testCase := range input {
-		testFlavor.endpoints = testFlavor.endpoints[:0]
+		var testFlavor Flavor
 		err := testFlavor.parseInputParams(testCase.params)
 
 		if testCase.result != (err == nil) {
