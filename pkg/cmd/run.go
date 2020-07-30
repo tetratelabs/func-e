@@ -98,7 +98,7 @@ getenvoy run postgres:nightly --templateArg endpoints=127.0.0.1:5432,192.168.0.1
 			// If they were passed, config must be created based on
 			// template.
 			if len(templateArgs) > 0 {
-				cmdArg, err := processTemplateArgs(key.Flavor, args, templateArgs, runtime.(*envoy.Runtime))
+				cmdArg, err := processTemplateArgs(key.Flavor, templateArgs, runtime.(*envoy.Runtime))
 				if err != nil {
 					return err
 				}
@@ -189,15 +189,9 @@ func controlplaneFunc() func(r *envoy.Runtime) {
 	}
 }
 
-// Function verifies template parameters passed in getenvoy command line.
-// If verification is successful, it returns a string which must be added to
-// Envoy command line to invoke a proper config.
-func processTemplateArgs(flavor string, args []string, templateArgs map[string]string, runtime *envoy.Runtime) (string, error) {
-	for _, envoyParam := range args {
-		if strings.HasPrefix(envoyParam, "--config") {
-			return "", fmt.Errorf("--templateArg and %s cannot be specified at the same time", envoyParam)
-		}
-	}
+// Function creates config file based on template args passed by a user.
+// The return value is Envoy command line option which must be passed to Envoy.
+func processTemplateArgs(flavor string, templateArgs map[string]string, runtime *envoy.Runtime) (string, error) {
 	config, err := flavors.CreateConfig(flavor, templateArgs)
 	if err != nil {
 		return "", err
