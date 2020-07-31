@@ -24,6 +24,8 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/controlplane"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/debug"
+	"github.com/tetratelabs/getenvoy/pkg/flavors"
+	_ "github.com/tetratelabs/getenvoy/pkg/flavors/postgres" //nolint
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
 
@@ -32,6 +34,7 @@ var (
 	accessLogServerAddress string
 	mode                   string
 	bootstrap              string
+	templateArgs           map[string]string
 )
 
 // NewRunCmd create a command responsible for starting an Envoy process
@@ -53,18 +56,13 @@ getenvoy run ./envoy -- --config-path ./bootstrap.yaml
 
 # List available Envoy flags.
 getenvoy run standard:1.11.1 -- --help
+
+# Run with Postgres specific configuration bootstrapped
+getenvoy run postgres:nightly --templateArg endpoints=127.0.0.1:5432,192.168.0.101:5432 --templateArg inport=5555
 `,
 		Args: func(cmd *cobra.Command, args []string) error {
-			if len(args) == 0 {
-				return errors.New("missing binary parameter")
-			}
-			if err := validateMode(); err != nil {
-				return err
-			}
-			if err := validateBootstrap(); err != nil {
-				return err
-			}
-			return validateRequiresBootstrap()
+			return validateCmdArgs(args)
+
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := envoy.NewConfig(
@@ -88,12 +86,25 @@ getenvoy run standard:1.11.1 -- --help
 			}
 
 			key, manifestErr := manifest.NewKey(args[0])
+
 			if manifestErr != nil {
 				if _, err := os.Stat(args[0]); err != nil {
 					return fmt.Errorf("%v isn't valid manifest reference or an existing filepath", args[0])
 				}
 				return runtime.RunPath(args[0], args[1:])
 			}
+
+			// Check if the templateArgs were passed to the cmd line.
+			// If they were passed, config must be created based on
+			// template.
+			if len(templateArgs) > 0 {
+				cmdArg, err := processTemplateArgs(key.Flavor, templateArgs, runtime.(*envoy.Runtime))
+				if err != nil {
+					return err
+				}
+				args = append(args, cmdArg)
+			}
+
 			if !runtime.AlreadyDownloaded(key) {
 				location, err := manifest.Locate(key, manifestURL)
 				if err != nil {
@@ -114,6 +125,8 @@ getenvoy run standard:1.11.1 -- --help
 		"(experimental) location of Envoy's access log server <host|ip:port> (requires bootstrap flag)")
 	cmd.Flags().StringVar(&mode, "mode", "",
 		fmt.Sprintf("(experimental) mode to run Envoy in <%v> (requires bootstrap flag)", strings.Join(envoy.SupportedModes, "|")))
+	cmd.Flags().StringToStringVar(&templateArgs, "templateArg", map[string]string{},
+		"arguments passed to a config template for substitution")
 	return cmd
 }
 
@@ -153,6 +166,19 @@ func validateRequiresBootstrap() error {
 	return nil
 }
 
+func validateCmdArgs(args []string) error {
+	if len(args) == 0 {
+		return errors.New("missing binary parameter")
+	}
+	if err := validateMode(); err != nil {
+		return err
+	}
+	if err := validateBootstrap(); err != nil {
+		return err
+	}
+	return validateRequiresBootstrap()
+}
+
 func controlplaneFunc() func(r *envoy.Runtime) {
 	switch bootstrap {
 	case istio:
@@ -161,4 +187,19 @@ func controlplaneFunc() func(r *envoy.Runtime) {
 		// do nothing...
 		return func(r *envoy.Runtime) {}
 	}
+}
+
+// Function creates config file based on template args passed by a user.
+// The return value is Envoy command line option which must be passed to Envoy.
+func processTemplateArgs(flavor string, templateArgs map[string]string, runtime *envoy.Runtime) (string, error) {
+	config, err := flavors.CreateConfig(flavor, templateArgs)
+	if err != nil {
+		return "", err
+	}
+	// Save config in getenvoy directory
+	path, err := runtime.SaveConfig(flavor, config)
+	if err != nil {
+		return "", err
+	}
+	return "--config-path " + path, nil
 }

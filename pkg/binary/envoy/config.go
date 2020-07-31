@@ -15,6 +15,10 @@
 package envoy
 
 import (
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/gogo/protobuf/types"
@@ -69,4 +73,19 @@ type Config struct {
 	ConnectTimeout *types.Duration
 	AdminPort      int32
 	StatNameLength int32
+}
+
+// SaveConfig saves configuration string in getenvoy
+// directory.
+func (r *Runtime) SaveConfig(name, config string) (string, error) {
+	configDir := filepath.Join(r.RootDir, "configs")
+	if err := os.MkdirAll(configDir, 0750); err != nil {
+		return "", fmt.Errorf("Unable to create directory %q: %v", configDir, err)
+	}
+	filename := name + ".yaml"
+	err := ioutil.WriteFile(filepath.Join(configDir, filename), []byte(config), 0644)
+	if err != nil {
+		return "", fmt.Errorf("Cannot save config file %s: %s", filepath.Join(configDir, filename), err)
+	}
+	return filepath.Join(configDir, filename), nil
 }
