@@ -90,6 +90,10 @@ func (w workspace) SaveToolchainConfig(toolchainName string, data []byte) error 
 	return w.writeFile(toolchainLayout(toolchainName).ConfigFile(), data)
 }
 
+func (w workspace) ListExamples() ([]string, error) {
+	return w.dir.ListDirs(examplesDir)
+}
+
 func (w workspace) HasExample(exampleName string) (bool, error) {
 	return w.dir.HasDir(exampleLayout(exampleName).RootDir())
 }
@@ -110,15 +114,45 @@ func (w workspace) GetExample(exampleName string) (Example, error) {
 	return NewExample(fileSet)
 }
 
-func (w workspace) SaveExample(exampleName string, example Example) error {
+func (w workspace) SaveExample(exampleName string, example Example, opts ...SaveOption) error {
+	options := SaveOptions{}
+	options.ApplyOptions(opts...).Default()
+
+	options.progress.OnStart()
 	if err := w.removeAll(exampleLayout(exampleName).RootDir()); err != nil {
 		return err
 	}
 	for _, fileName := range example.GetFiles().GetNames() {
-		if err := w.writeFile(exampleLayout(exampleName).File(fileName), example.GetFiles().Get(fileName).Content); err != nil {
+		path := exampleLayout(exampleName).File(fileName)
+		if err := w.writeFile(path, example.GetFiles().Get(fileName).Content); err != nil {
 			return err
 		}
+		options.progress.OnFile(w.dir.Rel(path))
 	}
+	options.progress.OnComplete()
+	return nil
+}
+
+func (w workspace) RemoveExample(exampleName string, opts ...RemoveOption) error {
+	options := RemoveOptions{}
+	options.ApplyOptions(opts...).Default()
+
+	options.progress.OnStart()
+	fileNames, err := w.dir.ListFiles(exampleLayout(exampleName).RootDir())
+	if err != nil {
+		return err
+	}
+	for _, fileName := range fileNames {
+		path := exampleLayout(exampleName).File(fileName)
+		if err := w.removeAll(path); err != nil {
+			return err
+		}
+		options.progress.OnFile(w.dir.Rel(path))
+	}
+	if err := w.removeAll(exampleLayout(exampleName).RootDir()); err != nil {
+		return err
+	}
+	options.progress.OnComplete()
 	return nil
 }
 

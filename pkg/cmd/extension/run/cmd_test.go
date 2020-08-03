@@ -678,7 +678,15 @@ Run 'getenvoy extension run --help' for usage.
 			Expect(stdout.String()).To(Equal(fmt.Sprintf(`%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init getenvoy/extension-rust-builder:latest build --output-file target/getenvoy/extension.wasm
 %s/builds/wasm/nightly/%s/bin/envoy -c %s/envoy.tmpl.yaml
 `, dockerDir, workspaceDir, getenvoyHomeDir, platform, envoyCaptured.cwd())))
-			Expect(stderr.String()).To(Equal("docker stderr\nenvoy stderr\n"))
+			Expect(stderr.String()).To(Equal(`Scaffolding a new example setup:
+* .getenvoy/extension/examples/default/README.md
+* .getenvoy/extension/examples/default/envoy.tmpl.yaml
+* .getenvoy/extension/examples/default/example.yaml
+* .getenvoy/extension/examples/default/extension.json
+Done!
+docker stderr
+envoy stderr
+`))
 
 			By("verifying Envoy config")
 			bootstrap := envoyCaptured.readFileToJSON("envoy.tmpl.yaml")

@@ -22,7 +22,7 @@ import (
 	uiutil "github.com/tetratelabs/getenvoy/pkg/util/ui"
 )
 
-// feedback communicates to a user progress of the `init` command.
+// feedback communicates to a user progress of the `getenvoy extension init` command.
 type feedback struct {
 	cmd        *cobra.Command
 	opts       *scaffold.ScaffoldOpts

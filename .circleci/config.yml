@@ -43,6 +43,7 @@ jobs:
           
   test:
     executor: builder
+    resource_class: medium+
     steps:
       - checkout
       - run: make init

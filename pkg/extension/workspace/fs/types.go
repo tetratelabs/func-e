@@ -64,6 +64,24 @@ func (d workspaceDir) HasDir(path string) (bool, error) {
 	return d.hasFile(path, isDir)
 }
 
+func (d workspaceDir) ListDirs(path string) ([]string, error) {
+	path = d.Abs(path)
+	infos, err := ioutil.ReadDir(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	dirNames := make([]string, 0)
+	for _, info := range infos {
+		if info.IsDir() {
+			dirNames = append(dirNames, info.Name())
+		}
+	}
+	return dirNames, nil
+}
+
 func (d workspaceDir) ListFiles(path string) ([]string, error) {
 	root := d.Abs(path)
 	fileNames := make([]string, 0)

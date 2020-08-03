@@ -31,46 +31,8 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 
 	osutil "github.com/tetratelabs/getenvoy/pkg/util/os"
+	scaffoldutil "github.com/tetratelabs/getenvoy/pkg/util/scaffold"
 )
-
-// ProgressHandler is a sink for progress events.
-type ProgressHandler interface {
-	// OnStart is called when scaffolding is about to get started.
-	OnStart()
-	// OnFile is called for every generated file.
-	OnFile(file string)
-	// OnComplete is called when scaffolding has finished successfully.
-	OnComplete()
-}
-
-// ProgressFuncs dispatches progress events to individual handler functions.
-type ProgressFuncs struct {
-	OnStartFunc    func()
-	OnFileFunc     func(file string)
-	OnCompleteFunc func()
-}
-
-// OnStart is called when scaffolding is about to get started.
-func (f ProgressFuncs) OnStart() {
-	if f.OnStartFunc != nil {
-		f.OnStartFunc()
-	}
-}
-
-// OnFile is called for every generated file.
-func (f ProgressFuncs) OnFile(file string) {
-	if f.OnFileFunc != nil {
-		f.OnFileFunc(file)
-	}
-
-}
-
-// OnComplete is called when scaffolding has finished successfully.
-func (f ProgressFuncs) OnComplete() {
-	if f.OnCompleteFunc != nil {
-		f.OnCompleteFunc()
-	}
-}
 
 // ScaffoldOpts represents configuration options supported by Scaffold().
 type ScaffoldOpts struct {
@@ -79,7 +41,7 @@ type ScaffoldOpts struct {
 
 	OutputDir string
 
-	ProgressHandler
+	ProgressSink scaffoldutil.ProgressSink
 }
 
 // Scaffold generates the initial set of files to kick off development of a new extension.
@@ -88,13 +50,13 @@ func Scaffold(opts *ScaffoldOpts) (err error) {
 	if err != nil {
 		return fmt.Errorf("no such template: %v", err)
 	}
-	if opts.ProgressHandler == nil {
-		opts.ProgressHandler = ProgressFuncs{}
+	if opts.ProgressSink == nil {
+		opts.ProgressSink = scaffoldutil.NoOpProgressSink()
 	}
-	opts.ProgressHandler.OnStart()
+	opts.ProgressSink.OnStart()
 	defer func() {
 		if err == nil {
-			opts.OnComplete()
+			opts.ProgressSink.OnComplete()
 		}
 	}()
 	if err := generateWorkspace(opts); err != nil {
@@ -168,7 +130,7 @@ func (s *scaffolder) visit(sourceDirName, destinationDirName string, sourceFileI
 	if err := ioutil.WriteFile(outputFileName, content, sourceFileInfo.Mode()); err != nil {
 		return err
 	}
-	s.opts.ProgressHandler.OnFile(relOutputFileName)
+	s.opts.ProgressSink.OnFile(relOutputFileName)
 	return nil
 }
 

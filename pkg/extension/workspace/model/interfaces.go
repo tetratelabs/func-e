@@ -18,6 +18,8 @@ import (
 	exampleconfig "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/example"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/fs"
+
+	scaffoldutil "github.com/tetratelabs/getenvoy/pkg/util/scaffold"
 )
 
 // Workspace represents a workspace with an extension created by getenvoy toolkit.
@@ -36,12 +38,16 @@ type Workspace interface {
 	// SaveToolchainConfig persists given toolchain configuration.
 	SaveToolchainConfig(toolchainName string, data []byte) error
 
+	// ListExamples returns a list of existing examples.
+	ListExamples() ([]string, error)
 	// HasExample returns true if workspace includes an example with a given name.
 	HasExample(exampleName string) (bool, error)
 	// GetExample returns an example with a given name.
 	GetExample(exampleName string) (Example, error)
 	// SaveExample persists a given example.
-	SaveExample(exampleName string, example Example) error
+	SaveExample(exampleName string, example Example, opts ...SaveOption) error
+	// Remove removes a given example.
+	RemoveExample(exampleName string, opts ...RemoveOption) error
 }
 
 // Example represents an example.
@@ -69,4 +75,69 @@ type FileSet interface {
 type File struct {
 	Source  string
 	Content []byte
+}
+
+// SaveOption modifies behavior of Save operations.
+type SaveOption interface {
+	ApplyToSave(opts *SaveOptions)
+}
+
+// SaveOptions contains options of a Save operation.
+type SaveOptions struct {
+	progress scaffoldutil.ProgressSink
+}
+
+// ApplyOptions modifies options of a Save operation.
+func (o *SaveOptions) ApplyOptions(opts ...SaveOption) *SaveOptions {
+	for _, opt := range opts {
+		opt.ApplyToSave(o)
+	}
+	return o
+}
+
+// Default sets default values to optional fields.
+func (o *SaveOptions) Default() {
+	if o.progress == nil {
+		o.progress = scaffoldutil.NoOpProgressSink()
+	}
+}
+
+// RemoveOption modifies behavior of Remove operations.
+type RemoveOption interface {
+	ApplyToRemove(opts *RemoveOptions)
+}
+
+// RemoveOptions contains options of a Remove operation.
+type RemoveOptions struct {
+	progress scaffoldutil.ProgressSink
+}
+
+// ApplyOptions modifies options of a Remove operation.
+func (o *RemoveOptions) ApplyOptions(opts ...RemoveOption) *RemoveOptions {
+	for _, opt := range opts {
+		opt.ApplyToRemove(o)
+	}
+	return o
+}
+
+// Default sets default values to optional fields.
+func (o *RemoveOptions) Default() {
+	if o.progress == nil {
+		o.progress = scaffoldutil.NoOpProgressSink()
+	}
+}
+
+// ProgressSink passes progress sink into Save and Remove operations.
+type ProgressSink struct {
+	scaffoldutil.ProgressSink
+}
+
+// ApplyToSave modifies options of a Save operation.
+func (s ProgressSink) ApplyToSave(opts *SaveOptions) {
+	opts.progress = s
+}
+
+// ApplyToRemove modifies options of a Remove operation.
+func (s ProgressSink) ApplyToRemove(opts *RemoveOptions) {
+	opts.progress = s
 }

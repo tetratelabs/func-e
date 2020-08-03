@@ -17,7 +17,6 @@ package example
 import (
 	"github.com/pkg/errors"
 
-	"github.com/tetratelabs/getenvoy/pkg/extension/example/init/registry"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
 )
 
@@ -28,39 +27,6 @@ const (
 
 // LoadExample loads an example by its name.
 func LoadExample(name string, workspace model.Workspace) (model.Example, error) {
-	switch name {
-	case Default:
-		if err := ensureDefaultExampleExists(workspace); err != nil {
-			return nil, errors.Wrapf(err, "failed to ensure the %q example always exists", Default)
-		}
-	default:
-		return nil, errors.Errorf("unknown example %q. At the moment, only %q example is supported", name, Default)
-	}
-	return loadExample(name, workspace)
-}
-
-func ensureDefaultExampleExists(workspace model.Workspace) error {
-	exists, err := workspace.HasExample(Default)
-	if err != nil {
-		return errors.Wrapf(err, "failed to determine whether example %q already exists", Default)
-	}
-	if exists {
-		return nil
-	}
-	descriptor := workspace.GetExtensionDescriptor()
-	factory, err := registry.Get(descriptor.Category, registry.DefaultExample)
-	if err != nil {
-		// must be caught by unit tests
-		panic(errors.Errorf("there is no %q example for extension category %q", registry.DefaultExample, descriptor.Category))
-	}
-	example, err := factory.NewExample(descriptor)
-	if err != nil {
-		return errors.Wrapf(err, "failed to generate %q example", Default)
-	}
-	return workspace.SaveExample(Default, example)
-}
-
-func loadExample(name string, workspace model.Workspace) (model.Example, error) {
 	exists, err := workspace.HasExample(name)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to determine whether example %q exists", name)

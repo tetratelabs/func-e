@@ -70,6 +70,6 @@ func generateWorkspace(opts *ScaffoldOpts) error {
 	if err := dir.WriteFile(model.DescriptorFile, descriptor); err != nil {
 		return err
 	}
-	opts.ProgressHandler.OnFile(dir.Rel(model.DescriptorFile))
+	opts.ProgressSink.OnFile(dir.Rel(model.DescriptorFile))
 	return nil
 }

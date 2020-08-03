@@ -22,10 +22,12 @@ import (
 
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/build"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/common"
+	examplecmd "github.com/tetratelabs/getenvoy/pkg/cmd/extension/example"
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
 	builtinconfig "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/toolchain/builtin"
 	examples "github.com/tetratelabs/getenvoy/pkg/extension/workspace/example"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/runtime"
+	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
 	commontypes "github.com/tetratelabs/getenvoy/pkg/types"
 	argutil "github.com/tetratelabs/getenvoy/pkg/util/args"
 	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
@@ -44,6 +46,9 @@ type cmdOpts struct {
 type runOpts runtime.RunOpts
 
 func (opts *runOpts) Validate() error {
+	if err := opts.validateExample(); err != nil {
+		return err
+	}
 	if err := opts.validateExtension(); err != nil {
 		return err
 	}
@@ -51,6 +56,10 @@ func (opts *runOpts) Validate() error {
 		return err
 	}
 	return nil
+}
+
+func (opts *runOpts) validateExample() error {
+	return model.ValidateExampleName(opts.Example.Name)
 }
 
 func (opts *runOpts) validateExtension() error {
@@ -165,6 +174,16 @@ Run Envoy extension in the example setup.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// find workspace
 			workspace, err := workspaces.GetCurrentWorkspace()
+			if err != nil {
+				return err
+			}
+			// auto-create default example setup if necessary
+			scaffoldOpts := &examples.ScaffoldOpts{
+				Workspace:    workspace,
+				Name:         opts.Run.Example.Name,
+				ProgressSink: examplecmd.NewAddExampleFeedback(cmd),
+			}
+			err = examples.ScaffoldIfDefault(scaffoldOpts)
 			if err != nil {
 				return err
 			}

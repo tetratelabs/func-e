@@ -109,7 +109,7 @@ Scaffold a new Envoy extension in a language of your choice.`,
 			opts.Extension = descriptor
 			opts.TemplateName = "default"
 			opts.OutputDir = outputDir
-			opts.ProgressHandler = &feedback{
+			opts.ProgressSink = &feedback{
 				cmd:        cmd,
 				opts:       opts,
 				usedWizard: usedWizard,

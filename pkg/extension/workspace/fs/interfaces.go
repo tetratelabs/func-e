@@ -43,6 +43,8 @@ type WorkspaceDir interface {
 	// HasDir checks whether meta dir includes a directory with a given name.
 	HasDir(path string) (bool, error)
 
+	// ListDirs lists directories under a given path (non-recursively).
+	ListDirs(path string) ([]string, error)
 	// ListFiles recursively lists files under a given path.
 	ListFiles(path string) ([]string, error)
 
