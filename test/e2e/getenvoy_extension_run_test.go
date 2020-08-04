@@ -20,6 +20,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sync"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -83,9 +84,16 @@ var _ = Describe("getenvoy extension run", func() {
 		return testCases
 	}
 
+	AtMostOnce := func(fn func()) func() {
+		var once sync.Once
+		return func() {
+			once.Do(fn)
+		}
+	}
+
 	const extensionName = "my.extension"
 
-	const terminateTimeout = 60 * time.Second
+	const terminateTimeout = 2 * time.Minute
 
 	DescribeTable("should create and run default example setup",
 		func(given testCase) {
@@ -110,7 +118,10 @@ var _ = Describe("getenvoy extension run", func() {
 				Args(e2e.Env.GetBuiltinContainerOptions()...).
 				Start()
 
-			cancelGracefully := func() {
+			cancelCh := make(chan struct{})
+			cancelGracefully := AtMostOnce(func() {
+				close(cancelCh)
+
 				Expect(cancel()).To(Succeed())
 				select {
 				case e := <-errs:
@@ -118,29 +129,29 @@ var _ = Describe("getenvoy extension run", func() {
 				case <-time.After(terminateTimeout):
 					Fail(fmt.Sprintf("getenvoy command didn't exit gracefully within %s", terminateTimeout))
 				}
-			}
+			})
 			// make sure to stop Envoy if test fails
 			defer cancelGracefully()
 
 			// fail the test if `getenvoy extension run` exits with an error or unexpectedly
-			expectExit := false
 			go func() {
-				e := <-errs
-				Expect(e).NotTo(HaveOccurred())
-
-				Expect(expectExit).To(BeTrue(), "getenvoy command exited unexpectedly")
+				select {
+				case e := <-errs:
+					Expect(e).NotTo(HaveOccurred(), "getenvoy command exited unexpectedly")
+				case <-cancelCh:
+				}
 			}()
 
 			stderrLines := e2e.StreamLines(stderr).Named("stderr")
 
 			By("waiting for Envoy Admin address to get logged")
 			adminAddressPattern := regexp.MustCompile(`admin address: ([^:]+:[0-9]+)`)
-			line, err := stderrLines.FirstMatch(adminAddressPattern).Wait(120 * time.Second) // give time to compile the extension
+			line, err := stderrLines.FirstMatch(adminAddressPattern).Wait(10 * time.Minute) // give time to compile the extension
 			Expect(err).NotTo(HaveOccurred())
 			adminAddress := adminAddressPattern.FindStringSubmatch(line)[1]
 
 			By("waiting for Envoy start-up to complete")
-			stderrLines.FirstMatch(regexp.MustCompile(`starting main dispatch loop`)).Wait(10 * time.Second)
+			stderrLines.FirstMatch(regexp.MustCompile(`starting main dispatch loop`)).Wait(1 * time.Minute)
 
 			By("verifying Envoy is ready")
 			envoyClient, err := utilenvoy.NewClient(adminAddress)
@@ -148,7 +159,7 @@ var _ = Describe("getenvoy extension run", func() {
 			Eventually(func() bool {
 				ready, e := envoyClient.IsReady()
 				return e == nil && ready
-			}, "10s", "100ms").Should(BeTrue())
+			}, "60s", "100ms").Should(BeTrue())
 
 			By("verifying Wasm extensions have been created")
 			Eventually(func() bool {
@@ -160,10 +171,9 @@ var _ = Describe("getenvoy extension run", func() {
 				concurrency := stats.GetMetric("server.concurrency")
 				activeWasmVms := stats.GetMetric("wasm.envoy.wasm.runtime.v8.active")
 				return concurrency != nil && activeWasmVms != nil && activeWasmVms.Value == concurrency.Value+2
-			}, "10s", "100ms").Should(BeTrue())
+			}, "60s", "100ms").Should(BeTrue())
 
 			By("signaling Envoy to stop")
-			expectExit = true
 			cancelGracefully()
 
 			By("verifying the debug dump of Envoy state has been taken")
