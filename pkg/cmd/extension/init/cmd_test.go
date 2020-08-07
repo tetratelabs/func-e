@@ -186,8 +186,8 @@ Run 'getenvoy extension init --help' for usage.
 				Expect(descriptor.Runtime.Envoy.Version).To(Equal("wasm:nightly"))
 
 				By("verifying command output")
-				Expect(stdout.String()).ToNot(BeEmpty())
-				Expect(stderr.String()).To(BeEmpty())
+				Expect(stdout.String()).To(BeEmpty())
+				Expect(stderr.String()).NotTo(BeEmpty())
 			},
 			func() []TableEntry {
 				entries := []TableEntry{}

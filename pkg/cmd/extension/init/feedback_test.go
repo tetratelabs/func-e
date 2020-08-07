@@ -42,8 +42,10 @@ var _ = Describe("feedback", func() {
 				c := &cobra.Command{
 					Use: "init",
 				}
-				out := new(bytes.Buffer)
-				c.SetOut(out)
+				stdout := new(bytes.Buffer)
+				stderr := new(bytes.Buffer)
+				c.SetOut(stdout)
+				c.SetErr(stderr)
 
 				f := &feedback{
 					cmd: c,
@@ -51,10 +53,12 @@ var _ = Describe("feedback", func() {
 						Extension: &extension.Descriptor{
 							Category: extension.EnvoyHTTPFilter,
 							Language: extension.LanguageRust,
+							Name:     "my_company.my_http_filter",
 						},
 						OutputDir: "/path/to/dir",
 					},
 					usedWizard: given.usedWizard,
+					w:          c.ErrOrStderr(),
 				}
 
 				f.OnStart()
@@ -62,7 +66,8 @@ var _ = Describe("feedback", func() {
 				f.OnFile("src/lib.rs")
 				f.OnComplete()
 
-				Expect(out.String()).To(Equal(given.expected))
+				Expect(stdout.String()).To(BeEmpty())
+				Expect(stderr.String()).To(Equal(given.expected))
 			},
 			Entry("--no-colors", testCase{
 				noColors:   true,
@@ -85,7 +90,7 @@ Done!
 
 Hint:
 Next time you can skip the wizard by running
-  init --category envoy.filters.http --language rust /path/to/dir
+  init --category envoy.filters.http --language rust --name my_company.my_http_filter /path/to/dir
 `,
 			}),
 			Entry("--no-colors=false", testCase{
@@ -108,7 +113,7 @@ Next time you can skip the wizard by running
 					"\n" +
 					"\x1b[2m\x1b[4mHint:\x1b[0m\n" +
 					"\x1b[2mNext time you can skip the wizard by running\x1b[0m\n" +
-					"\x1b[2m  init --category envoy.filters.http --language rust /path/to/dir\x1b[0m\n",
+					"\x1b[2m  init --category envoy.filters.http --language rust --name my_company.my_http_filter /path/to/dir\x1b[0m\n",
 			}),
 		)
 	})

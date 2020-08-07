@@ -113,6 +113,7 @@ Scaffold a new Envoy extension in a language of your choice.`,
 				cmd:        cmd,
 				opts:       opts,
 				usedWizard: usedWizard,
+				w:          cmd.ErrOrStderr(),
 			}
 			return scaffold.Scaffold(opts)
 		},
