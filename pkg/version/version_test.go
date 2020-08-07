@@ -12,15 +12,51 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package version_test
+package version
 
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-
-	. "github.com/tetratelabs/getenvoy/pkg/version"
 )
+
+var _ = Describe("versionOrDefault()", func() {
+
+	var backupVersion string
+
+	BeforeEach(func() {
+		backupVersion = version
+	})
+
+	AfterEach(func() {
+		version = backupVersion
+	})
+
+	type testCase struct {
+		version  string
+		expected string
+	}
+
+	DescribeTable("should fallback to `dev` version if `pkg/version.version` was not set via compiler options",
+		func(given testCase) {
+			version = given.version
+
+			Expect(versionOrDefault()).To(Equal(given.expected))
+		},
+		Entry("ad-hoc build", testCase{
+			version:  "",
+			expected: "dev",
+		}),
+		Entry("dev build", testCase{
+			version:  "dev",
+			expected: "dev",
+		}),
+		Entry("release build", testCase{
+			version:  "0.0.1",
+			expected: "0.0.1",
+		}),
+	)
+})
 
 var _ = Describe("IsDevBuild()", func() {
 
@@ -39,9 +75,10 @@ var _ = Describe("IsDevBuild()", func() {
 		expected bool
 	}
 
-	DescribeTable("",
+	DescribeTable("should consider builds with `pkg/version.version` unset or set to `dev` as 'development builds'",
 		func(given testCase) {
 			Build = given.build
+
 			Expect(IsDevBuild()).To(Equal(given.expected))
 		},
 		Entry("dev build", testCase{
