@@ -15,7 +15,13 @@
 ENVOY = standard:1.11.1
 HUB ?= docker.io/getenvoy
 GETENVOY_TAG ?= dev
+BUILDERS_LANGS := rust
 BUILDERS_TAG ?= latest
+
+USE_DOCKER_BUILDKIT_CACHE ?= yes
+ifneq ($(filter-out yes on true 1,$(USE_DOCKER_BUILDKIT_CACHE)),)
+  USE_DOCKER_BUILDKIT_CACHE=
+endif
 
 BUILD_DIR ?= build
 BIN_DIR ?= $(BUILD_DIR)/bin
@@ -80,7 +86,7 @@ build: $(call GETENVOY_OUT_PATH,$(GOOS),$(GOARCH))
 
 .PHONY: docker
 docker: $(call GETENVOY_OUT_PATH,linux,amd64)
-	docker build -t $(HUB)/getenvoy:$(GETENVOY_TAG) --build-arg reference=$(ENVOY) .
+	docker build -t $(HUB)/getenvoy:$(GETENVOY_TAG) --build-arg reference=$(ENVOY) --build-arg getenvoy_binary=$(call GETENVOY_OUT_PATH,linux,amd64) .
 
 .PHONY: release.dryrun
 release.dryrun:
@@ -115,13 +121,40 @@ coverage: generate
 	go test $(GO_COVERAGE_OPTS) $(GO_COVERAGE_EXTRA_OPTS) -coverprofile="$(COVERAGE_PROFILE)" $(COVERAGE_PKG_LIST)
 	go tool cover -html="$(COVERAGE_PROFILE)" -o "$(COVERAGE_REPORT)"
 
-.PHONY: builders
-builders: builder.rust
+EXTENSION_BUILDER_IMAGE = getenvoy/extension-$(1)-builder:$(2)
+EXTENSION_BUILDER_IMAGE_LATEST_VERSION = $(shell git log --pretty=format:'%H' -n 1 images/extension-builders)
 
-.PHONY: builder.rust
-builder.rust:
-	docker build -t getenvoy/extension-rust-builder:$(BUILDERS_TAG) images/extension-builders/rust
+define GEN_BUILD_EXTENSION_BUILDER_IMAGE_TARGET
+.PHONY: builder/$(1)
+builder/$(1):
+	$(if $(USE_DOCKER_BUILDKIT_CACHE),DOCKER_BUILDKIT=1,)                                                                           \
+	docker build                                                                                                                    \
+	$(if $(USE_DOCKER_BUILDKIT_CACHE),--build-arg BUILDKIT_INLINE_CACHE=1,)                                                         \
+	$(if $(USE_DOCKER_BUILDKIT_CACHE),--cache-from $(call EXTENSION_BUILDER_IMAGE,$(1),$(EXTENSION_BUILDER_IMAGE_LATEST_VERSION)),) \
+	-t $(call EXTENSION_BUILDER_IMAGE,$(1),$(BUILDERS_TAG))                                                                         \
+	images/extension-builders/$(1)
+endef
+$(foreach lang,$(BUILDERS_LANGS),$(eval $(call GEN_BUILD_EXTENSION_BUILDER_IMAGE_TARGET,$(lang))))
+
+.PHONY: builders
+builders: $(foreach lang,$(BUILDERS_LANGS), builder/$(lang))
+
+define GEN_PUSH_EXTENSION_BUILDER_IMAGE_TARGET
+.PHONY: push/builder/$(1)
+push/builder/$(1):
+	docker push $(call EXTENSION_BUILDER_IMAGE,$(1),$(BUILDERS_TAG))
+endef
+$(foreach lang,$(BUILDERS_LANGS),$(eval $(call GEN_PUSH_EXTENSION_BUILDER_IMAGE_TARGET,$(lang))))
 
 .PHONY: builders.push
-builders.push: builders
-	docker push getenvoy/extension-rust-builder:$(BUILDERS_TAG)
+builders.push: $(foreach lang,$(BUILDERS_LANGS), push/builder/$(lang))
+
+define GEN_PULL_EXTENSION_BUILDER_IMAGE_TARGET
+.PHONY: pull/builder/$(1)
+pull/builder/$(1):
+	docker pull $(call EXTENSION_BUILDER_IMAGE,$(1),$(BUILDERS_TAG))
+endef
+$(foreach lang,$(BUILDERS_LANGS),$(eval $(call GEN_PULL_EXTENSION_BUILDER_IMAGE_TARGET,$(lang))))
+
+.PHONY: builders.pull
+builders.pull: $(foreach lang,$(BUILDERS_LANGS), pull/builder/$(lang))
