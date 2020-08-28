@@ -61,6 +61,7 @@ func NewRuntime(options ...RuntimeOption) (binary.FetchRunner, error) {
 	local := common.HomeDir
 	runtime := &Runtime{
 		Config:         NewConfig(),
+		RootDir:        local,
 		fetcher:        fetcher{local},
 		TmplDir:        filepath.Join(local, "templates"),
 		wg:             &sync.WaitGroup{},
@@ -87,6 +88,7 @@ type fetcher struct {
 type Runtime struct {
 	fetcher
 
+	RootDir  string
 	debugDir string
 	TmplDir  string
 	Config   *Config

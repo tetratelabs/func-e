@@ -24,6 +24,7 @@ import (
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/tetratelabs/getenvoy-package/api"
+	"github.com/tetratelabs/getenvoy/pkg/transport"
 )
 
 // Print retrieves the manifest from the passed location and writes it to the passed writer
@@ -54,7 +55,7 @@ func platformFromEnum(s string) string {
 
 func fetch(url string) (*api.Manifest, error) {
 	// #nosec => This is by design, users can call out to wherever they like!
-	resp, err := http.Get(url)
+	resp, err := transport.Get(url)
 	if err != nil {
 		return nil, err
 	}
