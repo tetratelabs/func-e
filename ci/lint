@@ -1,25 +1,28 @@
 #!/bin/bash
 
-SUCCESS=true
+log_message() {
+	echo "$*" >&2
+}
+
+# Ensure formatting of shell scripts.
+if shfmt -d .; then
+	log_message "shfmt passed."
+else
+	log_message "shfmt failed. Run 'shfmt -w .' to automatically fix formatting errors."
+	exit 1
+fi
 
 # Ensure Licenses are present
 if licenser verify -r .; then
-    echo "Licenses are present on all recognised files."
+	log_message "Licenses are present on all recognised files."
 else
-    echo "Licenses are missing."
-    SUCCESS=false
+	log_message "Licenses are missing. Run 'licenser apply -r \"Tetrate\"' to automatically add missing license headers."
+	exit 1
 fi
 
 if golangci-lint run; then
-    echo "golangci-lint succeded."
+	log_message "golangci-lint succeded."
 else
-    echo "golangci-lint failed."
-    SUCCESS=false
-fi
-
-if [ "$SUCCESS" = false ] ; then
-    echo "One or more linters failed."
-    exit 1
-else
-    echo "All linters passed!"
+	log_message "golangci-lint failed."
+	exit 1
 fi

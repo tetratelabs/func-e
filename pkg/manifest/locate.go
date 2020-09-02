@@ -15,23 +15,45 @@
 package manifest
 
 import (
-	"errors"
 	"fmt"
 	"net/url"
 	"os"
-	"regexp"
 	"strings"
 
+	"github.com/pkg/errors"
+
 	"github.com/tetratelabs/getenvoy-package/api"
+	"github.com/tetratelabs/getenvoy/pkg/types"
 	"github.com/tetratelabs/log"
 )
 
 const (
-	// DefaultURL is the official GetEnvoy manifest location
-	DefaultURL = "https://tetrate.bintray.com/getenvoy/manifest.json"
-
 	referenceEnv = "ENVOY_REFERENCE"
 )
+
+var (
+	// manifestURL defines location of the GetEnvoy manifest.
+	manifestURL = &url.URL{
+		Scheme: "https",
+		Host:   "tetrate.bintray.com",
+		Path:   "/getenvoy/manifest.json",
+	}
+)
+
+// GetURL returns location of the GetEnvoy manifest.
+func GetURL() string {
+	return manifestURL.String()
+}
+
+// SetURL sets location of the GetEnvoy manifest.
+func SetURL(rawurl string) error {
+	otherURL, err := url.Parse(rawurl)
+	if err != nil || otherURL.Host == "" || otherURL.Scheme == "" {
+		return errors.Errorf("%q is not a valid manifest URL", rawurl)
+	}
+	manifestURL = otherURL
+	return nil
+}
 
 // NewKey creates a manifest key based on the reference it is given
 func NewKey(reference string) (*Key, error) {
@@ -39,16 +61,16 @@ func NewKey(reference string) (*Key, error) {
 	if reference == "@" {
 		reference = os.Getenv(referenceEnv)
 	}
-	r := regexp.MustCompile(`^([\w\d-\._]+):([\w\d-\._]+)/?([\w\d-\._]+)?$`)
-	matches := r.FindStringSubmatch(reference)
-	if len(matches) != 4 {
-		return nil, fmt.Errorf("reference %v is not of valid format <flavor>:<version>/<platform>", reference)
+	ref, err := types.ParseReference(reference)
+	if err != nil {
+		return nil, err
 	}
+	key := Key{Flavor: ref.Flavor, Version: ref.Version, Platform: platformToEnum(ref.Platform)}
 	// If platform is empty, fill it in.
-	if matches[3] == "" {
-		matches[3] = platform()
+	if key.Platform == "" {
+		key.Platform = platformToEnum(platform())
 	}
-	return &Key{strings.ToLower(matches[1]), strings.ToLower(matches[2]), platformToEnum(matches[3])}, nil
+	return &key, nil
 }
 
 func platformToEnum(s string) string {
@@ -58,32 +80,21 @@ func platformToEnum(s string) string {
 }
 
 // Key is the primary key used to locate Envoy builds in the manifest
-type Key struct {
-	Flavor   string
-	Version  string
-	Platform string
-}
+type Key types.Reference
 
 func (k Key) String() string {
 	return fmt.Sprintf("%v:%v/%v", k.Flavor, k.Version, platformFromEnum(k.Platform))
 }
 
 // Locate returns the location of the binary for the passed parameters from the passed manifest
-// If manifestLocation is an empty string the DefaultURL is used
 // The build version is searched for as a prefix of the OperatingSystemVersion.
 // If the OperatingSystemVersion is empty it returns the first build listed for that operating system
-func Locate(key *Key, manifestLocation string) (string, error) {
+func Locate(key *Key) (string, error) {
 	if key == nil {
 		return "", errors.New("passed key was nil")
 	}
-	if manifestLocation == "" {
-		manifestLocation = DefaultURL
-	}
-	if u, err := url.Parse(manifestLocation); err != nil || u.Host == "" || u.Scheme == "" {
-		return "", errors.New("only URL manifest locations are supported")
-	}
-	log.Debugf("retrieving manifest %v", manifestLocation)
-	manifest, err := fetch(manifestLocation)
+	log.Debugf("retrieving manifest %s", GetURL())
+	manifest, err := fetch(GetURL())
 	if err != nil {
 		return "", err
 	}
@@ -100,5 +111,5 @@ func LocateBuild(key *Key, manifest *api.Manifest) (string, error) {
 			}
 		}
 	}
-	return "", fmt.Errorf("unable to find matching build for %v", key)
+	return "", fmt.Errorf("unable to find matching GetEnvoy build for reference %q", key)
 }

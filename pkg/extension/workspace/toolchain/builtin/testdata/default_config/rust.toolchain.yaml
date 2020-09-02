@@ -1,0 +1,6 @@
+kind: BuiltinToolchain
+container:
+  image: getenvoy/extension-rust-builder:latest
+build:
+  output:
+    wasmFile: target/getenvoy/extension.wasm

@@ -76,12 +76,6 @@ func TestLocate(t *testing.T) {
 			wantErr:   true,
 		},
 		{
-			name:             "Error on non-url manifest locations",
-			reference:        "standard:1.11.0",
-			locationOverride: "not-a-url",
-			wantErr:          true,
-		},
-		{
 			name:               "Error on failed fetch",
 			reference:          "standard:1.11.0",
 			responseStatusCode: http.StatusTeapot,
@@ -97,12 +91,18 @@ func TestLocate(t *testing.T) {
 			if tc.locationOverride != "" {
 				location = tc.locationOverride
 			}
+			defer func(originalURL string) {
+				err := SetURL(originalURL)
+				assert.NoError(t, err)
+			}(GetURL())
+			err := SetURL(location)
+			assert.NoError(t, err)
 			if len(tc.envVar) > 0 {
 				os.Setenv(referenceEnv, tc.envVar)
 				defer os.Unsetenv(referenceEnv)
 			}
 			key, _ := NewKey(tc.reference)
-			if got, err := Locate(key, location); tc.wantErr {
+			if got, err := Locate(key); tc.wantErr {
 				assert.Error(t, err)
 				assert.Equal(t, "", got)
 			} else {

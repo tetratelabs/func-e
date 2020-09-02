@@ -24,14 +24,41 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mitchellh/go-homedir"
 	"github.com/tetratelabs/getenvoy/pkg/binary"
+	"github.com/tetratelabs/getenvoy/pkg/common"
+
+	ioutil "github.com/tetratelabs/getenvoy/pkg/util/io"
 )
 
+// RuntimeOption represents a configuration option to NewRuntime.
+type RuntimeOption func(*Runtime)
+
+// And returns a combined list of configuration options.
+func (o RuntimeOption) And(opts ...RuntimeOption) RuntimeOptions {
+	return o.AndAll(opts)
+}
+
+// AndAll returns a combined list of configuration options.
+func (o RuntimeOption) AndAll(opts RuntimeOptions) RuntimeOptions {
+	return RuntimeOptions{o}.And(opts...)
+}
+
+// RuntimeOptions represents a list of configuration options to NewRuntime.
+type RuntimeOptions []RuntimeOption
+
+// And returns a combined list of configuration options.
+func (o RuntimeOptions) And(opts ...RuntimeOption) RuntimeOptions {
+	return o.AndAll(opts)
+}
+
+// AndAll returns a combined list of configuration options.
+func (o RuntimeOptions) AndAll(opts RuntimeOptions) RuntimeOptions {
+	return append(o, opts...)
+}
+
 // NewRuntime creates a new Runtime with the local file storage set to the home directory
-func NewRuntime(options ...func(*Runtime)) (binary.FetchRunner, error) {
-	usrDir, err := homedir.Dir()
-	local := filepath.Join(usrDir, ".getenvoy")
+func NewRuntime(options ...RuntimeOption) (binary.FetchRunner, error) {
+	local := common.HomeDir
 	runtime := &Runtime{
 		Config:         NewConfig(),
 		RootDir:        local,
@@ -43,14 +70,14 @@ func NewRuntime(options ...func(*Runtime)) (binary.FetchRunner, error) {
 		preTermination: make([]func(binary.Runner) error, 0),
 	}
 
-	if debugErr := runtime.initializeDebugStore(); err != nil {
+	if debugErr := runtime.initializeDebugStore(); debugErr != nil {
 		return nil, fmt.Errorf("unable to create directory to store debug information: %v", debugErr)
 	}
 
 	for _, option := range options {
 		option(runtime)
 	}
-	return runtime, err
+	return runtime, nil
 }
 
 type fetcher struct {
@@ -65,6 +92,9 @@ type Runtime struct {
 	debugDir string
 	TmplDir  string
 	Config   *Config
+
+	WorkingDir string
+	IO         ioutil.StdStreams
 
 	cmd *exec.Cmd
 	ctx context.Context
@@ -108,7 +138,7 @@ func (r *Runtime) envoyReady() bool {
 	if r.isReady {
 		return true
 	}
-	resp, err := http.Get(fmt.Sprintf("http://localhost:%v/ready", r.Config.AdminPort))
+	resp, err := http.Get(fmt.Sprintf("http://%s/ready", r.Config.GetAdminAddress()))
 	if err != nil {
 		return false
 	}

@@ -29,7 +29,7 @@ func NewListCmd() *cobra.Command {
 		Long: `
 Retrieves a list of Envoy builds provided by GetEnvoy.`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return manifest.Print(os.Stdout, manifestURL)
+			return manifest.Print(os.Stdout)
 		},
 	}
 }

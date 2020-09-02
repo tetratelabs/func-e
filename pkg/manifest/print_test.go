@@ -37,12 +37,6 @@ func TestPrint(t *testing.T) {
 			name:           "Prints golden output",
 			wantOutputFile: "list.golden",
 		},
-
-		{
-			name:             "Errors on non-URL inputs",
-			locationOverride: "dir/file.json",
-			wantErr:          true,
-		},
 	}
 	for _, tt := range tests {
 		tc := tt
@@ -54,7 +48,13 @@ func TestPrint(t *testing.T) {
 			if tc.locationOverride != "" {
 				location = tc.locationOverride
 			}
-			if err := Print(got, location); tc.wantErr {
+			defer func(originalURL string) {
+				err := SetURL(originalURL)
+				assert.NoError(t, err)
+			}(GetURL())
+			err := SetURL(location)
+			assert.NoError(t, err)
+			if err := Print(got); tc.wantErr {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)

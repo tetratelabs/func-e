@@ -12,52 +12,47 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-version: 2.0
+version: 2.1
+
+executors:
+  builder:
+    docker:
+      - image: circleci/golang:1.13.3
 
 jobs:
   lint:
-    docker:
-      - image: circleci/golang:1.13.3
+    executor: builder
+    resource_class: medium+
     environment:
       # Run garbage collection more aggresively to avoid getting OOMed during the lint phase.
       GOGC: "20"
       # Circle CI executor has many cores (> 30) but throttles CPU and RAM. If we don't limit
       # this to the number of allocated cores, the job is likely to get OOMed and killed.
-      GOMAXPROCS: "2"
+      GOMAXPROCS: "3"
     steps:
       - checkout
+      - run: make init
       - run: ./ci/install-lint
       - run: ./ci/lint
           
   test:
-    resource_class: small
-    docker:
-      - image: circleci/golang:1.13.3
+    executor: builder
+    resource_class: medium+
     steps:
       - checkout
+      - run: make init
       - run: ./ci/install-envoy
       - run: ./ci/test
-      
-  release:
-    docker:
-      - image: circleci/golang:1.13.3
-    steps:
-      - checkout
-      - setup_remote_docker
-      - run: echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-      - run: curl -sL https://git.io/goreleaser | bash
+      - run:
+          name: "Measure test coverage (for now, on a subset of tests)"
+          command: make coverage GO_COVERAGE_EXTRA_OPTS="-p 1"
+      - store_artifacts:
+          path: build/coverage
+          destination: /coverage
 
 workflows:
   version: 2
-  all:
+  commit:
     jobs:
       - lint
       - test
-  release:
-    jobs:
-      - release:
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /v[0-9]+(\.[0-9]+)*(-.*)*/

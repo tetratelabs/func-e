@@ -17,13 +17,15 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/controlplane"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/debug"
+
+	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
+
 	"github.com/tetratelabs/getenvoy/pkg/flavors"
 	_ "github.com/tetratelabs/getenvoy/pkg/flavors/postgres" //nolint
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
@@ -73,13 +75,13 @@ getenvoy run postgres:nightly --templateArg endpoints=127.0.0.1:5432,192.168.0.1
 				},
 			)
 
-			runtime, err := envoy.NewRuntime(
-				func(r *envoy.Runtime) { r.Config = cfg },
-				debug.EnableEnvoyAdminDataCollection,
-				debug.EnableEnvoyLogCollection,
-				debug.EnableNodeCollection,
-				debug.EnableOpenFilesDataCollection,
-				controlplaneFunc(),
+			runtime, err := envoy.NewRuntime(envoy.RuntimeOption(
+				func(r *envoy.Runtime) {
+					r.Config = cfg
+					r.IO = cmdutil.StreamsOf(cmd)
+				}).
+				AndAll(debug.EnableAll()).
+				And(controlplaneFunc())...,
 			)
 			if err != nil {
 				return err
@@ -87,17 +89,10 @@ getenvoy run postgres:nightly --templateArg endpoints=127.0.0.1:5432,192.168.0.1
 
 			key, manifestErr := manifest.NewKey(args[0])
 
-			if manifestErr != nil {
-				if _, err := os.Stat(args[0]); err != nil {
-					return fmt.Errorf("%v isn't valid manifest reference or an existing filepath", args[0])
-				}
-				return runtime.RunPath(args[0], args[1:])
-			}
-
 			// Check if the templateArgs were passed to the cmd line.
 			// If they were passed, config must be created based on
 			// template.
-			if len(templateArgs) > 0 {
+			if manifestErr == nil && len(templateArgs) > 0 {
 				cmdArg, err := processTemplateArgs(key.Flavor, templateArgs, runtime.(*envoy.Runtime))
 				if err != nil {
 					return err
@@ -105,16 +100,7 @@ getenvoy run postgres:nightly --templateArg endpoints=127.0.0.1:5432,192.168.0.1
 				args = append(args, cmdArg)
 			}
 
-			if !runtime.AlreadyDownloaded(key) {
-				location, err := manifest.Locate(key, manifestURL)
-				if err != nil {
-					return err
-				}
-				if err := runtime.Fetch(key, location); err != nil {
-					return err
-				}
-			}
-			return runtime.Run(key, args[1:])
+			return runtime.FetchAndRun(args[0], args[1:])
 		},
 	}
 	cmd.Flags().StringVarP(&bootstrap, "bootstrap", "b", "",

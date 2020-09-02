@@ -15,29 +15,21 @@
 package manifest
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"sort"
-	"text/tabwriter"
-
-	"github.com/tetratelabs/getenvoy/pkg/transport"
-
-	"net/url"
-
 	"strings"
+	"text/tabwriter"
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/tetratelabs/getenvoy-package/api"
+	"github.com/tetratelabs/getenvoy/pkg/transport"
 )
 
 // Print retrieves the manifest from the passed location and writes it to the passed writer
-func Print(writer io.Writer, manifestLocation string) error {
-	if _, err := url.Parse(manifestLocation); err != nil {
-		return errors.New("only URL manifest locations are supported")
-	}
-	manifest, err := fetch(manifestLocation)
+func Print(writer io.Writer) error {
+	manifest, err := fetch(GetURL())
 	if err != nil {
 		return err
 	}
@@ -61,14 +53,14 @@ func platformFromEnum(s string) string {
 	return s
 }
 
-func fetch(manifestURL string) (*api.Manifest, error) {
+func fetch(url string) (*api.Manifest, error) {
 	// #nosec => This is by design, users can call out to wherever they like!
-	resp, err := transport.Get(manifestURL)
+	resp, err := transport.Get(url)
 	if err != nil {
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("received %v response code from %v", resp.StatusCode, manifestURL)
+		return nil, fmt.Errorf("received %v response code from %v", resp.StatusCode, url)
 	}
 	defer resp.Body.Close() //nolint
 	result := api.Manifest{}
