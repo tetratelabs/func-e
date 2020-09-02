@@ -113,7 +113,7 @@ var _ = Describe("Scaffold()", func() {
 				Language: extension.LanguageRust,
 			},
 			file:     "src/factory.rs",
-			expected: `const NAME: &'static str = "my_company.my_extension";`,
+			expected: `"my_company.my_extension"`,
 		}),
 		Entry("rust/filters/network", testCase{
 			extension: &extension.Descriptor{
@@ -122,7 +122,7 @@ var _ = Describe("Scaffold()", func() {
 				Language: extension.LanguageRust,
 			},
 			file:     "src/factory.rs",
-			expected: `const NAME: &'static str = "my_company.my_extension";`,
+			expected: `"my_company.my_extension"`,
 		}),
 		Entry("rust/access_logger", testCase{
 			extension: &extension.Descriptor{
@@ -131,7 +131,7 @@ var _ = Describe("Scaffold()", func() {
 				Language: extension.LanguageRust,
 			},
 			file:     "src/logger.rs",
-			expected: `const NAME: &'static str = "my_company.my_extension";`,
+			expected: `"my_company.my_extension"`,
 		}),
 	)
 })

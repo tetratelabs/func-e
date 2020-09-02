@@ -122,7 +122,7 @@ var _ = Describe("Expand()", func() {
 			}),
 			Entry("extension: config", testCase{
 				input:    `{{ .GetEnvoy.Extension.Config }}`,
-				expected: `"{\"key\":\"value\"}"`,
+				expected: `{"@type":"type.googleapis.com/google.protobuf.StringValue","value":"{\"key\":\"value\"}"}`,
 			}),
 			Entry("access to proto message", testCase{
 				input:    `{{ (.GetEnvoy.Extension.Code).Message.GetLocal.GetFilename }}`,

@@ -47,17 +47,17 @@ var _ = Describe("ParseReference()", func() {
 				input:    `standard:1.11.0/linux-glibc`,
 				expected: Reference{Flavor: "standard", Version: "1.11.0", Platform: "linux-glibc"},
 			}),
-			Entry("wasm:nightly", testCase{
-				input:    `wasm:nightly`,
-				expected: Reference{Flavor: "wasm", Version: "nightly", Platform: ""},
+			Entry("wasm:1.15", testCase{
+				input:    `wasm:1.15`,
+				expected: Reference{Flavor: "wasm", Version: "1.15", Platform: ""},
 			}),
-			Entry("wasm:nightly/darwin", testCase{
-				input:    `wasm:nightly/darwin`,
-				expected: Reference{Flavor: "wasm", Version: "nightly", Platform: "darwin"},
+			Entry("wasm:1.15/darwin", testCase{
+				input:    `wasm:1.15/darwin`,
+				expected: Reference{Flavor: "wasm", Version: "1.15", Platform: "darwin"},
 			}),
-			Entry("wasm:nightly/linux-glibc", testCase{
-				input:    `wasm:nightly/linux-glib`,
-				expected: Reference{Flavor: "wasm", Version: "nightly", Platform: "linux-glib"},
+			Entry("wasm:1.15/linux-glibc", testCase{
+				input:    `wasm:1.15/linux-glib`,
+				expected: Reference{Flavor: "wasm", Version: "1.15", Platform: "linux-glib"},
 			}),
 			Entry("mixed case", testCase{
 				input:    `Wasm:NightlY/LINUX-GLIBC`,

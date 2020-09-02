@@ -47,6 +47,7 @@ impl<'a> HttpFilter for SampleHttpFilter<'a> {
     fn on_request_headers(
         &mut self,
         _num_headers: usize,
+        _end_of_stream: bool,
         filter_ops: &dyn http::RequestHeadersOps,
     ) -> Result<http::FilterHeadersStatus> {
         let now: DateTime<Local> = self.clock.now()?.into();

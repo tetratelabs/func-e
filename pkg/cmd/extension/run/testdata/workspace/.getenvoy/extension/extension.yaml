@@ -11,4 +11,4 @@ category: envoy.filters.http
 # Runtime the extension is being developed against.
 runtime:
   envoy:
-    version: wasm:nightly
+    version: wasm:1.15

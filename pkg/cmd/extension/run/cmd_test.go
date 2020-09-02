@@ -132,7 +132,7 @@ var _ = Describe("getenvoy extension run", func() {
 	var manifestServer manifesttest.Server
 
 	BeforeEach(func() {
-		testManifest, err := manifesttest.NewSimpleManifest("wasm:nightly", "wasm:stable")
+		testManifest, err := manifesttest.NewSimpleManifest("wasm:1.15", "wasm:stable")
 		Expect(err).NotTo(HaveOccurred())
 
 		manifestServer = manifesttest.NewServer(&manifesttest.ServerOpts{
@@ -166,7 +166,7 @@ var _ = Describe("getenvoy extension run", func() {
 	var platform string
 
 	BeforeEach(func() {
-		key, err := manifest.NewKey("wasm:nightly")
+		key, err := manifest.NewKey("wasm:1.15")
 		Expect(err).NotTo(HaveOccurred())
 		platform = strings.ToLower(key.Platform)
 	})
@@ -290,7 +290,7 @@ Run 'getenvoy extension run --help' for usage.
 
 	It("should not allow --envoy-version and --envoy-path flags at the same time", func() {
 		By("running command")
-		c.SetArgs([]string{"extension", "run", "--envoy-version", "wasm:nightly", "--envoy-path", "envoy"})
+		c.SetArgs([]string{"extension", "run", "--envoy-version", "wasm:1.15", "--envoy-path", "envoy"})
 		err := cmdutil.Execute(c)
 		Expect(err).To(HaveOccurred())
 
@@ -478,15 +478,22 @@ Run 'getenvoy extension run --help' for usage.
 
 			By("verifying command output")
 			Expect(stdout.String()).To(Equal(fmt.Sprintf(`%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init getenvoy/extension-rust-builder:latest build --output-file target/getenvoy/extension.wasm
-%s/builds/wasm/nightly/%s/bin/envoy -c %s/envoy.tmpl.yaml
+%s/builds/wasm/1.15/%s/bin/envoy -c %s/envoy.tmpl.yaml
 `, dockerDir, workspaceDir, getenvoyHomeDir, platform, envoyCaptured.cwd())))
 			Expect(stderr.String()).To(Equal("docker stderr\nenvoy stderr\n"))
 
 			By("verifying Envoy config")
 			placeholders := envoyCaptured.readFileToJSON("placeholders.tmpl.yaml")
 			Expect(placeholders["extension.name"]).To(Equal(`mycompany.filters.http.custom_metrics`))
-			Expect(placeholders["extension.code"]).To(Equal(fmt.Sprintf(`{"local":{"filename":"%s"}}`, filepath.Join(workspaceDir, "target/getenvoy/extension.wasm"))))
-			Expect(placeholders["extension.config"]).To(Equal(`{"key":"value"}`))
+			Expect(placeholders["extension.code"]).To(Equal(map[string]interface{}{
+				"local": map[string]interface{}{
+					"filename": filepath.Join(workspaceDir, "target/getenvoy/extension.wasm"),
+				},
+			}))
+			Expect(placeholders["extension.config"]).To(Equal(map[string]interface{}{
+				"@type": "type.googleapis.com/google.protobuf.StringValue",
+				"value": `{"key":"value"}`,
+			}))
 		})
 
 		It("should allow to override build image and add Docker cli options", func() {
@@ -503,7 +510,7 @@ Run 'getenvoy extension run --help' for usage.
 
 			By("verifying command output")
 			Expect(stdout.String()).To(Equal(fmt.Sprintf(`%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init -e VAR=VALUE -v /host:/container build/image build --output-file target/getenvoy/extension.wasm
-%s/builds/wasm/nightly/%s/bin/envoy -c %s/envoy.tmpl.yaml
+%s/builds/wasm/1.15/%s/bin/envoy -c %s/envoy.tmpl.yaml
 `, dockerDir, workspaceDir, getenvoyHomeDir, platform, envoyCaptured.cwd())))
 			Expect(stderr.String()).To(Equal("docker stderr\nenvoy stderr\n"))
 		})
@@ -593,7 +600,7 @@ Run 'getenvoy extension run --help' for usage.
 
 			By("verifying command output")
 			Expect(stdout.String()).To(Equal(fmt.Sprintf(`%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init getenvoy/extension-rust-builder:latest build --output-file target/getenvoy/extension.wasm
-%s/builds/wasm/nightly/%s/bin/envoy -c %s/envoy.tmpl.yaml --concurrency 2 --component-log-level wasm:debug,config:trace
+%s/builds/wasm/1.15/%s/bin/envoy -c %s/envoy.tmpl.yaml --concurrency 2 --component-log-level wasm:debug,config:trace
 `, dockerDir, workspaceDir, getenvoyHomeDir, platform, envoyCaptured.cwd())))
 			Expect(stderr.String()).To(Equal("docker stderr\nenvoy stderr\n"))
 		})
@@ -618,12 +625,16 @@ Run 'getenvoy extension run --help' for usage.
 			Expect(err).NotTo(HaveOccurred())
 
 			By("verifying command output")
-			Expect(stdout.String()).To(Equal(fmt.Sprintf("%s/builds/wasm/nightly/%s/bin/envoy -c %s/envoy.tmpl.yaml\n", getenvoyHomeDir, platform, envoyCaptured.cwd())))
+			Expect(stdout.String()).To(Equal(fmt.Sprintf("%s/builds/wasm/1.15/%s/bin/envoy -c %s/envoy.tmpl.yaml\n", getenvoyHomeDir, platform, envoyCaptured.cwd())))
 			Expect(stderr.String()).To(Equal("envoy stderr\n"))
 
 			By("verifying Envoy config")
 			placeholders := envoyCaptured.readFileToJSON("placeholders.tmpl.yaml")
-			Expect(placeholders["extension.code"]).To(Equal(fmt.Sprintf(`{"local":{"filename":"%s"}}`, wasmFile)))
+			Expect(placeholders["extension.code"]).To(Equal(map[string]interface{}{
+				"local": map[string]interface{}{
+					"filename": wasmFile,
+				},
+			}))
 		})
 
 		It("should allow to provide a custom extension config via --extension-config-file flag", func() {
@@ -647,13 +658,16 @@ Run 'getenvoy extension run --help' for usage.
 
 			By("verifying command output")
 			Expect(stdout.String()).To(Equal(fmt.Sprintf(`%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init getenvoy/extension-rust-builder:latest build --output-file target/getenvoy/extension.wasm
-%s/builds/wasm/nightly/%s/bin/envoy -c %s/envoy.tmpl.yaml
+%s/builds/wasm/1.15/%s/bin/envoy -c %s/envoy.tmpl.yaml
 `, dockerDir, workspaceDir, getenvoyHomeDir, platform, envoyCaptured.cwd())))
 			Expect(stderr.String()).To(Equal("docker stderr\nenvoy stderr\n"))
 
 			By("verifying Envoy config")
 			placeholders := envoyCaptured.readFileToJSON("placeholders.tmpl.yaml")
-			Expect(placeholders["extension.config"]).To(Equal(`{"key2":"value2"}`))
+			Expect(placeholders["extension.config"]).To(Equal(map[string]interface{}{
+				"@type": "type.googleapis.com/google.protobuf.StringValue",
+				"value": `{"key2":"value2"}`,
+			}))
 		})
 
 		It("should create default example if missing", func() {
@@ -676,7 +690,7 @@ Run 'getenvoy extension run --help' for usage.
 
 			By("verifying command output")
 			Expect(stdout.String()).To(Equal(fmt.Sprintf(`%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init getenvoy/extension-rust-builder:latest build --output-file target/getenvoy/extension.wasm
-%s/builds/wasm/nightly/%s/bin/envoy -c %s/envoy.tmpl.yaml
+%s/builds/wasm/1.15/%s/bin/envoy -c %s/envoy.tmpl.yaml
 `, dockerDir, workspaceDir, getenvoyHomeDir, platform, envoyCaptured.cwd())))
 			Expect(stderr.String()).To(Equal(`Scaffolding a new example setup:
 * .getenvoy/extension/examples/default/README.md

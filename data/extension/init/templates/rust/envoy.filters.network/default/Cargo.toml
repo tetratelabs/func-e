@@ -16,7 +16,7 @@ categories = ["wasm"]
 crate-type = ["rlib"]
 
 [dependencies]
-envoy = { package = "envoy-sdk", version = "^0.0.5" }
+envoy = { package = "envoy-sdk", version = "^0.1" }
 serde = { version = "^1.0", features = ["derive"] }
 serde_json = "^1.0"
 chrono = "^0.4"

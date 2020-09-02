@@ -2,7 +2,7 @@ use std::convert::TryFrom;
 use std::rc::Rc;
 
 use envoy::extension::{factory, ConfigStatus, ExtensionFactory, InstanceId, Result};
-use envoy::host::{Clock, Stats};
+use envoy::host::{ByteString, Clock, Stats};
 
 use super::config::SampleNetworkFilterConfig;
 use super::filter::SampleNetworkFilter;
@@ -46,19 +46,21 @@ impl<'a> ExtensionFactory for SampleNetworkFilterFactory<'a> {
 
     /// The reference name for Sample Network Filter.
     ///
-    /// This name appears in `Envoy` configuration as a value of `root_id` field
-    /// (also known as `group_name`).
-    const NAME: &'static str = "{{ .Extension.Name }}";
+    /// This name appears in `Envoy` configuration as a value of `root_id` field.
+    fn name() -> &'static str {
+        "{{ .Extension.Name }}"
+    }
 
     /// Is called when Envoy creates a new Listener that uses Sample Network Filter.
     fn on_configure(
         &mut self,
-        _configuration_size: usize,
-        ops: &dyn factory::ConfigureOps,
+        config: ByteString,
+        _ops: &dyn factory::ConfigureOps,
     ) -> Result<ConfigStatus> {
-        let config = match ops.configuration()? {
-            Some(bytes) => SampleNetworkFilterConfig::try_from(bytes.as_slice())?,
-            None => SampleNetworkFilterConfig::default(),
+        let config = if config.is_empty() {
+            SampleNetworkFilterConfig::default()
+        } else {
+            SampleNetworkFilterConfig::try_from(config.as_bytes())?
         };
         self.config = Rc::new(config);
         Ok(ConfigStatus::Accepted)

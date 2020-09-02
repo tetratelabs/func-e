@@ -19,6 +19,7 @@ import (
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
 	envoycore "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -93,9 +94,14 @@ func (e *getEnvoyExtension) Config(names ...string) (getEnvoyValue, error) {
 	if len(names) > 0 {
 		return nil, errors.Errorf("unable to resolve a named config %v: not supported yet", names)
 	}
-	return wrap(&wrappers.StringValue{
+	any, err := ptypes.MarshalAny(&wrappers.StringValue{
 		Value: e.ctx.DefaultExtensionConfig,
 	})
+	if err != nil {
+		// must not happen
+		panic(err)
+	}
+	return wrap(any)
 }
 
 // getEnvoyValue represents a value returned by various {{ .GetEnvoy.* }} pipelines.

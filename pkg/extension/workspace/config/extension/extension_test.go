@@ -119,7 +119,7 @@ language: rust
 # Runtime the extension is being developed against.
 runtime:
   envoy:
-    version: wasm:nightly
+    version: wasm:1.15
 `,
 					expectedErr: `extension name cannot be empty`,
 				}),
@@ -137,7 +137,7 @@ language: rust
 # Runtime the extension is being developed against.
 runtime:
   envoy:
-    version: wasm:nightly
+    version: wasm:1.15
 `,
 					expectedErr: `"?!@#$%" is not a valid extension name. Extension name must match the format "^[a-z0-9_]+(\\.[a-z0-9_]+)*$". E.g., 'mycompany.filters.http.custom_metrics'`,
 				}),
@@ -174,7 +174,7 @@ language: rust
 # Runtime the extension is being developed against.
 runtime:
   envoy:
-    version: wasm:nightly
+    version: wasm:1.15
 `,
 				}),
 			)

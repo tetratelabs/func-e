@@ -13,7 +13,9 @@ resources:
           typed_config:
             "@type": type.googleapis.com/envoy.extensions.filters.network.wasm.v3.Wasm
             config:
-              configuration: '{"key2":"value2"}'
+              configuration:
+                '@type': type.googleapis.com/google.protobuf.StringValue
+                value: '{"key2":"value2"}'
               name: mycompany.filters.http.custom_metrics
               root_id: mycompany.filters.http.custom_metrics
               vm_config:

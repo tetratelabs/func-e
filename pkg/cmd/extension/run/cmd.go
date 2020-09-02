@@ -144,7 +144,7 @@ Run Envoy extension in the example setup.`,
   getenvoy extension run
 
   # Run Envoy extension in the "default" example setup using a particular Envoy release provided by getenvoy.io
-  getenvoy extension run --envoy-version wasm:nightly
+  getenvoy extension run --envoy-version wasm:1.15
 
   # Run Envoy extension in the "default" example setup using a custom Envoy binary
   getenvoy extension run --envoy-path /path/to/envoy

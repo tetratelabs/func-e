@@ -14,4 +14,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 envoy-sample-access-logger = { path = "../.." }
-envoy = { package = "envoy-sdk", version = "^0.0.5" }
+envoy = { package = "envoy-sdk", version = "^0.1" }

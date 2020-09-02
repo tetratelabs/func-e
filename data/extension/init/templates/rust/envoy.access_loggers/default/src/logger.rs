@@ -3,8 +3,7 @@ use std::convert::TryFrom;
 use chrono::{offset::Local, DateTime};
 
 use envoy::extension::{access_logger, AccessLogger, ConfigStatus, Result};
-use envoy::host::log::info;
-use envoy::host::{Clock, Stats};
+use envoy::host::{log, ByteString, Clock, Stats};
 
 use super::config::SampleAccessLoggerConfig;
 use super::stats::SampleAccessLoggerStats;
@@ -41,58 +40,54 @@ impl<'a> SampleAccessLogger<'a> {
 impl<'a> AccessLogger for SampleAccessLogger<'a> {
     /// The reference name for Sample Access Logger.
     ///
-    /// This name appears in `Envoy` configuration as a value of `root_id` field
-    /// (also known as `group_name`).
-    const NAME: &'static str = "{{ .Extension.Name }}";
+    /// This name appears in `Envoy` configuration as a value of `root_id` field.
+    fn name() -> &'static str {
+        "{{ .Extension.Name }}"
+    }
 
     /// Is called when Envoy creates a new Listener that uses Sample Access Logger.
-    ///
-    /// Use logger_ops to get ahold of configuration.
     fn on_configure(
         &mut self,
-        _configuration_size: usize,
-        logger_ops: &dyn access_logger::ConfigureOps,
+        config: ByteString,
+        _ops: &dyn access_logger::ConfigureOps,
     ) -> Result<ConfigStatus> {
-        self.config = match logger_ops.configuration()? {
-            Some(bytes) => SampleAccessLoggerConfig::try_from(bytes.as_slice())?,
-            None => SampleAccessLoggerConfig::default(),
+        self.config = if config.is_empty() {
+            SampleAccessLoggerConfig::default()
+        } else {
+            SampleAccessLoggerConfig::try_from(config.as_bytes())?
         };
         Ok(ConfigStatus::Accepted)
     }
 
     /// Is called to log a complete TCP connection or HTTP request.
     ///
-    /// Use logger_ops to get ahold of request/response headers,
+    /// Use `log_ops` to get ahold of request/response headers,
     /// TCP connection properties, etc.
-    fn on_log(&mut self, logger_ops: &dyn access_logger::LogOps) -> Result<()> {
+    fn on_log(&mut self, log_ops: &dyn access_logger::LogOps) -> Result<()> {
         // Update stats
         self.stats.log_entries_total().inc()?;
 
         let now: DateTime<Local> = self.clock.now()?.into();
 
-        info!(
+        log::info!(
             "logging at {} with config: {:?}",
             now.format("%+"),
             self.config,
         );
 
-        info!("  request headers:");
-        let request_headers = logger_ops.request_headers()?;
+        log::info!("  request headers:");
+        let request_headers = log_ops.request_headers()?;
         for (name, value) in &request_headers {
-            info!("    {}: {}", name, value);
+            log::info!("    {}: {}", name, value);
         }
-        info!("  response headers:");
-        let response_headers = logger_ops.response_headers()?;
+        log::info!("  response headers:");
+        let response_headers = log_ops.response_headers()?;
         for (name, value) in &response_headers {
-            info!("    {}: {}", name, value);
+            log::info!("    {}: {}", name, value);
         }
-        let upstream_address = logger_ops.stream_property(vec!["upstream", "address"])?;
-        let upstream_address = upstream_address
-            .map(String::from_utf8)
-            .transpose()?
-            .unwrap_or_else(String::default);
-        info!("  upstream info:");
-        info!("    {}: {}", "upstream.address", upstream_address);
+        let upstream_address = log_ops.stream_info().upstream().address()?;
+        log::info!("  upstream info:");
+        log::info!("    {}: {:?}", "upstream.address", upstream_address);
 
         Ok(())
     }
