@@ -49,7 +49,7 @@ changelog:
     - test
     - goreleaser
 brews:
-- github:
+- tap:
     owner: tetratelabs
     name: homebrew-getenvoy
     # Use token other than the default one (which is limited in scope to
