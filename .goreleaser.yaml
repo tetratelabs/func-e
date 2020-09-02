@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project_name: getenvoy-wasm
+project_name: getenvoy
 env:
   - GO111MODULE=on
 before:
@@ -48,16 +48,15 @@ changelog:
     - docs
     - test
     - goreleaser
-# TODO(yskopets): disabled for "getenvoy-wasm" artifacts
-# brews:
-# - github:
-#     owner: tetratelabs
-#     name: homebrew-getenvoy
-#   folder: Formula
-#   homepage:  https://github.com/tetratelabs/getenvoy
-#   description: Distribute, deploy and operate a fleet of Envoys
-#   test: |
-#     system "#{bin}/getenvoy --help"
+brews:
+- github:
+    owner: tetratelabs
+    name: homebrew-getenvoy
+  folder: Formula
+  homepage:  https://github.com/tetratelabs/getenvoy
+  description: Distribute, deploy and operate a fleet of Envoys
+  test: |
+    system "#{bin}/getenvoy --help"
 dockers:
 - image_templates: 
   - getenvoy/{{ .ProjectName }}:{{ .Version }}-standard-1.11.1

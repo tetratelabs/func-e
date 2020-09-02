@@ -1,4 +1,4 @@
-[![CircleCI](https://circleci.com/gh/tetratelabs/getenvoy-wasm.svg?style=svg&circle-token=642d659caf9f37cd3258c71da223b3eb9154f1f3)](https://circleci.com/gh/tetratelabs/getenvoy-wasm)
+[![CircleCI](https://circleci.com/gh/tetratelabs/getenvoy.svg?style=svg&circle-token=323ca83723d7e1ed662772385cfdeed5f704c370)](https://circleci.com/gh/tetratelabs/getenvoy)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
 # GetEnvoy
