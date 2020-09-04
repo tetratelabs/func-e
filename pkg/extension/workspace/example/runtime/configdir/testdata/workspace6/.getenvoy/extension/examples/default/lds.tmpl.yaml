@@ -1,0 +1,27 @@
+version_info: v0
+type_url: type.googleapis.com/envoy.config.listener.v3.Listener
+resources:
+- "@type": type.googleapis.com/envoy.config.listener.v3.Listener
+  name: xds_ingress
+  address:
+    socket_address:
+      address: 0.0.0.0
+      port_value: 20000
+  filter_chains:
+    - filters:
+        - name: envoy.filters.network.wasm
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.filters.network.wasm.v3.Wasm
+            config:
+              configuration: {{ .GetEnvoy.Extension.Config }}
+              name: {{ .GetEnvoy.Extension.Name }}
+              root_id: {{ .GetEnvoy.Extension.Name }}
+              vm_config:
+                vm_id: {{ .GetEnvoy.Extension.Name }}
+                runtime: envoy.wasm.runtime.v8
+                code: {{ .GetEnvoy.Extension.Code "???" }}
+        - name: envoy.filters.network.tcp_proxy
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
+            stat_prefix: ingress
+            cluster: xds_mock_service

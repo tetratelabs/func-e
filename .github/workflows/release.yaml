@@ -1,0 +1,175 @@
+# `name` value will appear "as is" in the badge.
+# See https://docs.github.com/en/actions/configuring-and-managing-workflows/configuring-a-workflow#adding-a-workflow-status-badge-to-your-repository
+name: "release"
+
+on:
+  push:
+    tags:
+    - '**'
+
+jobs:
+  getenvoy:
+    name: "Release `getenvoy` CLI"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v2
+        with:
+          # fetch all history for all tags and branches (needed for changelog)
+          fetch-depth: 0
+
+      - name: "Set up Go"
+        uses: actions/setup-go@v2
+        with:
+          go-version: '1.13.3'
+
+      - name: "Login into DockerHub"
+        uses: azure/docker-login@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: "Run GoReleaser"
+        uses: goreleaser/goreleaser-action@v2
+        with:
+          version: latest
+          args: release --rm-dist
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_GETENVOY_GITHUB_TOKEN: ${{ secrets.GETENVOY_CI_GITHUB_TOKEN }}
+
+  builders:
+    name: "Release extension builder images"
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        # fetch all history for all tags and branches (needed to determine the right cache source image)
+        fetch-depth: 0
+
+    - name: "Get tag name"
+      id: git_tag
+      run: |
+        echo ::set-output name=NAME::${GITHUB_REF/refs\/tags\//}
+
+    - name: "Build extension builder images"
+      run: make builders BUILDERS_TAG=${{ steps.git_tag.outputs.NAME }}
+
+    - name: "Login into DockerHub"
+      uses: azure/docker-login@v1
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+    - name: "Push extension builder images"
+      run: make builders.push BUILDERS_TAG=${{ steps.git_tag.outputs.NAME }}
+
+  e2e_bin:
+    name: "Build `e2e` binaries for use in e2e tests"
+    runs-on: ubuntu-latest
+    steps:
+    - name: "Checkout"
+      uses: actions/checkout@v2
+
+    - name: "Install Go"
+      uses: actions/setup-go@v2
+      with:
+        go-version: '1.13.3'
+
+    - name: "Build `e2e` binaries"
+      run: make build/bin/linux/amd64/e2e build/bin/darwin/amd64/e2e
+
+    - name: "Share `e2e` binaries with the downstream jobs"
+      uses: actions/upload-artifact@v2
+      with:
+        name: bin
+        path: build/bin
+
+  e2e_linux:
+    name: "Run e2e tests on Linux"
+    needs:
+    - getenvoy
+    - builders
+    - e2e_bin
+    runs-on: ubuntu-latest
+    steps:
+    - name: "Checkout"
+      uses: actions/checkout@v2
+
+    - name: "Get tag name"
+      id: git_tag
+      run: |
+        echo ::set-output name=NAME::${GITHUB_REF/refs\/tags\//}
+
+    - name: "Download `e2e` binary pre-built by the upstream job"
+      uses: actions/download-artifact@v2
+      with:
+        name: bin
+        path: build/bin
+
+    - name: "Download `getenvoy` binary from GithHub release assets"
+      env:
+        INPUT_REPO: ${{ github.repository }}
+        INPUT_TOKEN: ${{ secrets.GETENVOY_CI_GITHUB_TOKEN }}
+        INPUT_FILE: getenvoy_${{ steps.git_tag.outputs.NAME }}_Linux_x86_64.tar.gz
+        INPUT_VERSION: tags/${{ steps.git_tag.outputs.NAME }}
+      run: |
+        curl -s https://raw.githubusercontent.com/dsaltares/fetch-gh-release-asset/0.0.5/fetch_github_asset.sh | bash
+        mkdir -p build/bin/linux/amd64
+        tar -C build/bin/linux/amd64 -xf ${INPUT_FILE} getenvoy
+
+    - name: "Pull extension builder images"
+      run: make builders.pull BUILDERS_TAG=${{ steps.git_tag.outputs.NAME }} # pull Docker images in advance to make output of
+                                                                             # `getenvoy extension build | test | run` stable
+
+    - name: "Run e2e tests using released `getenvoy` binary and published extension builder images"
+      env:
+        # Forbid extension templates to have dependecies on private GitHub repositories.
+        E2E_ALLOW_PRIVATE_DEPENDENCIES: 'no'
+      run: ./ci/e2e/linux/run_tests.sh
+
+  e2e_macos:
+    name: "Run e2e tests on MacOS"
+    needs:
+    - getenvoy
+    - builders
+    - e2e_bin
+    runs-on: macos-latest
+    steps:
+    - name: "Checkout"
+      uses: actions/checkout@v2
+
+    - name: "Get tag name"
+      id: git_tag
+      run: |
+        echo ::set-output name=NAME::${GITHUB_REF/refs\/tags\//}
+
+    - name: "Download `e2e` binary pre-built by the upstream job"
+      uses: actions/download-artifact@v2
+      with:
+        name: bin
+        path: build/bin
+
+    - name: "Download `getenvoy` binary from GithHub release assets"
+      env:
+        INPUT_REPO: ${{ github.repository }}
+        INPUT_TOKEN: ${{ secrets.GETENVOY_CI_GITHUB_TOKEN }}
+        INPUT_FILE: getenvoy_${{ steps.git_tag.outputs.NAME }}_Darwin_x86_64.tar.gz
+        INPUT_VERSION: tags/${{ steps.git_tag.outputs.NAME }}
+      run: |
+        curl -s https://raw.githubusercontent.com/dsaltares/fetch-gh-release-asset/0.0.5/fetch_github_asset.sh | bash
+        mkdir -p build/bin/darwin/amd64
+        tar -C build/bin/darwin/amd64 -xf ${INPUT_FILE} getenvoy
+
+    - name: "Install 'Docker for Mac' (an older version that can be installed in CI environment)"
+      run: ./ci/e2e/macos/install_docker.sh
+
+    - name: "Pull extension builder images"
+      run: make builders.pull BUILDERS_TAG=${{ steps.git_tag.outputs.NAME }} # pull Docker images in advance to make output of
+                                                                             # `getenvoy extension build | test | run` stable
+
+    - name: "Run e2e tests using released `getenvoy` binary and published extension builder images"
+      env:
+        # Forbid extension templates to have dependecies on private GitHub repositories.
+        E2E_ALLOW_PRIVATE_DEPENDENCIES: 'no'
+      run: ./ci/e2e/macos/run_tests.sh

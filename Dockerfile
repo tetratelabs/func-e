@@ -14,7 +14,8 @@
 
 FROM gcr.io/distroless/cc
 
-COPY getenvoy /
+ARG getenvoy_binary=getenvoy
+COPY ${getenvoy_binary} /
 
 ARG reference
 ENV ENVOY_REFERENCE=$reference

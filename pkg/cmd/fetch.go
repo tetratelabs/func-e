@@ -46,7 +46,7 @@ getenvoy fetch standard:1.11.1/linux-glibc`,
 			if err != nil {
 				return err
 			}
-			location, err := manifest.Locate(key, manifestURL)
+			location, err := manifest.Locate(key)
 			if err != nil {
 				return err
 			}

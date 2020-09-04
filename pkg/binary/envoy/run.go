@@ -50,6 +50,9 @@ func (r *Runtime) RunPath(path string, args []string) error {
 
 	// #nosec -> users can run whatever binary they like!
 	r.cmd = exec.Command(path, args...)
+	r.cmd.Dir = r.WorkingDir
+	r.cmd.Stdout = r.IO.Out
+	r.cmd.Stderr = r.IO.Err
 	r.cmd.SysProcAttr = sysProcAttr()
 
 	r.handlePreStart()
@@ -77,13 +80,13 @@ func (r *Runtime) DebugStore() string {
 }
 
 // SetStdout writes the stdout of Envoy to the passed writer
-func (r *Runtime) SetStdout(w io.Writer) {
-	r.cmd.Stdout = w
+func (r *Runtime) SetStdout(fn func(io.Writer) io.Writer) {
+	r.cmd.Stdout = fn(r.cmd.Stdout)
 }
 
 // SetStderr writes the stderr of Envoy to the passed writer
-func (r *Runtime) SetStderr(w io.Writer) {
-	r.cmd.Stderr = w
+func (r *Runtime) SetStderr(fn func(io.Writer) io.Writer) {
+	r.cmd.Stderr = fn(r.cmd.Stderr)
 }
 
 // RegisterWait informs the runtime it needs to wait for you to complete
@@ -132,6 +135,7 @@ func (r *Runtime) runEnvoy(cancel context.CancelFunc) {
 	log.Infof("Envoy command: %v", r.cmd.Args)
 	if err := r.cmd.Start(); err != nil {
 		log.Errorf("Unable to start Envoy process: %v", err)
+		return
 	}
 
 	if err := r.cmd.Wait(); err != nil {

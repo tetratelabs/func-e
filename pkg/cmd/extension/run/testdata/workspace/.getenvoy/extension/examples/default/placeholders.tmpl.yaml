@@ -1,0 +1,3 @@
+'extension.name': {{ .GetEnvoy.Extension.Name }}
+'extension.code': {{ .GetEnvoy.Extension.Code }}
+'extension.config': {{ .GetEnvoy.Extension.Config }}

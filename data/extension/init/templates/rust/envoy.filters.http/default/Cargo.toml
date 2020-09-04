@@ -1,0 +1,22 @@
+[workspace]
+members = ["wasm/module"]
+default-members = ["wasm/module"]
+
+[package]
+name = "envoy-sample-http-filter"
+description = "Sample Envoy HTTP filter"
+version = "0.1.0"
+edition = "2018"
+keywords = ["envoy", "extension", "wasm", "http-filter"]
+categories = ["wasm"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
+envoy = { package = "envoy-sdk", version = "^0.1" }
+serde = { version = "^1.0", features = ["derive"] }
+serde_json = "^1.0"
+chrono = "^0.4"

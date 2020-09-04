@@ -37,8 +37,8 @@ type Runner interface {
 	Wait(int)
 	WaitWithContext(context.Context, int)
 	DebugStore() string
-	SetStdout(w io.Writer)
-	SetStderr(w io.Writer)
+	SetStdout(func(io.Writer) io.Writer)
+	SetStderr(func(io.Writer) io.Writer)
 	// TODO(cpakulski) Maybe Runner is not the best place for SaveConfig.
 	// It was added here because it needs location of .getenvoy
 	// directory.
@@ -73,4 +73,5 @@ type Fetcher interface {
 type FetchRunner interface {
 	Runner
 	Fetcher
+	FetchAndRun(reference string, args []string) error
 }

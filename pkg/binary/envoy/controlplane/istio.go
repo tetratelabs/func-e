@@ -22,14 +22,16 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/gogo/protobuf/types"
+	"github.com/golang/protobuf/ptypes"
+	durationpb "github.com/golang/protobuf/ptypes/duration"
+
 	"github.com/tetratelabs/getenvoy/pkg/binary"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
+	"github.com/tetratelabs/log"
 	meshconfig "istio.io/api/mesh/v1alpha1"
-	"istio.io/pkg/log"
 
 	"istio.io/istio/pilot/pkg/model"
-	agent "istio.io/istio/pkg/bootstrap"
+	"istio.io/istio/pkg/bootstrap"
 	"istio.io/istio/pkg/config/mesh"
 )
 
@@ -69,11 +71,11 @@ func appendArgs(r binary.Runner) error {
 	return nil
 }
 
-func convertDuration(d *types.Duration) time.Duration {
+func convertDuration(d *durationpb.Duration) time.Duration {
 	if d == nil {
 		return 0
 	}
-	dur, err := types.DurationFromProto(d)
+	dur, err := ptypes.Duration(d)
 	if err != nil {
 		log.Warnf("unable to convert proto duration %v to time.Duration", d)
 	}
@@ -90,7 +92,13 @@ func writeBootstrap(r binary.Runner) error {
 	if err := writeIstioTemplate(cfg.ProxyBootstrapTemplatePath); err != nil {
 		return fmt.Errorf("unable to write Istio bootstrap template: %v", err)
 	}
-	if _, err := agent.WriteBootstrap(&cfg, istioNode(e.Config), 1, []string{}, nil, os.Environ(), e.Config.IPAddresses, "60s"); err != nil {
+	if _, err := bootstrap.New(bootstrap.Config{
+		Node:           istioNode(e.Config),
+		DNSRefreshRate: "60s",
+		Proxy:          &cfg,
+		LocalEnv:       os.Environ(),
+		NodeIPs:        e.Config.IPAddresses,
+	}).CreateFileForEpoch(1); err != nil {
 		return fmt.Errorf("unable to write Istio bootstrap: %v", err)
 	}
 	return nil

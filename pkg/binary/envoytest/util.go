@@ -35,9 +35,9 @@ func Fetch() error {
 	key, _ := manifest.NewKey(Reference)
 	r, _ := envoy.NewRuntime()
 	if !r.AlreadyDownloaded(key) {
-		location, err := manifest.Locate(key, manifest.DefaultURL)
+		location, err := manifest.Locate(key)
 		if err != nil {
-			return fmt.Errorf("unable to retrieve manifest from %v: %v", manifest.DefaultURL, err)
+			return fmt.Errorf("unable to retrieve manifest from %v: %v", manifest.GetURL(), err)
 		}
 		if err := r.Fetch(key, location); err != nil {
 			return fmt.Errorf("unable to retrieve binary from %v: %v", location, err)

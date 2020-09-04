@@ -40,7 +40,12 @@ func captureStdout(r binary.Runner) error {
 	if err != nil {
 		return err
 	}
-	r.SetStdout(io.MultiWriter(os.Stdout, f))
+	r.SetStdout(func(w io.Writer) io.Writer {
+		if w == nil {
+			return f
+		}
+		return io.MultiWriter(w, f)
+	})
 	go capture(r, f)
 	return nil
 }
@@ -50,7 +55,12 @@ func captureStderr(r binary.Runner) error {
 	if err != nil {
 		return err
 	}
-	r.SetStderr(io.MultiWriter(os.Stderr, f))
+	r.SetStderr(func(w io.Writer) io.Writer {
+		if w == nil {
+			return f
+		}
+		return io.MultiWriter(w, f)
+	})
 	go capture(r, f)
 	return nil
 }

@@ -17,7 +17,7 @@ env:
   - GO111MODULE=on
 before:
   hooks:
-    - go mod download
+    - make init
 builds:
 - binary: getenvoy
   ldflags: "-s -w -X github.com/tetratelabs/getenvoy/pkg/version.version={{.Version}}"
@@ -31,7 +31,8 @@ builds:
     - 386
     - amd64
 archives:
-- replacements:
+- name_template: "getenvoy_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+  replacements:
     darwin: Darwin
     linux: Linux
     386: i386
@@ -48,9 +49,12 @@ changelog:
     - test
     - goreleaser
 brews:
-- github:
+- tap:
     owner: tetratelabs
     name: homebrew-getenvoy
+    # Use token other than the default one (which is limited in scope to
+    # https://github.com/tetratelabs/getenvoy only)
+    token: "{{ .Env.HOMEBREW_GETENVOY_GITHUB_TOKEN }}"
   folder: Formula
   homepage:  https://github.com/tetratelabs/getenvoy
   description: Distribute, deploy and operate a fleet of Envoys
@@ -58,7 +62,7 @@ brews:
     system "#{bin}/getenvoy --help"
 dockers:
 - image_templates: 
-  - getenvoy/getenvoy:{{ .Version }}-standard-1.11.1
+  - getenvoy/{{ .ProjectName }}:{{ .Version }}-standard-1.11.1
   dockerfile: Dockerfile
   binaries:
     - getenvoy
@@ -66,7 +70,7 @@ dockers:
   - "--build-arg=reference=standard:1.11.1"
 
 - image_templates: 
-  - getenvoy/getenvoy:{{ .Version }}-standard-1.11.2
+  - getenvoy/{{ .ProjectName }}:{{ .Version }}-standard-1.11.2
   dockerfile: Dockerfile
   binaries:
     - getenvoy
@@ -74,8 +78,8 @@ dockers:
   - "--build-arg=reference=standard:1.11.2"
 
 - image_templates: 
-  - getenvoy/getenvoy:{{ .Version }}-standard-1.12.0
-  - getenvoy/getenvoy:standard-latest
+  - getenvoy/{{ .ProjectName }}:{{ .Version }}-standard-1.12.0
+  - getenvoy/{{ .ProjectName }}:standard-latest
   dockerfile: Dockerfile
   binaries:
     - getenvoy

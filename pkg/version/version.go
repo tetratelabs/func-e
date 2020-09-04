@@ -14,10 +14,24 @@
 
 package version
 
+const (
+	// defaultVersion represents a more descriptive default value for those
+	// cases where a binary or unit tests get built ad-hoc without using
+	// -ldflags="-s -w -X github.com/tetratelabs/getenvoy/pkg/version.version=${VERSION}"
+	defaultVersion = "dev"
+)
+
 var (
 	// version is populated at build time via compiler options.
 	version string
 )
+
+func versionOrDefault() string {
+	if version != "" {
+		return version
+	}
+	return defaultVersion
+}
 
 // BuildInfo describes a particular build of getenvoy toolkit.
 type BuildInfo struct {
@@ -27,6 +41,13 @@ type BuildInfo struct {
 var (
 	// Build describes a version of the enclosing binary.
 	Build = BuildInfo{
-		Version: version,
+		Version: versionOrDefault(),
 	}
 )
+
+// IsDevBuild returns true if a version of the enclosing binary
+// has not been set, which can normally happen in those case where
+// the binary or unit tests get built ad-hoc.
+func IsDevBuild() bool {
+	return Build.Version == defaultVersion
+}

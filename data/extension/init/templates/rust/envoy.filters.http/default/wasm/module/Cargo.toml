@@ -1,0 +1,17 @@
+[package]
+name = "envoy-sample-http-filter-module"
+description = "Sample Envoy HTTP filter (Wasm module)"
+version = "0.1.0"
+edition = "2018"
+keywords = ["envoy", "extension", "wasm", "http-filter"]
+categories = ["wasm"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "extension"
+crate-type = ["cdylib"]
+
+[dependencies]
+envoy-sample-http-filter = { path = "../.." }
+envoy = { package = "envoy-sdk", version = "^0.1" }
