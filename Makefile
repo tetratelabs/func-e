@@ -17,6 +17,7 @@ HUB ?= docker.io/getenvoy
 GETENVOY_TAG ?= dev
 BUILDERS_LANGS := rust
 BUILDERS_TAG ?= latest
+EXTRA_TAG ?=
 
 USE_DOCKER_BUILDKIT_CACHE ?= yes
 ifneq ($(filter-out yes on true 1,$(USE_DOCKER_BUILDKIT_CACHE)),)
@@ -148,6 +149,16 @@ $(foreach lang,$(BUILDERS_LANGS),$(eval $(call GEN_PUSH_EXTENSION_BUILDER_IMAGE_
 
 .PHONY: builders.push
 builders.push: $(foreach lang,$(BUILDERS_LANGS), push/builder/$(lang))
+
+define GEN_TAG_EXTENSION_BUILDER_IMAGE_TARGET
+.PHONY: tag/builder/$(1)
+tag/builder/$(1):
+	docker tag $(call EXTENSION_BUILDER_IMAGE,$(1),$(BUILDERS_TAG)) $(call EXTENSION_BUILDER_IMAGE,$(1),$(EXTRA_TAG))
+endef
+$(foreach lang,$(BUILDERS_LANGS),$(eval $(call GEN_TAG_EXTENSION_BUILDER_IMAGE_TARGET,$(lang))))
+
+.PHONY: builders.tag
+builders.tag: $(foreach lang,$(BUILDERS_LANGS), tag/builder/$(lang))
 
 define GEN_PULL_EXTENSION_BUILDER_IMAGE_TARGET
 .PHONY: pull/builder/$(1)

@@ -29,7 +29,11 @@ jobs:
     - name: Push the Docker image
       run: make builders.push BUILDERS_TAG=${{ github.sha }}
       if: github.event_name == 'push'
-    
-    - name: Mark the Docker image latest
+
+    - name: Tag the Docker image as 'latest'
+      run: make builders.tag BUILDERS_TAG=${{ github.sha }} EXTRA_TAG=latest
+      if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+
+    - name: Push the 'latest' Docker image
       run: make builders.push BUILDERS_TAG=latest
       if: github.ref == 'refs/heads/master' && github.event_name == 'push'
