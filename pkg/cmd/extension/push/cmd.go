@@ -21,6 +21,8 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/extension/wasmimage"
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/runtime"
+	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain"
+
 	//cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 
@@ -36,7 +38,9 @@ type cmdOpts struct {
 
 func newCmdOpts() *cmdOpts {
 	return &cmdOpts{
-		Toolchain: common.ToolchainOpts{},
+		Toolchain: common.ToolchainOpts{
+			Name: toolchain.Default,
+		},
 		Extension: runtime.ExtensionOpts{},
 		Pusher: wasmimage.NewPusherOpts(),
 	}
@@ -99,6 +103,8 @@ Push the built WASM extension to the OCI-compliant registry. This command requir
 			return err
 		},
     }
+	cmd.PersistentFlags().StringVar(&opts.Toolchain.Name, "toolchain", opts.Toolchain.Name,
+		`Name of the toolchain to use, e.g. "default" toolchain that is backed by a Docker build container`)
 	cmd.PersistentFlags().BoolVar(&opts.Pusher.AllowInsecure, "allow-insecure", opts.Pusher.AllowInsecure, `Allow insecure registry`)
     cmd.PersistentFlags().BoolVar(&opts.Pusher.UseHTTP, "use-http", opts.Pusher.UseHTTP, `Use HTTP for communication with registry`)
 	cmd.PersistentFlags().StringVar(&opts.Extension.WasmFile, "extension-file", opts.Extension.WasmFile,
