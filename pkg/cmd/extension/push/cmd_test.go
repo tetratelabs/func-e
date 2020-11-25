@@ -15,21 +15,21 @@
 package push_test
 
 import (
-"bytes"
-"fmt"
-"os"
-"path/filepath"
-"strings"
+	"bytes"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 
-. "github.com/onsi/ginkgo"
-. "github.com/onsi/gomega"
-"github.com/spf13/cobra"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/spf13/cobra"
 
-"github.com/tetratelabs/getenvoy/pkg/cmd"
+	"github.com/tetratelabs/getenvoy/pkg/cmd"
 
-testcontext "github.com/tetratelabs/getenvoy/pkg/test/cmd/extension"
+	testcontext "github.com/tetratelabs/getenvoy/pkg/test/cmd/extension"
 
-cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
+	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 
 var _ = Describe("getenvoy extension build", func() {

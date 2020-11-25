@@ -22,7 +22,6 @@ import (
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/runtime"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain"
-
 	//cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 
@@ -42,7 +41,7 @@ func newCmdOpts() *cmdOpts {
 			Name: toolchain.Default,
 		},
 		Extension: runtime.ExtensionOpts{},
-		Pusher: wasmimage.NewPusherOpts(),
+		Pusher:    wasmimage.NewPusherOpts(),
 	}
 }
 
@@ -63,17 +62,17 @@ func (opts *cmdOpts) Validate() error {
 // NewCmd returns a command that pushes the built extension.
 func NewCmd() *cobra.Command {
 	opts := newCmdOpts()
-    cmd := &cobra.Command{
-        Use: "push <image-reference>",
-        Short: "Push the built WASM extension to the OCI-compliant registry.",
-        Long: `
+	cmd := &cobra.Command{
+		Use:   "push <image-reference>",
+		Short: "Push the built WASM extension to the OCI-compliant registry.",
+		Long: `
 Push the built WASM extension to the OCI-compliant registry. This command requires to login the target container registry with docker CLI`,
-        Example: `
+		Example: `
   # Push built WASM extension to the local docker registry.
   getenvoy extension push localhost:5000/test/image-name:tag`,
 		Args: func(cmd *cobra.Command, args []string) error {
-            if err := opts.Validate(); err != nil {
-            	return err
+			if err := opts.Validate(); err != nil {
+				return err
 			}
 
 			if len(args) == 0 {
@@ -102,14 +101,14 @@ Push the built WASM extension to the OCI-compliant registry. This command requir
 			_, err = pusher.Push(image)
 			return err
 		},
-    }
+	}
 	cmd.PersistentFlags().StringVar(&opts.Toolchain.Name, "toolchain", opts.Toolchain.Name,
 		`Name of the toolchain to use, e.g. "default" toolchain that is backed by a Docker build container`)
 	cmd.PersistentFlags().BoolVar(&opts.Pusher.AllowInsecure, "allow-insecure", opts.Pusher.AllowInsecure, `Allow insecure registry`)
-    cmd.PersistentFlags().BoolVar(&opts.Pusher.UseHTTP, "use-http", opts.Pusher.UseHTTP, `Use HTTP for communication with registry`)
+	cmd.PersistentFlags().BoolVar(&opts.Pusher.UseHTTP, "use-http", opts.Pusher.UseHTTP, `Use HTTP for communication with registry`)
 	cmd.PersistentFlags().StringVar(&opts.Extension.WasmFile, "extension-file", opts.Extension.WasmFile,
 		`Use a pre-built *.wasm file`)
 	cmd.PersistentFlags().StringVar(&opts.Extension.Config.Source, "extension-config-file", opts.Extension.Config.Source,
 		`Use a custom extension config`)
-    return cmd
+	return cmd
 }

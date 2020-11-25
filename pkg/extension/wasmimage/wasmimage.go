@@ -11,11 +11,11 @@ import (
 )
 
 type WasmImage struct {
-	ref string
-	name string
+	ref      string
+	name     string
 	contents []byte
 
-	store *orascnt.Memorystore
+	store  *orascnt.Memorystore
 	layers []ocispec.Descriptor
 }
 
@@ -40,11 +40,11 @@ func NewWasmImage(ref string, path string) (*WasmImage, error) {
 	}
 
 	return &WasmImage{
-		ref: ref,
-		name: name,
+		ref:      ref,
+		name:     name,
 		contents: contents,
-		layers: layers,
-		store: store,
+		layers:   layers,
+		store:    store,
 	}, nil
 }
 

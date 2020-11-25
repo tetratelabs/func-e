@@ -4,13 +4,12 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"net/http"
 	"github.com/containerd/containerd/remotes"
 	"github.com/deislabs/oras/pkg/auth/docker"
 	"github.com/deislabs/oras/pkg/oras"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
+	"net/http"
 )
-
 
 type Pusher struct {
 	resolver remotes.Resolver
@@ -18,13 +17,13 @@ type Pusher struct {
 
 type PusherOpts struct {
 	AllowInsecure bool
-	UseHTTP bool
+	UseHTTP       bool
 }
 
 func NewPusherOpts() PusherOpts {
 	return PusherOpts{
 		AllowInsecure: false,
-		UseHTTP: false,
+		UseHTTP:       false,
 	}
 }
 
