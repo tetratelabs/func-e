@@ -16,11 +16,13 @@ package builtin
 
 import (
 	"fmt"
+	"github.com/tetratelabs/getenvoy/pkg/extension/wasmimage"
 	"os/exec"
 	"os/user"
 	"path/filepath"
 
 	config "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/toolchain/builtin"
+
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain/types"
 	executil "github.com/tetratelabs/getenvoy/pkg/util/exec"
@@ -65,6 +67,10 @@ func (t *builtin) Build(context types.BuildContext) error {
 	}
 	cmd := exec.Command("docker", args.Add(commandBuild).Add("--output-file", t.cfg.GetBuildOutputWasmFile())...)
 	return executil.Run(cmd, context.IO)
+}
+
+func (t *builtin) Package(ref string) (*wasmimage.WasmImage, error) {
+	return wasmimage.NewWasmImage(ref, t.GetBuildOutputWasmFile())
 }
 
 func (t *builtin) Test(context types.TestContext) error {

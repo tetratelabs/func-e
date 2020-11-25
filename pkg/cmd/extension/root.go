@@ -15,6 +15,7 @@
 package extension
 
 import (
+	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/push"
 	"os"
 
 	"github.com/mattn/go-isatty"
@@ -48,6 +49,7 @@ func NewCmd() *cobra.Command {
 	cmd.AddCommand(clean.NewCmd())
 	cmd.AddCommand(example.NewCmd())
 	cmd.AddCommand(run.NewCmd())
+	cmd.AddCommand(push.NewCmd())
 	cmd.PersistentFlags().BoolVar(&globals.NoPrompt, "no-prompt", noPromptDefault(),
 		"disable automatic switching into interactive mode whenever a parameter is missing or not valid")
 	cmd.PersistentFlags().BoolVar(&globals.NoColors, "no-colors", noColorsDefault(), "disable colored output")
