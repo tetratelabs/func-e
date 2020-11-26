@@ -22,7 +22,6 @@ import (
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/runtime"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain"
-	//cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 
 // cmdOpts represents configuration options of the `push` command.
@@ -81,21 +80,27 @@ Push the built WASM extension to the OCI-compliant registry. This command requir
 
 			return nil
 		},
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			imageRef := args[0]
-			workspace, err := workspaces.GetCurrentWorkspace()
-			if err != nil {
-				return err
-			}
-			toolchain, err := common.LoadToolchain(workspace, opts)
-			if err != nil {
-				return err
-			}
 			var image *wasmimage.WasmImage
 			if opts.Extension.WasmFile != "" {
 				image, err = wasmimage.NewWasmImage(imageRef, opts.Extension.WasmFile)
+				if err != nil {
+					return err
+				}
 			} else {
+				workspace, err := workspaces.GetCurrentWorkspace()
+				if err != nil {
+					return err
+				}
+				toolchain, err := common.LoadToolchain(workspace, opts)
+				if err != nil {
+					return err
+				}
 				image, err = toolchain.Package(imageRef)
+				if err != nil {
+					return err
+				}
 			}
 			pusher, err := wasmimage.NewPusher(false, false)
 			_, err = pusher.Push(image)
