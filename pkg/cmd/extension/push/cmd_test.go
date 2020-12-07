@@ -32,7 +32,12 @@ import (
 	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 
-var _ = Describe("getenvoy extension build", func() {
+const (
+	localRegistryWasmImageRef = "localhost:5000/getenvoy/sample"
+	localECRWasmImageRef      = "localhost:4556/getenvoy/sample"
+)
+
+var _ = Describe("getenvoy extension push", func() {
 
 	var dockerDir string
 
@@ -88,34 +93,6 @@ var _ = Describe("getenvoy extension build", func() {
 		c.SetErr(stderr)
 	})
 
-	It("should validate value of --toolchain-container-image flag", func() {
-		By("running command")
-		c.SetArgs([]string{"extension", "build", "--toolchain-container-image", "?invalid value?"})
-		err := cmdutil.Execute(c)
-		Expect(err).To(HaveOccurred())
-
-		By("verifying command output")
-		Expect(stdout.String()).To(BeEmpty())
-		Expect(stderr.String()).To(Equal(`Error: "?invalid value?" is not a valid image name: invalid reference format
-
-Run 'getenvoy extension build --help' for usage.
-`))
-	})
-
-	It("should validate value of --toolchain-container-options flag", func() {
-		By("running command")
-		c.SetArgs([]string{"extension", "build", "--toolchain-container-options", "imbalanced ' quotes"})
-		err := cmdutil.Execute(c)
-		Expect(err).To(HaveOccurred())
-
-		By("verifying command output")
-		Expect(stdout.String()).To(BeEmpty())
-		Expect(stderr.String()).To(Equal(`Error: "imbalanced ' quotes" is not a valid command line string
-
-Run 'getenvoy extension build --help' for usage.
-`))
-	})
-
 	chdir := func(path string) string {
 		dir, err := filepath.Abs(path)
 		Expect(err).ToNot(HaveOccurred())
@@ -126,77 +103,64 @@ Run 'getenvoy extension build --help' for usage.
 		return dir
 	}
 
+	//TODO(musaprg): write teardown process for local registries if it's needed
+
 	//nolint:lll
 	Context("inside a workspace directory", func() {
-		It("should succeed", func() {
-			By("changing to a workspace dir")
-			workspaceDir := chdir("testdata/workspace")
+		When("if the image ref is valid", func() {
+			It("should succeed", func() {
+				By("changing to a workspace dir")
+				_ = chdir("testdata/workspace")
 
-			By("running command")
-			c.SetArgs([]string{"extension", "build"})
-			err := cmdutil.Execute(c)
-			Expect(err).ToNot(HaveOccurred())
+				By("push to local registry")
+				c.SetArgs([]string{"extension", "push", localECRWasmImageRef})
+				err := cmdutil.Execute(c)
+				Expect(err).ToNot(HaveOccurred())
 
-			By("verifying command output")
-			Expect(stdout.String()).To(Equal(fmt.Sprintf("%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init getenvoy/extension-rust-builder:latest build --output-file target/getenvoy/extension.wasm\n", dockerDir, workspaceDir)))
-			Expect(stderr.String()).To(Equal("docker stderr\n"))
-		})
-
-		It("should allow to override build image and add Docker cli options", func() {
-			By("changing to a workspace dir")
-			workspaceDir := chdir("testdata/workspace")
-
-			By("running command")
-			c.SetArgs([]string{"extension", "build",
-				"--toolchain-container-image", "build/image",
-				"--toolchain-container-options", `-e 'VAR=VALUE' -v "/host:/container"`,
+				By("verifying command output")
+				//TODO(musaprg): implement me
 			})
-			err := cmdutil.Execute(c)
-			Expect(err).ToNot(HaveOccurred())
-
-			By("verifying command output")
-			Expect(stdout.String()).To(Equal(fmt.Sprintf("%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init -e VAR=VALUE -v /host:/container build/image build --output-file target/getenvoy/extension.wasm\n", dockerDir, workspaceDir)))
-			Expect(stderr.String()).To(Equal("docker stderr\n"))
 		})
-
-		It("should properly handle Docker build failing", func() {
-			By("changing to a workspace dir")
-			workspaceDir := chdir("testdata/workspace")
-
-			By("running command")
-			c.SetArgs([]string{"extension", "build",
-				"--toolchain-container-image", "build/image",
-				"--toolchain-container-options", `-e EXIT_CODE=3`,
+		When("if the image ref is invalid", func() {
+			It("should fail", func() {
+				//TODO(musaprg): implement me
 			})
-			err := cmdutil.Execute(c)
-			Expect(err).To(HaveOccurred())
-
-			By("verifying command output")
-			Expect(stdout.String()).To(Equal(fmt.Sprintf("%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init -e EXIT_CODE=3 build/image build --output-file target/getenvoy/extension.wasm\n", dockerDir, workspaceDir)))
-			Expect(stderr.String()).To(Equal(fmt.Sprintf(`docker stderr
-Error: failed to build Envoy extension using "default" toolchain: failed to execute an external command "%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init -e EXIT_CODE=3 build/image build --output-file target/getenvoy/extension.wasm": exit status 3
-
-Run 'getenvoy extension build --help' for usage.
-`, dockerDir, workspaceDir)))
 		})
 	})
 
 	Context("outside of a workspace directory", func() {
-		It("should fail", func() {
-			By("changing to a non-workspace dir")
-			dir := chdir("testdata")
+		When("if the target wasm binary is specified", func() {
+			It("should succeed", func() {
+				By("changing to a non-workspace dir")
+				dir := chdir("testdata")
 
-			By("running command")
-			c.SetArgs([]string{"extension", "build"})
-			err := cmdutil.Execute(c)
-			Expect(err).To(HaveOccurred())
+				By("running command")
+				c.SetArgs([]string{"extension", "push", "--extension-file", filepath.Join(dir, "workspace", "extension.wasm")})
+				err := cmdutil.Execute(c)
+				Expect(err).NotTo(HaveOccurred())
 
-			By("verifying command output")
-			Expect(stdout.String()).To(BeEmpty())
-			Expect(stderr.String()).To(Equal(fmt.Sprintf(`Error: there is no extension directory at or above: %s
+				By("verifying command output")
+				Expect(stdout.String()).To(BeEmpty())
+				//TODO(musaprg): implement me
+			})
+		})
+		When("if no wasm binary specified", func() {
+			It("should fail", func() {
+				By("changing to a non-workspace dir")
+				dir := chdir("testdata")
+
+				By("running command")
+				c.SetArgs([]string{"extension", "push"})
+				err := cmdutil.Execute(c)
+				Expect(err).To(HaveOccurred())
+
+				By("verifying command output")
+				Expect(stdout.String()).To(BeEmpty())
+				Expect(stderr.String()).To(Equal(fmt.Sprintf(`Error: there is no extension directory at or above: %s
 
 Run 'getenvoy extension build --help' for usage.
 `, dir)))
+			})
 		})
 	})
 })
