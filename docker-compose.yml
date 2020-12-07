@@ -1,0 +1,10 @@
+version: '3'
+services:
+  registry:
+    image: registry:2
+    network_mode: host
+  localstack:
+    image: localstack/localstack
+    network_mode: host
+    environment:
+      - SERVICES=ecr
