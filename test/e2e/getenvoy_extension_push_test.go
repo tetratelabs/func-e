@@ -19,7 +19,6 @@ import (
 
 const (
 	localRegistryWasmImageRef = "localhost:5000/getenvoy/sample"
-	localECRWasmImageRef      = "localhost:4556/getenvoy/sample"
 )
 
 var _ = Describe("getenvoy extension push", func() {
