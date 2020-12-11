@@ -16,6 +16,7 @@ package push
 
 import (
 	"errors"
+
 	"github.com/spf13/cobra"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/common"
 	"github.com/tetratelabs/getenvoy/pkg/extension/wasmimage"

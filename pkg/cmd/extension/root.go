@@ -15,8 +15,9 @@
 package extension
 
 import (
-	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/push"
 	"os"
+
+	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/push"
 
 	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"

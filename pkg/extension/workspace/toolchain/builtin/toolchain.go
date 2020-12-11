@@ -16,10 +16,11 @@ package builtin
 
 import (
 	"fmt"
-	"github.com/tetratelabs/getenvoy/pkg/extension/wasmimage"
 	"os/exec"
 	"os/user"
 	"path/filepath"
+
+	"github.com/tetratelabs/getenvoy/pkg/extension/wasmimage"
 
 	config "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/toolchain/builtin"
 

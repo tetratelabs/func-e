@@ -3,11 +3,12 @@ package wasmimage
 import (
 	"errors"
 	"fmt"
-	orascnt "github.com/deislabs/oras/pkg/content"
-	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	orascnt "github.com/deislabs/oras/pkg/content"
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 type WasmImage struct {

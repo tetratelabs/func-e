@@ -1,10 +1,11 @@
 package e2e_test
 
 import (
-	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
-	toolchains "github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain"
 	"os"
 	"path/filepath"
+
+	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
+	toolchains "github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
