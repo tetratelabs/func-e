@@ -4,9 +4,6 @@ import (
 	"os"
 	"path/filepath"
 
-	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
-	toolchains "github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -37,7 +34,7 @@ var _ = Describe("getenvoy extension push", func() {
 
 	const extensionName = "my.extension"
 
-	DescribeTable("should build a *.wasm file",
+	DescribeTable("should push a *.wasm file",
 		func(given testCase) {
 			By("choosing the output directory")
 			outputDir := filepath.Join(tempDir, "new")
@@ -76,8 +73,8 @@ var _ = Describe("getenvoy extension push", func() {
 
 			By("running `extension push` command")
 			_, _, err = GetEnvoy("extension push").Arg(localRegistryWasmImageRef).Exec()
-			//TODO(musaprg): verifying stdout/stderr
-			//TODO(musaprg): verifying the target wasm image was uploaded successfully
+			Expect(stdout).NotTo(BeEmpty())
+			Expect(stderr).To(BeEmpty())
 		},
 		testCases()...,
 	)
