@@ -1,7 +1,6 @@
 package wasmimage
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -55,7 +54,7 @@ func validateFile(path string) error {
 	}
 
 	if ext := filepath.Ext(path); ext != ".wasm" {
-		return errors.New(fmt.Sprintf("%#v is not a wasm binary", path))
+		return fmt.Errorf("%#v is not a wasm binary", path)
 	}
 
 	return nil
