@@ -123,9 +123,6 @@ jobs:
                                                                              # `getenvoy extension build | test | run` stable
 
     - name: "Run e2e tests using released `getenvoy` binary and published extension builder images"
-      env:
-        # Forbid extension templates to have dependecies on private GitHub repositories.
-        E2E_ALLOW_PRIVATE_DEPENDENCIES: 'no'
       run: ./ci/e2e/linux/run_tests.sh
 
   e2e_macos:
@@ -169,7 +166,4 @@ jobs:
                                                                              # `getenvoy extension build | test | run` stable
 
     - name: "Run e2e tests using released `getenvoy` binary and published extension builder images"
-      env:
-        # Forbid extension templates to have dependecies on private GitHub repositories.
-        E2E_ALLOW_PRIVATE_DEPENDENCIES: 'no'
       run: ./ci/e2e/macos/run_tests.sh
