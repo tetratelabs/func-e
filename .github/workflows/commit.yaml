@@ -71,6 +71,9 @@ jobs:
         name: bin
         path: build/bin
 
+    - name: "Install 'Docker for Mac' (an older version that can be installed in CI environment)"
+      run: ./ci/e2e/macos/install_docker.sh
+
     - name: "Build language-specific Docker build images"
       env:
         # don't use `DOCKER_BUILDKIT=1`, `--build-arg BUILDKIT_INLINE_CACHE=1` and `--cache-from`
