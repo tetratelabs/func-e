@@ -29,28 +29,6 @@ sudo chown -R $(id -u):$(id -g) "${E2E_CACHE_DIR}"
 # to speed up `getenvoy extension build|test`, re-use a single cache across all extensions created by e2e tests
 export E2E_BUILTIN_TOOLCHAIN_CONTAINER_OPTIONS="${E2E_BUILTIN_TOOLCHAIN_CONTAINER_OPTIONS} -v ${E2E_CACHE_DIR}:/tmp/cache/getenvoy -e CARGO_HOME=/tmp/cache/getenvoy/extension/rust-builder/cargo"
 
-forward_ssh_agent=false
-case "${E2E_ALLOW_PRIVATE_DEPENDENCIES}" in
-	yes | on | true | 1) forward_ssh_agent=true ;;
-esac
-
-if [[ "${forward_ssh_agent}" == "true" ]]; then
-	# setup SSH key that will be used by build containers to fetch private dependencies
-	mkdir -p $HOME/.ssh/
-	echo "${E2E_GITHUB_MACHINE_USER_KEY}" | base64 -d > $HOME/.ssh/id_rsa_e2e_github_machine_user
-	chmod 600 $HOME/.ssh/id_rsa_e2e_github_machine_user
-
-	# use a dedicated SSH agent to manage the keys needed by extension build containers
-	eval $(ssh-agent -s)
-	# always kill that SSH agent in the end
-	trap "ssh-agent -k" EXIT
-	# load a single key of a GitHub "machine user" that has access to all private repositories needed by e2e tests
-	ssh-add $HOME/.ssh/id_rsa_e2e_github_machine_user
-
-	# forward SSH agent into extension build containers so that to they could fetch source code from private GitHub repositories
-	export E2E_BUILTIN_TOOLCHAIN_CONTAINER_OPTIONS="${E2E_BUILTIN_TOOLCHAIN_CONTAINER_OPTIONS} -v ${SSH_AUTH_SOCK}:${SSH_AUTH_SOCK} -e SSH_AUTH_SOCK"
-fi
-
 # restore executable bit that get lost by Github Actions during artifact upload/download
 chmod a+x ${WORKSPACE_DIR}/build/bin/linux/amd64/*
 
