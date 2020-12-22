@@ -13,17 +13,16 @@
 # limitations under the License.
 
 #
-# Builder image for Envoy Wasm extensions written in Rust.
+# Builder image for Envoy Wasm extensions written in Go.
 #
-FROM rust:1.44.1
 
-RUN rustup target add wasm32-unknown-unknown
+FROM tinygo/tinygo:0.16.0
 
-# Unset CARGO_HOME. This way we will be able to determine when a user
-# provides an override value.
-ENV CARGO_HOME=
+ENV GOCACHE=/source/.gocache
+ENV GOMODCACHE=/source/.gomodcache
+ENV XDG_CACHE_HOME=/source/.cache
 
 COPY ./entrypoint.sh /usr/local/getenvoy/extension/builder/entrypoint.sh
-COPY ./rust/commands.sh /usr/local/getenvoy/extension/builder/commands.sh
+COPY ./tinygo/commands.sh /usr/local/getenvoy/extension/builder/commands.sh
 ENTRYPOINT ["/usr/local/getenvoy/extension/builder/entrypoint.sh"]
 CMD ["--help"]

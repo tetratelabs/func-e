@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # Copyright 2020 Tetrate
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,18 +14,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#
-# Builder image for Envoy Wasm extensions written in Rust.
-#
-FROM rust:1.44.1
+extension_build()  {
+	exec tinygo build -o "$1" -scheduler=none -target wasi main.go
+}
 
-RUN rustup target add wasm32-unknown-unknown
+extension_test()  {
+	exec go test -tags=proxytest -v ./...
+}
 
-# Unset CARGO_HOME. This way we will be able to determine when a user
-# provides an override value.
-ENV CARGO_HOME=
-
-COPY ./entrypoint.sh /usr/local/getenvoy/extension/builder/entrypoint.sh
-COPY ./rust/commands.sh /usr/local/getenvoy/extension/builder/commands.sh
-ENTRYPOINT ["/usr/local/getenvoy/extension/builder/entrypoint.sh"]
-CMD ["--help"]
+extension_clean()  {
+	rm /source/extension.wasm || true
+	go clean -modcache
+	rm -rf "${GOCACHE}" "${XDG_CACHE_HOME}" || true
+}

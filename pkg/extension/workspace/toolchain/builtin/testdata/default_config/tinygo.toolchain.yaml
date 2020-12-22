@@ -1,0 +1,6 @@
+kind: BuiltinToolchain
+container:
+  image: getenvoy/extension-tinygo-builder:latest
+build:
+  output:
+    wasmFile: extension.wasm

@@ -35,6 +35,7 @@ var (
 	// programming languages supported by the `init` command.
 	supportedLanguages = options{
 		{Value: extension.LanguageRust.String(), DisplayText: "Rust"},
+		{Value: extension.LanguageTinyGo.String(), DisplayText: "TinyGo"},
 	}
 	// Envoy release the extension templates have been developed against.
 	//

@@ -99,6 +99,7 @@ var _ = Describe("getenvoy extension run", func() {
 		func(given testCase) {
 			By("choosing the output directory")
 			outputDir := filepath.Join(tempDir, "extension")
+			defer CleanUpExtensionDir(outputDir)
 
 			By("running `extension init` command")
 			_, _, err := GetEnvoy("extension init").

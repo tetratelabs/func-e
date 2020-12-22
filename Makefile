@@ -15,7 +15,7 @@
 ENVOY = standard:1.11.1
 HUB ?= docker.io/getenvoy
 GETENVOY_TAG ?= dev
-BUILDERS_LANGS := rust
+BUILDERS_LANGS := rust tinygo
 BUILDERS_TAG ?= latest
 EXTRA_TAG ?=
 
@@ -133,7 +133,7 @@ builder/$(1):
 	$(if $(USE_DOCKER_BUILDKIT_CACHE),--build-arg BUILDKIT_INLINE_CACHE=1,)                                                         \
 	$(if $(USE_DOCKER_BUILDKIT_CACHE),--cache-from $(call EXTENSION_BUILDER_IMAGE,$(1),$(EXTENSION_BUILDER_IMAGE_LATEST_VERSION)),) \
 	-t $(call EXTENSION_BUILDER_IMAGE,$(1),$(BUILDERS_TAG))                                                                         \
-	images/extension-builders/$(1)
+	-f images/extension-builders/$(1)/Dockerfile images/extension-builders
 endef
 $(foreach lang,$(BUILDERS_LANGS),$(eval $(call GEN_BUILD_EXTENSION_BUILDER_IMAGE_TARGET,$(lang))))
 

@@ -1,0 +1,56 @@
+#
+# Configuration for the built-in toolchain.
+#
+kind: BuiltinToolchain
+
+#
+# Configuration of the default build container.
+#
+
+## container:
+##   # Builder image.
+##   image: getenvoy/extension-tinygo-builder:latest
+##   # Docker cli options.
+##   options: []
+
+#
+# Configuration of the 'build' command.
+#
+# If omitted, configuration of the default build container will be used instead.
+#
+
+## build:
+##   container:
+##     # Builder image.
+##     image: getenvoy/extension-tinygo-builder:latest
+##     # Docker cli options.
+##     options: []
+##   output:
+##     # Output *.wasm file.
+##     wasmFile: extension.wasm
+
+#
+# Configuration of the 'test' command.
+#
+# If omitted, configuration of the default build container will be used instead.
+#
+
+## test:
+##   container:
+##     # Builder image.
+##     image: getenvoy/extension-tinygo-builder:latest
+##     # Docker cli options.
+##     options: []
+
+#
+# Configuration of the 'clean' command.
+#
+# If omitted, configuration of the default build container will be used instead.
+#
+
+## clean:
+##   container:
+##     # Builder image.
+##     image: getenvoy/extension-tinygo-builder:latest
+##     # Docker cli options.
+##     options: []

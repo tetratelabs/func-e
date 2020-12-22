@@ -88,7 +88,7 @@ func (languages languages) Index() map[string]Language {
 
 var (
 	// Languages is a list of valid programming languages.
-	Languages     = languages{LanguageRust}
+	Languages     = languages{LanguageRust, LanguageTinyGo}
 	languageIndex = Languages.Index()
 )
 
