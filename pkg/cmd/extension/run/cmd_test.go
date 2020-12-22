@@ -23,26 +23,19 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/ghodss/yaml"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"github.com/pkg/errors"
-
-	"github.com/spf13/cobra"
-
-	"github.com/ghodss/yaml"
-
 	"github.com/otiai10/copy"
+	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
 
 	"github.com/tetratelabs/getenvoy/pkg/cmd"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
-	"github.com/tetratelabs/getenvoy/pkg/types"
-
 	testcontext "github.com/tetratelabs/getenvoy/pkg/test/cmd/extension"
-
-	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
-
 	manifesttest "github.com/tetratelabs/getenvoy/pkg/test/manifest"
+	"github.com/tetratelabs/getenvoy/pkg/types"
+	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 
 //nolint:lll
