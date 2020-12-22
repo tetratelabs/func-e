@@ -16,6 +16,7 @@ package util
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 )
@@ -36,7 +37,13 @@ func (t CategoryLanguageTuple) String() string {
 func GetCategoryLanguageCombinations() []CategoryLanguageTuple {
 	tuples := make([]CategoryLanguageTuple, 0)
 	for _, category := range extension.Categories {
+		if !strings.Contains(category.String(), "http") {
+			continue
+		}
 		for _, language := range extension.Languages {
+			if strings.Contains(language.String(), "rust") {
+				continue
+			}
 			tuples = append(tuples, CategoryLanguageTuple{category, language})
 		}
 	}
