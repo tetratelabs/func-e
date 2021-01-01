@@ -12,23 +12,34 @@ import (
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
+var (
+	pushOpts = []oras.PushOpt{
+		oras.WithConfigMediaType(ConfigMediaType),
+		oras.WithNameValidation(nil),
+	}
+)
+
+// PusherOpts represents options for Pusher
+type PusherOpts struct {
+	AllowInsecure bool
+	UseHTTP bool
+}
+
+// NewPusherOpts returns a default PusherOpts instance
+func NewPusherOpts() PusherOpts {
+	return PusherOpts{
+		AllowInsecure: false,
+		UseHTTP: false,
+	}
+}
+
+// Pusher knows how to push wasm images to OCI-compliant registries.
 type Pusher struct {
 	resolver remotes.Resolver
 }
 
-type PusherOpts struct {
-	AllowInsecure bool
-	UseHTTP       bool
-}
-
-func NewPusherOpts() PusherOpts {
-	return PusherOpts{
-		AllowInsecure: false,
-		UseHTTP:       false,
-	}
-}
-
-func NewPusher(insecure, useHTTP bool) (*Pusher, error) {
+// NewPusher returns a new Pusher instance.
+func NewPusher(insecure bool, useHTTP bool) (*Pusher, error) {
 	client := http.DefaultClient
 	if insecure {
 		client.Transport = &http.Transport{
@@ -50,13 +61,9 @@ func NewPusher(insecure, useHTTP bool) (*Pusher, error) {
 	return &Pusher{resolver: resolver}, nil
 }
 
+// Push pushes the image to the registry
 func (p *Pusher) Push(image *WasmImage) (ocispec.Descriptor, error) {
 	ctx := context.Background()
-
-	pushOpts := []oras.PushOpt{
-		oras.WithConfigMediaType(ConfigMediaType),
-		oras.WithNameValidation(nil),
-	}
 
 	manifest, err := oras.Push(ctx, p.resolver, image.ref, image.store, image.layers, pushOpts...)
 	if err != nil {
