@@ -22,14 +22,14 @@ var (
 // PusherOpts represents options for Pusher
 type PusherOpts struct {
 	AllowInsecure bool
-	UseHTTP bool
+	UseHTTP       bool
 }
 
 // NewPusherOpts returns a default PusherOpts instance
 func NewPusherOpts() PusherOpts {
 	return PusherOpts{
 		AllowInsecure: false,
-		UseHTTP: false,
+		UseHTTP:       false,
 	}
 }
 

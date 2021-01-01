@@ -48,7 +48,7 @@ func NewPuller(insecure bool, useHTTP bool) (*Puller, error) {
 }
 
 // Pull fetches the specified image from the registry
-func (p *Puller) Pull(ctx context.Context, ref string) (*WasmImage, error) {	
+func (p *Puller) Pull(ctx context.Context, ref string) (*WasmImage, error) {
 	store := orascnt.NewMemoryStore()
 
 	_, layers, err := oras.Pull(ctx, p.resolver, ref, store, pullOpts...)
@@ -62,9 +62,9 @@ func (p *Puller) Pull(ctx context.Context, ref string) (*WasmImage, error) {
 	_, image, _ := store.Get(layers[0])
 
 	return &WasmImage{
-		ref: ref,
+		ref:      ref,
 		contents: image,
-		store: store,
-		layers: layers,
+		store:    store,
+		layers:   layers,
 	}, nil
 }
