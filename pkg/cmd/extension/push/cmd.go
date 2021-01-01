@@ -16,6 +16,7 @@ package push
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/spf13/cobra"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/common"
@@ -27,32 +28,32 @@ import (
 
 // cmdOpts represents configuration options of the `push` command.
 type cmdOpts struct {
-	// Toolchain to use to build the *.wasm file.
-	Toolchain common.ToolchainOpts
-	// Extension to use to specify the built *.wasm file.
-	Extension runtime.ExtensionOpts
-	// Pusher to use to specify options for Pusher
-	Pusher wasmimage.PusherOpts
+	// toolchain to use to build the *.wasm file.
+	toolchain common.ToolchainOpts
+	// extension to use to specify the built *.wasm file.
+	extension runtime.ExtensionOpts
+	// pusher to use to specify options for pusher
+	pusher wasmimage.PusherOpts
 }
 
 func newCmdOpts() *cmdOpts {
 	return &cmdOpts{
-		Toolchain: common.ToolchainOpts{
+		toolchain: common.ToolchainOpts{
 			Name: toolchain.Default,
 		},
-		Extension: runtime.ExtensionOpts{},
-		Pusher:    wasmimage.NewPusherOpts(),
+		extension: runtime.ExtensionOpts{},
+		pusher:    wasmimage.NewPusherOpts(),
 	}
 }
 
 func (opts *cmdOpts) GetToolchainName() string {
-	return opts.Toolchain.Name
+	return opts.toolchain.Name
 }
 
 func (opts *cmdOpts) ApplyTo(interface{}) {}
 
 func (opts *cmdOpts) Validate() error {
-	if err := opts.Toolchain.Validate(); err != nil {
+	if err := opts.toolchain.Validate(); err != nil {
 		return err
 	}
 
@@ -84,8 +85,8 @@ Push the built WASM extension to the OCI-compliant registry. This command requir
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			imageRef := args[0]
 			var image *wasmimage.WasmImage
-			if opts.Extension.WasmFile != "" {
-				image, err = wasmimage.NewWasmImage(imageRef, opts.Extension.WasmFile)
+			if opts.extension.WasmFile != "" {
+				image, err = wasmimage.NewWasmImage(imageRef, opts.extension.WasmFile)
 				if err != nil {
 					return err
 				}
@@ -103,18 +104,25 @@ Push the built WASM extension to the OCI-compliant registry. This command requir
 					return err
 				}
 			}
-			pusher, err := wasmimage.NewPusher(false, false)
-			_, err = pusher.Push(image)
-			return err
+			pusher, err := wasmimage.NewPusher(opts.pusher.AllowInsecure, opts.pusher.UseHTTP)
+			desc, err := pusher.Push(image)
+			if err != nil {
+				return fmt.Errorf("failed to push the wasm image: %w", err)
+			}
+
+			fmt.Printf("Pushed %s\n", imageRef)
+			fmt.Printf("digest: %s size: %d\n", desc.Digest, desc.Size)
+
+			return nil
 		},
 	}
-	cmd.PersistentFlags().StringVar(&opts.Toolchain.Name, "toolchain", opts.Toolchain.Name,
+	cmd.PersistentFlags().StringVar(&opts.toolchain.Name, "toolchain", opts.toolchain.Name,
 		`Name of the toolchain to use, e.g. "default" toolchain that is backed by a Docker build container`)
-	cmd.PersistentFlags().BoolVar(&opts.Pusher.AllowInsecure, "allow-insecure", opts.Pusher.AllowInsecure, `Allow insecure registry`)
-	cmd.PersistentFlags().BoolVar(&opts.Pusher.UseHTTP, "use-http", opts.Pusher.UseHTTP, `Use HTTP for communication with registry`)
-	cmd.PersistentFlags().StringVar(&opts.Extension.WasmFile, "extension-file", opts.Extension.WasmFile,
+	cmd.PersistentFlags().BoolVar(&opts.pusher.AllowInsecure, "allow-insecure", opts.pusher.AllowInsecure, `Allow insecure registry`)
+	cmd.PersistentFlags().BoolVar(&opts.pusher.UseHTTP, "use-http", opts.pusher.UseHTTP, `Use HTTP for communication with registry`)
+	cmd.PersistentFlags().StringVar(&opts.extension.WasmFile, "extension-file", opts.extension.WasmFile,
 		`Use a pre-built *.wasm file`)
-	cmd.PersistentFlags().StringVar(&opts.Extension.Config.Source, "extension-config-file", opts.Extension.Config.Source,
+	cmd.PersistentFlags().StringVar(&opts.extension.Config.Source, "extension-config-file", opts.extension.Config.Source,
 		`Use a custom extension config`)
 	return cmd
 }
