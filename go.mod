@@ -4,6 +4,8 @@ go 1.13
 
 require (
 	bitbucket.org/creachadair/shell v0.0.6
+	github.com/Azure/go-autorest/autorest v0.11.15 // indirect
+	github.com/Azure/go-autorest/autorest/adal v0.9.10 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef
 	github.com/containerd/containerd v1.4.1
 	github.com/deislabs/oras v0.8.1
@@ -30,6 +32,7 @@ require (
 	github.com/tetratelabs/getenvoy-package v0.4.0
 	github.com/tetratelabs/log v0.0.0-20190710134534-eb04d1e84fb8
 	github.com/tetratelabs/multierror v1.1.0
+	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad // indirect
 	gotest.tools v2.2.0+incompatible
 	istio.io/api v0.0.0-20201120175956-c2df7c41fd8e
 	istio.io/istio v0.0.0-20201123050314-d5abe3ea1b99
