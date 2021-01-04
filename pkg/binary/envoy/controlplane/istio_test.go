@@ -71,10 +71,10 @@ func Test_IstioGateway(t *testing.T) {
 
 func setupMockPilot() (*bootstrap.Server, util.TearDownFunc) {
 	return util.EnsureTestServer(func(args *bootstrap.PilotArgs) {
-		bootstrap.PilotCertDir = "testdata"
-		args.Config.FileDir = "testdata"
+		args.ServerOptions.TLSOptions.CaCertFile = filepath.Join("testdata", "root-cert.pem")
+		args.ServerOptions.TLSOptions.CertFile = filepath.Join("testdata", "cert-chain.pem")
+		args.ServerOptions.TLSOptions.KeyFile = filepath.Join("testdata", "key.pem")
+		args.RegistryOptions.FileDir = "testdata"
 		args.Plugins = bootstrap.DefaultPlugins
-		args.Mesh.MixerAddress = ""
-		args.Service.Registries = []string{}
 	})
 }
