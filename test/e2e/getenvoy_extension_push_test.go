@@ -44,7 +44,7 @@ var _ = Describe("getenvoy extension push", func() {
 		return testCases
 	}
 
-	//TODO(musaprg): write teardown process for local registries if it's needed
+	// TODO(musaprg): write teardown process for local registries if it's needed
 
 	const extensionName = "my.extension"
 

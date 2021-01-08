@@ -102,7 +102,7 @@ var _ = Describe("getenvoy extension push", func() {
 		return dir
 	}
 
-	//TODO(musaprg): write teardown process for local registries if it's needed
+	// TODO(musaprg): write teardown process for local registries if it's needed
 
 	//nolint:lll
 	Context("inside a workspace directory", func() {
@@ -117,12 +117,12 @@ var _ = Describe("getenvoy extension push", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				By("verifying command output")
-				//TODO(musaprg): implement me
+				// TODO(musaprg): implement me
 			})
 		})
 		When("if the image ref is invalid", func() {
 			It("should fail", func() {
-				//TODO(musaprg): implement me
+				// TODO(musaprg): implement me
 			})
 		})
 	})
@@ -139,8 +139,8 @@ var _ = Describe("getenvoy extension push", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				By("verifying command output")
-				Expect(stdout.String()).To(BeEmpty())
-				//TODO(musaprg): implement me
+				Expect(stdout.String()).NotTo(BeEmpty())
+				Expect(stderr.String()).To(BeEmpty())
 			})
 		})
 		When("if no wasm binary specified", func() {
