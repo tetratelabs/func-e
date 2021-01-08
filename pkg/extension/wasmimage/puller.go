@@ -39,14 +39,13 @@ type Puller struct {
 }
 
 // NewPuller returns a new Puller instance.
-func NewPuller(insecure bool, useHTTP bool) (*Puller, error) {
+func NewPuller(insecure, useHTTP bool) (*Puller, error) {
 	client := http.DefaultClient
-	if insecure {
-		client.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-			},
-		}
+
+	client.Transport = &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: insecure,
+		},
 	}
 
 	// TODO(musaprg): separate these instructions into another functions

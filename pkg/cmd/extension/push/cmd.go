@@ -105,6 +105,9 @@ Push the built WASM extension to the OCI-compliant registry. This command requir
 				}
 			}
 			pusher, err := wasmimage.NewPusher(opts.pusher.AllowInsecure, opts.pusher.UseHTTP)
+			if err != nil {
+				return fmt.Errorf("failed to push the wasm image: %w", err)
+			}
 			desc, err := pusher.Push(image)
 			if err != nil {
 				return fmt.Errorf("failed to push the wasm image: %w", err)

@@ -53,14 +53,13 @@ type Pusher struct {
 }
 
 // NewPusher returns a new Pusher instance.
-func NewPusher(insecure bool, useHTTP bool) (*Pusher, error) {
+func NewPusher(insecure, useHTTP bool) (*Pusher, error) {
 	client := http.DefaultClient
-	if insecure {
-		client.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-			},
-		}
+
+	client.Transport = &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: insecure,
+		},
 	}
 
 	// TODO(musaprg): separate these instructions into another functions
