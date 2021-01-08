@@ -17,7 +17,7 @@ version: 2.1
 executors:
   builder:
     docker:
-      - image: circleci/golang:1.13.3
+      - image: circleci/golang:1.15.6
 
 jobs:
   lint:
