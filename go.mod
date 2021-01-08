@@ -36,7 +36,6 @@ require (
 	gotest.tools v2.2.0+incompatible
 	istio.io/api v0.0.0-20201120175956-c2df7c41fd8e
 	istio.io/istio v0.0.0-20201123050314-d5abe3ea1b99
-	istio.io/pkg v0.0.0-20201106170352-6775f12cf100
 	rsc.io/letsencrypt v0.0.3 // indirect
 )
 
