@@ -93,10 +93,11 @@ func writeBootstrap(r binary.Runner) error {
 		return fmt.Errorf("unable to write Istio bootstrap template: %v", err)
 	}
 	if _, err := bootstrap.New(bootstrap.Config{
-		Node:     istioNode(e.Config),
-		Proxy:    &cfg,
-		LocalEnv: os.Environ(),
-		NodeIPs:  e.Config.IPAddresses,
+		Node:           istioNode(e.Config),
+		DNSRefreshRate: "60s",
+		Proxy:          &cfg,
+		LocalEnv:       os.Environ(),
+		NodeIPs:        e.Config.IPAddresses,
 	}).CreateFileForEpoch(1); err != nil {
 		return fmt.Errorf("unable to write Istio bootstrap: %v", err)
 	}
