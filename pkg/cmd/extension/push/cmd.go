@@ -82,7 +82,7 @@ Push the built WASM extension to the OCI-compliant registry. This command requir
 
 			return nil
 		},
-		RunE: func(cmd *cobra.Command, args []string) (err error) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			imageRef := args[0]
 			imagePath := opts.extension.WasmFile
 			if imagePath == "" {
