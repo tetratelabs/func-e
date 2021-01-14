@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -37,28 +36,6 @@ const (
 )
 
 var _ = Describe("getenvoy extension push", func() {
-
-	var dockerDir string
-
-	BeforeEach(func() {
-		dir, err := filepath.Abs("../../../extension/workspace/toolchain/builtin/testdata/toolchain")
-		Expect(err).ToNot(HaveOccurred())
-		dockerDir = dir
-	})
-
-	var pathBackup string
-
-	BeforeEach(func() {
-		pathBackup = os.Getenv("PATH")
-
-		// override PATH to overshadow `docker` executable during the test
-		path := strings.Join([]string{dockerDir, pathBackup}, string(filepath.ListSeparator))
-		os.Setenv("PATH", path)
-	})
-
-	AfterEach(func() {
-		os.Setenv("PATH", pathBackup)
-	})
 
 	var cwdBackup string
 
@@ -117,12 +94,8 @@ var _ = Describe("getenvoy extension push", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				By("verifying command output")
-				// TODO(musaprg): implement me
-			})
-		})
-		When("if the image ref is invalid", func() {
-			It("should fail", func() {
-				// TODO(musaprg): implement me
+				Expect(stdout.String()).NotTo(BeEmpty())
+				Expect(stderr.String()).To(BeEmpty())
 			})
 		})
 	})
