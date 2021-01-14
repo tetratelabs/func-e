@@ -100,13 +100,13 @@ Push the built WASM extension to the OCI-compliant registry. This command requir
 			if err != nil {
 				return fmt.Errorf("failed to push the wasm image: %w", err)
 			}
-			desc, err := pusher.Push(imagePath, imageRef)
+			manifest, size, err := pusher.Push(imagePath, imageRef)
 			if err != nil {
 				return fmt.Errorf("failed to push the wasm image: %w", err)
 			}
 
-			fmt.Printf("Pushed %s\n", imageRef)
-			fmt.Printf("digest: %s size: %d\n", desc.Digest, desc.Size)
+			cmd.Printf("Pushed %s\n", imageRef)
+			cmd.Printf("digest: %s size: %d\n", manifest.Digest, size)
 
 			return nil
 		},

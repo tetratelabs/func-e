@@ -78,18 +78,20 @@ func NewPusher(insecure, useHTTP bool) (*Pusher, error) {
 }
 
 // Push pushes the image to the registry
-func (p *Pusher) Push(imagePath, imageRef string) (ocispec.Descriptor, error) {
+func (p *Pusher) Push(imagePath, imageRef string) (manifest ocispec.Descriptor, size int64, err error) {
 	ctx := context.Background()
 
-	image, err := newWasmImage(imageRef, imagePath)
+	var image *wasmImage
+
+	image, err = newWasmImage(imageRef, imagePath)
 	if err != nil {
-		return ocispec.Descriptor{}, fmt.Errorf("push failed: %w", err)
+		return ocispec.Descriptor{}, 0, fmt.Errorf("push failed: %w", err)
 	}
 
-	manifest, err := oras.Push(ctx, p.resolver, image.ref, image.store, image.layers, pushOpts...)
+	manifest, err = oras.Push(ctx, p.resolver, image.ref, image.store, image.layers, pushOpts...)
 	if err != nil {
-		return manifest, fmt.Errorf("push failed: %w", err)
+		return manifest, 0, fmt.Errorf("push failed: %w", err)
 	}
 
-	return manifest, nil
+	return manifest, image.layers[0].Size, nil
 }
