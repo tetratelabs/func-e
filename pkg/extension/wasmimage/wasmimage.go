@@ -36,15 +36,13 @@ type wasmImage struct {
 
 // newWasmImage returns a new wasmImage instance
 func newWasmImage(ref, path string) (*wasmImage, error) {
-	filePath := filepath.Clean(path)
-
-	if err := validateFile(filePath); err != nil {
+	if err := validateFile(path); err != nil {
 		return nil, fmt.Errorf("invalid wasm binary: %w", err)
 	}
 
-	name := filepath.Base(filePath)
+	name := filepath.Base(path)
 
-	contents, err := ioutil.ReadFile(filePath)
+	contents, err := ioutil.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read %#v: %w", path, err)
 	}
