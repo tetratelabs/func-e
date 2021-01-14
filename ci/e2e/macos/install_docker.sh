@@ -20,7 +20,7 @@ set -e
 E2E_MACOS_DOCKER_CASK_VERSION="${E2E_MACOS_DOCKER_CASK_VERSION:-8ce4e89d10716666743b28c5a46cd54af59a9cc2}"
 
 # install Docker for Mac
-brew install --cask https://raw.githubusercontent.com/Homebrew/homebrew-cask/${E2E_MACOS_DOCKER_CASK_VERSION}/Casks/docker.rb
+brew cask install https://raw.githubusercontent.com/Homebrew/homebrew-cask/${E2E_MACOS_DOCKER_CASK_VERSION}/Casks/docker.rb
 
 # follow instructions from:
 #   https://github.com/microsoft/azure-pipelines-image-generation/issues/738#issuecomment-496211237
