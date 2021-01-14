@@ -18,6 +18,7 @@ executors:
   builder:
     docker:
       - image: circleci/golang:1.15.6
+      - image: registry:2
 
 jobs:
   lint:
@@ -42,7 +43,6 @@ jobs:
       - checkout
       - run: make init
       - run: ./ci/install-envoy
-      - setup_remote_docker
       - run: ./ci/test
       - run:
           name: "Measure test coverage (for now, on a subset of tests)"

@@ -2,4 +2,4 @@
 
 BASEDIR=$(dirname "$0")
 
-make test GO_TEST_EXTRA_OPTS="-timeout 60s" -C "${BASEDIR}/.."
+make test.ci GO_TEST_EXTRA_OPTS="-timeout 60s" -C "${BASEDIR}/.."
