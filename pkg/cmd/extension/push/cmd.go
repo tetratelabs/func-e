@@ -84,10 +84,8 @@ Push the built WASM extension to the OCI-compliant registry. This command requir
 		},
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			imageRef := args[0]
-			var imagePath string
-			if opts.extension.WasmFile != "" {
-				imagePath = opts.extension.WasmFile
-			} else {
+			imagePath := opts.extension.WasmFile
+			if imagePath == "" {
 				workspace, err := workspaces.GetCurrentWorkspace()
 				if err != nil {
 					return err
