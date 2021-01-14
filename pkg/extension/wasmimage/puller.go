@@ -18,9 +18,10 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"io/ioutil"
 	"net/http"
+
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 
 	"github.com/containerd/containerd/remotes"
 	"github.com/deislabs/oras/pkg/auth/docker"
