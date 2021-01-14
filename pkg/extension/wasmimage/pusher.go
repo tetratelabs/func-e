@@ -78,7 +78,7 @@ func NewPusher(insecure, useHTTP bool) (*Pusher, error) {
 }
 
 // Push pushes the image to the registry
-func (p *Pusher) Push(imagePath string, imageRef string) (ocispec.Descriptor, error) {
+func (p *Pusher) Push(imagePath, imageRef string) (ocispec.Descriptor, error) {
 	ctx := context.Background()
 
 	image, err := newWasmImage(imageRef, imagePath)
