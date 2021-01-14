@@ -86,15 +86,15 @@ Push the built WASM extension to the OCI-compliant registry. This command requir
 			imageRef := args[0]
 			imagePath := opts.extension.WasmFile
 			if imagePath == "" {
-				workspace, err := workspaces.GetCurrentWorkspace()
+				ws, err := workspaces.GetCurrentWorkspace()
 				if err != nil {
 					return err
 				}
-				toolchain, err := common.LoadToolchain(workspace, opts)
+				tc, err := common.LoadToolchain(ws, opts)
 				if err != nil {
 					return err
 				}
-				imagePath = toolchain.GetBuildOutputWasmFile()
+				imagePath = tc.GetBuildOutputWasmFile()
 			}
 			pusher, err := wasmimage.NewPusher(opts.pusher.AllowInsecure, opts.pusher.UseHTTP)
 			if err != nil {
