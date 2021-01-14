@@ -84,12 +84,9 @@ Push the built WASM extension to the OCI-compliant registry. This command requir
 		},
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			imageRef := args[0]
-			var image *wasmimage.WasmImage
+			var imagePath string
 			if opts.extension.WasmFile != "" {
-				image, err = wasmimage.NewWasmImage(imageRef, opts.extension.WasmFile)
-				if err != nil {
-					return err
-				}
+				imagePath = opts.extension.WasmFile
 			} else {
 				workspace, err := workspaces.GetCurrentWorkspace()
 				if err != nil {
@@ -99,16 +96,13 @@ Push the built WASM extension to the OCI-compliant registry. This command requir
 				if err != nil {
 					return err
 				}
-				image, err = toolchain.Package(imageRef)
-				if err != nil {
-					return err
-				}
+				imagePath = toolchain.GetBuildOutputWasmFile()
 			}
 			pusher, err := wasmimage.NewPusher(opts.pusher.AllowInsecure, opts.pusher.UseHTTP)
 			if err != nil {
 				return fmt.Errorf("failed to push the wasm image: %w", err)
 			}
-			desc, err := pusher.Push(image)
+			desc, err := pusher.Push(imagePath, imageRef)
 			if err != nil {
 				return fmt.Errorf("failed to push the wasm image: %w", err)
 			}

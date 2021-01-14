@@ -24,8 +24,8 @@ import (
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-// WasmImage represents an OCI-compliant wasm image
-type WasmImage struct {
+// wasmImage represents an OCI-compliant wasm image
+type wasmImage struct {
 	ref      string
 	name     string
 	contents []byte
@@ -34,8 +34,8 @@ type WasmImage struct {
 	layers []ocispec.Descriptor
 }
 
-// NewWasmImage returns a new WasmImage instance
-func NewWasmImage(ref string, path string) (*WasmImage, error) {
+// newWasmImage returns a new wasmImage instance
+func newWasmImage(ref string, path string) (*wasmImage, error) {
 	if err := validateFile(path); err != nil {
 		return nil, fmt.Errorf("invalid wasm binary: %w", err)
 	}
@@ -54,7 +54,7 @@ func NewWasmImage(ref string, path string) (*WasmImage, error) {
 		contentLayerDescriptor,
 	}
 
-	return &WasmImage{
+	return &wasmImage{
 		ref:      ref,
 		name:     name,
 		contents: contents,

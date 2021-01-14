@@ -56,10 +56,13 @@ type Pusher struct {
 func NewPusher(insecure, useHTTP bool) (*Pusher, error) {
 	client := http.DefaultClient
 
-	client.Transport = &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: insecure,
-		},
+	if insecure {
+		client.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				// nolint:gosec this option is only enabled when the user specify the insecure flag.
+				InsecureSkipVerify: true,
+			},
+		}
 	}
 
 	// TODO(musaprg): separate these instructions into another functions
@@ -75,8 +78,10 @@ func NewPusher(insecure, useHTTP bool) (*Pusher, error) {
 }
 
 // Push pushes the image to the registry
-func (p *Pusher) Push(image *WasmImage) (ocispec.Descriptor, error) {
+func (p *Pusher) Push(imagePath string, imageRef string) (ocispec.Descriptor, error) {
 	ctx := context.Background()
+
+	image, err := newWasmImage(imageRef, imagePath)
 
 	manifest, err := oras.Push(ctx, p.resolver, image.ref, image.store, image.layers, pushOpts...)
 	if err != nil {

@@ -18,6 +18,8 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/containerd/containerd/remotes"
@@ -61,23 +63,22 @@ func NewPuller(insecure, useHTTP bool) (*Puller, error) {
 }
 
 // Pull fetches the specified image from the registry
-func (p *Puller) Pull(ctx context.Context, ref string) (*WasmImage, error) {
+func (p *Puller) Pull(ctx context.Context, imageRef, imagePath string) (ocispec.Descriptor, error) {
 	store := orascnt.NewMemoryStore()
 
-	_, layers, err := oras.Pull(ctx, p.resolver, ref, store, pullOpts...)
+	_, layers, err := oras.Pull(ctx, p.resolver, imageRef, store, pullOpts...)
 	if err != nil {
-		return nil, fmt.Errorf("pull failed: %w", err)
+		return ocispec.Descriptor{}, fmt.Errorf("pull failed: %w", err)
 	}
 
 	if len(layers) != 1 {
-		return nil, fmt.Errorf("invalid number of image layers")
+		return ocispec.Descriptor{}, fmt.Errorf("invalid number of image layers")
 	}
-	_, image, _ := store.Get(layers[0])
+	manifest, image, _ := store.Get(layers[0])
 
-	return &WasmImage{
-		ref:      ref,
-		contents: image,
-		store:    store,
-		layers:   layers,
-	}, nil
+	if err := ioutil.WriteFile(imagePath, image, 0755); err != nil {
+		return manifest, fmt.Errorf("failed to write image: %w", err)
+	}
+
+	return manifest, nil
 }
