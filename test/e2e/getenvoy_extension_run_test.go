@@ -115,7 +115,7 @@ var _ = Describe("getenvoy extension run", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("running `extension run` command")
-			_, stderr, cancel, errs := GetEnvoy("extension run").
+			_, stderr, cancel, errs := GetEnvoy("extension run --envoy-options '-l trace'").
 				Args(e2e.Env.GetBuiltinContainerOptions()...).
 				Start()
 
@@ -136,6 +136,7 @@ var _ = Describe("getenvoy extension run", func() {
 
 			// fail the test if `getenvoy extension run` exits with an error or unexpectedly
 			go func() {
+				defer GinkgoRecover()
 				select {
 				case e := <-errs:
 					Expect(e).NotTo(HaveOccurred(), "getenvoy command exited unexpectedly")

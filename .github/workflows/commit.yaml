@@ -54,15 +54,6 @@ jobs:
       run: make builders
 
     - name: "Run e2e tests using `getenvoy` and `e2e` binaries built by the upstream job"
-      env:
-        # Allow extension templates to have dependecies on private GitHub repositories.
-        E2E_ALLOW_PRIVATE_DEPENDENCIES: 'yes'
-        # Key of a GitHub "machine user" that has access to all private repositories needed by e2e tests:
-        #   user:           https://github.com/getenvoy-ci
-        #   key fingeprint: MD5:ae:8d:18:6a:1b:44:17:dc:b8:c8:0f:a9:48:44:be:2b
-        #
-        # See https://developer.github.com/v3/guides/managing-deploy-keys/#machine-users
-        E2E_GITHUB_MACHINE_USER_KEY: ${{ secrets.E2E_GITHUB_MACHINE_USER_KEY }}
       run: ./ci/e2e/linux/run_tests.sh
 
   e2e_macos:
@@ -91,13 +82,4 @@ jobs:
       run: make builders
 
     - name: "Run e2e tests using `getenvoy` and `e2e` binaries built by the upstream job"
-      env:
-        # Allow extension templates to have dependecies on private GitHub repositories.
-        E2E_ALLOW_PRIVATE_DEPENDENCIES: 'yes'
-        # Key of a GitHub "machine user" that has access to all private repositories needed by e2e tests:
-        #   user:           https://github.com/getenvoy-ci
-        #   key fingeprint: MD5:ae:8d:18:6a:1b:44:17:dc:b8:c8:0f:a9:48:44:be:2b
-        #
-        # See https://developer.github.com/v3/guides/managing-deploy-keys/#machine-users
-        E2E_GITHUB_MACHINE_USER_KEY: ${{ secrets.E2E_GITHUB_MACHINE_USER_KEY }}
       run: ./ci/e2e/macos/run_tests.sh
