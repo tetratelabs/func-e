@@ -82,6 +82,9 @@ func (p *Pusher) Push(imagePath string, imageRef string) (ocispec.Descriptor, er
 	ctx := context.Background()
 
 	image, err := newWasmImage(imageRef, imagePath)
+	if err != nil {
+		return ocispec.Descriptor{}, fmt.Errorf("push failed: %w", err)
+	}
 
 	manifest, err := oras.Push(ctx, p.resolver, image.ref, image.store, image.layers, pushOpts...)
 	if err != nil {
