@@ -107,7 +107,7 @@ var _ = Describe("getenvoy extension push", func() {
 				dir := chdir("testdata")
 
 				By("running command")
-				c.SetArgs([]string{"extension", "push", "--extension-file", filepath.Join(dir, "workspace", "extension.wasm")})
+				c.SetArgs([]string{"extension", "push", localRegistryWasmImageRef, "--extension-file", filepath.Join(dir, "workspace", "extension.wasm")})
 				err := cmdutil.Execute(c)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -122,7 +122,7 @@ var _ = Describe("getenvoy extension push", func() {
 				dir := chdir("testdata")
 
 				By("running command")
-				c.SetArgs([]string{"extension", "push"})
+				c.SetArgs([]string{"extension", "push", localRegistryWasmImageRef})
 				err := cmdutil.Execute(c)
 				Expect(err).To(HaveOccurred())
 
@@ -130,7 +130,7 @@ var _ = Describe("getenvoy extension push", func() {
 				Expect(stdout.String()).To(BeEmpty())
 				Expect(stderr.String()).To(Equal(fmt.Sprintf(`Error: there is no extension directory at or above: %s
 
-Run 'getenvoy extension build --help' for usage.
+Run 'getenvoy extension push --help' for usage.
 `, dir)))
 			})
 		})
