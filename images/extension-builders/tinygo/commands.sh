@@ -15,8 +15,7 @@
 # limitations under the License.
 
 extension_build()  {
-	# TODO: remove abi_010 tag after upgrading wasm:nightly or Envoy 1.17 release
-	exec tinygo build -o "$1" -tags=abi_010 -scheduler=none -target wasi main.go
+	exec tinygo build -o "$1" -scheduler=none -target wasi main.go
 }
 
 extension_test()  {
