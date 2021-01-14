@@ -47,6 +47,7 @@ func NewPuller(insecure, useHTTP bool) (*Puller, error) {
 
 	client.Transport = &http.Transport{
 		TLSClientConfig: &tls.Config{
+			// nolint:gosec this option is only enabled when the user specify the insecure flag.
 			InsecureSkipVerify: insecure,
 		},
 	}
