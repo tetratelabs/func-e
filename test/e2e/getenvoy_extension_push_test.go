@@ -87,6 +87,7 @@ var _ = Describe("getenvoy extension push", func() {
 
 			By("running `extension push` command")
 			_, _, err = GetEnvoy("extension push").Arg(localRegistryWasmImageRef).Exec()
+			Expect(err).NotTo(HaveOccurred())
 			Expect(stdout).NotTo(BeEmpty())
 			Expect(stderr).To(BeEmpty())
 		},
