@@ -17,12 +17,10 @@
 set -e
 
 # Docker for Mac 2.0.0.3-ce-mac81,31259 (the last version of 'Docker for Mac' that can be installed in CI environment)
-E2E_MACOS_DOCKER_CASK_VERSION="${E2E_MACOS_DOCKER_CASK_VERSION:-2.0.0.3-ce-mac81}"
+E2E_MACOS_DOCKER_CASK_VERSION="${E2E_MACOS_DOCKER_CASK_VERSION:-8ce4e89d10716666743b28c5a46cd54af59a9cc2}"
 
 # install Docker for Mac
-brew tap-new tetratelabs/taps
-brew extract docker --version ${E2E_MACOS_DOCKER_CASK_VERSION} tetratelabs/taps
-brew install tetratelabs/taps/docker@${E2E_MACOS_DOCKER_CASK_VERSION}
+brew install https://raw.githubusercontent.com/Homebrew/homebrew-cask/${E2E_MACOS_DOCKER_CASK_VERSION}/Casks/docker.rb
 
 # follow instructions from:
 #   https://github.com/microsoft/azure-pipelines-image-generation/issues/738#issuecomment-496211237
