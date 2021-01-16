@@ -16,11 +16,16 @@
 
 set -e
 
+TMP_DIR=$(mktemp -d)
+
 # Docker for Mac 2.0.0.3-ce-mac81,31259 (the last version of 'Docker for Mac' that can be installed in CI environment)
 E2E_MACOS_DOCKER_CASK_VERSION="${E2E_MACOS_DOCKER_CASK_VERSION:-8ce4e89d10716666743b28c5a46cd54af59a9cc2}"
 
 # install Docker for Mac
-brew cask install https://raw.githubusercontent.com/Homebrew/homebrew-cask/${E2E_MACOS_DOCKER_CASK_VERSION}/Casks/docker.rb
+pushd "${TMP_DIR}"
+curl -L https://raw.githubusercontent.com/Homebrew/homebrew-cask/${E2E_MACOS_DOCKER_CASK_VERSION}/Casks/docker.rb > docker.rb
+brew install --cask docker.rb
+popd
 
 # follow instructions from:
 #   https://github.com/microsoft/azure-pipelines-image-generation/issues/738#issuecomment-496211237
