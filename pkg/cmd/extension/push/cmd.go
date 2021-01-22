@@ -84,17 +84,6 @@ Push the built WASM extension to the OCI-compliant registry. This command requir
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			imageRef := args[0]
-			ref, err := reference.ParseNormalizedNamed(imageRef)
-			if err != nil {
-				return fmt.Errorf("invalid image-reference: %w", err)
-			}
-			if reference.IsNameOnly(ref) {
-				ref = reference.TagNameOnly(ref)
-				if tagged, ok := ref.(reference.Tagged); ok {
-					cmd.Printf("Using default tag: %s\n", tagged.Tag())
-				}
-			}
 			imagePath := opts.extension.WasmFile
 			if imagePath == "" {
 				ws, err := workspaces.GetCurrentWorkspace()
@@ -106,6 +95,17 @@ Push the built WASM extension to the OCI-compliant registry. This command requir
 					return err
 				}
 				imagePath = tc.GetBuildOutputWasmFile()
+			}
+			imageRef := args[0]
+			ref, err := reference.ParseNormalizedNamed(imageRef)
+			if err != nil {
+				return fmt.Errorf("invalid image-reference: %w", err)
+			}
+			if reference.IsNameOnly(ref) {
+				ref = reference.TagNameOnly(ref)
+				if tagged, ok := ref.(reference.Tagged); ok {
+					cmd.Printf("Using default tag: %s\n", tagged.Tag())
+				}
 			}
 			pusher, err := wasmimage.NewPusher(opts.pusher.AllowInsecure, opts.pusher.UseHTTP)
 			if err != nil {
