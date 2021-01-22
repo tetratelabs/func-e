@@ -17,7 +17,7 @@ package push
 import (
 	"errors"
 	"fmt"
-
+	"github.com/docker/distribution/reference"
 	"github.com/spf13/cobra"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/common"
 	"github.com/tetratelabs/getenvoy/pkg/extension/wasmimage"
@@ -84,6 +84,16 @@ Push the built WASM extension to the OCI-compliant registry. This command requir
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			imageRef := args[0]
+			ref, err := reference.ParseNormalizedNamed(imageRef)
+			if err != nil {
+				return fmt.Errorf("invalid image-reference: %w", err)
+			}
+			if reference.IsNameOnly(ref) {
+				ref = reference.TagNameOnly(ref)
+				if tagged, ok := ref.(reference.Tagged); ok {
+					cmd.Printf("Using default tag: %s\n", tagged.Tag())
+				}
+			}
 			imagePath := opts.extension.WasmFile
 			if imagePath == "" {
 				ws, err := workspaces.GetCurrentWorkspace()
@@ -105,7 +115,7 @@ Push the built WASM extension to the OCI-compliant registry. This command requir
 				return fmt.Errorf("failed to push the wasm image: %w", err)
 			}
 
-			cmd.Printf("Pushed %s\n", imageRef)
+			cmd.Printf("Pushed %s\n", ref)
 			cmd.Printf("digest: %s size: %d\n", manifest.Digest, size)
 
 			return nil
