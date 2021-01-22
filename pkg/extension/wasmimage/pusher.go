@@ -23,6 +23,7 @@ import (
 	"github.com/containerd/containerd/remotes"
 	"github.com/deislabs/oras/pkg/auth/docker"
 	"github.com/deislabs/oras/pkg/oras"
+	orasctx "github.com/deislabs/oras/pkg/context"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
@@ -79,7 +80,7 @@ func NewPusher(insecure, useHTTP bool) (*Pusher, error) {
 
 // Push pushes the image to the registry
 func (p *Pusher) Push(imagePath, imageRef string) (manifest ocispec.Descriptor, size int64, err error) {
-	ctx := context.Background()
+	ctx := orasctx.Background()
 
 	var image *wasmImage
 

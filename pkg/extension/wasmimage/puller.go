@@ -18,6 +18,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	orasctx "github.com/deislabs/oras/pkg/context"
 	"io/ioutil"
 	"net/http"
 
@@ -65,7 +66,8 @@ func NewPuller(insecure, useHTTP bool) (*Puller, error) {
 }
 
 // Pull fetches the specified image from the registry
-func (p *Puller) Pull(ctx context.Context, imageRef, imagePath string) (ocispec.Descriptor, error) {
+func (p *Puller) Pull(imageRef, imagePath string) (ocispec.Descriptor, error) {
+	ctx := orasctx.Background()
 	store := orascnt.NewMemoryStore()
 
 	_, layers, err := oras.Pull(ctx, p.resolver, imageRef, store, pullOpts...)
