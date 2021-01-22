@@ -22,8 +22,8 @@ import (
 
 	"github.com/containerd/containerd/remotes"
 	"github.com/deislabs/oras/pkg/auth/docker"
-	"github.com/deislabs/oras/pkg/oras"
 	orasctx "github.com/deislabs/oras/pkg/context"
+	"github.com/deislabs/oras/pkg/oras"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 )
 

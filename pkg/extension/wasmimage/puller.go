@@ -18,9 +18,10 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	orasctx "github.com/deislabs/oras/pkg/context"
 	"io/ioutil"
 	"net/http"
+
+	orasctx "github.com/deislabs/oras/pkg/context"
 
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 
