@@ -23,5 +23,5 @@ import (
 
 func TestPush(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Run Suite")
+	RunSpecs(t, "Push Suite")
 }
