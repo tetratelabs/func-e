@@ -101,11 +101,9 @@ Push the built WASM extension to the OCI-compliant registry. This command requir
 			if err != nil {
 				return fmt.Errorf("invalid image-reference: %w", err)
 			}
-			if reference.IsNameOnly(ref) {
-				ref = reference.TagNameOnly(ref)
-				if tagged, ok := ref.(reference.Tagged); ok {
-					cmd.Printf("Using default tag: %s\n", tagged.Tag())
-				}
+			ref = reference.TagNameOnly(ref)
+			if tagged, ok := ref.(reference.Tagged); ok {
+				cmd.Printf("Using default tag: %s\n", tagged.Tag())
 			}
 			pusher, err := wasmimage.NewPusher(opts.pusher.AllowInsecure, opts.pusher.UseHTTP)
 			if err != nil {
