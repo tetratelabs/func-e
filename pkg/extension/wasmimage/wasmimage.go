@@ -36,7 +36,7 @@ type wasmImage struct {
 
 // newWasmImage returns a new wasmImage instance
 func newWasmImage(ref, path string) (*wasmImage, error) {
-	if err := validateFile(path); err != nil {
+	if err := validatePath(path); err != nil {
 		return nil, fmt.Errorf("invalid wasm binary: %w", err)
 	}
 
@@ -63,7 +63,7 @@ func newWasmImage(ref, path string) (*wasmImage, error) {
 	}, nil
 }
 
-func validateFile(path string) error {
+func validatePath(path string) error {
 	if _, err := os.Stat(path); err != nil {
 		return fmt.Errorf("%#v does not exist: %w", path, err)
 	}

@@ -82,9 +82,7 @@ func NewPusher(insecure, useHTTP bool) (*Pusher, error) {
 func (p *Pusher) Push(imagePath, imageRef string) (manifest ocispec.Descriptor, size int64, err error) {
 	ctx := orasctx.Background()
 
-	var image *wasmImage
-
-	image, err = newWasmImage(imageRef, imagePath)
+	image, err := newWasmImage(imageRef, imagePath)
 	if err != nil {
 		return ocispec.Descriptor{}, 0, fmt.Errorf("push failed: %w", err)
 	}
