@@ -29,7 +29,7 @@ import (
 
 var (
 	pushOpts = []oras.PushOpt{
-		oras.WithConfigMediaType(ConfigMediaType),
+		oras.WithConfigMediaType(configMediaType),
 		oras.WithNameValidation(nil),
 	}
 )

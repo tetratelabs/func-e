@@ -48,7 +48,7 @@ func newWasmImage(ref, path string) (*wasmImage, error) {
 	}
 
 	store := orascnt.NewMemoryStore()
-	contentLayerDescriptor := store.Add(name, ContentLayerMediaType, contents)
+	contentLayerDescriptor := store.Add(name, contentLayerMediaType, contents)
 
 	layers := []ocispec.Descriptor{
 		contentLayerDescriptor,

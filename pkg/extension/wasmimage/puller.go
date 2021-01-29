@@ -31,7 +31,7 @@ import (
 
 var (
 	pullOpts = []oras.PullOpt{
-		oras.WithAllowedMediaType(ContentLayerMediaType),
+		oras.WithAllowedMediaType(contentLayerMediaType),
 		oras.WithPullEmptyNameAllowed(),
 	}
 )
