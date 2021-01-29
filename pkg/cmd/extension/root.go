@@ -17,8 +17,6 @@ package extension
 import (
 	"os"
 
-	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/push"
-
 	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
 
@@ -27,9 +25,9 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/example"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/globals"
 	scaffold "github.com/tetratelabs/getenvoy/pkg/cmd/extension/init"
+	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/push"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/run"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/test"
-
 	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 	uiutil "github.com/tetratelabs/getenvoy/pkg/util/ui"
 )
