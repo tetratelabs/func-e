@@ -25,9 +25,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/tetratelabs/getenvoy/pkg/cmd"
-
 	testcontext "github.com/tetratelabs/getenvoy/pkg/test/cmd/extension"
-
 	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 

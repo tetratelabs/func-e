@@ -23,19 +23,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/tetratelabs/getenvoy/pkg/common"
-	utilenvoy "github.com/tetratelabs/getenvoy/test/e2e/util/envoy"
-
-	"github.com/tetratelabs/getenvoy/pkg/extension/wasmimage"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	e2e "github.com/tetratelabs/getenvoy/test/e2e/util"
-
+	"github.com/tetratelabs/getenvoy/pkg/common"
+	"github.com/tetratelabs/getenvoy/pkg/extension/wasmimage"
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
 	toolchains "github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain"
+	e2e "github.com/tetratelabs/getenvoy/test/e2e/util"
+	utilenvoy "github.com/tetratelabs/getenvoy/test/e2e/util/envoy"
 )
 
 const (

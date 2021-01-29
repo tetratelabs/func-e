@@ -21,14 +21,12 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	orasctx "github.com/deislabs/oras/pkg/context"
-
-	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
-
 	"github.com/containerd/containerd/remotes"
 	"github.com/deislabs/oras/pkg/auth/docker"
 	orascnt "github.com/deislabs/oras/pkg/content"
+	orasctx "github.com/deislabs/oras/pkg/context"
 	"github.com/deislabs/oras/pkg/oras"
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 var (

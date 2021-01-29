@@ -20,6 +20,7 @@ import (
 
 	"github.com/docker/distribution/reference"
 	"github.com/spf13/cobra"
+
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/common"
 	"github.com/tetratelabs/getenvoy/pkg/extension/wasmimage"
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
