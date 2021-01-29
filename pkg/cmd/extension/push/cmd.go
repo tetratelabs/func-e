@@ -34,8 +34,9 @@ type cmdOpts struct {
 	toolchain common.ToolchainOpts
 	// extension to use to specify the built *.wasm file.
 	extension runtime.ExtensionOpts
-	// pusher to use to specify options for pusher
-	pusher wasmimage.PusherOpts
+
+	allowInsecure bool
+	useHTTP       bool
 }
 
 func newCmdOpts() *cmdOpts {
@@ -43,8 +44,9 @@ func newCmdOpts() *cmdOpts {
 		toolchain: common.ToolchainOpts{
 			Name: toolchain.Default,
 		},
-		extension: runtime.ExtensionOpts{},
-		pusher:    wasmimage.NewPusherOpts(),
+		extension:     runtime.ExtensionOpts{},
+		allowInsecure: false,
+		useHTTP:       false,
 	}
 }
 
@@ -106,7 +108,7 @@ Push the built WASM extension to the OCI-compliant registry. This command requir
 			if tagged, ok := ref.(reference.Tagged); ok {
 				cmd.Printf("Using default tag: %s\n", tagged.Tag())
 			}
-			pusher, err := wasmimage.NewPusher(opts.pusher.AllowInsecure, opts.pusher.UseHTTP)
+			pusher, err := wasmimage.NewPusher(opts.allowInsecure, opts.useHTTP)
 			if err != nil {
 				return fmt.Errorf("failed to push the wasm image: %w", err)
 			}
@@ -123,8 +125,8 @@ Push the built WASM extension to the OCI-compliant registry. This command requir
 	}
 	cmd.PersistentFlags().StringVar(&opts.toolchain.Name, "toolchain", opts.toolchain.Name,
 		`Name of the toolchain to use, e.g. "default" toolchain that is backed by a Docker build container`)
-	cmd.PersistentFlags().BoolVar(&opts.pusher.AllowInsecure, "allow-insecure", opts.pusher.AllowInsecure, `Allow insecure registry`)
-	cmd.PersistentFlags().BoolVar(&opts.pusher.UseHTTP, "use-http", opts.pusher.UseHTTP, `Use HTTP for communication with registry`)
+	cmd.PersistentFlags().BoolVar(&opts.allowInsecure, "allow-insecure", opts.allowInsecure, `Allow insecure registry`)
+	cmd.PersistentFlags().BoolVar(&opts.useHTTP, "use-http", opts.useHTTP, `Use HTTP for communication with registry`)
 	cmd.PersistentFlags().StringVar(&opts.extension.WasmFile, "extension-file", opts.extension.WasmFile,
 		`Use a pre-built *.wasm file`)
 	return cmd

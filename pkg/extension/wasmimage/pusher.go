@@ -27,20 +27,6 @@ import (
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-// PusherOpts represents options for Pusher
-type PusherOpts struct {
-	AllowInsecure bool
-	UseHTTP       bool
-}
-
-// NewPusherOpts returns a default PusherOpts instance
-func NewPusherOpts() PusherOpts {
-	return PusherOpts{
-		AllowInsecure: false,
-		UseHTTP:       false,
-	}
-}
-
 // Pusher knows how to push wasm images to OCI-compliant registries.
 type Pusher struct {
 	resolver remotes.Resolver
