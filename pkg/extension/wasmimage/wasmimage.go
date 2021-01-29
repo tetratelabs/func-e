@@ -15,6 +15,7 @@
 package wasmimage
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -22,6 +23,10 @@ import (
 
 	orascnt "github.com/deislabs/oras/pkg/content"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
+)
+
+var (
+	magic = []byte{0x00, 0x61, 0x73, 0x6d}
 )
 
 // wasmImage represents an OCI-compliant wasm image
@@ -36,8 +41,12 @@ type wasmImage struct {
 
 // newWasmImage returns a new wasmImage instance
 func newWasmImage(ref, path string) (*wasmImage, error) {
-	if err := validatePath(path); err != nil {
-		return nil, fmt.Errorf("invalid wasm binary: %w", err)
+	if _, err := os.Stat(path); err != nil {
+		return nil, fmt.Errorf("%#v does not exist: %w", path, err)
+	}
+
+	if !isWasmBinary(path) {
+		return nil, fmt.Errorf("invalid wasm binary")
 	}
 
 	name := filepath.Base(path)
@@ -63,14 +72,17 @@ func newWasmImage(ref, path string) (*wasmImage, error) {
 	}, nil
 }
 
-func validatePath(path string) error {
-	if _, err := os.Stat(path); err != nil {
-		return fmt.Errorf("%#v does not exist: %w", path, err)
+// isWasmBinary checks whether the file is valid wasm binary
+func isWasmBinary(path string) bool {
+	f, err := os.Open(path)
+	defer f.Close()
+	if err != nil {
+		return false
 	}
-
-	if ext := filepath.Ext(path); ext != ".wasm" {
-		return fmt.Errorf("%#v is not a wasm binary", path)
+	buffer := make([]byte, len(magic))
+	n, err := f.Read(buffer)
+	if n != len(magic) || err != nil {
+		return false
 	}
-
-	return nil
+	return bytes.Equal(buffer, magic)
 }
