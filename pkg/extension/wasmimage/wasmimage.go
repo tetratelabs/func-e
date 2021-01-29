@@ -74,8 +74,8 @@ func newWasmImage(ref, path string) (*wasmImage, error) {
 
 // isWasmBinary checks whether the file is valid wasm binary
 func isWasmBinary(path string) bool {
-	f, err := os.Open(path)
-	defer f.Close()
+	f, err := os.Open(filepath.Clean(path))
+	defer f.Close() //nolint
 	if err != nil {
 		return false
 	}
