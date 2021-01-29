@@ -57,11 +57,7 @@ func (opts *cmdOpts) GetToolchainName() string {
 func (opts *cmdOpts) ApplyTo(interface{}) {}
 
 func (opts *cmdOpts) Validate() error {
-	if err := opts.toolchain.Validate(); err != nil {
-		return err
-	}
-
-	return nil
+	return opts.toolchain.Validate()
 }
 
 // NewCmd returns a command that pushes the built extension.
