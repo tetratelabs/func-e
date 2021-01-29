@@ -48,11 +48,11 @@ func NewPusher(insecure, useHTTP bool) (*Pusher, error) {
 	// TODO(musaprg): separate these instructions into another functions
 	auth, err := docker.NewClient()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create Pusher: %w", err)
 	}
 	resolver, err := auth.Resolver(context.Background(), client, useHTTP)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create Pusher: %w", err)
 	}
 	return &Pusher{resolver: resolver}, nil
 }
