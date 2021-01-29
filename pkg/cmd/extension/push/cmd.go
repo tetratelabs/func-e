@@ -127,7 +127,5 @@ Push the built WASM extension to the OCI-compliant registry. This command requir
 	cmd.PersistentFlags().BoolVar(&opts.pusher.UseHTTP, "use-http", opts.pusher.UseHTTP, `Use HTTP for communication with registry`)
 	cmd.PersistentFlags().StringVar(&opts.extension.WasmFile, "extension-file", opts.extension.WasmFile,
 		`Use a pre-built *.wasm file`)
-	cmd.PersistentFlags().StringVar(&opts.extension.Config.Source, "extension-config-file", opts.extension.Config.Source,
-		`Use a custom extension config`)
 	return cmd
 }
