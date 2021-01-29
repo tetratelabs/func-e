@@ -121,7 +121,7 @@ Push the built WASM extension to the OCI-compliant registry. This command requir
 	}
 	cmd.PersistentFlags().StringVar(&opts.toolchain.Name, "toolchain", opts.toolchain.Name,
 		`Name of the toolchain to use, e.g. "default" toolchain that is backed by a Docker build container`)
-	cmd.PersistentFlags().BoolVar(&opts.allowInsecure, "allow-insecure", opts.allowInsecure, `Allow insecure registry`)
+	cmd.PersistentFlags().BoolVar(&opts.allowInsecure, "allow-insecure", opts.allowInsecure, `allow insecure TLS communication with registry`)
 	cmd.PersistentFlags().BoolVar(&opts.useHTTP, "use-http", opts.useHTTP, `Use HTTP for communication with registry`)
 	cmd.PersistentFlags().StringVar(&opts.extension.WasmFile, "extension-file", opts.extension.WasmFile,
 		`Use a pre-built *.wasm file`)
