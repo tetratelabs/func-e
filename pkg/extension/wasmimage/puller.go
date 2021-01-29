@@ -29,13 +29,6 @@ import (
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-var (
-	pullOpts = []oras.PullOpt{
-		oras.WithAllowedMediaType(contentLayerMediaType),
-		oras.WithPullEmptyNameAllowed(),
-	}
-)
-
 // Puller knows how to fetch wasm images from OCI-compliant registries.
 type Puller struct {
 	resolver remotes.Resolver
@@ -68,6 +61,11 @@ func NewPuller(insecure, useHTTP bool) (*Puller, error) {
 func (p *Puller) Pull(imageRef, imagePath string) (ocispec.Descriptor, error) {
 	ctx := orasctx.Background()
 	store := orascnt.NewMemoryStore()
+
+	pullOpts := []oras.PullOpt{
+		oras.WithAllowedMediaType(contentLayerMediaType),
+		oras.WithPullEmptyNameAllowed(),
+	}
 
 	_, layers, err := oras.Pull(ctx, p.resolver, imageRef, store, pullOpts...)
 	if err != nil {

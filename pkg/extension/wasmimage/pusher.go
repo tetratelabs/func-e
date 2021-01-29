@@ -27,13 +27,6 @@ import (
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-var (
-	pushOpts = []oras.PushOpt{
-		oras.WithConfigMediaType(configMediaType),
-		oras.WithNameValidation(nil),
-	}
-)
-
 // PusherOpts represents options for Pusher
 type PusherOpts struct {
 	AllowInsecure bool
@@ -85,6 +78,11 @@ func (p *Pusher) Push(imagePath, imageRef string) (manifest ocispec.Descriptor, 
 	image, err := newWasmImage(imageRef, imagePath)
 	if err != nil {
 		return ocispec.Descriptor{}, 0, fmt.Errorf("push failed: %w", err)
+	}
+
+	pushOpts := []oras.PushOpt{
+		oras.WithConfigMediaType(configMediaType),
+		oras.WithNameValidation(nil),
 	}
 
 	manifest, err = oras.Push(ctx, p.resolver, image.ref, image.store, image.layers, pushOpts...)
