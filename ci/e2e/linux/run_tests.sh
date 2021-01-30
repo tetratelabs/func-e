@@ -32,6 +32,9 @@ export E2E_BUILTIN_TOOLCHAIN_CONTAINER_OPTIONS="${E2E_BUILTIN_TOOLCHAIN_CONTAINE
 # restore executable bit that get lost by Github Actions during artifact upload/download
 chmod a+x ${WORKSPACE_DIR}/build/bin/linux/amd64/*
 
+# start other containers required in e2e tests
+docker-compose up -d
+
 # run e2e tests on a `getenvoy` binary built by the upstream job
 export E2E_GETENVOY_BINARY="${WORKSPACE_DIR}/build/bin/linux/amd64/getenvoy"
 

@@ -95,10 +95,16 @@ release.dryrun:
 
 .PHONY: test
 test: generate
+	docker-compose up -d
+	go test $(GO_TEST_OPTS) $(GO_TEST_EXTRA_OPTS) $(TEST_PKG_LIST)
+
+.PHONY: test.ci
+test.ci: generate
 	go test $(GO_TEST_OPTS) $(GO_TEST_EXTRA_OPTS) $(TEST_PKG_LIST)
 
 .PHONY: e2e
 e2e: $(call GETENVOY_OUT_PATH,$(GOOS),$(GOARCH)) $(call E2E_OUT_PATH,$(GOOS),$(GOARCH))
+	docker-compose up -d
 	E2E_GETENVOY_BINARY=$(PWD)/$(call GETENVOY_OUT_PATH,$(GOOS),$(GOARCH)) $(call E2E_OUT_PATH,$(GOOS),$(GOARCH)) $(GO_TEST_OPTS) $(GO_TEST_EXTRA_OPTS) $(E2E_OPTS) $(E2E_EXTRA_OPTS)
 
 .PHONY: bin
