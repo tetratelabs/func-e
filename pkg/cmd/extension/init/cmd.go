@@ -54,7 +54,7 @@ var (
 	// 1. according to command-line options
 	// 2. otherwise, according to the example-specific configuration (.getenvoy/extension/examples/<example>/example.yaml)
 	// 3. otherwise, according to extension descriptor (.getenvoy/extension/extension.yaml)
-	supportedEnvoyVersion = "wasm:1.15"
+	supportedEnvoyVersion = "standard:1.17.0"
 )
 
 // NewCmd returns a command that generates the initial set of files
