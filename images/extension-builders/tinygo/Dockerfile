@@ -16,7 +16,7 @@
 # Builder image for Envoy Wasm extensions written in Go.
 #
 
-FROM tinygo/tinygo:0.16.0
+FROM tinygo/tinygo:0.17.0
 
 ENV GOCACHE=/source/.gocache
 ENV GOMODCACHE=/source/.gomodcache
