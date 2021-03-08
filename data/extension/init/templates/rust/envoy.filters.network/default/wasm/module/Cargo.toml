@@ -14,4 +14,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 envoy-sample-network-filter = { path = "../.." }
-envoy = { package = "envoy-sdk", version = "^0.1" }
+envoy = { package = "envoy-sdk", version = "^0.2.0-alpha.1" }

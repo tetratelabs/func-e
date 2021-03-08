@@ -183,7 +183,7 @@ Run 'getenvoy extension init --help' for usage.
 				Expect(descriptor.Name).To(Equal(name))
 				Expect(descriptor.Category.String()).To(Equal(given.category))
 				Expect(descriptor.Language.String()).To(Equal(given.language))
-				Expect(descriptor.Runtime.Envoy.Version).To(Equal("wasm:1.15"))
+				Expect(descriptor.Runtime.Envoy.Version).To(Equal("standard:1.17.0"))
 
 				By("verifying command output")
 				Expect(stdout.String()).To(BeEmpty())

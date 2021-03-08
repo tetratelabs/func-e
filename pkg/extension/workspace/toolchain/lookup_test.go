@@ -90,7 +90,7 @@ language: rust
 # Runtime the extension is being developed against.
 runtime:
   envoy:
-    version: wasm:1.15
+    version: standard:1.17.0
 `))
 		Expect(err).ToNot(HaveOccurred())
 
