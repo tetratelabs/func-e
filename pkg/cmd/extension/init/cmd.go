@@ -56,10 +56,6 @@ var (
 	// 2. otherwise, according to the example-specific configuration (.getenvoy/extension/examples/<example>/example.yaml)
 	// 3. otherwise, according to extension descriptor (.getenvoy/extension/extension.yaml)
 	defaultSupportedEnvoyVersion = "standard:1.17.0"
-	supportedEnvoyVersions       = map[string]string{
-		// https://github.com/tetratelabs/envoy-wasm-rust-sdk/issues/65
-		extension.LanguageRust.String(): "wasm:1.15",
-	}
 )
 
 // NewCmd returns a command that generates the initial set of files
@@ -103,12 +99,7 @@ Scaffold a new Envoy extension in a language of your choice.`,
 				return err
 			}
 			descriptor.Name = params.Name.Value
-
-			if ev, ok := supportedEnvoyVersions[params.Language.Value]; ok {
-				descriptor.Runtime.Envoy.Version = ev
-			} else {
-				descriptor.Runtime.Envoy.Version = defaultSupportedEnvoyVersion
-			}
+			descriptor.Runtime.Envoy.Version = defaultSupportedEnvoyVersion
 
 			outputDir, err = scaffold.NormalizeOutputPath(params.OutputDir.Value)
 			if err != nil {
