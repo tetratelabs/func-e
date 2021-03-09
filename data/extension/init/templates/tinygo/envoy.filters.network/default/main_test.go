@@ -8,7 +8,7 @@ import (
 	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/types"
 )
 
-func TestNetwork_OnNewConnection(t *testing.T) {
+func TestNetworkFilter_OnNewConnection(t *testing.T) {
 	configuration := `message: this is new connection!`
 
 	opt := proxytest.NewEmulatorOption().
@@ -30,7 +30,7 @@ func TestNetwork_OnNewConnection(t *testing.T) {
 	require.Contains(t, logs, configuration)
 }
 
-func TestNetwork_counter(t *testing.T) {
+func TestNetworkFilter_counter(t *testing.T) {
 	opt := proxytest.NewEmulatorOption().
 		WithNewRootContext(newRootContext)
 	host := proxytest.NewHostEmulator(opt)

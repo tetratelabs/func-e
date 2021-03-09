@@ -10,7 +10,7 @@ func main() {
 }
 
 type accessLogger struct {
-	// you must embed the default context
+	// You must embed the default context.
 	proxywasm.DefaultRootContext
 	logMessage string
 }
@@ -19,7 +19,7 @@ func newAccessLogger(contextID uint32) proxywasm.RootContext {
 	return &accessLogger{}
 }
 
-// override
+// Override proxywasm.DefaultRootContext
 func (l *accessLogger) OnPluginStart(configurationSize int) bool {
 	// Read plugin configuration provided in Envoy configuration
 	data, err := proxywasm.GetPluginConfiguration(configurationSize)
@@ -31,7 +31,7 @@ func (l *accessLogger) OnPluginStart(configurationSize int) bool {
 	return true
 }
 
-// override
+// Override proxywasm.DefaultRootContext
 func (l *accessLogger) OnLog() {
 	hdr, err := proxywasm.GetHttpRequestHeader(":path")
 	if err != nil {

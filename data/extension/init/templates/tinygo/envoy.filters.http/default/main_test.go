@@ -9,7 +9,7 @@ import (
 	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/types"
 )
 
-func TestHttpHeaders_OnHttpRequestHeaders(t *testing.T) {
+func TestHttpFilter_OnHttpRequestHeaders(t *testing.T) {
 	configuration := `HELLO=WORLD
 ENVOY=ISTIO`
 	opt := proxytest.NewEmulatorOption().

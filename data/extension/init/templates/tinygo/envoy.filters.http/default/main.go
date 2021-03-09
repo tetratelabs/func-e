@@ -29,6 +29,7 @@ func newRootContext(rootContextID uint32) proxywasm.RootContext {
 	return &rootContext{contextID: rootContextID, additionalHeaders: map[string]string{"additional": "header"}}
 }
 
+// Override proxywasm.DefaultRootContext
 func (ctx *rootContext) OnPluginStart(configurationSize int) bool {
 	counter = proxywasm.DefineCounterMetric(requestCounterName)
 
@@ -48,16 +49,18 @@ func (ctx *rootContext) OnPluginStart(configurationSize int) bool {
 	return true
 }
 
-type httpContext struct {
-	// you must embed the default context
-	proxywasm.DefaultHttpContext
-	additionalHeaders map[string]string
-}
-
+// Override proxywasm.DefaultRootContext
 func (ctx *rootContext) NewHttpContext(uint32) proxywasm.HttpContext {
 	return &httpContext{additionalHeaders: ctx.additionalHeaders}
 }
 
+type httpContext struct {
+	// You must embed the default context.
+	proxywasm.DefaultHttpContext
+	additionalHeaders map[string]string
+}
+
+// Override proxywasm.DefaultHttpContext
 func (ctx *httpContext) OnHttpRequestHeaders(numHeaders int, endOfStream bool) types.Action {
 	hs, err := proxywasm.GetHttpRequestHeaders()
 	if err != nil {
@@ -73,6 +76,7 @@ func (ctx *httpContext) OnHttpRequestHeaders(numHeaders int, endOfStream bool) t
 	return types.ActionContinue
 }
 
+// Override proxywasm.DefaultHttpContext
 func (ctx *httpContext) OnHttpResponseHeaders(numHeaders int, endOfStream bool) types.Action {
 	for key, value := range ctx.additionalHeaders {
 		if err := proxywasm.SetHttpResponseHeader(key, value); err != nil {
@@ -84,6 +88,7 @@ func (ctx *httpContext) OnHttpResponseHeaders(numHeaders int, endOfStream bool) 
 	return types.ActionContinue
 }
 
+// Override proxywasm.DefaultHttpContext
 func (ctx *httpContext) OnHttpStreamDone() {
 	counter.Increment(1)
 }

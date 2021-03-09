@@ -15,7 +15,7 @@ func main() {
 }
 
 type rootContext struct {
-	// we must embed the default context
+	// You must embed the default context.
 	proxywasm.DefaultRootContext
 	config string
 }
@@ -24,6 +24,7 @@ func newRootContext(rootContextID uint32) proxywasm.RootContext {
 	return &rootContext{}
 }
 
+// Override proxywasm.DefaultRootContext
 func (ctx *rootContext) OnPluginStart(configurationSize int) bool {
 	counter = proxywasm.DefineCounterMetric(connectionCounterName)
 
@@ -36,25 +37,24 @@ func (ctx *rootContext) OnPluginStart(configurationSize int) bool {
 	return true
 }
 
+// Override proxywasm.DefaultRootContext
 func (ctx *rootContext) NewStreamContext(contextID uint32) proxywasm.StreamContext {
 	return &streamContext{newConnectionMessage: ctx.config}
 }
 
 type streamContext struct {
-	// we must embed the default context
+	// You must embed the default context.
 	proxywasm.DefaultStreamContext
 	newConnectionMessage string
 }
 
-func newStreamContext(rootContextID, contextID uint32) proxywasm.StreamContext {
-	return &streamContext{}
-}
-
+// Override proxywasm.DefaultStreamContext
 func (ctx *streamContext) OnNewConnection() types.Action {
 	proxywasm.LogInfo(ctx.newConnectionMessage)
 	return types.ActionContinue
 }
 
+// Override proxywasm.DefaultStreamContext
 func (ctx *streamContext) OnStreamDone() {
 	counter.Increment(1)
 	proxywasm.LogInfof("connection complete!")

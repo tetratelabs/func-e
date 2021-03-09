@@ -9,7 +9,7 @@ import (
 	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/types"
 )
 
-func TestHelloWorld_OnLog(t *testing.T) {
+func TestAccessLogger_OnLog(t *testing.T) {
 	opt := proxytest.NewEmulatorOption().
 		WithNewRootContext(newAccessLogger)
 	host := proxytest.NewHostEmulator(opt)
