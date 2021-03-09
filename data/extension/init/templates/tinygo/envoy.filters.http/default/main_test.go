@@ -12,25 +12,27 @@ import (
 func TestHttpHeaders_OnHttpRequestHeaders(t *testing.T) {
 	configuration := `HELLO=WORLD
 ENVOY=ISTIO`
-
 	opt := proxytest.NewEmulatorOption().
 		WithNewRootContext(newRootContext).
 		WithPluginConfiguration([]byte(configuration))
 	host := proxytest.NewHostEmulator(opt)
-	defer host.Done() // release the host emulation lock so that other test cases can insert their own host emulation
+	// Release the host emulation lock so that other test cases can insert their own host emulation.
+	defer host.Done()
 
-	host.StartPlugin() // call OnPluginStart -> the metric is initialized
+	// Call OnPluginStart -> the metric is initialized.
+	host.StartPlugin()
 
-	contextID := host.InitializeHttpContext() // create http stream
+	// Create http context.
+	contextID := host.InitializeHttpContext()
 
+	// Call OnHttpHeaders with the given headers
 	hs := types.Headers{
 		{"key1", "value1"},
 		{"key2", "value2"},
 	}
+	host.CallOnRequestHeaders(contextID, hs, false) // call OnHttpRequestHeaders
 
-	host.CallOnRequestHeaders(contextID, hs, false)   // call OnHttpRequestHeaders
-	host.CallOnResponseHeaders(contextID, nil, false) // call OnHttpRequestHeaders
-
+	// Check Envoy logs.
 	logs := host.GetLogs(types.LogLevelInfo)
 	require.Greater(t, len(logs), 1)
 	require.Equal(t, "additional header: ENVOY=ISTIO", logs[len(logs)-1])

@@ -9,29 +9,42 @@ import (
 )
 
 func TestNetwork_OnNewConnection(t *testing.T) {
+	configuration := `message: this is new connection!`
+
 	opt := proxytest.NewEmulatorOption().
-		WithNewRootContext(newRootContext).
-		WithNewStreamContext(newStreamContext)
+		WithPluginConfiguration([]byte(configuration)).
+		WithNewRootContext(newRootContext)
+
 	host := proxytest.NewHostEmulator(opt)
-	defer host.Done() // release the host emulation lock so that other test cases can insert their own host emulation
+	// Release the host emulation lock so that other test cases can insert their own host emulation.
+	defer host.Done()
 
-	host.NetworkFilterInitConnection() // OnNewConnection is called
+	// Initialize the plugin and read the config.
+	host.StartPlugin()
 
-	logs := host.GetLogs(types.LogLevelInfo) // retrieve logs emitted to Envoy
-	require.Equal(t, logs[0], "new connection!")
+	// OnNewConnection is called.
+	host.InitializeConnection()
+
+	// retrieve logs emitted to Envoy.
+	logs := host.GetLogs(types.LogLevelInfo)
+	require.Equal(t, logs[0], configuration)
 }
 
 func TestNetwork_counter(t *testing.T) {
 	opt := proxytest.NewEmulatorOption().
-		WithNewRootContext(newRootContext).
-		WithNewStreamContext(newStreamContext)
+		WithNewRootContext(newRootContext)
 	host := proxytest.NewHostEmulator(opt)
-	defer host.Done() // release the host emulation lock so that other test cases can insert their own host emulation
+	// Release the host emulation lock so that other test cases can insert their own host emulation.
+	defer host.Done()
 
-	host.StartVM() // init metric
+	// Initialize the plugin and metric.
+	host.StartPlugin()
 
-	contextID := host.NetworkFilterInitConnection()
-	host.NetworkFilterCompleteConnection(contextID) // call OnDone on contextID -> increment the connection counter
+	// Establish the connection.
+	contextID := host.InitializeConnection()
+
+	// Call OnDone on contextID -> increment the connection counter.
+	host.CompleteConnection(contextID)
 
 	logs := host.GetLogs(types.LogLevelInfo)
 	require.Greater(t, len(logs), 0)

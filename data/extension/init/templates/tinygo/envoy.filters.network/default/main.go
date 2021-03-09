@@ -12,40 +12,50 @@ var (
 
 func main() {
 	proxywasm.SetNewRootContext(newRootContext)
-	proxywasm.SetNewStreamContext(newStreamContext)
 }
 
 type rootContext struct {
 	// we must embed the default context
 	proxywasm.DefaultRootContext
-	contextID uint32
+	config string
 }
 
 func newRootContext(rootContextID uint32) proxywasm.RootContext {
-	return &rootContext{contextID: rootContextID}
+	return &rootContext{}
 }
 
-func (ctx *rootContext) OnVMStart(vmConfigurationSize int) bool {
+func (ctx *rootContext) OnPluginStart(configurationSize int) bool {
 	counter = proxywasm.DefineCounterMetric(connectionCounterName)
+
+	data, err := proxywasm.GetPluginConfiguration(configurationSize)
+	if err != nil && err != types.ErrorStatusNotFound {
+		proxywasm.LogCriticalf("failed to load config: %v", err)
+		return false
+	}
+	ctx.config = string(data)
 	return true
+}
+
+func (ctx *rootContext) NewStreamContext(contextID uint32) proxywasm.StreamContext {
+	return &streamContext{newConnectionMessage: ctx.config}
 }
 
 type streamContext struct {
 	// we must embed the default context
 	proxywasm.DefaultStreamContext
-	rootContextID, contextID uint32
+	newConnectionMessage string
 }
 
 func newStreamContext(rootContextID, contextID uint32) proxywasm.StreamContext {
-	return &streamContext{contextID: contextID, rootContextID: rootContextID}
+	return &streamContext{}
 }
 
 func (ctx *streamContext) OnNewConnection() types.Action {
-	proxywasm.LogInfo("new connection!")
+	proxywasm.LogInfo(ctx.newConnectionMessage)
 	return types.ActionContinue
 }
 
 func (ctx *streamContext) OnStreamDone() {
 	counter.Increment(1)
-	proxywasm.LogInfo("connection complete!")
+	proxywasm.LogInfof("connection complete!")
 }

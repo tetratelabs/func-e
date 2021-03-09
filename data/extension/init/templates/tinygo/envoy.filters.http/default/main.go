@@ -39,7 +39,7 @@ func (ctx *rootContext) OnPluginStart(configurationSize int) bool {
 		return false
 	}
 
-	// each line in the configuration is in `KEY=VALUE` format
+	// Each line in the configuration is in the "KEY=VALUE" format
 	scanner := bufio.NewScanner(bytes.NewReader(data))
 	for scanner.Scan() {
 		tokens := strings.Split(scanner.Text(), "=")
