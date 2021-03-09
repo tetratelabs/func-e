@@ -23,8 +23,5 @@ func TestHelloWorld_OnLog(t *testing.T) {
 
 	// Check the Envoy logs.
 	logs := host.GetLogs(types.LogLevelInfo)
-	require.Greater(t, len(logs), 0)
-	msg := logs[len(logs)-1]
-
-	require.Contains(t, msg, "/this/is/path")
+	require.Contains(t, logs, "OnLog: :path = /this/is/path")
 }

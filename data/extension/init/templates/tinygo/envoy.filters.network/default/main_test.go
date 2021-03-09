@@ -25,9 +25,9 @@ func TestNetwork_OnNewConnection(t *testing.T) {
 	// OnNewConnection is called.
 	host.InitializeConnection()
 
-	// retrieve logs emitted to Envoy.
+	// Retrieve logs emitted to Envoy.
 	logs := host.GetLogs(types.LogLevelInfo)
-	require.Equal(t, logs[0], configuration)
+	require.Contains(t, logs, configuration)
 }
 
 func TestNetwork_counter(t *testing.T) {
@@ -46,10 +46,12 @@ func TestNetwork_counter(t *testing.T) {
 	// Call OnDone on contextID -> increment the connection counter.
 	host.CompleteConnection(contextID)
 
+	// Check Envoy logs.
 	logs := host.GetLogs(types.LogLevelInfo)
 	require.Greater(t, len(logs), 0)
+	require.Contains(t, logs, "connection complete!")
 
-	require.Equal(t, "connection complete!", logs[len(logs)-1])
+	// Check counter.
 	actual := counter.Get()
 	require.Equal(t, uint64(1), actual)
 }

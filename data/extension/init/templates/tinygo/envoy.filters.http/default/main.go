@@ -79,7 +79,7 @@ func (ctx *httpContext) OnHttpResponseHeaders(numHeaders int, endOfStream bool) 
 			proxywasm.LogCriticalf("failed to add header: %v", err)
 			return types.ActionPause
 		}
-		proxywasm.LogInfof("header set: %s %s", key, value)
+		proxywasm.LogInfof("header set: %s=%s", key, value)
 	}
 	return types.ActionContinue
 }

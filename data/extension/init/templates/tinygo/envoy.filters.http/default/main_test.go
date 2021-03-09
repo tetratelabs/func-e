@@ -25,19 +25,22 @@ ENVOY=ISTIO`
 	// Create http context.
 	contextID := host.InitializeHttpContext()
 
-	// Call OnHttpHeaders with the given headers
+	// Call OnHttpRequestHeaders with the given headers.
 	hs := types.Headers{
 		{"key1", "value1"},
 		{"key2", "value2"},
 	}
-	host.CallOnRequestHeaders(contextID, hs, false) // call OnHttpRequestHeaders
+	host.CallOnRequestHeaders(contextID, hs, false)
+
+	// Call OnHttpResponseHeaders.
+	host.CallOnResponseHeaders(contextID, nil, false)
 
 	// Check Envoy logs.
 	logs := host.GetLogs(types.LogLevelInfo)
-	require.Greater(t, len(logs), 1)
-	require.Equal(t, "additional header: ENVOY=ISTIO", logs[len(logs)-1])
-	require.Equal(t, "additional header: HELLO=WORLD", logs[len(logs)-2])
-	require.Equal(t, "key2: value2", logs[len(logs)-3])
-	require.Equal(t, "key1: value1", logs[len(logs)-4])
-	require.Equal(t, "observing request headers", logs[len(logs)-5])
+	require.Contains(t, logs, "header set: ENVOY=ISTIO")
+	require.Contains(t, logs, "header set: HELLO=WORLD")
+	require.Contains(t, logs, "header set: additional=header")
+	require.Contains(t, logs, "key2: value2")
+	require.Contains(t, logs, "key1: value1")
+	require.Contains(t, logs, "observing request headers")
 }
