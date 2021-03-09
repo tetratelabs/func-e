@@ -23,7 +23,6 @@ extension_test()  {
 }
 
 extension_clean()  {
-	rm /source/extension.wasm || true
 	go clean -modcache
 	rm -rf "${GOCACHE}" "${XDG_CACHE_HOME}" || true
 }
