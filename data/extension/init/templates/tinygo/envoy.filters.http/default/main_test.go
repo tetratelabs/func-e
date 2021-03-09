@@ -9,6 +9,8 @@ import (
 	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/types"
 )
 
+type headers = [][2]string
+
 func TestHttpHeaders_OnHttpRequestHeaders(t *testing.T) {
 	opt := proxytest.NewEmulatorOption().
 		WithNewRootContext(newRootContext).
@@ -20,7 +22,7 @@ func TestHttpHeaders_OnHttpRequestHeaders(t *testing.T) {
 
 	contextID := host.HttpFilterInitContext() // create http stream
 
-	hs := [][2]string{
+	hs := headers{
 		{"key1", "value1"},
 		{"key2", "value2"},
 	}
