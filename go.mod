@@ -32,7 +32,7 @@ require (
 	github.com/shirou/gopsutil v0.0.0-20190731134726-d80c43f9c984
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749
 	github.com/spf13/cobra v0.0.5
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/testify v1.6.1
 	github.com/tetratelabs/getenvoy-package v0.0.0-20190730071641-da31aed4333e
 	github.com/tetratelabs/log v0.0.0-20190710134534-eb04d1e84fb8
 	github.com/tetratelabs/multierror v1.1.0

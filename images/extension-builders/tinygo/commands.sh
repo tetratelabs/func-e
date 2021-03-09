@@ -15,7 +15,7 @@
 # limitations under the License.
 
 extension_build()  {
-	exec tinygo build -o "$1" -scheduler=none -target wasi main.go
+	tinygo build -o "$1" -scheduler=none -target wasi main.go
 }
 
 extension_test()  {

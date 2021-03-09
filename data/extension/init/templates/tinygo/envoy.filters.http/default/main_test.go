@@ -3,7 +3,6 @@ package main
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/proxy-wasm-go-sdk/proxytest"
@@ -31,7 +30,7 @@ func TestHttpHeaders_OnHttpRequestHeaders(t *testing.T) {
 	logs := host.GetLogs(types.LogLevelInfo)
 	require.Greater(t, len(logs), 2)
 
-	assert.Equal(t, "key2: value2", logs[len(logs)-1])
-	assert.Equal(t, "key1: value1", logs[len(logs)-2])
-	assert.Equal(t, "observing request headers", logs[len(logs)-3])
+	require.Equal(t, "key2: value2", logs[len(logs)-1])
+	require.Equal(t, "key1: value1", logs[len(logs)-2])
+	require.Equal(t, "observing request headers", logs[len(logs)-3])
 }
