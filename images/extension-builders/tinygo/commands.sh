@@ -19,7 +19,7 @@ extension_build()  {
 }
 
 extension_test()  {
-	exec go test -tags=proxytest -v ./...
+	go test -tags=proxytest -v ./...
 }
 
 extension_clean()  {
