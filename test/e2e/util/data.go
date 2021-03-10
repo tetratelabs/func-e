@@ -37,6 +37,9 @@ func GetCategoryLanguageCombinations() []CategoryLanguageTuple {
 	tuples := make([]CategoryLanguageTuple, 0)
 	for _, category := range extension.Categories {
 		for _, language := range extension.Languages {
+			if language != "tinygo" {
+				continue
+			}
 			tuples = append(tuples, CategoryLanguageTuple{category, language})
 		}
 	}
