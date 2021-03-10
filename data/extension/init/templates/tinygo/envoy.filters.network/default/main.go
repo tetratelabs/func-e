@@ -15,7 +15,8 @@ func main() {
 }
 
 type rootContext struct {
-	// You must embed the default context.
+	// You'd better embed the default root context
+	// so that you don't need to reimplement all the methods by yourself.
 	proxywasm.DefaultRootContext
 	config string
 }
@@ -25,16 +26,16 @@ func newRootContext(rootContextID uint32) proxywasm.RootContext {
 }
 
 // Override proxywasm.DefaultRootContext
-func (ctx *rootContext) OnPluginStart(configurationSize int) bool {
+func (ctx *rootContext) OnPluginStart(configurationSize int) types.OnPluginStartStatus {
 	counter = proxywasm.DefineCounterMetric(connectionCounterName)
 
 	data, err := proxywasm.GetPluginConfiguration(configurationSize)
 	if err != nil && err != types.ErrorStatusNotFound {
 		proxywasm.LogCriticalf("failed to load config: %v", err)
-		return false
+		return types.OnPluginStartStatusFailed
 	}
 	ctx.config = string(data)
-	return true
+	return types.OnPluginStartStatusOK
 }
 
 // Override proxywasm.DefaultRootContext
@@ -43,7 +44,8 @@ func (ctx *rootContext) NewStreamContext(contextID uint32) proxywasm.StreamConte
 }
 
 type streamContext struct {
-	// You must embed the default context.
+	// You'd better embed the default stream context
+	// so that you don't need to reimplement all the methods by yourself.
 	proxywasm.DefaultStreamContext
 	newConnectionMessage string
 }

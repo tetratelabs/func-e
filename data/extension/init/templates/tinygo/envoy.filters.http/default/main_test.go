@@ -15,6 +15,7 @@ ENVOY=ISTIO`
 	opt := proxytest.NewEmulatorOption().
 		WithNewRootContext(newRootContext).
 		WithPluginConfiguration([]byte(configuration))
+
 	host := proxytest.NewHostEmulator(opt)
 	// Release the host emulation lock so that other test cases can insert their own host emulation.
 	defer host.Done()

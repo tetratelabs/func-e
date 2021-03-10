@@ -10,7 +10,8 @@ func main() {
 }
 
 type accessLogger struct {
-	// You must embed the default context.
+	// You'd better embed the default root context
+	// so that you don't need to reimplement all the methods by yourself.
 	proxywasm.DefaultRootContext
 	logMessage string
 }
@@ -20,15 +21,15 @@ func newAccessLogger(contextID uint32) proxywasm.RootContext {
 }
 
 // Override proxywasm.DefaultRootContext
-func (l *accessLogger) OnPluginStart(configurationSize int) bool {
-	// Read plugin configuration provided in Envoy configuration
+func (l *accessLogger) OnPluginStart(configurationSize int) types.OnPluginStartStatus {
+	// Read plugin configuration provided in Envoy configuration.
 	data, err := proxywasm.GetPluginConfiguration(configurationSize)
 	if err != nil && err != types.ErrorStatusNotFound {
 		proxywasm.LogCriticalf("failed to load config: %v", err)
-		return false
+		return types.OnPluginStartStatusFailed
 	}
 	l.logMessage = string(data)
-	return true
+	return types.OnPluginStartStatusOK
 }
 
 // Override proxywasm.DefaultRootContext

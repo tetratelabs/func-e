@@ -19,7 +19,8 @@ func main() {
 }
 
 type rootContext struct {
-	// we must embed the default context
+	// You'd better embed the default root context
+	// so that you don't need to reimplement all the methods by yourself.
 	proxywasm.DefaultRootContext
 	contextID         uint32
 	additionalHeaders map[string]string
@@ -30,23 +31,24 @@ func newRootContext(rootContextID uint32) proxywasm.RootContext {
 }
 
 // Override proxywasm.DefaultRootContext
-func (ctx *rootContext) OnPluginStart(configurationSize int) bool {
+func (ctx *rootContext) OnPluginStart(configurationSize int) types.OnPluginStartStatus {
+	// Initialize the counter.
 	counter = proxywasm.DefineCounterMetric(requestCounterName)
 
-	// Read plugin configuration provided in Envoy configuration
+	// Read plugin configuration provided in Envoy configuration.
 	data, err := proxywasm.GetPluginConfiguration(configurationSize)
 	if err != nil && err != types.ErrorStatusNotFound {
 		proxywasm.LogCriticalf("failed to load config: %v", err)
-		return false
+		return types.OnPluginStartStatusFailed
 	}
 
-	// Each line in the configuration is in the "KEY=VALUE" format
+	// Each line in the configuration is in the "KEY=VALUE" format.
 	scanner := bufio.NewScanner(bytes.NewReader(data))
 	for scanner.Scan() {
 		tokens := strings.Split(scanner.Text(), "=")
 		ctx.additionalHeaders[tokens[0]] = tokens[1]
 	}
-	return true
+	return types.OnPluginStartStatusOK
 }
 
 // Override proxywasm.DefaultRootContext
@@ -55,7 +57,8 @@ func (ctx *rootContext) NewHttpContext(uint32) proxywasm.HttpContext {
 }
 
 type httpContext struct {
-	// You must embed the default context.
+	// You'd better embed the default http context
+	// so that you don't need to reimplement all the methods by yourself.
 	proxywasm.DefaultHttpContext
 	additionalHeaders map[string]string
 }
@@ -78,6 +81,7 @@ func (ctx *httpContext) OnHttpRequestHeaders(numHeaders int, endOfStream bool) t
 
 // Override proxywasm.DefaultHttpContext
 func (ctx *httpContext) OnHttpResponseHeaders(numHeaders int, endOfStream bool) types.Action {
+	// Set additional headers in the response.
 	for key, value := range ctx.additionalHeaders {
 		if err := proxywasm.SetHttpResponseHeader(key, value); err != nil {
 			proxywasm.LogCriticalf("failed to add header: %v", err)

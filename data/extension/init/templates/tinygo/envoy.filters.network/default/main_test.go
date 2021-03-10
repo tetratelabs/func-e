@@ -10,7 +10,6 @@ import (
 
 func TestNetworkFilter_OnNewConnection(t *testing.T) {
 	configuration := `message: this is new connection!`
-
 	opt := proxytest.NewEmulatorOption().
 		WithPluginConfiguration([]byte(configuration)).
 		WithNewRootContext(newRootContext)
@@ -33,6 +32,7 @@ func TestNetworkFilter_OnNewConnection(t *testing.T) {
 func TestNetworkFilter_counter(t *testing.T) {
 	opt := proxytest.NewEmulatorOption().
 		WithNewRootContext(newRootContext)
+
 	host := proxytest.NewHostEmulator(opt)
 	// Release the host emulation lock so that other test cases can insert their own host emulation.
 	defer host.Done()
@@ -52,6 +52,7 @@ func TestNetworkFilter_counter(t *testing.T) {
 	require.Contains(t, logs, "connection complete!")
 
 	// Check counter.
-	actual := counter.Get()
-	require.Equal(t, uint64(1), actual)
+	value, err := host.GetCounterMetric(connectionCounterName)
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), value)
 }
