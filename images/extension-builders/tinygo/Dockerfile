@@ -18,9 +18,9 @@
 
 FROM tinygo/tinygo:0.17.0
 
-ENV GOCACHE=/source/.gocache
-ENV GOMODCACHE=/source/.gomodcache
-ENV XDG_CACHE_HOME=/source/.cache
+ENV GOCACHE=/source/build/.gocache
+ENV GOMODCACHE=/source/build/.gomodcache
+ENV XDG_CACHE_HOME=/source/build/.cache
 
 COPY ./entrypoint.sh /usr/local/getenvoy/extension/builder/entrypoint.sh
 COPY ./tinygo/commands.sh /usr/local/getenvoy/extension/builder/commands.sh

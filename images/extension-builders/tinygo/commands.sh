@@ -15,6 +15,7 @@
 # limitations under the License.
 
 extension_build()  {
+	go mod download
 	tinygo build -o "$1" -scheduler=none -target wasi main.go
 }
 
