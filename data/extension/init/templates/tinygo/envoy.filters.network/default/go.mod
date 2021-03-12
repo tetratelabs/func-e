@@ -1,4 +1,4 @@
-module my.filters.http
+module {{ .Extension.Name }}
 
 go 1.15
 
