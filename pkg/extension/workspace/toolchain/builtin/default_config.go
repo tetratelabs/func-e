@@ -73,7 +73,7 @@ func defaultOutputPathFor(language extensionconfig.Language) string {
 		// keep *.wasm file inside Cargo build dir (to be cleaned up automatically)
 		return "target/getenvoy/extension.wasm"
 	case extensionconfig.LanguageTinyGo:
-		return "extension.wasm"
+		return "build/extension.wasm"
 	default:
 		// must be caught by unit tests
 		panic(errors.Errorf("failed to determine default output path for unsupported programming language %q", language))

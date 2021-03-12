@@ -52,7 +52,7 @@ func TestNetworkFilter_counter(t *testing.T) {
 	require.Contains(t, logs, "connection complete!")
 
 	// Check counter.
-	value, err := host.GetCounterMetric(connectionCounterName)
+	value, err := host.GetCounterMetric("my_network_filter.connection_counter")
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), value)
 }
