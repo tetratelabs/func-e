@@ -3,4 +3,4 @@ container:
   image: getenvoy/extension-tinygo-builder:latest
 build:
   output:
-    wasmFile: extension.wasm
+    wasmFile: build/extension.wasm

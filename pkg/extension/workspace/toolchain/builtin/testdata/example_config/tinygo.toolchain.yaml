@@ -27,7 +27,7 @@ kind: BuiltinToolchain
 ##     options: []
 ##   output:
 ##     # Output *.wasm file.
-##     wasmFile: extension.wasm
+##     wasmFile: build/extension.wasm
 
 #
 # Configuration of the 'test' command.
