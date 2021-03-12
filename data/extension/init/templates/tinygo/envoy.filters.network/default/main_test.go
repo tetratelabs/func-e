@@ -19,7 +19,9 @@ func TestNetworkFilter_OnNewConnection(t *testing.T) {
 	defer host.Done()
 
 	// Initialize the plugin and read the config.
-	host.StartPlugin()
+	status := host.StartPlugin()
+	// Check the status returned by OnPluginStart is OK.
+	require.Equal(t, types.OnPluginStartStatusOK, status)
 
 	// OnNewConnection is called.
 	host.InitializeConnection()
@@ -41,7 +43,9 @@ func TestNetworkFilter_counter(t *testing.T) {
 	host.StartPlugin()
 
 	// Establish the connection.
-	contextID := host.InitializeConnection()
+	contextID, action := host.InitializeConnection()
+	// Check the status returned by OnNewConnection is ActionContinue.
+	require.Equal(t, types.ActionContinue, action)
 
 	// Call OnDone on contextID -> increment the connection counter.
 	host.CompleteConnection(contextID)

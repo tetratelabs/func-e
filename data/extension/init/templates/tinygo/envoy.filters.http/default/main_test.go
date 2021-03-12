@@ -21,7 +21,9 @@ ENVOY=ISTIO`
 	defer host.Done()
 
 	// Call OnPluginStart -> the metric is initialized.
-	host.StartPlugin()
+	status := host.StartPlugin()
+	// Check the status returned by OnNewConnection is ActionContinue.
+	require.Equal(t, types.OnPluginStartStatusOK, status)
 
 	// Create http context.
 	contextID := host.InitializeHttpContext()
@@ -31,10 +33,14 @@ ENVOY=ISTIO`
 		{"key1", "value1"},
 		{"key2", "value2"},
 	}
-	host.CallOnRequestHeaders(contextID, hs, false)
+	action := host.CallOnRequestHeaders(contextID, hs, false)
+	// Check the action returned by OnRequestHeaders is Continue.
+	require.Equal(t, types.ActionContinue, action)
 
 	// Call OnHttpResponseHeaders.
-	host.CallOnResponseHeaders(contextID, nil, false)
+	action = host.CallOnResponseHeaders(contextID, nil, false)
+	// Check the action returned by OnResponseHeaders is Continue.
+	require.Equal(t, types.ActionContinue, action)
 
 	// Check Envoy logs.
 	logs := host.GetLogs(types.LogLevelInfo)
