@@ -22,7 +22,7 @@ ENVOY=ISTIO`
 
 	// Call OnPluginStart -> the metric is initialized.
 	status := host.StartPlugin()
-	// Check the status returned by OnNewConnection is ActionContinue.
+	// Check the status returned by OnPluginStart is OK.
 	require.Equal(t, types.OnPluginStartStatusOK, status)
 
 	// Create http context.

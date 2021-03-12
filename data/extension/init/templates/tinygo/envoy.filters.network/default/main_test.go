@@ -40,7 +40,9 @@ func TestNetworkFilter_counter(t *testing.T) {
 	defer host.Done()
 
 	// Initialize the plugin and metric.
-	host.StartPlugin()
+	status := host.StartPlugin()
+	// Check the status returned by OnPluginStart is OK.
+	require.Equal(t, types.OnPluginStartStatusOK, status)
 
 	// Establish the connection.
 	contextID, action := host.InitializeConnection()
