@@ -40,7 +40,7 @@ func (l *accessLogger) OnLog() {
 		return
 	}
 
-	proxywasm.LogInfof("OnLog: :path = %s", hdr)
+	proxywasm.LogInfof(":path = %s", hdr)
 	proxywasm.LogInfof("message = %s", l.logMessage)
 
 }

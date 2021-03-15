@@ -18,14 +18,14 @@ extension_build()  {
 	tinygo build -o "$1" -scheduler=none -target wasi main.go
 	# This is necessary since the created go caches are with read-only permission,
 	# and without this, the host user cannot delete the build directory with "rm -rf".
-	chmod -R a+rw build/
+	chmod -R u+rw "${GOMODCACHE}"
 }
 
 extension_test()  {
 	go test -tags=proxytest -v ./...
 	# This is necessary since the created go caches are with read-only permission,
 	# and without this, the host user cannot delete the build directory with "rm -rf".
-	chmod -R a+rw build/
+	chmod -R u+rw "${GOMODCACHE}"
 }
 
 extension_clean()  {
