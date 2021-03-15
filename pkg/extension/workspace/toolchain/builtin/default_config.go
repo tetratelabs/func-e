@@ -36,7 +36,8 @@ var (
 		return version.Build.Version
 	}()
 	// defaultRustBuildImage represents a full name of the default Rust builder image in a Docker registry.
-	defaultRustBuildImage = dockerutil.ImageName{Org: defaultBuildImageOrg, Name: "extension-rust-builder", Tag: defaultBuildImageTag}.String()
+	defaultRustBuildImage   = dockerutil.ImageName{Org: defaultBuildImageOrg, Name: "extension-rust-builder", Tag: defaultBuildImageTag}.String()
+	defaultTinyGoBuildImage = dockerutil.ImageName{Org: defaultBuildImageOrg, Name: "extension-tinygo-builder", Tag: defaultBuildImageTag}.String()
 )
 
 // defaultConfigFor returns a default toolchain config for a given extension.
@@ -57,6 +58,8 @@ func defaultBuildImageFor(language extensionconfig.Language) string {
 	switch language {
 	case extensionconfig.LanguageRust:
 		return defaultRustBuildImage
+	case extensionconfig.LanguageTinyGo:
+		return defaultTinyGoBuildImage
 	default:
 		// must be caught by unit tests
 		panic(errors.Errorf("failed to determine default build image for unsupported programming language %q", language))
@@ -69,6 +72,8 @@ func defaultOutputPathFor(language extensionconfig.Language) string {
 	case extensionconfig.LanguageRust:
 		// keep *.wasm file inside Cargo build dir (to be cleaned up automatically)
 		return "target/getenvoy/extension.wasm"
+	case extensionconfig.LanguageTinyGo:
+		return "build/extension.wasm"
 	default:
 		// must be caught by unit tests
 		panic(errors.Errorf("failed to determine default output path for unsupported programming language %q", language))

@@ -22,10 +22,9 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	e2e "github.com/tetratelabs/getenvoy/test/e2e/util"
-
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
 	toolchains "github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain"
+	e2e "github.com/tetratelabs/getenvoy/test/e2e/util"
 )
 
 var _ = Describe("getenvoy extension build", func() {
@@ -46,6 +45,7 @@ var _ = Describe("getenvoy extension build", func() {
 		func(given testCase) {
 			By("choosing the output directory")
 			outputDir := filepath.Join(tempDir, "new")
+			defer CleanUpExtensionDir(outputDir)
 
 			By("running `extension init` command")
 			_, _, err := GetEnvoy("extension init").

@@ -35,6 +35,7 @@ var (
 	// programming languages supported by the `init` command.
 	supportedLanguages = options{
 		{Value: extension.LanguageRust.String(), DisplayText: "Rust"},
+		{Value: extension.LanguageTinyGo.String(), DisplayText: "TinyGo"},
 	}
 	// Envoy release the extension templates have been developed against.
 	//
@@ -54,7 +55,7 @@ var (
 	// 1. according to command-line options
 	// 2. otherwise, according to the example-specific configuration (.getenvoy/extension/examples/<example>/example.yaml)
 	// 3. otherwise, according to extension descriptor (.getenvoy/extension/extension.yaml)
-	supportedEnvoyVersion = "standard:1.17.0"
+	defaultSupportedEnvoyVersion = "standard:1.17.0"
 )
 
 // NewCmd returns a command that generates the initial set of files
@@ -98,7 +99,7 @@ Scaffold a new Envoy extension in a language of your choice.`,
 				return err
 			}
 			descriptor.Name = params.Name.Value
-			descriptor.Runtime.Envoy.Version = supportedEnvoyVersion
+			descriptor.Runtime.Envoy.Version = defaultSupportedEnvoyVersion
 
 			outputDir, err = scaffold.NormalizeOutputPath(params.OutputDir.Value)
 			if err != nil {

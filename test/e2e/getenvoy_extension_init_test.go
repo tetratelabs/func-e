@@ -22,9 +22,8 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	e2e "github.com/tetratelabs/getenvoy/test/e2e/util"
-
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
+	e2e "github.com/tetratelabs/getenvoy/test/e2e/util"
 )
 
 var _ = Describe("getenvoy extension init", func() {
@@ -84,6 +83,7 @@ var _ = Describe("getenvoy extension init", func() {
 		func(given testCase) {
 			By("choosing the output directory")
 			outputDir := tempDir
+			defer CleanUpExtensionDir(outputDir)
 
 			By("changing to the output directory")
 			err := os.Chdir(outputDir)

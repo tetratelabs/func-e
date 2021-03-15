@@ -58,3 +58,10 @@ var _ = AfterEach(func() {
 		Expect(os.RemoveAll(tempDir)).To(Succeed())
 	}
 })
+
+func CleanUpExtensionDir(dir string) {
+	Expect(os.Chdir(dir)).To(Succeed())
+	clean := GetEnvoy("extension clean")
+	_, _, err := clean.Exec()
+	Expect(err).To(Succeed())
+}
