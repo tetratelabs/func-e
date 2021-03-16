@@ -48,12 +48,12 @@ jobs:
         fetch-depth: 0
 
     - name: "Get tag name"
-      id: git_tag
-      run: |
-        echo ::set-output name=NAME::${GITHUB_REF/refs\/tags\//}
+      run: | # Trim "v" prefix in the release tag
+        RELEASE_TAG=${GITHUB_REF#refs/*/}
+        echo "BUILDERS_TAG=${RELEASE_TAG:1}" >> $GITHUB_ENV
 
     - name: "Build extension builder images"
-      run: make builders BUILDERS_TAG=${{ steps.git_tag.outputs.NAME }}
+      run: make builders BUILDERS_TAG=${BUILDERS_TAG}
 
     - name: "Login into DockerHub"
       uses: azure/docker-login@v1
@@ -62,7 +62,7 @@ jobs:
         password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
     - name: "Push extension builder images"
-      run: make builders.push BUILDERS_TAG=${{ steps.git_tag.outputs.NAME }}
+      run: make builders.push BUILDERS_TAG=${BUILDERS_TAG}
 
   e2e_bin:
     name: "Build `e2e` binaries for use in e2e tests"
@@ -97,9 +97,9 @@ jobs:
       uses: actions/checkout@v2
 
     - name: "Get tag name"
-      id: git_tag
       run: |
-        echo ::set-output name=NAME::${GITHUB_REF/refs\/tags\//}
+        RELEASE_TAG=${GITHUB_REF#refs/*/}
+        echo "BUILDERS_TAG=${RELEASE_TAG:1}" >> $GITHUB_ENV
 
     - name: "Download `e2e` binary pre-built by the upstream job"
       uses: actions/download-artifact@v2
@@ -119,8 +119,8 @@ jobs:
         tar -C build/bin/linux/amd64 -xf ${INPUT_FILE} getenvoy
 
     - name: "Pull extension builder images"
-      run: make builders.pull BUILDERS_TAG=${{ steps.git_tag.outputs.NAME }} # pull Docker images in advance to make output of
-                                                                             # `getenvoy extension build | test | run` stable
+      run: make builders.pull BUILDERS_TAG=${BUILDERS_TAG} # pull Docker images in advance to make output of
+                                                           # `getenvoy extension build | test | run` stable
 
     - name: "Run e2e tests using released `getenvoy` binary and published extension builder images"
       run: ./ci/e2e/linux/run_tests.sh
@@ -137,9 +137,9 @@ jobs:
       uses: actions/checkout@v2
 
     - name: "Get tag name"
-      id: git_tag
-      run: |
-        echo ::set-output name=NAME::${GITHUB_REF/refs\/tags\//}
+      run: | # Trim "v" prefix in the release tag
+        RELEASE_TAG=${GITHUB_REF#refs/*/}
+        echo "BUILDERS_TAG=${RELEASE_TAG:1}" >> $GITHUB_ENV
 
     - name: "Download `e2e` binary pre-built by the upstream job"
       uses: actions/download-artifact@v2
@@ -162,8 +162,8 @@ jobs:
       run: ./ci/e2e/macos/install_docker.sh
 
     - name: "Pull extension builder images"
-      run: make builders.pull BUILDERS_TAG=${{ steps.git_tag.outputs.NAME }} # pull Docker images in advance to make output of
-                                                                             # `getenvoy extension build | test | run` stable
+      run: make builders.pull BUILDERS_TAG=${BUILDERS_TAG} # pull Docker images in advance to make output of
+                                                           # `getenvoy extension build | test | run` stable
 
     - name: "Run e2e tests using released `getenvoy` binary and published extension builder images"
       run: ./ci/e2e/macos/run_tests.sh
