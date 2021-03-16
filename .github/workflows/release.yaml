@@ -53,7 +53,7 @@ jobs:
         echo "BUILDERS_TAG=${RELEASE_TAG:1}" >> $GITHUB_ENV
 
     - name: "Build extension builder images"
-      run: make builders BUILDERS_TAG=${BUILDERS_TAG}
+      run: make builders BUILDERS_TAG=${{ env.BUILDERS_TAG }}
 
     - name: "Login into DockerHub"
       uses: azure/docker-login@v1
@@ -62,7 +62,7 @@ jobs:
         password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
     - name: "Push extension builder images"
-      run: make builders.push BUILDERS_TAG=${BUILDERS_TAG}
+      run: make builders.push BUILDERS_TAG=${{ env.BUILDERS_TAG }}
 
   e2e_bin:
     name: "Build `e2e` binaries for use in e2e tests"
@@ -119,8 +119,8 @@ jobs:
         tar -C build/bin/linux/amd64 -xf ${INPUT_FILE} getenvoy
 
     - name: "Pull extension builder images"
-      run: make builders.pull BUILDERS_TAG=${BUILDERS_TAG} # pull Docker images in advance to make output of
-                                                           # `getenvoy extension build | test | run` stable
+      run: make builders.pull BUILDERS_TAG=${{ env.BUILDERS_TAG }} # pull Docker images in advance to make output of
+                                                                   # `getenvoy extension build | test | run` stable
 
     - name: "Run e2e tests using released `getenvoy` binary and published extension builder images"
       run: ./ci/e2e/linux/run_tests.sh
@@ -162,8 +162,8 @@ jobs:
       run: ./ci/e2e/macos/install_docker.sh
 
     - name: "Pull extension builder images"
-      run: make builders.pull BUILDERS_TAG=${BUILDERS_TAG} # pull Docker images in advance to make output of
-                                                           # `getenvoy extension build | test | run` stable
+      run: make builders.pull BUILDERS_TAG=${{ env.BUILDERS_TAG }}  # pull Docker images in advance to make output of
+                                                                    # `getenvoy extension build | test | run` stable
 
     - name: "Run e2e tests using released `getenvoy` binary and published extension builder images"
       run: ./ci/e2e/macos/run_tests.sh
