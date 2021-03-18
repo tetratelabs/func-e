@@ -50,7 +50,7 @@ jobs:
     - name: "Get tag name"
       run: | # Trim "v" prefix in the release tag
         RELEASE_TAG=${GITHUB_REF#refs/*/}
-        if [[ "${RELEASE_TAG}" = v* ]]; then RELEASE_VERSION="${RELEASE_TAG:1}" else RELEASE_VERSION="${RELEASE_TAG}" fi
+        if [[ "${RELEASE_TAG}" = v* ]]; then RELEASE_VERSION="${RELEASE_TAG:1}"; else RELEASE_VERSION="${RELEASE_TAG}"; fi
         echo "RELEASE_VERSION=${RELEASE_VERSION}" >> $GITHUB_ENV
 
     - name: "Build extension builder images"
@@ -100,7 +100,7 @@ jobs:
     - name: "Get tag name"
       run: | # Trim "v" prefix in the release tag
         RELEASE_TAG=${GITHUB_REF#refs/*/}
-        if [[ "${RELEASE_TAG}" = v* ]]; then RELEASE_VERSION="${RELEASE_TAG:1}" else RELEASE_VERSION="${RELEASE_TAG}" fi
+        if [[ "${RELEASE_TAG}" = v* ]]; then RELEASE_VERSION="${RELEASE_TAG:1}"; else RELEASE_VERSION="${RELEASE_TAG}"; fi
         echo "RELEASE_VERSION=${RELEASE_VERSION}" >> $GITHUB_ENV
 
     - name: "Download `e2e` binary pre-built by the upstream job"
@@ -141,7 +141,7 @@ jobs:
     - name: "Get tag name"
       run: | # Trim "v" prefix in the release tag
         RELEASE_TAG=${GITHUB_REF#refs/*/}
-        if [[ "${RELEASE_TAG}" = v* ]]; then RELEASE_VERSION="${RELEASE_TAG:1}" else RELEASE_VERSION="${RELEASE_TAG}" fi
+        if [[ "${RELEASE_TAG}" = v* ]]; then RELEASE_VERSION="${RELEASE_TAG:1}"; else RELEASE_VERSION="${RELEASE_TAG}"; fi
         echo "RELEASE_VERSION=${RELEASE_VERSION}" >> $GITHUB_ENV
 
     - name: "Download `e2e` binary pre-built by the upstream job"
