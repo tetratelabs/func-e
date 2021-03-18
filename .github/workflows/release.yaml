@@ -102,6 +102,7 @@ jobs:
         RELEASE_TAG=${GITHUB_REF#refs/*/}
         if [[ "${RELEASE_TAG}" = v* ]]; then RELEASE_VERSION="${RELEASE_TAG:1}"; else RELEASE_VERSION="${RELEASE_TAG}"; fi
         echo "RELEASE_VERSION=${RELEASE_VERSION}" >> $GITHUB_ENV
+        echo "RELEASE_TAG=${RELEASE_TAG}" >> $GITHUB_ENV
 
     - name: "Download `e2e` binary pre-built by the upstream job"
       uses: actions/download-artifact@v2
@@ -141,6 +142,7 @@ jobs:
         RELEASE_TAG=${GITHUB_REF#refs/*/}
         if [[ "${RELEASE_TAG}" = v* ]]; then RELEASE_VERSION="${RELEASE_TAG:1}"; else RELEASE_VERSION="${RELEASE_TAG}"; fi
         echo "RELEASE_VERSION=${RELEASE_VERSION}" >> $GITHUB_ENV
+        echo "RELEASE_TAG=${RELEASE_TAG}" >> $GITHUB_ENV
 
     - name: "Download `e2e` binary pre-built by the upstream job"
       uses: actions/download-artifact@v2
