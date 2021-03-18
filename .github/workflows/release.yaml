@@ -102,6 +102,7 @@ jobs:
         RELEASE_TAG=${GITHUB_REF#refs/*/}
         if [[ "${RELEASE_TAG}" = v* ]]; then RELEASE_VERSION="${RELEASE_TAG:1}"; else RELEASE_VERSION="${RELEASE_TAG}"; fi
         echo "RELEASE_VERSION=${RELEASE_VERSION}" >> $GITHUB_ENV
+        echo "RELEASE_TAG=${RELEASE_TAG}" >> $GITHUB_ENV
 
     - name: "Download `e2e` binary pre-built by the upstream job"
       uses: actions/download-artifact@v2
@@ -111,10 +112,8 @@ jobs:
 
     - name: "Download `getenvoy` binary from GithHub release assets"
       env:
-        INPUT_REPO: ${{ github.repository }}
-        INPUT_TOKEN: ${{ secrets.GETENVOY_CI_GITHUB_TOKEN }}
-        INPUT_FILE: getenvoy_${{ steps.git_tag.outputs.NAME }}_Linux_x86_64.tar.gz
-        INPUT_VERSION: tags/${{ steps.git_tag.outputs.NAME }}
+        INPUT_FILE: getenvoy_${{ env.RELEASE_VERSION }}_Linux_x86_64.tar.gz
+        INPUT_VERSION: tags/${{ env.RELEASE_TAG }}
       run: |
         curl -s https://raw.githubusercontent.com/dsaltares/fetch-gh-release-asset/0.0.5/fetch_github_asset.sh | bash
         mkdir -p build/bin/linux/amd64
@@ -143,6 +142,7 @@ jobs:
         RELEASE_TAG=${GITHUB_REF#refs/*/}
         if [[ "${RELEASE_TAG}" = v* ]]; then RELEASE_VERSION="${RELEASE_TAG:1}"; else RELEASE_VERSION="${RELEASE_TAG}"; fi
         echo "RELEASE_VERSION=${RELEASE_VERSION}" >> $GITHUB_ENV
+        echo "RELEASE_TAG=${RELEASE_TAG}" >> $GITHUB_ENV
 
     - name: "Download `e2e` binary pre-built by the upstream job"
       uses: actions/download-artifact@v2
@@ -152,10 +152,8 @@ jobs:
 
     - name: "Download `getenvoy` binary from GithHub release assets"
       env:
-        INPUT_REPO: ${{ github.repository }}
-        INPUT_TOKEN: ${{ secrets.GETENVOY_CI_GITHUB_TOKEN }}
-        INPUT_FILE: getenvoy_${{ steps.git_tag.outputs.NAME }}_Darwin_x86_64.tar.gz
-        INPUT_VERSION: tags/${{ steps.git_tag.outputs.NAME }}
+        INPUT_FILE: getenvoy_${{ env.RELEASE_VERSION }}_Darwin_x86_64.tar.gz
+        INPUT_VERSION: tags/${{ env.RELEASE_TAG }}
       run: |
         curl -s https://raw.githubusercontent.com/dsaltares/fetch-gh-release-asset/0.0.5/fetch_github_asset.sh | bash
         mkdir -p build/bin/darwin/amd64
