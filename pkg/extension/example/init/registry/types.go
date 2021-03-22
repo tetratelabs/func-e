@@ -57,14 +57,6 @@ func (r *fsRegistry) Get(descriptor *extension.Descriptor, example string) (*Ent
 		return nil, errors.Errorf("%q is not a directory", dirName)
 	}
 
-	var extensionConfigFileName string
-	switch descriptor.Language {
-	case extension.LanguageTinyGo:
-		extensionConfigFileName = "extension.txt"
-	default:
-		extensionConfigFileName = "extension.json"
-	}
-
 	return &Entry{
 		Category: descriptor.Category,
 		Name:     example,
@@ -76,9 +68,26 @@ func (r *fsRegistry) Get(descriptor *extension.Descriptor, example string) (*Ent
 			fileSet := model.NewFileSet()
 
 			// Add extension config file.
-			if err := addExtensionConfigFile(r.fs, fileSet, extensionConfigFileName); err != nil {
+			var extensionConfigFileName string
+			switch descriptor.Language {
+			case extension.LanguageTinyGo:
+				extensionConfigFileName = "extension.txt"
+			default:
+				extensionConfigFileName = "extension.json"
+			}
+			source := path.Join("/configurations", extensionConfigFileName)
+			f, err := r.fs.Open(source)
+			if err != nil {
 				return nil, errors.Wrapf(err, "failed to add extension config file")
 			}
+			defer f.Close() //nolint
+			data, err := ioutil.ReadAll(f)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to add extension config file")
+			}
+
+			// Write to the example dir.
+			fileSet.Add(extensionConfigFileName, &model.File{Source: source, Content: data})
 
 			for _, fileName := range fileNames {
 				file, err := r.fs.Open(fileName)
@@ -98,8 +107,8 @@ func (r *fsRegistry) Get(descriptor *extension.Descriptor, example string) (*Ent
 				// Need to adjust according to the extension config file name.
 				// See https://github.com/tetratelabs/getenvoy/issues/124
 				if relPath == "README.md" {
-					data = []byte(strings.Replace(string(data),
-						"EXTENSION_CONFIG_FILE_NAME", extensionConfigFileName, -1))
+					data = []byte(strings.ReplaceAll(string(data),
+						"EXTENSION_CONFIG_FILE_NAME", extensionConfigFileName))
 				}
 				fileSet.Add(relPath, &model.File{Source: fileName, Content: data})
 			}
@@ -124,22 +133,4 @@ func listFiles(fs http.FileSystem, root string) ([]string, error) {
 		return nil, err
 	}
 	return fileNames, nil
-}
-
-func addExtensionConfigFile(fs http.FileSystem, fileSet model.FileSet, fileName string) error {
-	// Get the original file from fs
-	source := path.Join("/configurations", fileName)
-	f, err := fs.Open(source)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	data, err := ioutil.ReadAll(f)
-	if err != nil {
-		return err
-	}
-
-	// Write to the example dir.
-	fileSet.Add(fileName, &model.File{Source: source, Content: data})
-	return nil
 }
