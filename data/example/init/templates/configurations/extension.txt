@@ -1,0 +1,7 @@
+// We recommend to use json as the configuration format,
+// however, some languages (e.g. TinyGo) does not support ready-to-use json library as of now.
+// As a temporary alternative, we use ".txt" format.
+//
+// Note that when using ".txt" format, lines starting with "//" are entirely discarded by GetEnvoy,
+// and never passed to Envoy in "getenvoy extension run" command.
+// Therefore, the lines above (including this line) are ignored.

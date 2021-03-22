@@ -36,6 +36,7 @@ import (
 var _ = Describe("NewConfigDir()", func() {
 
 	runContext := func(workspace model.Workspace, example model.Example) *runtime.RunContext {
+		_, f := example.GetExtensionConfig()
 		return &runtime.RunContext{
 			Opts: runtime.RunOpts{
 				Workspace: workspace,
@@ -45,10 +46,7 @@ var _ = Describe("NewConfigDir()", func() {
 				},
 				Extension: runtime.ExtensionOpts{
 					WasmFile: `/path/to/extension.wasm`,
-					Config: model.File{
-						Source:  "/path/to/config",
-						Content: []byte(`{"key2":"value2"}`),
-					},
+					Config:   *f,
 				},
 			},
 		}
@@ -104,11 +102,13 @@ var _ = Describe("NewConfigDir()", func() {
 					Expect(err).ToNot(HaveOccurred())
 					actual, err := ioutil.ReadFile(filepath.Join(configDir.GetDir(), fileName))
 					Expect(err).ToNot(HaveOccurred())
+
 					if given.isEnvoyTemplate(fileName) {
 						Expect(actual).To(MatchYAML(expected))
 					} else {
 						Expect(string(actual)).To(Equal(string(expected)))
 					}
+
 				}
 			},
 			Entry("envoy.tmpl.yaml", testCase{
@@ -134,6 +134,13 @@ var _ = Describe("NewConfigDir()", func() {
 			}),
 			Entry("envoy.tmpl.yaml: invalid paths to `lds` and `cds` files", testCase{
 				workspaceDir: "testdata/workspace4",
+				isEnvoyTemplate: func(name string) bool {
+					return name == "envoy.tmpl.yaml"
+				},
+				expectBootstrap: expectValidBootstrap,
+			}),
+			Entry("envoy.tmpl.yaml: .txt configuration with \"//\" comment lines", testCase{
+				workspaceDir: "testdata/workspace8",
 				isEnvoyTemplate: func(name string) bool {
 					return name == "envoy.tmpl.yaml"
 				},
