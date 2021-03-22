@@ -131,10 +131,18 @@ Run 'getenvoy extension examples add --help' for usage.
 Done!
 `))
 			By("verifying file system")
-			Expect(filepath.Join(tempDir, ".getenvoy/extension/examples/default/README.md")).To(BeAnExistingFile())
+			readmePath := filepath.Join(tempDir, ".getenvoy/extension/examples/default/README.md")
+			Expect(readmePath).To(BeAnExistingFile())
 			Expect(filepath.Join(tempDir, ".getenvoy/extension/examples/default/envoy.tmpl.yaml")).To(BeAnExistingFile())
 			Expect(filepath.Join(tempDir, ".getenvoy/extension/examples/default/example.yaml")).To(BeAnExistingFile())
 			Expect(filepath.Join(tempDir, ".getenvoy/extension/examples/default/extension.json")).To(BeAnExistingFile())
+
+			// Check README substitution: EXTENSION_CONFIG_FILE_NAME must be replaced with "extension.json".
+			data, err := ioutil.ReadFile(readmePath)
+			Expect(err).ToNot(HaveOccurred())
+			readme := string(data)
+			Expect(readme).To(ContainSubstring("extension.json"))
+			Expect(readme).To(Not(ContainSubstring("EXTENSION_CONFIG_FILE_NAME")))
 		})
 
 		It("should create example setup with a given --name", func() {
@@ -185,6 +193,43 @@ Done!
 
 Run 'getenvoy extension examples add --help' for usage.
 `))
+		})
+
+		It("should create 'default' example setup when no --name is omitted for TinyGo", func() {
+			By("simulating a workspace without any examples")
+			err := copy.Copy("testdata/workspace4", tempDir)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("changing to a workspace dir")
+			chdir(tempDir)
+
+			By("running command")
+			c.SetArgs([]string{"extension", "examples", "add"})
+			err = cmdutil.Execute(c)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("verifying command output")
+			Expect(stdout.String()).To(BeEmpty())
+			Expect(stderr.String()).To(Equal(`Scaffolding a new example setup:
+* .getenvoy/extension/examples/default/README.md
+* .getenvoy/extension/examples/default/envoy.tmpl.yaml
+* .getenvoy/extension/examples/default/example.yaml
+* .getenvoy/extension/examples/default/extension.txt
+Done!
+`))
+			By("verifying file system")
+			readmePath := filepath.Join(tempDir, ".getenvoy/extension/examples/default/README.md")
+			Expect(readmePath).To(BeAnExistingFile())
+			Expect(filepath.Join(tempDir, ".getenvoy/extension/examples/default/envoy.tmpl.yaml")).To(BeAnExistingFile())
+			Expect(filepath.Join(tempDir, ".getenvoy/extension/examples/default/example.yaml")).To(BeAnExistingFile())
+			Expect(filepath.Join(tempDir, ".getenvoy/extension/examples/default/extension.txt")).To(BeAnExistingFile())
+
+			// Check README substitution: EXTENSION_CONFIG_FILE_NAME must be replaced with "extension.txt".
+			data, err := ioutil.ReadFile(readmePath)
+			Expect(err).ToNot(HaveOccurred())
+			readme := string(data)
+			Expect(readme).To(ContainSubstring("extension.txt"))
+			Expect(readme).To(Not(ContainSubstring("EXTENSION_CONFIG_FILE_NAME")))
 		})
 	})
 
