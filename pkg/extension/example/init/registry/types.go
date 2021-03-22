@@ -42,7 +42,7 @@ type fsRegistry struct {
 	namingScheme func(category extension.Category, example string) string
 }
 
-func (r *fsRegistry) Get(descriptor *extension.Descriptor, example string) (*Entry, error) {
+func (r *fsRegistry) Get(descriptor *extension.Descriptor, example string) (*Entry, error) { //nolint
 	dirName := r.namingScheme(descriptor.Category, example)
 	dir, err := r.fs.Open(dirName)
 	if err != nil {
