@@ -706,6 +706,43 @@ envoy stderr
 			bootstrap := envoyCaptured.readFileToJSON("envoy.tmpl.yaml")
 			Expect(bootstrap).NotTo(BeEmpty())
 		})
+
+		It("should create default example if missing for TinyGo", func() {
+			By("simulating a workspace without 'default' example")
+			tempDir, err := ioutil.TempDir("", "")
+			Expect(err).NotTo(HaveOccurred())
+			defer func() {
+				Expect(os.RemoveAll(tempDir)).To(Succeed())
+			}()
+			err = copy.Copy("testdata/workspace_tinygo", tempDir)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("changing to a workspace dir")
+			workspaceDir := chdir(tempDir)
+
+			By("running command")
+			c.SetArgs([]string{"extension", "run"})
+			err = cmdutil.Execute(c)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("verifying command output")
+			Expect(stdout.String()).To(Equal(fmt.Sprintf(`%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init getenvoy/extension-tinygo-builder:latest build --output-file build/extension.wasm
+%s/builds/standard/1.17.0/%s/bin/envoy -c %s/envoy.tmpl.yaml
+`, dockerDir, workspaceDir, getenvoyHomeDir, platform, envoyCaptured.cwd())))
+			Expect(stderr.String()).To(Equal(`Scaffolding a new example setup:
+* .getenvoy/extension/examples/default/README.md
+* .getenvoy/extension/examples/default/envoy.tmpl.yaml
+* .getenvoy/extension/examples/default/example.yaml
+* .getenvoy/extension/examples/default/extension.txt
+Done!
+docker stderr
+envoy stderr
+`))
+
+			By("verifying Envoy config")
+			bootstrap := envoyCaptured.readFileToJSON("envoy.tmpl.yaml")
+			Expect(bootstrap).NotTo(BeEmpty())
+		})
 	})
 
 	Context("outside of a workspace directory", func() {

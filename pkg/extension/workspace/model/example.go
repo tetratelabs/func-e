@@ -25,7 +25,7 @@ var (
 	// notice that the file is named `envoy.tmpl.yaml` rather than `envoy.tmpl.yaml`
 	// in order to meet constraints of Envoy.
 	exampleEnvoyBootstrapFileAltNames  = []string{"envoy.tmpl.yaml", "envoy.tmpl.json"}
-	exampleExtensionConfigFileAltNames = []string{"extension.yaml", "extension.json", "extension"}
+	exampleExtensionConfigFileAltNames = []string{"extension.yaml", "extension.json", "extension", "extension.txt"}
 )
 
 // NewExample returns a new Example that consists of a given set of files.

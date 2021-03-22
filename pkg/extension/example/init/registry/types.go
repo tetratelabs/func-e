@@ -18,7 +18,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/shurcooL/httpfs/vfsutil"
@@ -30,7 +32,7 @@ import (
 // registry represents a registry of example templates.
 type registry interface {
 	// Get returns a registry entry.
-	Get(category extension.Category, example string) (*Entry, error)
+	Get(category *extension.Descriptor, example string) (*Entry, error)
 }
 
 // fsRegistry represents a registry of example templates backed by
@@ -40,8 +42,8 @@ type fsRegistry struct {
 	namingScheme func(category extension.Category, example string) string
 }
 
-func (r *fsRegistry) Get(category extension.Category, example string) (*Entry, error) {
-	dirName := r.namingScheme(category, example)
+func (r *fsRegistry) Get(descriptor *extension.Descriptor, example string) (*Entry, error) {
+	dirName := r.namingScheme(descriptor.Category, example)
 	dir, err := r.fs.Open(dirName)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to open: %s", dirName)
@@ -54,8 +56,17 @@ func (r *fsRegistry) Get(category extension.Category, example string) (*Entry, e
 	if !info.IsDir() {
 		return nil, errors.Errorf("%q is not a directory", dirName)
 	}
+
+	var extensionConfigFileName string
+	switch descriptor.Language {
+	case extension.LanguageTinyGo:
+		extensionConfigFileName = "extension.txt"
+	default:
+		extensionConfigFileName = "extension.json"
+	}
+
 	return &Entry{
-		Category: category,
+		Category: descriptor.Category,
 		Name:     example,
 		NewExample: func(*extension.Descriptor) (model.Example, error) {
 			fileNames, err := listFiles(r.fs, dirName)
@@ -63,6 +74,12 @@ func (r *fsRegistry) Get(category extension.Category, example string) (*Entry, e
 				return nil, errors.Wrapf(err, "failed to list files in a directory: %s", dirName)
 			}
 			fileSet := model.NewFileSet()
+
+			// Add extension config file.
+			if err := addExtensionConfigFile(r.fs, fileSet, extensionConfigFileName); err != nil {
+				return nil, errors.Wrapf(err, "failed to add extension config file")
+			}
+
 			for _, fileName := range fileNames {
 				file, err := r.fs.Open(fileName)
 				if err != nil {
@@ -76,6 +93,13 @@ func (r *fsRegistry) Get(category extension.Category, example string) (*Entry, e
 				relPath, err := filepath.Rel(dirName, fileName)
 				if err != nil {
 					return nil, err
+				}
+
+				// Need to adjust according to the extension config file name.
+				// See https://github.com/tetratelabs/getenvoy/issues/124
+				if relPath == "README.md" {
+					data = []byte(strings.Replace(string(data),
+						"EXTENSION_CONFIG_FILE_NAME", extensionConfigFileName, -1))
 				}
 				fileSet.Add(relPath, &model.File{Source: fileName, Content: data})
 			}
@@ -100,4 +124,22 @@ func listFiles(fs http.FileSystem, root string) ([]string, error) {
 		return nil, err
 	}
 	return fileNames, nil
+}
+
+func addExtensionConfigFile(fs http.FileSystem, fileSet model.FileSet, fileName string) error {
+	// Get the original file from fs
+	source := path.Join("/configurations", fileName)
+	f, err := fs.Open(source)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	data, err := ioutil.ReadAll(f)
+	if err != nil {
+		return err
+	}
+
+	// Write to the example dir.
+	fileSet.Add(fileName, &model.File{Source: source, Content: data})
+	return nil
 }
