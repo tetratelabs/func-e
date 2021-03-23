@@ -94,7 +94,6 @@ func writeBootstrap(r binary.Runner) error {
 	}
 	if _, err := bootstrap.New(bootstrap.Config{
 		Node:           istioNode(e.Config),
-		DNSRefreshRate: "60s",
 		Proxy:          &cfg,
 		LocalEnv:       os.Environ(),
 		NodeIPs:        e.Config.IPAddresses,
