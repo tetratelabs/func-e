@@ -1,1 +1,4 @@
 build/
+
+# We rename go.mod to go.mod_ to workaround https://github.com/golang/go/issues/45197
+go.mod

@@ -14,18 +14,13 @@
 
 package init
 
-//go:generate go run github.com/rakyll/statik -p=templates -m -ns=extension/init/templates -src=../../../data/extension/init/templates -a -include=* -f
-
 import (
+	"net/http"
 	"path"
 	"sync"
 
-	"github.com/rakyll/statik/fs"
-
+	extensionTemplates "github.com/tetratelabs/getenvoy/data/extension/init"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
-
-	// force execution of auto generated code
-	_ "github.com/tetratelabs/getenvoy/pkg/extension/init/templates"
 )
 
 var (
@@ -34,17 +29,14 @@ var (
 	templatesOnce sync.Once
 )
 
+var templatesFs = extensionTemplates.GetTemplates()
+
 // getTemplateSource returns a source of extension templates.
 func getTemplateSource() templateSource {
 	// do lazy init to avoid zip decompression unless absolutely necessary
 	templatesOnce.Do(func() {
-		fileSystem, err := fs.NewWithNamespace("extension/init/templates")
-		if err != nil {
-			// must be caught by unit tests
-			panic(err)
-		}
 		templates = &fsTemplateSource{
-			fs: fileSystem,
+			fs: http.FS(templatesFs),
 			namingScheme: func(language extension.Language, category extension.Category, template string) string {
 				return "/" + path.Join(language.String(), category.String(), template)
 			},

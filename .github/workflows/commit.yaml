@@ -42,9 +42,6 @@ jobs:
           docker_buildx: false  # Install is flakey. When it, we can install it via docker/setup-buildx-action@v1
         timeout-minutes: 20  # fail fast if MacOS install takes too long
 
-      - name: "Init on first use"
-        run: make init
-
       - name: "Verify clean check-in"
         run: make check
 
@@ -79,9 +76,6 @@ jobs:
         with:
           go-version: '1.16.2'
 
-      - name: "Init on first use"
-        run: make init
-
       - name: "Build the `getenvoy` binary"
         run: make bin
 
@@ -114,6 +108,11 @@ jobs:
     steps:
       - name: "Checkout"
         uses: actions/checkout@v2
+
+      - name: "Install Go"
+        uses: actions/setup-go@v2
+        with:
+          go-version: '1.16.2'
 
       - name: "Re-use the `getenvoy` binary pre-built by the upstream job"
         uses: actions/download-artifact@v2

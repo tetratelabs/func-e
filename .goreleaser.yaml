@@ -15,9 +15,6 @@
 project_name: getenvoy
 env:
   - GO111MODULE=on
-before:
-  hooks:
-    - make init
 builds:
 - binary: getenvoy
   ldflags: "-s -w -X github.com/tetratelabs/getenvoy/pkg/version.version={{.Version}}"
