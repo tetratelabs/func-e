@@ -1,6 +1,10 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
+	"strings"
+
 	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm"
 	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/types"
 )
@@ -28,7 +32,17 @@ func (l *accessLogger) OnPluginStart(configurationSize int) types.OnPluginStartS
 		proxywasm.LogCriticalf("failed to load config: %v", err)
 		return types.OnPluginStartStatusFailed
 	}
-	l.logMessage = string(data)
+
+	// Ignore comment lines starting with "#" in the configuration.
+	var lines []string
+	scanner := bufio.NewScanner(bytes.NewReader(data))
+	for scanner.Scan() {
+		line := scanner.Text()
+		if !strings.HasPrefix(line, "#") {
+			lines = append(lines, line)
+		}
+	}
+	l.logMessage = strings.Join(lines, "\n")
 	return types.OnPluginStartStatusOK
 }
 

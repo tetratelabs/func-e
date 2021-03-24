@@ -42,11 +42,18 @@ func (ctx *rootContext) OnPluginStart(configurationSize int) types.OnPluginStart
 		return types.OnPluginStartStatusFailed
 	}
 
-	// Each line in the configuration is in the "KEY=VALUE" format.
+	// Read the configuration.
 	scanner := bufio.NewScanner(bytes.NewReader(data))
 	for scanner.Scan() {
-		tokens := strings.Split(scanner.Text(), "=")
-		ctx.additionalHeaders[tokens[0]] = tokens[1]
+		// Ignore comment lines starting with "#".
+		line := scanner.Text()
+		if strings.HasPrefix(line, "#") {
+			continue
+		}
+		// Each line in the configuration is in the "KEY=VALUE" format.
+		if tokens := strings.Split(scanner.Text(), "="); len(tokens) == 2 {
+			ctx.additionalHeaders[tokens[0]] = tokens[1]
+		}
 	}
 	return types.OnPluginStartStatusOK
 }
