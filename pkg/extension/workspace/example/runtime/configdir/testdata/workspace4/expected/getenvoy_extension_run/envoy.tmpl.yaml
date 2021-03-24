@@ -24,7 +24,8 @@ static_resources:
                 config:
                   configuration:
                     '@type': type.googleapis.com/google.protobuf.StringValue
-                    value: '{"key":"value"}'
+                    value: |
+                      {"key":"value"}
                   name: mycompany.filters.http.custom_metrics
                   root_id: mycompany.filters.http.custom_metrics
                   vm_config:

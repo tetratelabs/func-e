@@ -15,14 +15,10 @@
 package configdir
 
 import (
-	"bufio"
-	"bytes"
 	"io"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
-	"strings"
 
 	envoybootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
 	"github.com/pkg/errors"
@@ -161,29 +157,10 @@ func (d *configDir) newExpandContext() (*template.ExpandContext, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to resolve absolute path of a *.wasm file %q", d.ctx.Opts.Extension.WasmFile)
 	}
-
-	var config string
-	// For .txt format, we discard lines starts with "//".
-	if path.Ext(d.ctx.Opts.GetExtensionConfig().Source) == ".txt" {
-		var configLines []string
-		scanner := bufio.NewScanner(bytes.NewReader(d.ctx.Opts.GetExtensionConfig().Content))
-		for scanner.Scan() {
-			line := scanner.Text()
-
-			if strings.HasPrefix(line, "//") {
-				continue
-			}
-
-			configLines = append(configLines, line)
-		}
-		config = strings.Join(configLines, "\n")
-	} else {
-		config = string(d.ctx.Opts.GetExtensionConfig().Content)
-	}
-
+	configuration := string(d.ctx.Opts.GetExtensionConfig().Content)
 	return &template.ExpandContext{
 		DefaultExtension:       manager.NewLocalExtension(d.ctx.Opts.Workspace.GetExtensionDescriptor(), wasmFile),
-		DefaultExtensionConfig: config,
+		DefaultExtensionConfig: configuration,
 	}, nil
 }
 

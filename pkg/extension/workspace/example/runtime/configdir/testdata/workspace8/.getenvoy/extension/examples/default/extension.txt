@@ -1,3 +1,2 @@
-// This is comment. Should be ignored.
 KEY=VALUE
 ANOTHER=CONFIG

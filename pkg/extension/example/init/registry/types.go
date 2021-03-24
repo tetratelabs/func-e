@@ -20,7 +20,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/shurcooL/httpfs/vfsutil"
@@ -61,60 +60,51 @@ func (r *fsRegistry) Get(descriptor *extension.Descriptor, example string) (*Ent
 		Category: descriptor.Category,
 		Name:     example,
 		NewExample: func(*extension.Descriptor) (model.Example, error) {
+			fileSet := model.NewFileSet()
+
+			// Add language independent files
 			fileNames, err := listFiles(r.fs, dirName)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to list files in a directory: %s", dirName)
 			}
-			fileSet := model.NewFileSet()
-
-			// Add extension config file.
-			var extensionConfigFileName string
-			switch descriptor.Language {
-			case extension.LanguageTinyGo:
-				extensionConfigFileName = "extension.txt"
-			default:
-				extensionConfigFileName = "extension.json"
-			}
-			source := path.Join("/configurations", extensionConfigFileName)
-			f, err := r.fs.Open(source)
-			if err != nil {
-				return nil, errors.Wrapf(err, "failed to add extension config file")
-			}
-			defer f.Close() //nolint
-			data, err := ioutil.ReadAll(f)
-			if err != nil {
-				return nil, errors.Wrapf(err, "failed to add extension config file")
-			}
-
-			// Write to the example dir.
-			fileSet.Add(extensionConfigFileName, &model.File{Source: source, Content: data})
-
 			for _, fileName := range fileNames {
-				file, err := r.fs.Open(fileName)
-				if err != nil {
-					return nil, errors.Wrapf(err, "failed to open: %s", fileName)
-				}
-				defer file.Close() //nolint:errcheck
-				data, err := ioutil.ReadAll(file)
-				if err != nil {
-					return nil, errors.Wrapf(err, "failed to read: %s", fileName)
-				}
-				relPath, err := filepath.Rel(dirName, fileName)
-				if err != nil {
+				if err := r.addFile(fileSet, dirName, fileName); err != nil {
 					return nil, err
 				}
+			}
 
-				// Need to adjust according to the extension config file name.
-				// See https://github.com/tetratelabs/getenvoy/issues/124
-				if relPath == "README.md" {
-					data = []byte(strings.ReplaceAll(string(data),
-						"EXTENSION_CONFIG_FILE_NAME", extensionConfigFileName))
+			// Add language specific files
+			languageDir := path.Join("/language-specific", descriptor.Language.String())
+			fileNames, err = listFiles(r.fs, languageDir)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to list files in a directory: %s", dirName)
+			}
+			for _, fileName := range fileNames {
+				if err := r.addFile(fileSet, languageDir, fileName); err != nil {
+					return nil, err
 				}
-				fileSet.Add(relPath, &model.File{Source: fileName, Content: data})
 			}
 			return model.NewExample(fileSet)
 		},
 	}, nil
+}
+
+func (r *fsRegistry) addFile(fileSet model.FileSet, dirName, fileName string) error {
+	file, err := r.fs.Open(fileName)
+	if err != nil {
+		return errors.Wrapf(err, "failed to open: %s", fileName)
+	}
+	defer file.Close() //nolint:errcheck
+	data, err := ioutil.ReadAll(file)
+	if err != nil {
+		return errors.Wrapf(err, "failed to read: %s", fileName)
+	}
+	relPath, err := filepath.Rel(dirName, fileName)
+	if err != nil {
+		return err
+	}
+	fileSet.Add(relPath, &model.File{Source: fileName, Content: data})
+	return nil
 }
 
 func listFiles(fs http.FileSystem, root string) ([]string, error) {

@@ -20,16 +20,14 @@ import (
 	"os"
 	"path/filepath"
 
+	envoybootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	. "github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/runtime/configdir"
-
-	envoybootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
-
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/runtime"
+	. "github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/runtime/configdir"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
 )
 
@@ -102,13 +100,11 @@ var _ = Describe("NewConfigDir()", func() {
 					Expect(err).ToNot(HaveOccurred())
 					actual, err := ioutil.ReadFile(filepath.Join(configDir.GetDir(), fileName))
 					Expect(err).ToNot(HaveOccurred())
-
 					if given.isEnvoyTemplate(fileName) {
-						Expect(actual).To(MatchYAML(expected))
+						Expect(string(actual)).Should(MatchYAML(string(expected)))
 					} else {
 						Expect(string(actual)).To(Equal(string(expected)))
 					}
-
 				}
 			},
 			Entry("envoy.tmpl.yaml", testCase{
@@ -139,7 +135,7 @@ var _ = Describe("NewConfigDir()", func() {
 				},
 				expectBootstrap: expectValidBootstrap,
 			}),
-			Entry("envoy.tmpl.yaml: .txt configuration with \"//\" comment lines", testCase{
+			Entry("envoy.tmpl.yaml: .txt configuration", testCase{
 				workspaceDir: "testdata/workspace8",
 				isEnvoyTemplate: func(name string) bool {
 					return name == "envoy.tmpl.yaml"

@@ -224,12 +224,10 @@ Done!
 			Expect(filepath.Join(tempDir, ".getenvoy/extension/examples/default/example.yaml")).To(BeAnExistingFile())
 			Expect(filepath.Join(tempDir, ".getenvoy/extension/examples/default/extension.txt")).To(BeAnExistingFile())
 
-			// Check README substitution: EXTENSION_CONFIG_FILE_NAME must be replaced with "extension.txt".
 			data, err := ioutil.ReadFile(readmePath)
 			Expect(err).ToNot(HaveOccurred())
 			readme := string(data)
 			Expect(readme).To(ContainSubstring("extension.txt"))
-			Expect(readme).To(Not(ContainSubstring("EXTENSION_CONFIG_FILE_NAME")))
 		})
 	})
 
