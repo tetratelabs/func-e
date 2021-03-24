@@ -42,7 +42,7 @@ type fsRegistry struct {
 	namingScheme func(category extension.Category, example string) string
 }
 
-func (r *fsRegistry) Get(descriptor *extension.Descriptor, example string) (*Entry, error) { //nolint
+func (r *fsRegistry) Get(descriptor *extension.Descriptor, example string) (*Entry, error) {
 	dirName := r.namingScheme(descriptor.Category, example)
 	dir, err := r.fs.Open(dirName)
 	if err != nil {
@@ -69,7 +69,8 @@ func (r *fsRegistry) Get(descriptor *extension.Descriptor, example string) (*Ent
 				return nil, errors.Wrapf(err, "failed to list files in a directory: %s", dirName)
 			}
 			for _, fileName := range fileNames {
-				if err := r.addFile(fileSet, dirName, fileName, descriptor.Language); err != nil {
+				err = r.addFile(fileSet, dirName, fileName, descriptor.Language)
+				if err != nil {
 					return nil, err
 				}
 			}
@@ -81,7 +82,8 @@ func (r *fsRegistry) Get(descriptor *extension.Descriptor, example string) (*Ent
 				return nil, errors.Wrapf(err, "failed to list files in a directory: %s", dirName)
 			}
 			for _, fileName := range fileNames {
-				if err := r.addFile(fileSet, languageDir, fileName, descriptor.Language); err != nil {
+				err = r.addFile(fileSet, languageDir, fileName, descriptor.Language)
+				if err != nil {
 					return nil, err
 				}
 			}
