@@ -20,6 +20,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/shurcooL/httpfs/vfsutil"
@@ -68,7 +69,7 @@ func (r *fsRegistry) Get(descriptor *extension.Descriptor, example string) (*Ent
 				return nil, errors.Wrapf(err, "failed to list files in a directory: %s", dirName)
 			}
 			for _, fileName := range fileNames {
-				if err := r.addFile(fileSet, dirName, fileName); err != nil {
+				if err := r.addFile(fileSet, dirName, fileName, descriptor.Language); err != nil {
 					return nil, err
 				}
 			}
@@ -80,7 +81,7 @@ func (r *fsRegistry) Get(descriptor *extension.Descriptor, example string) (*Ent
 				return nil, errors.Wrapf(err, "failed to list files in a directory: %s", dirName)
 			}
 			for _, fileName := range fileNames {
-				if err := r.addFile(fileSet, languageDir, fileName); err != nil {
+				if err := r.addFile(fileSet, languageDir, fileName, descriptor.Language); err != nil {
 					return nil, err
 				}
 			}
@@ -89,7 +90,7 @@ func (r *fsRegistry) Get(descriptor *extension.Descriptor, example string) (*Ent
 	}, nil
 }
 
-func (r *fsRegistry) addFile(fileSet model.FileSet, dirName, fileName string) error {
+func (r *fsRegistry) addFile(fileSet model.FileSet, dirName, fileName string, language extension.Language) error {
 	file, err := r.fs.Open(fileName)
 	if err != nil {
 		return errors.Wrapf(err, "failed to open: %s", fileName)
@@ -103,6 +104,21 @@ func (r *fsRegistry) addFile(fileSet model.FileSet, dirName, fileName string) er
 	if err != nil {
 		return err
 	}
+
+	// Need to adjust README.md according to the extension config file name.
+	// See https://github.com/tetratelabs/getenvoy/issues/124
+	if relPath == "README.md" {
+		var extensionConfigFileName string
+		switch language {
+		case extension.LanguageTinyGo:
+			extensionConfigFileName = "extension.txt"
+		default:
+			extensionConfigFileName = "extension.json"
+		}
+		data = []byte(strings.ReplaceAll(string(data),
+			"${EXTENSION_CONFIG_FILE_NAME}", extensionConfigFileName))
+	}
+
 	fileSet.Add(relPath, &model.File{Source: fileName, Content: data})
 	return nil
 }

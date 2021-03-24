@@ -136,8 +136,7 @@ Done!
 			Expect(filepath.Join(tempDir, ".getenvoy/extension/examples/default/envoy.tmpl.yaml")).To(BeAnExistingFile())
 			Expect(filepath.Join(tempDir, ".getenvoy/extension/examples/default/example.yaml")).To(BeAnExistingFile())
 			Expect(filepath.Join(tempDir, ".getenvoy/extension/examples/default/extension.json")).To(BeAnExistingFile())
-
-			// Check README substitution: EXTENSION_CONFIG_FILE_NAME must be replaced with "extension.json".
+			// Check README substitution: ${EXTENSION_CONFIG_FILE_NAME} must be replaced with "extension.json".
 			data, err := ioutil.ReadFile(readmePath)
 			Expect(err).ToNot(HaveOccurred())
 			readme := string(data)
@@ -168,10 +167,17 @@ Done!
 Done!
 `))
 			By("verifying file system")
-			Expect(filepath.Join(tempDir, ".getenvoy/extension/examples/advanced/README.md")).To(BeAnExistingFile())
+			readmePath := filepath.Join(tempDir, ".getenvoy/extension/examples/advanced/README.md")
+			Expect(readmePath).To(BeAnExistingFile())
 			Expect(filepath.Join(tempDir, ".getenvoy/extension/examples/advanced/envoy.tmpl.yaml")).To(BeAnExistingFile())
 			Expect(filepath.Join(tempDir, ".getenvoy/extension/examples/advanced/example.yaml")).To(BeAnExistingFile())
 			Expect(filepath.Join(tempDir, ".getenvoy/extension/examples/advanced/extension.json")).To(BeAnExistingFile())
+			// Check README substitution: ${EXTENSION_CONFIG_FILE_NAME} must be replaced with "extension.txt".
+			data, err := ioutil.ReadFile(readmePath)
+			Expect(err).ToNot(HaveOccurred())
+			readme := string(data)
+			Expect(readme).To(ContainSubstring("extension.json"))
+			Expect(readme).To(Not(ContainSubstring("${EXTENSION_CONFIG_FILE_NAME}")))
 		})
 
 		It("should fail if such example already exists", func() {
@@ -223,11 +229,12 @@ Done!
 			Expect(filepath.Join(tempDir, ".getenvoy/extension/examples/default/envoy.tmpl.yaml")).To(BeAnExistingFile())
 			Expect(filepath.Join(tempDir, ".getenvoy/extension/examples/default/example.yaml")).To(BeAnExistingFile())
 			Expect(filepath.Join(tempDir, ".getenvoy/extension/examples/default/extension.txt")).To(BeAnExistingFile())
-
+			// Check README substitution: ${EXTENSION_CONFIG_FILE_NAME} must be replaced with "extension.txt".
 			data, err := ioutil.ReadFile(readmePath)
 			Expect(err).ToNot(HaveOccurred())
 			readme := string(data)
 			Expect(readme).To(ContainSubstring("extension.txt"))
+			Expect(readme).To(Not(ContainSubstring("${EXTENSION_CONFIG_FILE_NAME}")))
 		})
 	})
 
