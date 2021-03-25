@@ -9,7 +9,8 @@ import (
 )
 
 func TestNetworkFilter_OnNewConnection(t *testing.T) {
-	configuration := `message: this is new connection!`
+	configuration := `# this is comment line, and should be ignored.
+message: this is new connection!`
 	opt := proxytest.NewEmulatorOption().
 		WithPluginConfiguration([]byte(configuration)).
 		WithNewRootContext(newRootContext)
@@ -28,7 +29,7 @@ func TestNetworkFilter_OnNewConnection(t *testing.T) {
 
 	// Retrieve logs emitted to Envoy.
 	logs := host.GetLogs(types.LogLevelInfo)
-	require.Contains(t, logs, configuration)
+	require.Contains(t, logs, "message: this is new connection!")
 }
 
 func TestNetworkFilter_counter(t *testing.T) {

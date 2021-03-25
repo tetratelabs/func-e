@@ -10,7 +10,8 @@ import (
 )
 
 func TestHttpFilter_OnHttpRequestHeaders(t *testing.T) {
-	configuration := `HELLO=WORLD
+	configuration := `# this is comment line, and should be ignored.
+HELLO=WORLD
 ENVOY=ISTIO`
 	opt := proxytest.NewEmulatorOption().
 		WithNewRootContext(newRootContext).

@@ -20,18 +20,16 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/pkg/errors"
-
 	envoybootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
+	"github.com/pkg/errors"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/manager"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/envoy/template"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/envoy/util"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/runtime"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
-	"github.com/tetratelabs/multierror"
-
 	osutil "github.com/tetratelabs/getenvoy/pkg/util/os"
+	"github.com/tetratelabs/multierror"
 )
 
 // NewConfigDir creates a config directory for a single example run.
@@ -106,7 +104,7 @@ func (d *configDir) init() error {
 	return nil
 }
 
-// process resolves placehoders in the Envoy bootstrap config, including
+// process resolves placeholders in the Envoy bootstrap config, including
 //  1) placeholders in the bootstrap file (envoy.tmpl.yaml or envoy.tmpl.json)
 //  2) (optional) placeholders in a LDS file (value of `bootstrap.dynamic_resources.lds_config.path`)
 //  3) (optional) placeholders in a CDS file (value of `bootstrap.dynamic_resources.cds_config.path`)
@@ -116,7 +114,7 @@ func (d *configDir) process() error {
 		return err
 	}
 
-	// resolve placehoders in the bootstrap file
+	// resolve placeholders in the bootstrap file
 	bootstrapFileName, bootstrapFile := d.ctx.Opts.Example.GetEnvoyConfig()
 	bootstrapContent, err := d.processEnvoyTemplate(bootstrapFile, expandContext)
 	if err != nil {
@@ -138,14 +136,14 @@ func (d *configDir) process() error {
 	}
 	d.bootstrap = &bootstrap
 
-	// resolve placehoders in the LDS file
+	// resolve placeholders in the LDS file
 	if fileName := d.bootstrap.GetDynamicResources().GetLdsConfig().GetPath(); fileName != "" {
 		if err := d.processEnvoyXdsFile(fileName, expandContext); err != nil {
 			return err
 		}
 	}
 
-	// resolve placehoders in the CDS file
+	// resolve placeholders in the CDS file
 	if fileName := d.bootstrap.GetDynamicResources().GetCdsConfig().GetPath(); fileName != "" {
 		if err := d.processEnvoyXdsFile(fileName, expandContext); err != nil {
 			return err

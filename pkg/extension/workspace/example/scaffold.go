@@ -48,7 +48,7 @@ func ScaffoldIfDefault(opts *ScaffoldOpts) error {
 // Scaffold generates a new example setup.
 func Scaffold(opts *ScaffoldOpts) error {
 	descriptor := opts.Workspace.GetExtensionDescriptor()
-	factory, err := registry.Get(descriptor.Category, registry.DefaultExample)
+	factory, err := registry.Get(descriptor, registry.DefaultExample)
 	if err != nil {
 		// must be caught by unit tests
 		panic(errors.Errorf("there is no %q example for extension category %q", registry.DefaultExample, descriptor.Category))

@@ -1,0 +1,14 @@
+#
+# Envoy Wasm extension created with getenvoy toolkit.
+#
+kind: Extension
+
+name: me.filters.http.my_http_filter
+
+category: envoy.filters.http
+language: tinygo
+
+# Runtime the extension is being developed against.
+runtime:
+  envoy:
+    version: standard:1.17.0

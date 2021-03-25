@@ -10,7 +10,8 @@ import (
 )
 
 func TestAccessLogger_OnLog(t *testing.T) {
-	configuration := `this is my log message`
+	configuration := `# this is comment line, and should be ignored.
+this is my log message`
 	opt := proxytest.NewEmulatorOption().
 		WithNewRootContext(newAccessLogger).
 		WithPluginConfiguration([]byte(configuration))

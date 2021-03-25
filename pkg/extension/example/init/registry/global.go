@@ -35,7 +35,7 @@ func globalRegistry() registry {
 }
 
 // Get returns an example template registered in a global registry for a given
-// extension category and name.
-func Get(category extension.Category, name string) (*Entry, error) {
-	return globalRegistry().Get(category, name)
+// extension category, name and language.
+func Get(descriptor *extension.Descriptor, name string) (*Entry, error) {
+	return globalRegistry().Get(descriptor, name)
 }

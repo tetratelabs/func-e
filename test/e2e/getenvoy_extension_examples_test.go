@@ -15,6 +15,7 @@
 package e2e_test
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -22,6 +23,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
+	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 	e2e "github.com/tetratelabs/getenvoy/test/e2e/util"
 )
 
@@ -74,19 +76,28 @@ Use "getenvoy extension examples add --help" for more information on how to add 
 			Expect(err).NotTo(HaveOccurred())
 
 			By("verifying stdout/stderr")
+			var extensionConfigFileName string
+			switch given.Language {
+			case extension.LanguageTinyGo:
+				extensionConfigFileName = "extension.txt"
+			default:
+				extensionConfigFileName = "extension.json"
+			}
 			Expect(stdout).To(Equal(``))
 			Expect(stderr).To(MatchRegexp(`^\QScaffolding a new example setup:\E\n`))
 			Expect(stderr).To(MatchRegexp(`\Q* .getenvoy/extension/examples/default/README.md\E\n`))
 			Expect(stderr).To(MatchRegexp(`\Q* .getenvoy/extension/examples/default/envoy.tmpl.yaml\E\n`))
 			Expect(stderr).To(MatchRegexp(`\Q* .getenvoy/extension/examples/default/example.yaml\E\n`))
-			Expect(stderr).To(MatchRegexp(`\Q* .getenvoy/extension/examples/default/extension.json\E\n`))
+			Expect(stderr).To(MatchRegexp(
+				fmt.Sprintf(`\Q* .getenvoy/extension/examples/default/%s\E\n`, extensionConfigFileName)))
 			Expect(stderr).To(MatchRegexp(`\QDone!\E\n$`))
 
 			By("verifying output directory")
 			Expect(filepath.Join(outputDir, ".getenvoy/extension/examples/default/README.md")).To(BeAnExistingFile())
 			Expect(filepath.Join(outputDir, ".getenvoy/extension/examples/default/envoy.tmpl.yaml")).To(BeAnExistingFile())
 			Expect(filepath.Join(outputDir, ".getenvoy/extension/examples/default/example.yaml")).To(BeAnExistingFile())
-			Expect(filepath.Join(outputDir, ".getenvoy/extension/examples/default/extension.json")).To(BeAnExistingFile())
+			Expect(filepath.Join(outputDir,
+				fmt.Sprintf(".getenvoy/extension/examples/default/%s", extensionConfigFileName))).To(BeAnExistingFile())
 
 			By("running `extension examples list` command")
 			stdout, stderr, err = GetEnvoy("extension examples list").Exec()
@@ -108,7 +119,8 @@ default
 			Expect(stderr).To(MatchRegexp(`\Q* .getenvoy/extension/examples/default/README.md\E\n`))
 			Expect(stderr).To(MatchRegexp(`\Q* .getenvoy/extension/examples/default/envoy.tmpl.yaml\E\n`))
 			Expect(stderr).To(MatchRegexp(`\Q* .getenvoy/extension/examples/default/example.yaml\E\n`))
-			Expect(stderr).To(MatchRegexp(`\Q* .getenvoy/extension/examples/default/extension.json\E\n`))
+			Expect(stderr).To(MatchRegexp(fmt.Sprintf(
+				`\Q* .getenvoy/extension/examples/default/%s\E\n`, extensionConfigFileName)))
 			Expect(stderr).To(MatchRegexp(`\QDone!\E\n$`))
 
 			By("running `extension examples list` command")
