@@ -38,7 +38,6 @@ static_resources:
                 stat_prefix: ingress
                 cluster: mock_service
 
-
     - name: mock
       address:
         socket_address:

@@ -158,6 +158,7 @@ func (d *configDir) newExpandContext() (*template.ExpandContext, error) {
 		return nil, errors.Wrapf(err, "failed to resolve absolute path of a *.wasm file %q", d.ctx.Opts.Extension.WasmFile)
 	}
 	configuration := string(d.ctx.Opts.GetExtensionConfig().Content)
+
 	return &template.ExpandContext{
 		DefaultExtension:       manager.NewLocalExtension(d.ctx.Opts.Workspace.GetExtensionDescriptor(), wasmFile),
 		DefaultExtensionConfig: configuration,
