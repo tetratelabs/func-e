@@ -66,6 +66,7 @@ func captureStderr(r binary.Runner) error {
 }
 
 func createLogFile(path string) (*os.File, error) {
+	// #nosec -> logs can be written anywhere
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
 		return nil, fmt.Errorf("unable to open file to write logs to %v: %v", path, err)

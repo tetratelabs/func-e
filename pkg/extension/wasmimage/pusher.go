@@ -39,8 +39,8 @@ func NewPusher(insecure, useHTTP bool) (*Pusher, error) {
 	if insecure {
 		client.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{
-				// nolint:gosec this option is only enabled when the user specify the insecure flag.
-				InsecureSkipVerify: true,
+				// this option is only enabled when the user specify the insecure flag.
+				InsecureSkipVerify: true, // nolint:gosec
 			},
 		}
 	}

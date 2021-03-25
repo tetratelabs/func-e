@@ -28,7 +28,7 @@ func writeIstioTemplate(path string) error {
 	if err := os.MkdirAll(filepath.Dir(path), os.ModePerm); err != nil {
 		return err
 	}
-	return ioutil.WriteFile(path, []byte(istioBootStrapTemplate), 0644)
+	return ioutil.WriteFile(path, []byte(istioBootStrapTemplate), 0600)
 }
 
 var istioBootStrapTemplate = `{
