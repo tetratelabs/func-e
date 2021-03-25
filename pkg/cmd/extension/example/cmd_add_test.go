@@ -141,7 +141,7 @@ Done!
 			Expect(err).ToNot(HaveOccurred())
 			readme := string(data)
 			Expect(readme).To(ContainSubstring("extension.json"))
-			Expect(readme).To(Not(ContainSubstring("EXTENSION_CONFIG_FILE_NAME")))
+			Expect(readme).NotTo(ContainSubstring("EXTENSION_CONFIG_FILE_NAME"))
 		})
 
 		It("should create example setup with a given --name", func() {
@@ -177,7 +177,7 @@ Done!
 			Expect(err).ToNot(HaveOccurred())
 			readme := string(data)
 			Expect(readme).To(ContainSubstring("extension.json"))
-			Expect(readme).To(Not(ContainSubstring("${EXTENSION_CONFIG_FILE_NAME}")))
+			Expect(readme).NotTo(ContainSubstring("${EXTENSION_CONFIG_FILE_NAME}"))
 		})
 
 		It("should fail if such example already exists", func() {
@@ -234,7 +234,7 @@ Done!
 			Expect(err).ToNot(HaveOccurred())
 			readme := string(data)
 			Expect(readme).To(ContainSubstring("extension.txt"))
-			Expect(readme).To(Not(ContainSubstring("${EXTENSION_CONFIG_FILE_NAME}")))
+			Expect(readme).NotTo(ContainSubstring("${EXTENSION_CONFIG_FILE_NAME}"))
 		})
 	})
 

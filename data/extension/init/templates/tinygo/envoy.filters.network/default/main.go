@@ -40,6 +40,9 @@ func (ctx *rootContext) OnPluginStart(configurationSize int) types.OnPluginStart
 	}
 
 	// Ignore comment lines starting with "#" in the extension.txt.
+	// Note that we recommend to use json as the configuration format,
+	// however, some languages (e.g. TinyGo) does not support ready-to-use json library as of now.
+	// As a temporary alternative, we use ".txt" format for the plugin configuration.
 	var lines []string
 	scanner := bufio.NewScanner(bytes.NewReader(data))
 	for scanner.Scan() {

@@ -32,7 +32,7 @@ import (
 // registry represents a registry of example templates.
 type registry interface {
 	// Get returns a registry entry.
-	Get(category *extension.Descriptor, example string) (*Entry, error)
+	Get(descriptor *extension.Descriptor, example string) (*Entry, error)
 }
 
 // fsRegistry represents a registry of example templates backed by
