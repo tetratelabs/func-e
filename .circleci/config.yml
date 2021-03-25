@@ -21,7 +21,7 @@ executors:
       - image: registry:2
 
 jobs:
-  lint:
+  check:
     executor: builder
     resource_class: medium+
     environment:
@@ -32,18 +32,17 @@ jobs:
       GOMAXPROCS: "3"
     steps:
       - checkout
-      - run: make init
-      - run: ./ci/install-lint
-      - run: ./ci/lint
-          
+      - run: make check
+
   test:
     executor: builder
     resource_class: medium+
     steps:
       - checkout
       - run: make init
-      - run: ./ci/install-envoy
-      - run: ./ci/test
+      # prefetch latest so that tests run faster
+      - run: go run cmd/getenvoy/main.go fetch standard:1.17.1
+      - run: make test.ci GO_TEST_EXTRA_OPTS="-timeout 60s"
       - run:
           name: "Measure test coverage (for now, on a subset of tests)"
           command: make coverage GO_COVERAGE_EXTRA_OPTS="-p 1"
@@ -55,5 +54,5 @@ workflows:
   version: 2
   commit:
     jobs:
-      - lint
+      - check
       - test

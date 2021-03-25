@@ -29,7 +29,6 @@ import (
 	"github.com/tetratelabs/multierror"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
-
 	osutil "github.com/tetratelabs/getenvoy/pkg/util/os"
 	scaffoldutil "github.com/tetratelabs/getenvoy/pkg/util/scaffold"
 )

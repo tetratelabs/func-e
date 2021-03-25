@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
+
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/fs"

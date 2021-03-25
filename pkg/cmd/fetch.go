@@ -18,6 +18,7 @@ import (
 	"errors"
 
 	"github.com/spf13/cobra"
+
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )

@@ -24,7 +24,6 @@ import (
 
 	"github.com/tetratelabs/getenvoy/pkg/cmd"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/globals"
-
 	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 

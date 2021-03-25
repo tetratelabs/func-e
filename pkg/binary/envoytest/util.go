@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/mholt/archiver"
+
 	"github.com/tetratelabs/getenvoy/pkg/binary"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"

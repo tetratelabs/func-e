@@ -25,13 +25,11 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	. "github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/runtime/getenvoy"
-
 	"github.com/tetratelabs/getenvoy/pkg/common"
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/runtime"
+	. "github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/runtime/getenvoy"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
-
 	argutil "github.com/tetratelabs/getenvoy/pkg/util/args"
 	ioutil "github.com/tetratelabs/getenvoy/pkg/util/io"
 )

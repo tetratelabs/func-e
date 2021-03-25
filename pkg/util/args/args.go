@@ -15,9 +15,8 @@
 package args
 
 import (
-	"github.com/pkg/errors"
-
 	"github.com/mattn/go-shellwords"
+	"github.com/pkg/errors"
 )
 
 // SplitCommandLine splits fragments of a command line down to individual arguments.

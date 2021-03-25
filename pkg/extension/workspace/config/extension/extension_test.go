@@ -21,9 +21,8 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	. "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
-
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config"
+	. "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 )
 
 var _ = Describe("Extension", func() {

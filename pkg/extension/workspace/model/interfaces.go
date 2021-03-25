@@ -18,7 +18,6 @@ import (
 	exampleconfig "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/example"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/fs"
-
 	scaffoldutil "github.com/tetratelabs/getenvoy/pkg/util/scaffold"
 )
 

@@ -15,14 +15,12 @@
 package template
 
 import (
-	"github.com/pkg/errors"
-
+	envoycore "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
-
-	envoycore "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	"github.com/pkg/errors"
 )
 
 // newExpandData creates a template data object for the Expand operation.

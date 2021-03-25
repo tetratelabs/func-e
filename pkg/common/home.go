@@ -17,9 +17,8 @@ package common
 import (
 	"path/filepath"
 
-	"github.com/tetratelabs/log"
-
 	"github.com/mitchellh/go-homedir"
+	"github.com/tetratelabs/log"
 )
 
 var (

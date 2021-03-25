@@ -17,8 +17,9 @@
 package debug
 
 import (
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/log"
+
+	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 )
 
 // EnableEnvoyLogCollection is a preset option that registers collection of Envoy Access Logs

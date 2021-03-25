@@ -22,10 +22,10 @@ import (
 	"syscall"
 
 	"github.com/shirou/gopsutil/process"
+	"github.com/tetratelabs/log"
 
 	"github.com/tetratelabs/getenvoy/pkg/binary"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
-	"github.com/tetratelabs/log"
 )
 
 // OpenFileStat defines the structure of statistics about a single opened file

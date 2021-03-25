@@ -19,7 +19,6 @@ import (
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/example/init/registry"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
-
 	scaffoldutil "github.com/tetratelabs/getenvoy/pkg/util/scaffold"
 )
 

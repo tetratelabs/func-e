@@ -23,7 +23,6 @@ import (
 
 	// force execution of auto generated code
 	_ "github.com/tetratelabs/getenvoy/pkg/extension/example/init/registry/templates"
-
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 )
 

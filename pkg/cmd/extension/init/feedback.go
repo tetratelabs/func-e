@@ -19,6 +19,7 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
+
 	scaffold "github.com/tetratelabs/getenvoy/pkg/extension/init"
 	uiutil "github.com/tetratelabs/getenvoy/pkg/util/ui"
 )

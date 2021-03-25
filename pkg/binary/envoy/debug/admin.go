@@ -23,7 +23,6 @@ import (
 	"path/filepath"
 
 	"github.com/tetratelabs/log"
-
 	"github.com/tetratelabs/multierror"
 
 	"github.com/tetratelabs/getenvoy/pkg/binary"

@@ -18,17 +18,14 @@ import (
 	"bytes"
 	"syscall"
 
-	"github.com/pkg/errors"
-
-	"github.com/spf13/cobra"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-
-	. "github.com/tetratelabs/getenvoy/pkg/util/cmd"
+	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
 
 	commonerrors "github.com/tetratelabs/getenvoy/pkg/errors"
+	. "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 
 var _ = Describe("Execute()", func() {

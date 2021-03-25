@@ -6,3 +6,7 @@ go.mod
 go.sum
 
 *.pem
+
+.bingo
+.dockerignore
+.idea

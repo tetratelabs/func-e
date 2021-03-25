@@ -20,7 +20,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	. "github.com/tetratelabs/getenvoy/pkg/extension/init"
-
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 )
 

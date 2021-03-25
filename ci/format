@@ -1,8 +1,0 @@
-#!/bin/bash
-
-# Apply Licenses
-licenser apply -r "Tetrate"
-
-# Misc linters
-golangci-lint run
-find . -type f -name '*.go' | xargs gofmt -s -w

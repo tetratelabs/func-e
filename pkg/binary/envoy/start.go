@@ -15,8 +15,9 @@
 package envoy
 
 import (
-	"github.com/tetratelabs/getenvoy/pkg/binary"
 	"github.com/tetratelabs/log"
+
+	"github.com/tetratelabs/getenvoy/pkg/binary"
 )
 
 func (r *Runtime) handlePreStart() {

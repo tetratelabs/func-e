@@ -20,15 +20,14 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/controlplane"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/debug"
-
-	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
-
 	"github.com/tetratelabs/getenvoy/pkg/flavors"
 	_ "github.com/tetratelabs/getenvoy/pkg/flavors/postgres" //nolint
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
+	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 
 var (

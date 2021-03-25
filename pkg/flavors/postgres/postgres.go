@@ -22,8 +22,9 @@ import (
 	"text/template"
 
 	valid "github.com/asaskevich/govalidator"
-	"github.com/tetratelabs/getenvoy/pkg/flavors"
 	"github.com/tetratelabs/log"
+
+	"github.com/tetratelabs/getenvoy/pkg/flavors"
 )
 
 // Define template parameter names

@@ -23,14 +23,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mholt/archiver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"github.com/mholt/archiver"
-
 	"github.com/tetratelabs/getenvoy/pkg/common"
-
 	e2e "github.com/tetratelabs/getenvoy/test/e2e/util"
 	utilenvoy "github.com/tetratelabs/getenvoy/test/e2e/util/envoy"
 )
