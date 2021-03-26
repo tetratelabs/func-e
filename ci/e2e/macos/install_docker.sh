@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 # Below is a copy of https://github.com/play-with-go/play-with-go/blob/d2a13db0ed4ac80b39ce727cd54f2438c93096dc/_scripts/macCISetup.sh
-# The last change to this file was in response to this comment https://github.com/docker/for-mac/issues/2359#issuecomment-793595407
+# The last change to this above was in response to this comment https://github.com/docker/for-mac/issues/2359#issuecomment-793595407
+# Since then, this incorporates a different version of 'Docker for Mac' in attempts to speed execution.
 
 set -euo pipefail
 
@@ -28,7 +29,16 @@ which find
 # Docker
 
 # Install Docker
-brew install --cask docker
+TMP_DIR=$(mktemp -d)
+
+# Docker for Mac 2.0.0.3-ce-mac81,31259 (the last version of 'Docker for Mac' that can be installed in CI environment)
+E2E_MACOS_DOCKER_CASK_VERSION="${E2E_MACOS_DOCKER_CASK_VERSION:-8ce4e89d10716666743b28c5a46cd54af59a9cc2}"
+
+# install Docker for Mac
+pushd "${TMP_DIR}"
+curl -L https://raw.githubusercontent.com/Homebrew/homebrew-cask/${E2E_MACOS_DOCKER_CASK_VERSION}/Casks/docker.rb > docker.rb
+brew install --cask docker.rb
+popd
 
 # Allow the app to run without confirmation
 xattr -d -r com.apple.quarantine /Applications/Docker.app
