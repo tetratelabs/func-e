@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/mholt/archiver"
+	"github.com/tetratelabs/log"
 
 	"github.com/tetratelabs/getenvoy/pkg/binary"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
@@ -55,7 +56,11 @@ func Run(ctx context.Context, r binary.Runner, bootstrap string) error {
 	if bootstrap != "" {
 		args = append(args, "-c", bootstrap)
 	}
-	go r.Run(key, args)
+	go func() {
+		if err := r.Run(key, args); err != nil {
+			log.Errorf("unable to run key %s: %v", key, err)
+		}
+	}()
 	r.WaitWithContext(ctx, binary.StatusReady)
 	return ctx.Err()
 }
@@ -65,7 +70,9 @@ func Run(ctx context.Context, r binary.Runner, bootstrap string) error {
 func Kill(ctx context.Context, r binary.Runner) error {
 	r.SendSignal(syscall.SIGINT)
 	r.WaitWithContext(ctx, binary.StatusTerminated)
-	archiver.Unarchive(r.DebugStore()+".tar.gz", filepath.Dir(r.DebugStore()))
+	if err := archiver.Unarchive(r.DebugStore()+".tar.gz", filepath.Dir(r.DebugStore())); err != nil {
+		return fmt.Errorf("error killing context: %w", err)
+	}
 	return ctx.Err()
 }
 
