@@ -35,7 +35,7 @@ nohup /Applications/Docker.app/Contents/MacOS/Docker --unattended > /dev/stdout 
 while ! docker info 2> /dev/null; do
 	sleep 5
 	echo "Waiting for docker service to be in the running state. \
-	If Docker is not ready within 10 minutes, it's better to fail the current CI Job and let a comitter to start it again manually"
+	If Docker is not ready within 10 minutes, it's better to fail the current CI Job and let the comitter to re-start the job manually"
 done
 
 # sanity check

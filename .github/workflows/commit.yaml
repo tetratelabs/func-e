@@ -76,7 +76,7 @@ jobs:
 
     - name: "Install 'Docker for Mac' (an older version that can be installed in CI environment)"
       run: ./ci/e2e/macos/install_docker.sh
-      timeout-minutes: 10 # unfortunately, installing `Docker for Mac` in CI environment is fragile; be ready to restart the job ocasionally
+      timeout-minutes: 7 # unfortunately, installing `Docker for Mac` in CI environment is fragile; be ready to restart the job ocasionally
 
     - name: "Build language-specific Docker build images"
       env:
