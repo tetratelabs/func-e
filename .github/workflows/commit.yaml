@@ -84,6 +84,7 @@ jobs:
         # options when using `Docker for Mac` in CI environment
         USE_DOCKER_BUILDKIT_CACHE: 'no'
       run: make builders
+      timeout-minutes: 10 # fail fast if MacOS runner becomes to slow
 
     - name: "Run e2e tests using `getenvoy` and `e2e` binaries built by the upstream job"
       run: ./ci/e2e/macos/run_tests.sh
