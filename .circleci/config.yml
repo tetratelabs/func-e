@@ -40,8 +40,9 @@ jobs:
     steps:
       - checkout
       - run: make init
-      # prefetch latest so that tests run faster
-      - run: go run cmd/getenvoy/main.go fetch standard:1.17.1
+      # prefetch implicit version needed by pkg/binary/envoy/controlplane/istio_test.go until #136. This avoids:
+      # Unable to start Envoy process: fork/exec /home/circleci/.getenvoy/builds/standard/1.11.0/linux_glibc/bin/envoy: text file busy
+      - run: go run cmd/getenvoy/main.go fetch standard:1.11.0
       - run: make test.ci GO_TEST_EXTRA_OPTS="-timeout 60s"
       - run:
           name: "Measure test coverage (for now, on a subset of tests)"
