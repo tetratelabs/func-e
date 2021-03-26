@@ -23,6 +23,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
 )
@@ -38,17 +40,13 @@ func Test_debugging_outputs(t *testing.T) {
 		for _, file := range files {
 			path := filepath.Join(r.DebugStore(), file)
 			f, err := os.Stat(path)
-			if err != nil {
-				t.Errorf("error stating %v: %v", path, err)
-			}
+			require.NoError(t, err, "error stating %v", path)
 			if f.Size() < 1 {
 				t.Errorf("file %v was empty", path)
 			}
 			if strings.HasSuffix(file, ".json") {
 				raw, err := ioutil.ReadFile(path)
-				if err != nil {
-					t.Errorf("error to read the file %v: %v", path, err)
-				}
+				require.NoError(t, err, "error to read the file %v", path)
 				var is []interface{}
 				if err := json.Unmarshal(raw, &is); err != nil {
 					t.Errorf("error to unmarshal json string, %v: \"%v\"", err, raw)
