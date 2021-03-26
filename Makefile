@@ -191,7 +191,9 @@ lint: generate $(GOLANGCI_LINT) $(SHFMT) $(LICENSER) .golangci.yml  ## Run the l
 	@echo "--- lint ---"
 	@$(SHFMT) -d .
 	@$(LICENSER) verify -r .
-	@$(GOLANGCI_LINT) run $(LINT_OPTS) --config .golangci.yml
+# We skip tinygo templates which will fail lint. Since skip-dirs does not apply to go modules, we externally filter.
+# See https://github.com/golangci/golangci-lint/issues/301#issuecomment-441311986 for explanation.
+	@go list -f "{{.Dir}}" ./... | grep -v "/tinygo/" | xargs $(GOLANGCI_LINT) run $(LINT_OPTS) --config .golangci.yml
 
 # The goimports tool does not arrange imports in 3 blocks if there are already more than three blocks.
 # To avoid that, before running it, we collapse all imports in one block, then run the formatter.
@@ -231,6 +233,7 @@ check:  ## CI blocks merge until this passes. If this fails, run "make check" lo
 	fi
 
 .PHONY: clean
-clean:   ## Clean all binaries
+clean: $(GOLANGCI_LINT) ## Clean all binaries
 	@echo "--- $@ ---"
-	go clean -testcache
+	@go clean -testcache
+	@$(GOLANGCI_LINT) cache clean

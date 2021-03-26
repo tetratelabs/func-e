@@ -39,7 +39,7 @@ var (
 )
 
 // NewToolchain returns a builtin toolchain with a given configuration.
-func NewToolchain(name string, cfg *config.ToolchainConfig, workspace model.Workspace) *builtin {
+func NewToolchain(name string, cfg *config.ToolchainConfig, workspace model.Workspace) *builtin { //nolint
 	return &builtin{name: name, cfg: cfg, workspace: workspace}
 }
 
@@ -63,6 +63,7 @@ func (t *builtin) Build(context types.BuildContext) error {
 	if err != nil {
 		return err
 	}
+	// #nosec -> the current design is an argument builder, not arg literals
 	cmd := exec.Command("docker", args.Add(commandBuild).Add("--output-file", t.cfg.GetBuildOutputWasmFile())...)
 	return executil.Run(cmd, context.IO)
 }
@@ -72,6 +73,7 @@ func (t *builtin) Test(context types.TestContext) error {
 	if err != nil {
 		return err
 	}
+	// #nosec -> the current design is an argument builder, not arg literals
 	cmd := exec.Command("docker", args.Add(commandTest)...)
 	return executil.Run(cmd, context.IO)
 }
@@ -81,18 +83,19 @@ func (t *builtin) Clean(context types.CleanContext) error {
 	if err != nil {
 		return err
 	}
+	// #nosec -> the current design is an argument builder, not arg literals
 	cmd := exec.Command("docker", args.Add(commandClean)...)
 	return executil.Run(cmd, context.IO)
 }
 
 func (t *builtin) dockerCliArgs(container *config.ContainerConfig) (executil.Args, error) {
-	user, err := GetCurrentUser()
+	u, err := GetCurrentUser()
 	if err != nil {
 		return nil, err
 	}
 	return executil.Args{
 		"run",
-		"-u", fmt.Sprintf("%s:%s", user.Uid, user.Gid), // to get proper ownership on files created by the container
+		"-u", fmt.Sprintf("%s:%s", u.Uid, u.Gid), // to get proper ownership on files created by the container
 		"--rm",
 		"-t", // to get interactive/colored output out of container
 		"-v", fmt.Sprintf("%s:%s", t.workspace.GetDir().GetRootDir(), "/source"),

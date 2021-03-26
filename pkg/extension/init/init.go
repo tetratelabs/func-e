@@ -101,7 +101,12 @@ func (s *scaffolder) walk(sourceDirName, destinationDirName string) (errs error)
 }
 
 func (s *scaffolder) visit(sourceDirName, destinationDirName string, sourceFileInfo os.FileInfo) (errs error) {
-	relOutputFileName := filepath.Join(destinationDirName, sourceFileInfo.Name())
+	baseOutputFileName := sourceFileInfo.Name()
+	// We rename go.mod to go.mod_ to workaround https://github.com/golang/go/issues/45197
+	if baseOutputFileName == "go.mod_" {
+		baseOutputFileName = "go.mod"
+	}
+	relOutputFileName := filepath.Join(destinationDirName, baseOutputFileName)
 	outputFileName := filepath.Join(s.opts.OutputDir, relOutputFileName)
 	if err := osutil.EnsureDirExists(filepath.Dir(outputFileName)); err != nil {
 		return err
