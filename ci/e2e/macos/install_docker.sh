@@ -34,7 +34,8 @@ sudo /Applications/Docker.app/Contents/MacOS/Docker --quit-after-install --unatt
 nohup /Applications/Docker.app/Contents/MacOS/Docker --unattended > /dev/stdout &
 while ! docker info 2> /dev/null; do
 	sleep 5
-	echo "Waiting for docker service to be in the running state"
+	echo "Waiting for docker service to be in the running state. \
+	If Docker is not ready within 10 minutes, it's better to fail the current CI Job and let a comitter to start it again manually"
 done
 
 # sanity check

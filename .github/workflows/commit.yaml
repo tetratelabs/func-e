@@ -14,6 +14,7 @@ jobs:
   bin:
     name: "Build `getenvoy` and `e2e` binaries for use in e2e tests"
     runs-on: ubuntu-latest
+    timeout-minutes: 15 # instead of 360 by default
     steps:
     - name: "Checkout"
       uses: actions/checkout@v2
@@ -40,6 +41,7 @@ jobs:
     needs:
     - bin
     runs-on: ubuntu-latest
+    timeout-minutes: 30 # instead of 360 by default
     steps:
     - name: "Checkout"
       uses: actions/checkout@v2
@@ -61,6 +63,7 @@ jobs:
     needs:
     - bin
     runs-on: macos-latest
+    timeout-minutes: 90 # instead of 360 by default
     steps:
     - name: "Checkout"
       uses: actions/checkout@v2
@@ -73,6 +76,7 @@ jobs:
 
     - name: "Install 'Docker for Mac' (an older version that can be installed in CI environment)"
       run: ./ci/e2e/macos/install_docker.sh
+      timeout-minutes: 10 # unfortunately, installing `Docker for Mac` in CI environment is fragile; be ready to restart the job ocasionally
 
     - name: "Build language-specific Docker build images"
       env:
