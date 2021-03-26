@@ -1,85 +1,91 @@
 # `name` value will appear "as is" in the badge.
 # See https://docs.github.com/en/actions/configuring-and-managing-workflows/configuring-a-workflow#adding-a-workflow-status-badge-to-your-repository
+# yamllint --format github .github/workflows/commit.yaml
+---
 name: "build"
 
 on:
   push:
     branches:
-    - master
+      - master
   pull_request:
     branches:
-    - '**'
+      - '**'
+  # workflow_dispatch will let us manually trigger the workflow from GitHub actions dashboard.
+  # This is important because sometimes the macos build fails due to Docker installation.
+  # See https://docs.github.com/en/free-pro-team@latest/actions/managing-workflow-runs/manually-running-a-workflow
+  workflow_dispatch:
 
 jobs:
   bin:
     name: "Build `getenvoy` and `e2e` binaries for use in e2e tests"
     runs-on: ubuntu-latest
     steps:
-    - name: "Checkout"
-      uses: actions/checkout@v2
+      - name: "Checkout"
+        uses: actions/checkout@v2
 
-    - name: "Install Go"
-      uses: actions/setup-go@v2
-      with:
-        go-version: '1.16.2'
+      - name: "Install Go"
+        uses: actions/setup-go@v2
+        with:
+          go-version: '1.16.2'
 
-    - name: "Init on first use"
-      run: make init
+      - name: "Init on first use"
+        run: make init
 
-    - name: "Build `getenvoy` and `e2e` binaries"
-      run: make bin
+      - name: "Build `getenvoy` and `e2e` binaries"
+        run: make bin
 
-    - name: "Share `getenvoy` and `e2e` binaries with the downstream jobs"
-      uses: actions/upload-artifact@v2
-      with:
-        name: bin
-        path: build/bin
+      - name: "Share `getenvoy` and `e2e` binaries with the downstream jobs"
+        uses: actions/upload-artifact@v2
+        with:
+          name: bin
+          path: build/bin
 
   e2e_linux:
     name: "Run e2e tests on Linux"
     needs:
-    - bin
+      - bin
     runs-on: ubuntu-latest
     steps:
-    - name: "Checkout"
-      uses: actions/checkout@v2
+      - name: "Checkout"
+        uses: actions/checkout@v2
 
-    - name: "Re-use `getenvoy` and `e2e` binaries pre-built by the upstream job"
-      uses: actions/download-artifact@v2
-      with:
-        name: bin
-        path: build/bin
+      - name: "Re-use `getenvoy` and `e2e` binaries pre-built by the upstream job"
+        uses: actions/download-artifact@v2
+        with:
+          name: bin
+          path: build/bin
 
-    - name: "Build language-specific Docker build images"
-      run: make builders
+      - name: "Build language-specific Docker build images"
+        run: make builders
 
-    - name: "Run e2e tests using `getenvoy` and `e2e` binaries built by the upstream job"
-      run: ./ci/e2e/linux/run_tests.sh
+      - name: "Run e2e tests using `getenvoy` and `e2e` binaries built by the upstream job"
+        run: ./ci/e2e/linux/run_tests.sh
 
   e2e_macos:
     name: "Run e2e tests on MacOS"
     needs:
-    - bin
+      - bin
     runs-on: macos-latest
     steps:
-    - name: "Checkout"
-      uses: actions/checkout@v2
+      - name: "Checkout"
+        uses: actions/checkout@v2
 
-    - name: "Re-use `getenvoy` and `e2e` binaries pre-built by the upstream job"
-      uses: actions/download-artifact@v2
-      with:
-        name: bin
-        path: build/bin
+      - name: "Re-use `getenvoy` and `e2e` binaries pre-built by the upstream job"
+        uses: actions/download-artifact@v2
+        with:
+          name: bin
+          path: build/bin
 
-    - name: "Install 'Docker for Mac' (an older version that can be installed in CI environment)"
-      run: ./ci/e2e/macos/install_docker.sh
+      - name: "Install 'Docker for Mac' (an older version that can be installed in CI environment)"
+        run: ./ci/e2e/macos/install_docker.sh
 
-    - name: "Build language-specific Docker build images"
-      env:
-        # don't use `DOCKER_BUILDKIT=1`, `--build-arg BUILDKIT_INLINE_CACHE=1` and `--cache-from`
-        # options when using `Docker for Mac` in CI environment
-        USE_DOCKER_BUILDKIT_CACHE: 'no'
-      run: make builders
+      - name: "Build language-specific Docker build images"
+        env:
+          # don't use `DOCKER_BUILDKIT=1`, `--build-arg BUILDKIT_INLINE_CACHE=1` and `--cache-from`
+          # options when using `Docker for Mac` in CI environment
+          USE_DOCKER_BUILDKIT_CACHE: 'no'
+        run: make builders
 
-    - name: "Run e2e tests using `getenvoy` and `e2e` binaries built by the upstream job"
-      run: ./ci/e2e/macos/run_tests.sh
+      - name: "Run e2e tests using `getenvoy` and `e2e` binaries built by the upstream job"
+        run: ./ci/e2e/macos/run_tests.sh

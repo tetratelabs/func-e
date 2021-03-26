@@ -196,8 +196,9 @@ lint: generate $(GOLANGCI_LINT) $(SHFMT) $(LICENSER) .golangci.yml  ## Run the l
 # The goimports tool does not arrange imports in 3 blocks if there are already more than three blocks.
 # To avoid that, before running it, we collapse all imports in one block, then run the formatter.
 .PHONY: format
-format: $(GOIMPORTS) ## Format all Go code
+format: $(GOIMPORTS) $(SHFMT) ## Format all Go code
 	@echo "--- format ---"
+	@$(SHFMT) -w .
 	@$(LICENSER) apply -r "Tetrate"
 	@find . -type f -name '*.go' | xargs gofmt -s -w
 	@for f in `find . -name '*.go'`; do \
