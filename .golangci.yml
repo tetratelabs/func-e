@@ -34,9 +34,9 @@ run:
   modules-download-mode: readonly
 
 linters:
-  enable: 
+  enable:
   - "bodyclose"
-  # - "depguard" broken in golangci-lint 1.17.1
+  - "depguard"
   - "dupl"
   - "goconst"
   - "gocritic"
@@ -46,17 +46,15 @@ linters:
   - "golint"
   - "gosec"
   - "gosimple"
-  - "interfacer"
   - "lll"
-  - "maligned"
   - "misspell"
   - "nakedret"
   - "prealloc"
   - "scopelint"
   - "unconvert"
   - "unparam"
-  
-  disable: 
+
+  disable:
   - "gochecknoinits"
   - "gochecknoglobals"
 
@@ -93,67 +91,30 @@ linters-settings:
   unparam:
     check-exported: false
   gocritic:
-    enabled-checks:
-      - appendCombine
-      - appendAssign
-      - assignOp
-      - argOrder
-      - badCond
+    enabled-checks:  # non-default checks we decided to also add
       - boolExprSimplify
       - builtinShadow
-      - captLocal
-      - caseOrder
-      - codegenComment
       - commentedOutCode
       - commentedOutImport
-      - defaultCaseOrder
-      - deprecatedComment
       - docStub
-      - dupArg
-      - dupBranchBody
-      - dupCase
-      - dupSubExpr
-      - elseif
       - emptyFallthrough
-      - equalFold
-      - flagDeref
-      - flagName
       - hexLiteral
-      - indexAlloc
       - initClause
       - methodExprCall
       - nilValReturn
       - octalLiteral
-      - offBy1
-      - rangeExprCopy
-      - regexpMust
-      - singleCaseSwitch
-      - sloppyLen
-      - stringXbytes
-      - switchTrue
       - typeAssertChain
-      - typeSwitchVar
       - typeUnparen
-      - underef
-      - unlambda
       - unnecessaryBlock
-      - unslice
-      - valSwap
       - weakCond
       - yodaStyleExpr
-      - commentFormatting
       - emptyStringTest
-      - exitAfterDefer
-      - ifElseChain
-      - hugeParam
       - importShadow
       - nestingReduce
       - paramTypeCombine
       - ptrToRefParam
-      - rangeValCopy
       - sloppyReassign
       - unlabelStmt
-      - wrapperFunc
 
     # Enable multiple checks by tags, run `GL_DEBUG=gocritic golangci-lint` run to see all tags and checks.
     # Empty list by default. See https://github.com/go-critic/go-critic#usage -> section "Tags".
@@ -180,7 +141,6 @@ issues:
         - errcheck
         - dupl
         - gosec
-        - maligned
 
     # Exclude lll issues for long lines with go:generate
     - linters:

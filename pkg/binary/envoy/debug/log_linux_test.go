@@ -37,7 +37,7 @@ func Test_capture(t *testing.T) {
 			if err != nil {
 				t.Errorf("error stating %v: %v", path, err)
 			}
-			if f.Size() < 1 {
+			if f != nil && f.Size() < 1 {
 				t.Errorf("file %v was empty", path)
 			}
 		}

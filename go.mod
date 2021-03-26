@@ -1,6 +1,6 @@
 module github.com/tetratelabs/getenvoy
 
-go 1.13
+go 1.16
 
 require (
 	bitbucket.org/creachadair/shell v0.0.6

@@ -356,7 +356,7 @@ Run 'getenvoy extension run --help' for usage.
 
 		By("creating a non-executable file")
 		filePath := filepath.Join(tempDir, "envoy")
-		err = ioutil.WriteFile(filePath, []byte(`#!/bin/sh`), 0644)
+		err = ioutil.WriteFile(filePath, []byte(`#!/bin/sh`), 0600)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("running command")
@@ -616,7 +616,7 @@ Run 'getenvoy extension run --help' for usage.
 				Expect(os.RemoveAll(tempDir)).To(Succeed())
 			}()
 			wasmFile := filepath.Join(tempDir, "extension.wasm")
-			err = ioutil.WriteFile(wasmFile, []byte{}, 0644)
+			err = ioutil.WriteFile(wasmFile, []byte{}, 0600)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("running command")
@@ -648,7 +648,7 @@ Run 'getenvoy extension run --help' for usage.
 				Expect(os.RemoveAll(tempDir)).To(Succeed())
 			}()
 			configFile := filepath.Join(tempDir, "config.json")
-			err = ioutil.WriteFile(configFile, []byte(`{"key2":"value2"}`), 0644)
+			err = ioutil.WriteFile(configFile, []byte(`{"key2":"value2"}`), 0600)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("running command")

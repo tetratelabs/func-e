@@ -40,8 +40,8 @@ func NewPuller(insecure, useHTTP bool) (*Puller, error) {
 
 	client.Transport = &http.Transport{
 		TLSClientConfig: &tls.Config{
-			// nolint:gosec this option is only enabled when the user specify the insecure flag.
-			InsecureSkipVerify: insecure,
+			// this option is only enabled when the user specify the insecure flag.
+			InsecureSkipVerify: insecure, // nolint:gosec
 		},
 	}
 
@@ -77,7 +77,7 @@ func (p *Puller) Pull(imageRef, imagePath string) (ocispec.Descriptor, error) {
 	}
 	manifest, image, _ := store.Get(layers[0])
 
-	if err := ioutil.WriteFile(imagePath, image, 0755); err != nil {
+	if err := ioutil.WriteFile(imagePath, image, 0600); err != nil {
 		return manifest, fmt.Errorf("failed to write image: %w", err)
 	}
 

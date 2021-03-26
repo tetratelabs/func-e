@@ -57,7 +57,7 @@ func (d workspaceDir) WriteFile(path string, data []byte) error {
 	if err := osutil.EnsureDirExists(filepath.Dir(path)); err != nil {
 		return err
 	}
-	return ioutil.WriteFile(path, data, 0644)
+	return ioutil.WriteFile(path, data, 0600)
 }
 
 func (d workspaceDir) HasDir(path string) (bool, error) {
