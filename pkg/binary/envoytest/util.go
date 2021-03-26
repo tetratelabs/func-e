@@ -71,7 +71,7 @@ func Kill(ctx context.Context, r binary.Runner) error {
 	r.SendSignal(syscall.SIGINT)
 	r.WaitWithContext(ctx, binary.StatusTerminated)
 	if err := archiver.Unarchive(r.DebugStore()+".tar.gz", filepath.Dir(r.DebugStore())); err != nil {
-		return fmt.Errorf("error killing context: %w", err)
+		return fmt.Errorf("error killing runner: %w", err)
 	}
 	return ctx.Err()
 }
