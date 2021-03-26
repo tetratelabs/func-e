@@ -17,14 +17,11 @@ package util
 import (
 	"bytes"
 
-	"github.com/pkg/errors"
-
+	envoymatcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/ghodss/yaml"
-
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
-
-	envoymatcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
+	"github.com/pkg/errors"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
 )

@@ -17,23 +17,20 @@ package envoy
 import (
 	"archive/tar"
 	"errors"
+	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 
-	"os"
-
-	"fmt"
-
-	"io/ioutil"
-
-	"io"
-
 	"github.com/mholt/archiver"
 	"github.com/schollz/progressbar/v2"
+	"github.com/tetratelabs/log"
+
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 	"github.com/tetratelabs/getenvoy/pkg/transport"
-	"github.com/tetratelabs/log"
 )
 
 const envoyLocation = "bin/envoy"

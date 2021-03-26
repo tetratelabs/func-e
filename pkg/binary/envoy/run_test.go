@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+
 	"github.com/tetratelabs/getenvoy/pkg/binary"
 )
 

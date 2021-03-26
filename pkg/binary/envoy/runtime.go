@@ -26,7 +26,6 @@ import (
 
 	"github.com/tetratelabs/getenvoy/pkg/binary"
 	"github.com/tetratelabs/getenvoy/pkg/common"
-
 	ioutil "github.com/tetratelabs/getenvoy/pkg/util/io"
 )
 

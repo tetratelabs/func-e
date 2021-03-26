@@ -22,6 +22,7 @@ import (
 
 	envoybootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
 	"github.com/pkg/errors"
+	"github.com/tetratelabs/multierror"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/manager"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/envoy/template"
@@ -29,7 +30,6 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/runtime"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
 	osutil "github.com/tetratelabs/getenvoy/pkg/util/os"
-	"github.com/tetratelabs/multierror"
 )
 
 // NewConfigDir creates a config directory for a single example run.

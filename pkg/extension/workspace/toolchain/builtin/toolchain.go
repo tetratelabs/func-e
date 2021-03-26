@@ -21,7 +21,6 @@ import (
 	"path/filepath"
 
 	config "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/toolchain/builtin"
-
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain/types"
 	executil "github.com/tetratelabs/getenvoy/pkg/util/exec"

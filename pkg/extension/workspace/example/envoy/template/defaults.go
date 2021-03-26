@@ -15,13 +15,11 @@
 package template
 
 import (
-	"github.com/pkg/errors"
-
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes/wrappers"
-
 	envoybootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
 	envoycore "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/pkg/errors"
 )
 
 // List of properties supported by the {{ .GetEnvoy.DefaultValue "<property>" }} placeholder.

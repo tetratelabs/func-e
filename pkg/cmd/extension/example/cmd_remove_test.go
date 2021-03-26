@@ -24,11 +24,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/otiai10/copy"
-
 	"github.com/spf13/cobra"
 
 	"github.com/tetratelabs/getenvoy/pkg/cmd"
-
 	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 

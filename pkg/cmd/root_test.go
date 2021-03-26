@@ -21,17 +21,14 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mitchellh/go-homedir"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
 	"github.com/spf13/cobra"
-
-	"github.com/mitchellh/go-homedir"
 
 	. "github.com/tetratelabs/getenvoy/pkg/cmd"
 	"github.com/tetratelabs/getenvoy/pkg/common"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
-
 	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 

@@ -24,11 +24,12 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"istio.io/istio/pilot/pkg/bootstrap"
+	"istio.io/istio/tests/util"
+
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/debug"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
-	"istio.io/istio/pilot/pkg/bootstrap"
-	"istio.io/istio/tests/util"
 )
 
 func TestMain(m *testing.M) {

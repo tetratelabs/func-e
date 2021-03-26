@@ -19,7 +19,6 @@ import (
 	"fmt"
 
 	"bitbucket.org/creachadair/shell"
-
 	l "github.com/tetratelabs/log"
 )
 

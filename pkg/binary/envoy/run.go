@@ -27,8 +27,9 @@ import (
 	"time"
 
 	"github.com/mholt/archiver"
-	"github.com/tetratelabs/getenvoy/pkg/manifest"
 	"github.com/tetratelabs/log"
+
+	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
 
 // Run execs the binary defined by the key with the args passed

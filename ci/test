@@ -1,5 +1,0 @@
-#!/bin/bash
-
-BASEDIR=$(dirname "$0")
-
-make test.ci GO_TEST_EXTRA_OPTS="-timeout 60s" -C "${BASEDIR}/.."
