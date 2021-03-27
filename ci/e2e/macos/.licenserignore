@@ -1,3 +1,0 @@
-# install_docker.sh a copy of https://github.com/play-with-go/play-with-go/blob/d2a13db0ed4ac80b39ce727cd54f2438c93096dc/_scripts/macCISetup.sh
-# Copyright (c) 2020, The play-with-go.dev Authors. All rights reserved. BSD-3-Clause License
-install_docker.sh
