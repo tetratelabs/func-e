@@ -78,7 +78,7 @@ func StreamLines(r io.Reader) Stream {
 			}
 		}
 	}()
-	return Stream(lines)
+	return lines
 }
 
 // NamedStream represents a stream of text lines, such as "stderr" or "stdout".
@@ -112,7 +112,7 @@ func (s *NamedStream) FirstMatch(pattern *regexp.Regexp) Single {
 		}
 		match <- StreamError{errors.Errorf("%q didn't have a line that would match %q", s.Name, pattern)}
 	}()
-	return Single(match)
+	return match
 }
 
 // Wait waits until a stream emit a line of text or fails if timeout has been exceeded.

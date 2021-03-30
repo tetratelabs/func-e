@@ -53,7 +53,8 @@ COVERAGE_PKG_LIST ?= $(shell go list ./pkg/... | grep -v -e github.com/tetratela
 GO_COVERAGE_OPTS ?= -covermode=atomic -coverpkg=./...
 GO_COVERAGE_EXTRA_OPTS ?=
 
-E2E_OPTS ?= -ginkgo.v
+E2E_PKG_LIST ?= ./test/e2e/...
+E2E_OPTS ?= -test.parallel 1 -test.failfast
 E2E_EXTRA_OPTS ?=
 
 GOOSES := linux darwin
@@ -67,15 +68,6 @@ $(call GETENVOY_OUT_PATH,$(1),$(2)): generate
 	CGO_ENABLED=0 GOOS=$(1) GOARCH=$(2) go build $(GO_LD_FLAGS) -o $(call GETENVOY_OUT_PATH,$(1),$(2)) ./cmd/getenvoy/main.go
 endef
 $(foreach os,$(GOOSES),$(foreach arch,$(GOARCHS),$(eval $(call GEN_GETENVOY_BUILD_TARGET,$(os),$(arch)))))
-
-E2E_OUT_PATH = $(BIN_DIR)/$(1)/$(2)/e2e
-
-define GEN_E2E_BUILD_TARGET
-.PHONY: $(call E2E_OUT_PATH,$(1),$(2))
-$(call E2E_OUT_PATH,$(1),$(2)):
-	CGO_ENABLED=0 GOOS=$(1) GOARCH=$(2) go test -c -o $(call E2E_OUT_PATH,$(1),$(2)) ./test/e2e
-endef
-$(foreach os,$(GOOSES),$(foreach arch,$(GOARCHS),$(eval $(call GEN_E2E_BUILD_TARGET,$(os),$(arch)))))
 
 .PHONY: init
 init: generate
@@ -109,9 +101,9 @@ test.ci: generate
 	go test $(GO_TEST_OPTS) $(GO_TEST_EXTRA_OPTS) $(TEST_PKG_LIST)
 
 .PHONY: e2e
-e2e: $(call GETENVOY_OUT_PATH,$(GOOS),$(GOARCH)) $(call E2E_OUT_PATH,$(GOOS),$(GOARCH))
+e2e: $(call GETENVOY_OUT_PATH,$(GOOS),$(GOARCH))
 	docker-compose up -d
-	E2E_GETENVOY_BINARY=$(PWD)/$(call GETENVOY_OUT_PATH,$(GOOS),$(GOARCH)) $(call E2E_OUT_PATH,$(GOOS),$(GOARCH)) $(GO_TEST_OPTS) $(GO_TEST_EXTRA_OPTS) $(E2E_OPTS) $(E2E_EXTRA_OPTS)
+	E2E_GETENVOY_BINARY=$(PWD)/$(call GETENVOY_OUT_PATH,$(GOOS),$(GOARCH)) go test github.com/tetratelabs/getenvoy/test/e2e $(E2E_OPTS) $(E2E_EXTRA_OPTS) $(E2E_PKG_LIST)
 
 .PHONY: bin
 bin: $(foreach os,$(GOOSES), bin/$(os))
@@ -124,7 +116,7 @@ $(foreach os,$(GOOSES),$(eval $(call GEN_BIN_GOOS_TARGET,$(os))))
 
 define GEN_BIN_GOOS_GOARCH_TARGET
 .PHONY: bin/$(1)/$(2)
-bin/$(1)/$(2): $(call GETENVOY_OUT_PATH,$(1),$(2)) $(call E2E_OUT_PATH,$(1),$(2))
+bin/$(1)/$(2): $(call GETENVOY_OUT_PATH,$(1),$(2))
 endef
 $(foreach os,$(GOOSES),$(foreach arch,$(GOARCHS),$(eval $(call GEN_BIN_GOOS_GOARCH_TARGET,$(os),$(arch)))))
 

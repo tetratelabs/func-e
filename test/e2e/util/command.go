@@ -16,10 +16,16 @@ package util
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
+	"strings"
 	"syscall"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/require"
 
 	argutil "github.com/tetratelabs/getenvoy/pkg/util/args"
 )
@@ -52,6 +58,10 @@ func (b *cmdBuilder) Args(args ...string) *cmdBuilder {
 	return b
 }
 
+func (b *cmdBuilder) String() string {
+	return strings.Join(b.cmd.Args, " ")
+}
+
 func (b *cmdBuilder) Exec() (string, string, error) {
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
@@ -61,30 +71,37 @@ func (b *cmdBuilder) Exec() (string, string, error) {
 	return stdout.String(), stderr.String(), err
 }
 
-func (b *cmdBuilder) Start() (io.Reader, io.Reader, func() error, <-chan error) {
+func (b *cmdBuilder) Start(t *testing.T, terminateTimeout time.Duration) (io.Reader, io.Reader, func()) {
 	stdout := newSyncBuffer()
 	stderr := newSyncBuffer()
 	b.cmd.Stdout = io.MultiWriter(os.Stdout, stdout) // we want to see full `getenvoy` output in the test log
 	b.cmd.Stderr = io.MultiWriter(os.Stderr, stderr)
-	errs := make(chan error, 1)
-	if err := b.cmd.Start(); err != nil {
-		errs <- err
-		close(errs)
-		return stdout, stderr, func() error { return nil }, errs
-	}
+	err := b.cmd.Start()
+	require.NoError(t, err, `error starting [%v]`, b)
+
+	errc := make(chan error, 1)
 	go func() {
-		defer close(errs)
-		if err := b.cmd.Wait(); err != nil {
-			errs <- err
-		}
+		errc <- b.cmd.Wait()
 	}()
-	canceled := false
-	cancel := func() error {
-		if canceled {
-			return nil
+
+	// Ensure terminate is only called once. As this happens from a single thread, there's no need to lock.
+	terminated := false
+	terminate := func() {
+		if terminated {
+			return
 		}
-		canceled = true
-		return b.cmd.Process.Signal(syscall.SIGTERM)
+		terminated = true
+
+		err := b.cmd.Process.Signal(syscall.SIGTERM)
+		require.NoError(t, err, `error terminating [%v]`, b.cmd)
+
+		select {
+		case e := <-errc:
+			require.NoError(t, e, `error running [%v]`, b.cmd)
+		case <-time.After(terminateTimeout):
+			t.Fatal(fmt.Sprintf("getenvoy command didn't exit gracefully within %s", terminateTimeout))
+		}
 	}
-	return stdout, stderr, cancel, errs
+
+	return stdout, stderr, terminate
 }

@@ -71,33 +71,11 @@ jobs:
       - name: "Push extension builder images"
         run: make builders.push BUILDERS_TAG=${{ env.RELEASE_VERSION }}
 
-  e2e_bin:
-    name: "Build `e2e` binaries for use in e2e tests"
-    runs-on: ubuntu-latest
-    steps:
-      - name: "Checkout"
-        uses: actions/checkout@v2
-
-      - name: "Install Go"
-        uses: actions/setup-go@v2
-        with:
-          go-version: '1.16.2'
-
-      - name: "Build `e2e` binaries"
-        run: make build/bin/linux/amd64/e2e build/bin/darwin/amd64/e2e
-
-      - name: "Share `e2e` binaries with the downstream jobs"
-        uses: actions/upload-artifact@v2
-        with:
-          name: bin
-          path: build/bin
-
   e2e_linux:
     name: "Run e2e tests on Linux"
     needs:
       - getenvoy
       - builders
-      - e2e_bin
     runs-on: ubuntu-latest
     timeout-minutes: 30  # instead of 360 by default
     steps:
@@ -138,7 +116,6 @@ jobs:
     needs:
       - getenvoy
       - builders
-      - e2e_bin
     runs-on: macos-latest
     timeout-minutes: 90  # instead of 360 by default
     steps:

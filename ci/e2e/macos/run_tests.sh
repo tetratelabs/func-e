@@ -41,4 +41,4 @@ docker-compose up -d
 export E2E_GETENVOY_BINARY="${WORKSPACE_DIR}/build/bin/darwin/amd64/getenvoy"
 
 # run e2e tests with '-ginkgo.v' flag to be able to see the progress
-${WORKSPACE_DIR}/build/bin/darwin/amd64/e2e -ginkgo.v
+go test github.com/tetratelabs/getenvoy/test/e2e -test.parallel 1 -test.failfast -v ./test/e2e/...

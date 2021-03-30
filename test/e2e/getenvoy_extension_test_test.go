@@ -15,60 +15,54 @@
 package e2e_test
 
 import (
-	"os"
-	"path/filepath"
+	"fmt"
+	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/require"
 
+	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 	e2e "github.com/tetratelabs/getenvoy/test/e2e/util"
 )
 
-var _ = Describe("getenvoy extension test", func() {
+// TestGetEnvoyExtensionTest runs the equivalent of "getenvoy extension test" for a matrix of extension.Categories and
+// extension.Languages. "getenvoy extension init" is a prerequisite, so run first.
+//
+// Note: "getenvoy extension test" can be extremely slow due to implicit responsibilities such as downloading modules
+// or compilation. This uses Docker, so changes to the Dockerfile or contents like "commands.sh" effect performance.
+func TestGetEnvoyExtensionTest(t *testing.T) {
+	const extensionName = "getenvoy_extension_test"
+	requireEnvoyBinaryPath(t) // Ex. After running "make bin", E2E_GETENVOY_BINARY=$PWD/build/bin/darwin/amd64/getenvoy
 
-	type testCase e2e.CategoryLanguageTuple
+	for _, test := range e2e.GetCategoryLanguageCombinations() {
+		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
-	testCases := func() []TableEntry {
-		testCases := make([]TableEntry, 0)
-		for _, combination := range e2e.GetCategoryLanguageCombinations() {
-			testCases = append(testCases, Entry(combination.String(), testCase(combination)))
-		}
-		return testCases
+		t.Run(test.String(), func(t *testing.T) {
+			workDir, removeWorkDir := requireNewTempDir(t)
+			defer removeWorkDir()
+
+			revertChDir := requireChDir(t, workDir)
+			defer revertChDir()
+
+			// test requires "get envoy extension init" to have succeeded
+			requireExtensionInit(t, workDir, test.Category, test.Language, extensionName)
+			defer requireExtensionClean(t, workDir)
+
+			cmd := GetEnvoy("extension test").Args(e2e.Env.GetBuiltinContainerOptions()...)
+			// "getenvoy extension test" only returns stdout because `docker run -t` redirects stderr to stdout.
+			stdout := requireExecNoStderr(t, cmd)
+
+			// Verify the tests ran
+			switch test.Language {
+			case extension.LanguageRust:
+				// `cargo` colorizes output. After stripping ANSI codes, ensure the output is successful.
+				stdout = stripAnsiEscapeRegexp.ReplaceAllString(stdout, "")
+				require.Regexp(t, `(?s)^.*test result: ok.*$`, stdout, `invalid stdout running [%v]`, cmd)
+
+			case extension.LanguageTinyGo:
+				// We expect the test output to include the extension name.
+				stdoutRegexp := fmt.Sprintf(`(?s)^.*ok  	%s.*$`, extensionName)
+				require.Regexp(t, stdoutRegexp, stdout, `invalid stdout running [%v]`, cmd)
+			}
+		})
 	}
-
-	const extensionName = "my.extension"
-
-	DescribeTable("should run unit tests",
-		func(given testCase) {
-			By("choosing the output directory")
-			outputDir := filepath.Join(tempDir, "new")
-			defer CleanUpExtensionDir(outputDir)
-
-			By("running `extension init` command")
-			_, _, err := GetEnvoy("extension init").
-				Arg(outputDir).
-				Arg("--category").Arg(given.Category.String()).
-				Arg("--language").Arg(given.Language.String()).
-				Arg("--name").Arg(extensionName).
-				Exec()
-			Expect(err).NotTo(HaveOccurred())
-
-			By("changing to the output directory")
-			err = os.Chdir(outputDir)
-			Expect(err).NotTo(HaveOccurred())
-
-			By("running `extension test` command")
-			stdout, stderr, err := GetEnvoy("extension test").
-				Args(e2e.Env.GetBuiltinContainerOptions()...).
-				Exec()
-			Expect(err).NotTo(HaveOccurred())
-
-			By("verifying stdout/stderr")
-			// apparently, use of `-t` option in `docker run` causes stderr to be incorporated into stdout
-			Expect(stdout).NotTo(BeEmpty())
-			Expect(stderr).To(BeEmpty())
-		},
-		testCases()...,
-	)
-})
+}
