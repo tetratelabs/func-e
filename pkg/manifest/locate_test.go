@@ -120,12 +120,12 @@ func TestNewKey(t *testing.T) {
 		wantErr   bool
 	}{
 		{"flavor:version/platform/platform", nil, true},
-		{"flavor:version/platform", &Key{Flavor: "flavor", Version: "version", Platform: "PLATFORM"}, false},
-		{"flavor:version/platform-glibc", &Key{Flavor: "flavor", Version: "version", Platform: "PLATFORM_GLIBC"}, false},
-		{"fLaVoR:VeRsIoN/pLaTfOrM", &Key{Flavor: "flavor", Version: "version", Platform: "PLATFORM"}, false},
-		{"flavor:version/", &Key{Flavor: "flavor", Version: "version", Platform: platformToEnum(platform())}, false},
-		{"flavor:version", &Key{Flavor: "flavor", Version: "version", Platform: platformToEnum(platform())}, false},
-		{"fLaVoR:VeRsIoN", &Key{Flavor: "flavor", Version: "version", Platform: platformToEnum(platform())}, false},
+		{"flavor:version/DARWIN", &Key{Flavor: "flavor", Version: "version", Platform: "darwin"}, false},
+		{"flavor:version/PLATFORM_GLIBC", &Key{Flavor: "flavor", Version: "version", Platform: "platform-glibc"}, false},
+		{"fLaVoR:VeRsIoN/pLaTfOrM", &Key{Flavor: "flavor", Version: "version", Platform: "platform"}, false},
+		{"flavor:version/", &Key{Flavor: "flavor", Version: "version", Platform: platform()}, false},
+		{"flavor:version", &Key{Flavor: "flavor", Version: "version", Platform: platform()}, false},
+		{"fLaVoR:VeRsIoN", &Key{Flavor: "flavor", Version: "version", Platform: platform()}, false},
 		{"flavor:", nil, true},
 		{"flavor", nil, true},
 	}

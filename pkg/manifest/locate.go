@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/tetratelabs/log"
@@ -65,25 +64,19 @@ func NewKey(reference string) (*Key, error) {
 	if err != nil {
 		return nil, err
 	}
-	key := Key{Flavor: ref.Flavor, Version: ref.Version, Platform: platformToEnum(ref.Platform)}
+	key := Key{Flavor: ref.Flavor, Version: ref.Version, Platform: ref.Platform}
 	// If platform is empty, fill it in.
 	if key.Platform == "" {
-		key.Platform = platformToEnum(platform())
+		key.Platform = platform()
 	}
 	return &key, nil
-}
-
-func platformToEnum(s string) string {
-	s = strings.ToUpper(s)
-	s = strings.ReplaceAll(s, "-", "_")
-	return s
 }
 
 // Key is the primary key used to locate Envoy builds in the manifest
 type Key types.Reference
 
 func (k Key) String() string {
-	return fmt.Sprintf("%v:%v/%v", k.Flavor, k.Version, platformFromEnum(k.Platform))
+	return fmt.Sprintf("%v:%v/%v", k.Flavor, k.Version, k.Platform)
 }
 
 // Locate returns the location of the binary for the passed parameters from the passed manifest
@@ -106,7 +99,8 @@ func LocateBuild(key *Key, manifest *api.Manifest) (string, error) {
 	// This is pretty horrible... Not sure there is a nicer way though.
 	if manifest.Flavors[key.Flavor] != nil && manifest.Flavors[key.Flavor].Versions[key.Version] != nil {
 		for _, build := range manifest.Flavors[key.Flavor].Versions[key.Version].Builds {
-			if strings.EqualFold(build.Platform.String(), key.Platform) {
+			normalizedPlatform := types.PlatformFromEnum(build.Platform.String())
+			if normalizedPlatform == key.Platform {
 				return build.DownloadLocationUrl, nil
 			}
 		}

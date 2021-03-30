@@ -23,7 +23,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/mholt/archiver"
 	"github.com/schollz/progressbar/v2"
@@ -87,9 +86,7 @@ func (r *Runtime) BinaryStore() string {
 }
 
 func (r *Runtime) platformDirectory(key *manifest.Key) string {
-	platform := strings.ToLower(key.Platform)
-	platform = strings.ReplaceAll(platform, "-", "_")
-	return filepath.Join(r.BinaryStore(), key.Flavor, key.Version, platform)
+	return filepath.Join(r.BinaryStore(), key.Flavor, key.Version, key.Platform)
 }
 
 func fetchEnvoy(dst, src string) error {

@@ -19,6 +19,9 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
@@ -36,20 +39,18 @@ func TestMain(m *testing.M) {
 // This is more of an integration test than a unit test, but either way is necessary.
 func Test_retrieveAdminAPIData(t *testing.T) {
 	t.Run("creates all non-empty files", func(t *testing.T) {
-		r, _ := envoy.NewRuntime(EnableEnvoyAdminDataCollection)
-		defer os.RemoveAll(r.DebugStore() + ".tar.gz")
+		r, err := envoy.NewRuntime(EnableEnvoyAdminDataCollection)
 		defer os.RemoveAll(r.DebugStore())
-		envoytest.RunKill(r, filepath.Join("testdata", "null.yaml"), 0)
+		require.NoError(t, err, "error getting envoy runtime")
+
+		err = envoytest.RunKill(r, filepath.Join("testdata", "null.yaml"), time.Second*10)
+		require.NoError(t, err, "error from envoytest.RunKill")
 
 		for _, filename := range adminAPIPaths {
 			path := filepath.Join(r.DebugStore(), filename)
 			f, err := os.Stat(path)
-			if err != nil {
-				t.Errorf("error stating %v: %v", path, err)
-			}
-			if f.Size() < 1 {
-				t.Errorf("file %v was empty", path)
-			}
+			require.NoError(t, err, "error stating %v", path)
+			require.NotEmpty(t, f.Size(), "file %v was empty", path)
 		}
 	})
 
