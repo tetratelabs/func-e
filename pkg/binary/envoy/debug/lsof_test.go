@@ -21,42 +21,39 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
 )
 
+// TODO: this test fails on darwin due to process.Process.OpenFiles being unsupported. See #88
 func TestGetOpenFileStats(t *testing.T) {
 	t.Run("creates non-empty files", func(t *testing.T) {
-		r, _ := envoy.NewRuntime(EnableOpenFilesDataCollection)
-		defer os.RemoveAll(r.DebugStore() + ".tar.gz")
+		r, err := envoy.NewRuntime(EnableOpenFilesDataCollection)
 		defer os.RemoveAll(r.DebugStore())
-		envoytest.RunKill(r, filepath.Join("testdata", "null.yaml"), time.Second*10)
+		require.NoError(t, err, "error getting envoy runtime")
+
+		err = envoytest.RunKill(r, filepath.Join("testdata", "null.yaml"), 0)
+		require.NoError(t, err, "error from envoytest.RunKill")
 
 		files := [...]string{"lsof/lsof.json"}
 
 		for _, file := range files {
 			path := filepath.Join(r.DebugStore(), file)
 			f, err := os.Stat(path)
-			if err != nil {
-				t.Errorf("error stating %v: %v", path, err)
-			}
-			if f.Size() < 1 {
-				t.Errorf("file %v was empty", path)
-			}
+			require.NoError(t, err, "error stating %v", path)
+			require.NotEmpty(t, f.Size(), "file %v was empty", path)
+
 			if strings.HasSuffix(file, ".json") {
 				raw, err := ioutil.ReadFile(path)
-				if err != nil {
-					t.Errorf("error to read the file %v: %v", path, err)
-				}
+				require.NoError(t, err, "error reading file %v", path)
+
 				var is []interface{}
-				if err := json.Unmarshal(raw, &is); err != nil {
-					t.Errorf("error to unmarshal json string, %v: \"%v\"", err, raw)
-				}
-				if len(is) < 1 {
-					t.Errorf("unmarshaled content is empty, expected to be a non-empty array: \"%v\"", raw)
-				}
+				err = json.Unmarshal(raw, &is)
+				require.NoError(t, err, "error to unmarshal json string, %v: \"%v\"", err, raw)
+				require.NotEmpty(t, len(is), "unmarshaled content is empty, expected to be a non-empty array: \"%v\"", raw)
 			}
 		}
 	})

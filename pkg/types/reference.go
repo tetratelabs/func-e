@@ -24,9 +24,17 @@ import (
 
 // Reference identifies an Envoy release provided by getenvoy.io.
 type Reference struct {
-	Flavor   string
-	Version  string
+	Flavor  string
+	Version string
+	// Platform is an lower-hyphen representation of the platform. Ex. "darwin" or "linux-glibc"
 	Platform string
+}
+
+// PlatformFromEnum takes a Reference.Platform like "LINUX_GLIBC" and returns a string variant like "linux-glibc"
+func PlatformFromEnum(s string) string {
+	s = strings.ToLower(s)
+	s = strings.ReplaceAll(s, "_", "-")
+	return s
 }
 
 var (
@@ -39,7 +47,7 @@ func ParseReference(text string) (*Reference, error) {
 	if len(matches) != 4 {
 		return nil, errors.Errorf("%q is not a valid GetEnvoy reference. Expected format: <flavor>:<version>[/<platform>]", text)
 	}
-	return &Reference{strings.ToLower(matches[1]), strings.ToLower(matches[2]), strings.ToLower(matches[3])}, nil
+	return &Reference{strings.ToLower(matches[1]), strings.ToLower(matches[2]), PlatformFromEnum(matches[3])}, nil
 }
 
 func (r *Reference) String() string {

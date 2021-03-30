@@ -19,13 +19,13 @@ import (
 	"io"
 	"net/http"
 	"sort"
-	"strings"
 	"text/tabwriter"
 
 	"github.com/golang/protobuf/jsonpb"
 
 	"github.com/tetratelabs/getenvoy-package/api"
 	"github.com/tetratelabs/getenvoy/pkg/transport"
+	"github.com/tetratelabs/getenvoy/pkg/types"
 )
 
 // Print retrieves the manifest from the passed location and writes it to the passed writer
@@ -40,18 +40,12 @@ func Print(writer io.Writer) error {
 	for _, flavor := range deterministicFlavors(manifest.Flavors) {
 		for _, version := range deterministicVersions(flavor.Versions) {
 			for _, build := range deterministicBuilds(version.Builds) {
-				ref := fmt.Sprintf("%v:%v/%v", flavor.Name, version.Name, platformFromEnum(build.Platform.String()))
+				ref := fmt.Sprintf("%v:%v/%v", flavor.Name, version.Name, types.PlatformFromEnum(build.Platform.String()))
 				fmt.Fprintf(w, "%v\t%v\t%v\n", ref, flavor.Name, version.Name)
 			}
 		}
 	}
 	return w.Flush()
-}
-
-func platformFromEnum(s string) string {
-	s = strings.ToLower(s)
-	s = strings.ReplaceAll(s, "_", "-")
-	return s
 }
 
 func fetch(url string) (*api.Manifest, error) {
