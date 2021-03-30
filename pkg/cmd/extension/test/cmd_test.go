@@ -164,15 +164,15 @@ Run 'getenvoy extension test --help' for usage.
 			By("running command")
 			c.SetArgs([]string{"extension", "test",
 				"--toolchain-container-image", "build/image",
-				"--toolchain-container-options", `-e EXIT_CODE=3`,
+				"--toolchain-container-options", `-e DOCKER_EXIT_CODE=3`,
 			})
 			err := cmdutil.Execute(c)
 			Expect(err).To(HaveOccurred())
 
 			By("verifying command output")
-			Expect(stdout.String()).To(Equal(fmt.Sprintf("%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init -e EXIT_CODE=3 build/image test\n", dockerDir, workspaceDir)))
+			Expect(stdout.String()).To(Equal(fmt.Sprintf("%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 build/image test\n", dockerDir, workspaceDir)))
 			Expect(stderr.String()).To(Equal(fmt.Sprintf(`docker stderr
-Error: failed to unit test Envoy extension using "default" toolchain: failed to execute an external command "%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init -e EXIT_CODE=3 build/image test": exit status 3
+Error: failed to unit test Envoy extension using "default" toolchain: failed to execute an external command "%s/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 build/image test": exit status 3
 
 Run 'getenvoy extension test --help' for usage.
 `, dockerDir, workspaceDir)))

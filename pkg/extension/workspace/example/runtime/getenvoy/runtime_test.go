@@ -17,166 +17,121 @@ package getenvoy_test
 import (
 	"bytes"
 	"fmt"
-	stdioutil "io/ioutil"
-	"os"
 	"path/filepath"
+	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/pkg/common"
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/runtime"
 	. "github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/runtime/getenvoy"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
-	argutil "github.com/tetratelabs/getenvoy/pkg/util/args"
+	"github.com/tetratelabs/getenvoy/pkg/test/cmd/extension"
 	ioutil "github.com/tetratelabs/getenvoy/pkg/util/io"
 )
 
-var _ = Describe("runtime", func() {
-	Describe("Run()", func() {
+// relativeWorkspaceDir points to a usable pre-initialized workspace
+const relativeWorkspaceDir = "../configdir/testdata/workspace1"
 
-		var backupHomeDir string
+func TestRuntimeRun(t *testing.T) {
+	workspace, err := workspaces.GetWorkspaceAt(relativeWorkspaceDir)
+	require.NoError(t, err, `expected no error getting workspace from directory %s`, relativeWorkspaceDir)
 
-		BeforeEach(func() {
-			backupHomeDir = common.HomeDir
-		})
+	example, err := workspace.GetExample("default")
+	require.NoError(t, err, `expected no error getting example from workspace %s`, workspace)
 
-		AfterEach(func() {
-			common.HomeDir = backupHomeDir
-		})
+	fakeEnvoyPath, tearDown := setupFakeEnvoy(t)
+	defer tearDown()
 
-		var tempHomeDir string
+	// Create and run a new context that will invoke a fake envoy script
+	ctx, stdout, stderr := runContext(workspace, example, fakeEnvoyPath)
+	err = NewRuntime().Run(ctx)
+	require.NoError(t, err, `expected no error running running [%v]`, ctx)
 
-		BeforeEach(func() {
-			dir, err := stdioutil.TempDir("", "getenvoy-home")
-			Expect(err).NotTo(HaveOccurred())
-			tempHomeDir = dir
-		})
+	// The working directory of envoy is a temp directory not controlled by this test, so we have to parse it.
+	envoyWd := extension.ParseEnvoyWorkDirectory(stdout)
 
-		AfterEach(func() {
-			if tempHomeDir != "" {
-				Expect(os.RemoveAll(tempHomeDir)).To(Succeed())
-			}
-		})
+	// Verify we executed the indicated envoy binary, and it captured the arguments we expected
+	expectedStdout := fmt.Sprintf(`envoy pwd: %s
+envoy bin: %s
+envoy args: -c %s/envoy.tmpl.yaml
+`, envoyWd, ctx.Opts.Envoy.Path, envoyWd)
+	require.Equal(t, expectedStdout, stdout.String(), `expected stdout running [%v]`, ctx)
 
-		BeforeEach(func() {
-			common.HomeDir = tempHomeDir
-		})
+	// Verify we didn't accidentally combine the stderr of envoy into stdout, or otherwise dropped it.
+	require.Equal(t, "envoy stderr\n", stderr.String(), `expected stderr running [%v]`, ctx)
+}
 
-		envoyPath := func() string {
-			path, err := filepath.Abs("testdata/envoy/bin/envoy")
-			Expect(err).ToNot(HaveOccurred())
-			return path
+func TestRuntimeRunFailsOnInvalidWorkspace(t *testing.T) {
+	invalidWorkspaceDir := extension.RequireAbsDir(t, "../configdir/testdata/workspace5")
+	workspace, err := workspaces.GetWorkspaceAt(invalidWorkspaceDir)
+	require.NoError(t, err, `expected no error getting workspace from directory %s`, invalidWorkspaceDir)
+
+	example, err := workspace.GetExample("default")
+	require.NoError(t, err, `expected no error getting example from workspace %s`, workspace)
+
+	fakeEnvoyPath, tearDown := setupFakeEnvoy(t)
+	defer tearDown()
+
+	// Create and run a new context that will invoke a fake envoy script
+	ctx, stdout, stderr := runContext(workspace, example, fakeEnvoyPath)
+	err = NewRuntime().Run(ctx)
+
+	// Verify the error raised parsing the template from the input directory, before running envoy.
+	invalidTemplate := invalidWorkspaceDir + "/.getenvoy/extension/examples/default/envoy.tmpl.yaml"
+	expectedErr := fmt.Sprintf(`failed to process Envoy config template coming from "%s": failed to render Envoy config template: template: :4:19: executing "" at <.GetEnvoy.DefaultValue>: error calling DefaultValue: unknown property "???"`, invalidTemplate)
+	require.EqualError(t, err, expectedErr, `expected an error running [%v]`, ctx)
+
+	// Verify there was no stdout or stderr because envoy shouldn't have run, yet.
+	require.Empty(t, stdout.String(), `expected no stdout running [%v]`, ctx)
+	require.Empty(t, stderr.String(), `expected no stderr running [%v]`, ctx)
+}
+
+func runContext(workspace model.Workspace, example model.Example, envoyPath string) (ctx *runtime.RunContext, stdout, stderr *bytes.Buffer) {
+	stdout = new(bytes.Buffer)
+	stderr = new(bytes.Buffer)
+	ctx = &runtime.RunContext{
+		Opts: runtime.RunOpts{
+			Workspace: workspace,
+			Example: runtime.ExampleOpts{
+				Name:    "default",
+				Example: example,
+			},
+			Extension: runtime.ExtensionOpts{
+				WasmFile: `/path/to/extension.wasm`,
+				Config: model.File{
+					Source:  "/path/to/config",
+					Content: []byte(`{"key2":"value2"}`),
+				},
+			},
+			Envoy: runtime.EnvoyOpts{
+				Path: envoyPath,
+			},
+		},
+		IO: ioutil.StdStreams{
+			Out: stdout,
+			Err: stderr,
+		},
+	}
+	return
+}
+
+// setupFakeEnvoy creates a fake envoy home and returns the path to the binary.
+// Side effects are reversed in the returned tear-down function.
+func setupFakeEnvoy(t *testing.T) (string, func()) {
+	var tearDown []func()
+
+	tempDir, deleteTempDir := extension.RequireNewTempDir(t)
+	tearDown = append(tearDown, deleteTempDir)
+
+	envoyHome := filepath.Join(tempDir, "envoy_home")
+	fakeEnvoyPath := extension.InitFakeEnvoyHome(t, envoyHome)
+	revertHomeDir := extension.OverrideHomeDir(envoyHome)
+	tearDown = append(tearDown, revertHomeDir)
+
+	return fakeEnvoyPath, func() {
+		for i := len(tearDown) - 1; i >= 0; i-- {
+			tearDown[i]()
 		}
-
-		var stdout *bytes.Buffer
-		var stderr *bytes.Buffer
-
-		BeforeEach(func() {
-			stdout = new(bytes.Buffer)
-			stderr = new(bytes.Buffer)
-		})
-
-		runContext := func(workspace model.Workspace, example model.Example) *runtime.RunContext {
-			return &runtime.RunContext{
-				Opts: runtime.RunOpts{
-					Workspace: workspace,
-					Example: runtime.ExampleOpts{
-						Name:    "default",
-						Example: example,
-					},
-					Extension: runtime.ExtensionOpts{
-						WasmFile: `/path/to/extension.wasm`,
-						Config: model.File{
-							Source:  "/path/to/config",
-							Content: []byte(`{"key2":"value2"}`),
-						},
-					},
-					Envoy: runtime.EnvoyOpts{
-						Path: envoyPath(),
-					},
-				},
-				IO: ioutil.StdStreams{
-					Out: stdout,
-					Err: stderr,
-				},
-			}
-		}
-
-		Describe("in case of valid input", func() {
-			type testCase struct {
-				workspaceDir    string
-				isEnvoyTemplate func(string) bool
-			}
-			DescribeTable("should run Envoy with a proper config",
-				func(given testCase) {
-					workspace, err := workspaces.GetWorkspaceAt(given.workspaceDir)
-					Expect(err).ToNot(HaveOccurred())
-
-					example, err := workspace.GetExample("default")
-					Expect(err).ToNot(HaveOccurred())
-
-					ctx := runContext(workspace, example)
-
-					By("running Envoy")
-					err = NewRuntime().Run(ctx)
-					Expect(err).ToNot(HaveOccurred())
-
-					By("verifying Envoy output")
-					Expect(stdout.String()).NotTo(BeEmpty())
-					Expect(stderr.String()).To(Equal("envoy stderr\n"))
-
-					By("verifying Envoy arguments")
-					args, err := argutil.SplitCommandLine(stdout.String())
-					Expect(err).ToNot(HaveOccurred())
-					Expect(args).To(HaveLen(3))
-					Expect(args[0]).To(Equal(ctx.Opts.Envoy.Path))
-					Expect(args[1]).To(Equal("-c"))
-				},
-				Entry("envoy.tmpl.yaml", testCase{
-					workspaceDir: "../configdir/testdata/workspace1",
-					isEnvoyTemplate: func(name string) bool {
-						return name == "envoy.tmpl.yaml"
-					},
-				}),
-			)
-		})
-
-		Describe("in case of invalid input", func() {
-			abs := func(path string) string {
-				path, err := filepath.Abs(path)
-				if err != nil {
-					panic(err)
-				}
-				return path
-			}
-
-			type testCase struct {
-				workspaceDir string
-				expectedErr  string
-			}
-			//nolint:lll
-			DescribeTable("should fail with a proper error",
-				func(given testCase) {
-					workspace, err := workspaces.GetWorkspaceAt(given.workspaceDir)
-					Expect(err).ToNot(HaveOccurred())
-
-					example, err := workspace.GetExample("default")
-					Expect(err).ToNot(HaveOccurred())
-
-					ctx := runContext(workspace, example)
-
-					By("running Envoy")
-					err = NewRuntime().Run(ctx)
-					Expect(err).To(MatchError(given.expectedErr))
-				},
-				Entry("envoy.tmpl.yaml: invalid placeholder", testCase{
-					workspaceDir: "../configdir/testdata/workspace5",
-					expectedErr:  fmt.Sprintf(`failed to process Envoy config template coming from %q: failed to render Envoy config template: template: :4:19: executing "" at <.GetEnvoy.DefaultValue>: error calling DefaultValue: unknown property "???"`, abs("../configdir/testdata/workspace5/.getenvoy/extension/examples/default/envoy.tmpl.yaml")),
-				}),
-			)
-		})
-	})
-})
+	}
+}

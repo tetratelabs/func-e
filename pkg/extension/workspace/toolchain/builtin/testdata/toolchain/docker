@@ -15,20 +15,13 @@
 # limitations under the License.
 
 echo "$0" "$@"
+echo >&2 docker stderr
 
-printf >&2 '%s\n' "docker stderr"
-
-#
-# To simulate exit with an error, pass an argument in the form EXIT_CODE=NN,
-# e.g. EXIT_CODE=3
-#
-exit_code="0"
+# An arg DOCKER_EXIT_CODE=N exits with that code number
 while test $# -gt 0; do
 	case "$1" in
-	EXIT_CODE=*)
-		exit_code="${1:10}"
-		;;
+	DOCKER_EXIT_CODE=*) exit "${1:17}" ;;
 	esac
 	shift
 done
-exit "$exit_code"
+exit 0

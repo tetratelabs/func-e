@@ -11,126 +11,101 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+// Copyright 2020 Tetrate
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package push_test
 
 import (
-	"bytes"
 	"fmt"
-	"os"
 	"path/filepath"
+	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/pkg/cmd"
-	testcontext "github.com/tetratelabs/getenvoy/pkg/test/cmd/extension"
+	"github.com/tetratelabs/getenvoy/pkg/test/cmd/extension"
 	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 
-const (
-	localRegistryWasmImageRef = "localhost:5000/getenvoy/sample"
-)
+// relativeWorkspaceDir points to a usable pre-initialized workspace
+const relativeWorkspaceDir = "testdata/workspace"
 
-var _ = Describe("getenvoy extension push", func() {
+// localRegistryWasmImageRef corresponds to a Docker container running the image "registry:2"
+// As this is not intended to be an end-to-end test, this could be improved to use a mock/fake HTTP registry instead.
+const localRegistryWasmImageRef = "localhost:5000/getenvoy/sample"
 
-	var cwdBackup string
+// When unspecified, we default the tag to Docker's default "latest". Note: recent tools enforce qualifying this!
+const defaultTag = "latest"
 
-	BeforeEach(func() {
-		cwd, err := os.Getwd()
-		Expect(err).ToNot(HaveOccurred())
-		cwdBackup = cwd
-	})
+// TestGetEnvoyExtensionPush shows current directory is usable, provided it is a valid workspace.
+func TestGetEnvoyExtensionPush(t *testing.T) {
+	_, revertWd := extension.RequireChDir(t, relativeWorkspaceDir)
+	defer revertWd()
 
-	AfterEach(func() {
-		if cwdBackup != "" {
-			Expect(os.Chdir(cwdBackup)).To(Succeed())
-		}
-	})
+	// Run "getenvoy extension push localhost:5000/getenvoy/sample"
+	cmd, stdout, stderr := extension.NewRootCommand()
+	cmd.SetArgs([]string{"extension", "push", localRegistryWasmImageRef})
+	err := cmdutil.Execute(cmd)
 
-	testcontext.SetDefaultUser() // UID:GID == 1001:1002
+	// A fully qualified image ref includes the tag
+	imageRef := localRegistryWasmImageRef + ":" + defaultTag
 
-	var stdout *bytes.Buffer
-	var stderr *bytes.Buffer
+	// Verify stdout shows the latest tag and the correct image ref
+	require.NoError(t, err, `expected no error running [%v]`, cmd)
 
-	BeforeEach(func() {
-		stdout = new(bytes.Buffer)
-		stderr = new(bytes.Buffer)
-	})
+	require.Contains(t, stdout.String(), fmt.Sprintf(`Using default tag: %s
+Pushed %s
+digest: sha256`, defaultTag, imageRef), `unexpected stderr after running [%v]`, cmd)
+	require.Empty(t, stderr.String(), `expected no stderr running [%v]`, cmd)
+}
 
-	var c *cobra.Command
+func TestGetEnvoyExtensionPushFailsOutsideWorkspaceDirectory(t *testing.T) {
+	// Change to a non-workspace dir
+	dir, revertWd := extension.RequireChDir(t, relativeWorkspaceDir+"/..")
+	defer revertWd()
 
-	BeforeEach(func() {
-		c = cmd.NewRoot()
-		c.SetOut(stdout)
-		c.SetErr(stderr)
-	})
+	// Run "getenvoy extension push localhost:5000/getenvoy/sample"
+	cmd, stdout, stderr := extension.NewRootCommand()
+	cmd.SetArgs([]string{"extension", "push", localRegistryWasmImageRef})
+	err := cmdutil.Execute(cmd)
 
-	chdir := func(path string) string {
-		dir, err := filepath.Abs(path)
-		Expect(err).ToNot(HaveOccurred())
+	// Verify the command failed with the expected error
+	expectedErr := "there is no extension directory at or above: " + dir
+	require.EqualError(t, err, expectedErr, `expected an error running [%v]`, cmd)
+	require.Empty(t, stdout.String(), `expected no stdout running [%v]`, cmd)
+	expectedStderr := fmt.Sprintf("Error: %s\n\nRun 'getenvoy extension push --help' for usage.\n", expectedErr)
+	require.Equal(t, expectedStderr, stderr.String(), `expected stderr running [%v]`, cmd)
+}
 
-		err = os.Chdir(dir)
-		Expect(err).ToNot(HaveOccurred())
+// TestGetEnvoyExtensionPushWithExplicitFileOption shows
+func TestGetEnvoyExtensionPushWithExplicitFileOption(t *testing.T) {
+	// Change to a non-workspace dir
+	dir, revertWd := extension.RequireChDir(t, relativeWorkspaceDir+"/..")
+	defer revertWd()
 
-		return dir
-	}
+	// Point to a wasm file explicitly
+	wasm := filepath.Join(dir, "workspace", "extension.wasm")
 
-	// TODO(musaprg): write teardown process for local registries if it's needed
+	// Run "getenvoy extension push localhost:5000/getenvoy/sample --extension-file testdata/workspace/extension.wasm"
+	cmd, stdout, stderr := extension.NewRootCommand()
+	cmd.SetArgs([]string{"extension", "push", localRegistryWasmImageRef, "--extension-file", wasm})
+	err := cmdutil.Execute(cmd)
 
-	//nolint:lll
-	Context("inside a workspace directory", func() {
-		When("if the image ref is valid", func() {
-			It("should succeed", func() {
-				By("changing to a workspace dir")
-				_ = chdir("testdata/workspace")
-
-				By("push to local registry")
-				c.SetArgs([]string{"extension", "push", localRegistryWasmImageRef})
-				err := cmdutil.Execute(c)
-				Expect(err).ToNot(HaveOccurred())
-
-				By("verifying command output")
-				Expect(stdout.String()).NotTo(BeEmpty())
-				Expect(stderr.String()).To(BeEmpty())
-			})
-		})
-	})
-
-	Context("outside of a workspace directory", func() {
-		When("if the target wasm binary is specified", func() {
-			It("should succeed", func() {
-				By("changing to a non-workspace dir")
-				dir := chdir("testdata")
-
-				By("running command")
-				c.SetArgs([]string{"extension", "push", localRegistryWasmImageRef, "--extension-file", filepath.Join(dir, "workspace", "extension.wasm")})
-				err := cmdutil.Execute(c)
-				Expect(err).NotTo(HaveOccurred())
-
-				By("verifying command output")
-				Expect(stdout.String()).NotTo(BeEmpty())
-				Expect(stderr.String()).To(BeEmpty())
-			})
-		})
-		When("if no wasm binary specified", func() {
-			It("should fail", func() {
-				By("changing to a non-workspace dir")
-				dir := chdir("testdata")
-
-				By("running command")
-				c.SetArgs([]string{"extension", "push", localRegistryWasmImageRef})
-				err := cmdutil.Execute(c)
-				Expect(err).To(HaveOccurred())
-
-				By("verifying command output")
-				Expect(stdout.String()).To(BeEmpty())
-				Expect(stderr.String()).To(Equal(fmt.Sprintf(`Error: there is no extension directory at or above: %s
-
-Run 'getenvoy extension push --help' for usage.
-`, dir)))
-			})
-		})
-	})
-})
+	// Verify the pushed a latest tag to the correct registry
+	require.NoError(t, err, `expected no error running [%v]`, cmd)
+	require.Contains(t, stdout.String(), fmt.Sprintf(`Using default tag: latest
+Pushed %s:latest
+digest: sha256`, localRegistryWasmImageRef))
+	require.Empty(t, stderr.String(), `expected no stderr running [%v]`, cmd)
+}
