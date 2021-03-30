@@ -38,5 +38,5 @@ while ! docker info 2> /dev/null; do
 	If Docker is not ready within 10 minutes, it's better to fail the current CI Job and let the comitter to re-start the job manually"
 done
 
-# sanity check
-docker run --rm -t busybox date
+# sanity check without using docker.io as it is rate-limited
+docker run --rm quay.io/prometheus/busybox date
