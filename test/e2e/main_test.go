@@ -20,6 +20,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -38,7 +39,13 @@ var (
 	stripAnsiEscapeRegexp = regexp.MustCompile(`(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]`)
 )
 
-// TestMain ensures state required for all tests, notably that util.E2E_GETENVOY_BINARY is set.
+//nolint:golint
+const (
+	E2E_GETENVOY_BINARY                     = "E2E_GETENVOY_BINARY"
+	E2E_BUILTIN_TOOLCHAIN_CONTAINER_OPTIONS = "E2E_BUILTIN_TOOLCHAIN_CONTAINER_OPTIONS"
+)
+
+// TestMain ensures util.GetEnvoyBinaryPath is set as all end-to-end (e2e) tests will invoke it.
 //
 // Note: "getenvoy extension build" and commands that imply it, can be extremely slow due to implicit responsibilities
 // such as downloading modules or compilation. Commands like this use Docker, so changes to the Dockerfile or contents
@@ -48,15 +55,49 @@ var (
 // CI may override this to set HOME or CARGO_HOME (rust) used by "getenvoy" and effect its execution.
 func TestMain(m *testing.M) {
 	// As this is an e2e test, we execute all tests with a binary compiled earlier.
-	//
-	// Ex. After running "make bin", E2E_GETENVOY_BINARY=$PWD/build/bin/darwin/amd64/getenvoy
-	path, err := e2e.Env.GetEnvoyBinary()
+	path, err := getEnvoyBinary()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, `failed to start e2e tests: %v`, err)
 		os.Exit(1)
 	}
 	e2e.GetEnvoyBinaryPath = path
 	os.Exit(m.Run())
+}
+
+// getEnvoyBinary reads E2E_GETENVOY_BINARY or defaults to "$PWD/build/bin/$GOOS/$GOARCH/getenvoy"
+// An error is returned if the value isn't an executable file.
+func getEnvoyBinary() (string, error) {
+	path := os.Getenv(E2E_GETENVOY_BINARY)
+	if path == "" {
+		// Assemble the default created by "make bin"
+		relativePath := filepath.Join("..", "..", "build", "bin", runtime.GOOS, runtime.GOARCH, "getenvoy")
+		abs, err := filepath.Abs(relativePath)
+		if err != nil {
+			return "", fmt.Errorf("resolve path to %s. Correct environment variable %s", path, E2E_GETENVOY_BINARY)
+		}
+		path = abs
+	}
+	stat, err := os.Stat(path)
+	if err != nil && os.IsNotExist(err) {
+		return "", fmt.Errorf("%s doesn't exist. Correct environment variable %s", path, E2E_GETENVOY_BINARY)
+	}
+	if stat.IsDir() {
+		return "", fmt.Errorf("%s is not a file. Correct environment variable %s", path, E2E_GETENVOY_BINARY)
+	}
+	// While "make bin" should result in correct permissions, double-check as some tools lose them, such as
+	// https://github.com/actions/upload-artifact#maintaining-file-permissions-and-case-sensitive-files
+	if stat.Mode()&0111 == 0 {
+		return "", fmt.Errorf("%s is not executable. Correct environment variable %s", path, E2E_GETENVOY_BINARY)
+	}
+	return path, nil
+}
+
+func getBuiltinContainerOptions() []string {
+	value := os.Getenv(E2E_BUILTIN_TOOLCHAIN_CONTAINER_OPTIONS)
+	if value == "" {
+		return nil
+	}
+	return []string{"--toolchain-container-options", value}
 }
 
 // requireNewTempDir creates a new directory. The function returned cleans it up.
@@ -154,7 +195,7 @@ func extensionWasmPath(language extension.Language) string {
 // requireExtensionInit is useful for tests that depend on "getenvoy extension build" as a prerequisite.
 // The result of calling this is the bytes representing the built wasm
 func requireExtensionBuild(t *testing.T, language extension.Language, workDir string) []byte {
-	cmd := GetEnvoy("extension build").Args(e2e.Env.GetBuiltinContainerOptions()...)
+	cmd := GetEnvoy("extension build").Args(getBuiltinContainerOptions()...)
 	// stderr returned is not tested because doing so is redundant to TestGetEnvoyExtensionInit.
 	_ = requireExecNoStderr(t, cmd)
 

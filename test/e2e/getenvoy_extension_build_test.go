@@ -46,7 +46,7 @@ func TestGetEnvoyExtensionBuild(t *testing.T) {
 
 			// "getenvoy extension build" only returns stdout because `docker run -t` redirects stderr to stdout.
 			// We don't verify stdout because it is low signal vs looking at files created.
-			cmd := GetEnvoy("extension build").Args(e2e.Env.GetBuiltinContainerOptions()...)
+			cmd := GetEnvoy("extension build").Args(getBuiltinContainerOptions()...)
 			_ = requireExecNoStderr(t, cmd)
 
 			// Verify the extension built
