@@ -15,94 +15,88 @@
 package e2e_test
 
 import (
-	"os"
+	"fmt"
 	"path/filepath"
+	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/require"
 
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
+	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
+	toolchains "github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain"
 	e2e "github.com/tetratelabs/getenvoy/test/e2e/util"
 )
 
-var _ = Describe("getenvoy extension init", func() {
+// TestGetEnvoyExtensionInit runs the equivalent of "getenvoy extension init" for a matrix of extension.Categories and
+// extension.Languages.
+//
+// "getenvoy extension init" does not use Docker. See TestMain for general notes on about the test runtime.
+func TestGetEnvoyExtensionInit(t *testing.T) {
+	const extensionName = "getenvoy_extension_init"
 
-	type testCase e2e.CategoryLanguageTuple
-
-	testCases := func() []TableEntry {
-		testCases := make([]TableEntry, 0)
-		for _, combination := range e2e.GetCategoryLanguageCombinations() {
-			testCases = append(testCases, Entry(combination.String(), testCase(combination)))
-		}
-		return testCases
+	type testTuple struct {
+		testName string
+		extension.Category
+		extension.Language
+		currentDirectory bool
 	}
 
-	const extensionName = "my.extension"
-
-	VerifyStdoutStderr := func(stdout string, stderr string, outputDir string) {
-		Expect(stdout).To(Equal(``))
-		Expect(stderr).To(MatchRegexp(`^\QScaffolding a new extension:\E\n`))
-		Expect(stderr).To(MatchRegexp(`\QGenerating files in %s:\E\n`, outputDir))
-		Expect(stderr).To(MatchRegexp(`\Q* .getenvoy/extension/extension.yaml\E\n`))
-		Expect(stderr).To(MatchRegexp(`\QDone!\E\n$`))
+	tests := make([]testTuple, 0)
+	for _, c := range e2e.GetCategoryLanguageCombinations() {
+		tests = append(tests,
+			testTuple{c.String() + "-currentDirectory", c.Category, c.Language, true},
+			testTuple{c.String() + "-newDirectory", c.Category, c.Language, false},
+		)
 	}
 
-	VerifyOutputDir := func(given testCase, outputDir string) {
-		workspace, err := workspaces.GetWorkspaceAt(outputDir)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(workspace.GetExtensionDescriptor().Name).To(Equal(extensionName))
-		Expect(workspace.GetExtensionDescriptor().Category).To(Equal(given.Category))
-		Expect(workspace.GetExtensionDescriptor().Language).To(Equal(given.Language))
+	for _, test := range tests {
+		test := test // pin! see https://github.com/kyoh86/scopelint for why
+
+		t.Run(test.testName, func(t *testing.T) {
+			workDir, removeWorkDir := requireNewTempDir(t)
+			defer removeWorkDir()
+
+			revertChDir := requireChDir(t, workDir)
+			defer revertChDir()
+
+			if !test.currentDirectory {
+				workDir = filepath.Join(workDir, "newDirectory")
+			}
+
+			// "getenvoy extension init" should result in stderr describing files created.
+			cmd := GetEnvoy("extension init").
+				Arg(workDir).
+				Arg("--category").Arg(test.Category.String()).
+				Arg("--language").Arg(test.Language.String()).
+				Arg("--name").Arg(extensionName)
+			stderr := requireExecNoStdout(t, cmd)
+
+			// Check that the contents look valid for the inputs.
+			for _, regex := range []string{
+				`^\QScaffolding a new extension:\E\n`,
+				fmt.Sprintf(`\QGenerating files in %s:\E\n`, workDir),
+				`\Q* .getenvoy/extension/extension.yaml\E\n`,
+				`\QDone!\E\n$`,
+			} {
+				require.Regexp(t, regex, stderr, `invalid stderr running [%v]`, cmd)
+			}
+
+			// Check to see that the extension.yaml mentioned in stderr exists.
+			// Note: we don't check all files as extensions are language-specific.
+			require.FileExists(t, filepath.Join(workDir, ".getenvoy/extension/extension.yaml"), `extension.yaml missing after running [%v]`, cmd)
+
+			// Check the generated extension.yaml includes values we passed and includes the default toolchain.
+			workspace, err := workspaces.GetWorkspaceAt(workDir)
+			require.NoError(t, err, `error getting workspace after running [%v]`, cmd)
+			require.NotNil(t, workspace, `nil workspace running [%v]`, cmd)
+			require.Equal(t, extensionName, workspace.GetExtensionDescriptor().Name, `wrong extension name running [%v]`, cmd)
+			require.Equal(t, test.Category, workspace.GetExtensionDescriptor().Category, `wrong extension category running [%v]`, cmd)
+			require.Equal(t, test.Language, workspace.GetExtensionDescriptor().Language, `wrong extension language running [%v]`, cmd)
+
+			// Check the default toolchain is loadable
+			toolchain, err := toolchains.LoadToolchain(toolchains.Default, workspace)
+			require.NoError(t, err, `error loading toolchain running [%v]`, cmd)
+			require.NotNil(t, toolchain, `nil toolchain running [%v]`, cmd)
+		})
 	}
-
-	DescribeTable("should create extension in a new directory",
-		func(given testCase) {
-			By("choosing the output directory")
-			outputDir := filepath.Join(tempDir, "new")
-
-			By("running `extension init` command")
-			stdout, stderr, err := GetEnvoy("extension init").
-				Arg(outputDir).
-				Arg("--category").Arg(given.Category.String()).
-				Arg("--language").Arg(given.Language.String()).
-				Arg("--name").Arg(extensionName).
-				Exec()
-			Expect(err).NotTo(HaveOccurred())
-
-			By("verifying stdout/stderr")
-			VerifyStdoutStderr(stdout, stderr, outputDir)
-
-			By("verifying output directory")
-			VerifyOutputDir(given, outputDir)
-		},
-		testCases()...,
-	)
-
-	DescribeTable("should create extension in the current directory",
-		func(given testCase) {
-			By("choosing the output directory")
-			outputDir := tempDir
-			defer CleanUpExtensionDir(outputDir)
-
-			By("changing to the output directory")
-			err := os.Chdir(outputDir)
-			Expect(err).NotTo(HaveOccurred())
-
-			By("running `extension init` command")
-			stdout, stderr, err := GetEnvoy("extension init").
-				Arg("--category").Arg(given.Category.String()).
-				Arg("--language").Arg(given.Language.String()).
-				Arg("--name").Arg(extensionName).
-				Exec()
-			Expect(err).NotTo(HaveOccurred())
-
-			By("verifying stdout/stderr")
-			VerifyStdoutStderr(stdout, stderr, outputDir)
-
-			By("verifying output directory")
-			VerifyOutputDir(given, outputDir)
-		},
-		testCases()...,
-	)
-})
+}

@@ -15,18 +15,21 @@
 package e2e_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
-var _ = Describe("getenvoy", func() {
-	It("should support '--version' flag", func() {
-		By("running the command")
-		stdout, stderr, err := GetEnvoy("--version").Exec()
-		Expect(err).NotTo(HaveOccurred())
+func TestGetEnvoyVersion(t *testing.T) {
+	stdout, stderr, err := GetEnvoy("--version").Exec()
 
-		By("verifying stdout/stderr")
-		Expect(stdout).To(MatchRegexp(`^getenvoy version ([^\s]+)\n$`))
-		Expect(stderr).To(Equal(``))
-	})
-})
+	require.Regexp(t, `^getenvoy version ([^\s]+)\n$`, stdout)
+	require.Equal(t, ``, stderr)
+	require.NoError(t, err)
+}
+
+func TestGetEnvoyString(t *testing.T) {
+	g := GetEnvoy("--version")
+
+	require.Regexp(t, `.*getenvoy --version$`, g.String())
+}

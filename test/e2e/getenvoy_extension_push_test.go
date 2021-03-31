@@ -17,205 +17,89 @@ package e2e_test
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
-	"regexp"
-	"sync"
-	"time"
+	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/pkg/common"
 	"github.com/tetratelabs/getenvoy/pkg/extension/wasmimage"
-	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
-	toolchains "github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain"
-	e2e "github.com/tetratelabs/getenvoy/test/e2e/util"
-	utilenvoy "github.com/tetratelabs/getenvoy/test/e2e/util/envoy"
+	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 )
 
-const (
-	localRegistryWasmImageRef = "localhost:5000/getenvoy/sample:latest"
-)
+// TestGetEnvoyExtensionPush runs the equivalent of "getenvoy extension push". "getenvoy extension init" and
+// "getenvoy extension build" are a prerequisites, so run first.
+//
+// This test does not attempt to use the image built as that would be redundant to other tests. Rather, this focuses on
+// whether we can read back exactly what was pushed to the registry.
+//
+// "getenvoy extension run" depends on a Docker container, and "getenvoy extension build" uses Docker.
+// See TestMain for general notes on about the test runtime.
+func TestGetEnvoyExtensionPush(t *testing.T) {
+	const extensionName = "getenvoy_extension_push"
+	// localRegistryWasmImageRef corresponds to a Docker container running the image "registry:2"
+	const localRegistryWasmImageRef = "localhost:5000/getenvoy/" + extensionName
+	// When unspecified, we default the tag to Docker's default "latest". Note: recent tools enforce qualifying this!
+	const defaultTag = "latest"
 
-var _ = Describe("getenvoy extension push", func() {
-	var debugDir string
-
-	BeforeEach(func() {
-		debugDir = filepath.Join(common.DefaultHomeDir(), "debug")
-	})
-
-	var backupDebugDir string
-
-	BeforeEach(func() {
-		_, err := ioutil.ReadDir(debugDir)
-		if os.IsNotExist(err) {
-			return
-		}
-		Expect(err).NotTo(HaveOccurred())
-
-		By("backing up GetEnvoy debug dir")
-		backupDir, err := ioutil.TempDir(filepath.Dir(debugDir), "debug")
-		Expect(err).NotTo(HaveOccurred())
-		err = os.RemoveAll(backupDir)
-		Expect(err).NotTo(HaveOccurred())
-
-		err = os.Rename(debugDir, backupDir)
-		Expect(err).NotTo(HaveOccurred())
-		backupDebugDir = backupDir
-	})
-
-	AfterEach(func() {
-		if backupDebugDir == "" {
-			return
-		}
-		By("restoring GetEnvoy debug dir from backup")
-		err := os.RemoveAll(debugDir)
-		Expect(err).NotTo(HaveOccurred())
-		err = os.Rename(backupDebugDir, debugDir)
-		Expect(err).NotTo(HaveOccurred())
-	})
-
-	type testCase e2e.CategoryLanguageTuple
-
-	testCases := func() []TableEntry {
-		testCases := make([]TableEntry, 0)
-		for _, combination := range e2e.GetCategoryLanguageCombinations() {
-			testCases = append(testCases, Entry(combination.String(), testCase(combination)))
-		}
-		return testCases
+	type testTuple struct {
+		name string
+		extension.Category
+		extension.Language
 	}
 
-	AtMostOnce := func(fn func()) func() {
-		var once sync.Once
-		return func() {
-			once.Do(fn)
-		}
+	// Push is not language-specific, so we don't need to test a large matrix, and doing so would slow down e2e runtime.
+	// Instead, we choose something that executes "getenvoy extension build" quickly.
+	tests := []testTuple{
+		{"tinygo HTTP filter", extension.EnvoyHTTPFilter, extension.LanguageTinyGo},
 	}
 
-	// TODO(musaprg): write teardown process for local registries if it's needed
+	for _, test := range tests {
+		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
-	const extensionName = "my.extension"
+		t.Run(test.name, func(t *testing.T) {
+			workDir, removeWorkDir := requireNewTempDir(t)
+			defer removeWorkDir()
 
-	const terminateTimeout = 2 * time.Minute
+			revertChDir := requireChDir(t, workDir)
+			defer revertChDir()
 
-	DescribeTable("should push a *.wasm file",
-		func(given testCase) {
-			By("choosing the output directory")
-			outputDir := filepath.Join(tempDir, "new")
-			defer CleanUpExtensionDir(outputDir)
+			// push requires "get envoy extension init" and "get envoy extension build" to have succeeded
+			requireExtensionInit(t, workDir, test.Category, test.Language, extensionName)
+			defer requireExtensionClean(t, workDir)
+			wasmBytes := requireExtensionBuild(t, test.Language, workDir)
 
-			By("running `extension init` command")
-			_, _, err := GetEnvoy("extension init").
-				Arg(outputDir).
-				Arg("--category").Arg(given.Category.String()).
-				Arg("--language").Arg(given.Language.String()).
-				Arg("--name").Arg(extensionName).
-				Exec()
-			Expect(err).NotTo(HaveOccurred())
+			// After pushing, stderr should include the registry URL and the image tag.
+			cmd := GetEnvoy("extension push").Arg(localRegistryWasmImageRef)
+			stderr := requireExecNoStdout(t, cmd)
 
-			By("changing to the output directory")
-			err = os.Chdir(outputDir)
-			Expect(err).NotTo(HaveOccurred())
+			// Assemble a fully-qualified image ref as we'll pull this later
+			imageRef := localRegistryWasmImageRef + ":" + defaultTag
 
-			By("running `extension build` command")
-			stdout, stderr, err := GetEnvoy("extension build").
-				Args(e2e.Env.GetBuiltinContainerOptions()...).
-				Exec()
-			Expect(err).NotTo(HaveOccurred())
+			// Verify stderr shows the latest tag and the correct image ref
+			require.Contains(t, stderr, fmt.Sprintf(`Using default tag: %s
+Pushed %s
+digest: sha256`, defaultTag, imageRef), `unexpected stderr after running [%v]`, cmd)
 
-			By("verifying stdout/stderr")
-			// apparently, use of `-t` option in `docker run` causes stderr to be incorporated into stdout
-			Expect(stdout).NotTo(BeEmpty())
-			Expect(stderr).To(BeEmpty())
-
-			By("verifying *.wasm file")
-			workspace, err := workspaces.GetWorkspaceAt(outputDir)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(workspace).NotTo(BeNil())
-			toolchain, err := toolchains.LoadToolchain(toolchains.Default, workspace)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(toolchain).NotTo(BeNil())
-
-			By("running `extension push` command")
-			_, _, err = GetEnvoy("extension push").Arg(localRegistryWasmImageRef).Exec()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(stdout).NotTo(BeEmpty())
-			Expect(stderr).To(BeEmpty())
-
-			By("pulling pushed wasm binary")
+			// Get a puller we can use to pull what we just pushed.
 			puller, err := wasmimage.NewPuller(false, false)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(puller).NotTo(BeNil())
-			dstPath := filepath.Join(outputDir, "pulled_extension.wasm")
-			_, err = puller.Pull(localRegistryWasmImageRef, dstPath)
-			Expect(err).NotTo(HaveOccurred())
+			require.NoError(t, err, `error getting puller instance after running [%v]`, cmd)
+			require.NotNil(t, puller, `nil puller instance after running [%v]`, cmd)
 
-			By("running `extension run` command with pulled image")
-			_, se, cancel, errs := GetEnvoy("extension run").
-				Args(e2e.Env.GetBuiltinContainerOptions()...).
-				Arg("--extension-file").Arg(dstPath).
-				Start()
+			// Pull the wasm we just pushed, writing it to a local file.
+			dstPath := filepath.Join(workDir, "pulled_extension.wasm")
+			desc, err := puller.Pull(imageRef, dstPath)
+			require.NoError(t, err, `error pulling wasm after running [%v]: %s`, cmd)
 
-			cancelCh := make(chan struct{})
-			cancelGracefully := AtMostOnce(func() {
-				close(cancelCh)
+			// Verify the pulled image descriptor is valid and the image file exists/
+			require.Equal(t, "application/vnd.module.wasm.content.layer.v1+wasm", desc.MediaType, `invalid media type after running [%v]`, cmd)
+			require.Equal(t, "extension.wasm", desc.Annotations["org.opencontainers.image.title"], `invalid image title after running [%v]`, cmd)
+			require.FileExists(t, dstPath, `image not written after running [%v]`, cmd)
 
-				Expect(cancel()).To(Succeed())
-				select {
-				case e := <-errs:
-					Expect(e).NotTo(HaveOccurred())
-				case <-time.After(terminateTimeout):
-					Fail(fmt.Sprintf("getenvoy command didn't exit gracefully within %s", terminateTimeout))
-				}
-			})
-			// make sure to stop Envoy if test fails
-			defer cancelGracefully()
-
-			// fail the test if `getenvoy extension run` exits with an error or unexpectedly
-			go func() {
-				select {
-				case e := <-errs:
-					Expect(e).NotTo(HaveOccurred(), "getenvoy command exited unexpectedly")
-				case <-cancelCh:
-				}
-			}()
-
-			stderrLines := e2e.StreamLines(se).Named("stderr")
-
-			By("waiting for Envoy Admin address to get logged")
-			adminAddressPattern := regexp.MustCompile(`admin address: ([^:]+:[0-9]+)`)
-			line, err := stderrLines.FirstMatch(adminAddressPattern).Wait(10 * time.Minute) // give time to compile the extension
-			Expect(err).NotTo(HaveOccurred())
-			adminAddress := adminAddressPattern.FindStringSubmatch(line)[1]
-
-			By("waiting for Envoy start-up to complete")
-			stderrLines.FirstMatch(regexp.MustCompile(`starting main dispatch loop`)).Wait(1 * time.Minute)
-
-			By("verifying Envoy is ready")
-			envoyClient, err := utilenvoy.NewClient(adminAddress)
-			Expect(err).NotTo(HaveOccurred())
-			Eventually(func() bool {
-				ready, e := envoyClient.IsReady()
-				return e == nil && ready
-			}, "60s", "100ms").Should(BeTrue())
-
-			By("verifying Wasm extensions have been created")
-			Eventually(func() bool {
-				stats, e := envoyClient.GetStats()
-				if e != nil {
-					return false
-				}
-				// at the moment, the only available Wasm metric is the number of Wasm VMs
-				concurrency := stats.GetMetric("server.concurrency")
-				activeWasmVms := stats.GetMetric("wasm.envoy.wasm.runtime.v8.active")
-				return concurrency != nil && activeWasmVms != nil && activeWasmVms.Value == concurrency.Value+2
-			}, "60s", "100ms").Should(BeTrue())
-
-			By("signaling Envoy to stop")
-			cancelGracefully()
-		},
-		testCases()...,
-	)
-})
+			// Verify the bytes pulled are exactly the same as what we pushed.
+			pulledBytes, err := ioutil.ReadFile(dstPath)
+			require.NoError(t, err, `error reading file wasm %s after running [%v]`, dstPath, cmd)
+			require.NotEmpty(t, wasmBytes, `%s empty after running [%v]`, dstPath, cmd)
+			require.Equal(t, wasmBytes, pulledBytes, `pulled bytes don't match source after running [%v]`, cmd)
+		})
+	}
+}

@@ -16,124 +16,96 @@ package e2e_test
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
+	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 	e2e "github.com/tetratelabs/getenvoy/test/e2e/util"
 )
 
-var _ = Describe("getenvoy extension examples", func() {
+// TestGetEnvoyExtensionExampleAdd runs the equivalent of "getenvoy extension example XXX" commands for a matrix of
+// extension.Categories and extension.Languages.
+//
+// "getenvoy extension example" does not use Docker. See TestMain for general notes on about the test runtime.
+func TestGetEnvoyExtensionExample(t *testing.T) {
+	const extensionName = "getenvoy_extension_example"
 
-	type testCase e2e.CategoryLanguageTuple
+	for _, test := range e2e.GetCategoryLanguageCombinations() {
+		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
-	testCases := func() []TableEntry {
-		testCases := make([]TableEntry, 0)
-		for _, combination := range e2e.GetCategoryLanguageCombinations() {
-			testCases = append(testCases, Entry(combination.String(), testCase(combination)))
-		}
-		return testCases
-	}
-
-	const extensionName = "my.extension"
-
-	DescribeTable("should create extension in a new directory",
-		func(given testCase) {
-			By("choosing the output directory")
-			outputDir := filepath.Join(tempDir, "new")
-			defer CleanUpExtensionDir(outputDir)
-
-			By("running `extension init` command")
-			_, _, err := GetEnvoy("extension init").
-				Arg(outputDir).
-				Arg("--category").Arg(given.Category.String()).
-				Arg("--language").Arg(given.Language.String()).
-				Arg("--name").Arg(extensionName).
-				Exec()
-			Expect(err).NotTo(HaveOccurred())
-
-			By("changing to the output directory")
-			err = os.Chdir(outputDir)
-			Expect(err).NotTo(HaveOccurred())
-
-			By("running `extension examples list` command")
-			stdout, stderr, err := GetEnvoy("extension examples list").Exec()
-			Expect(err).NotTo(HaveOccurred())
-
-			By("verifying stdout/stderr")
-			Expect(stdout).To(Equal(``))
-			Expect(stderr).To(Equal(`Extension has no example setups.
-
-Use "getenvoy extension examples add --help" for more information on how to add one.
-`))
-
-			By("running `extension examples add` command")
-			stdout, stderr, err = GetEnvoy("extension examples add").Exec()
-			Expect(err).NotTo(HaveOccurred())
-
-			By("verifying stdout/stderr")
+		t.Run(test.String(), func(t *testing.T) {
 			var extensionConfigFileName string
-			switch given.Language {
+			switch test.Language {
 			case extension.LanguageTinyGo:
 				extensionConfigFileName = "extension.txt"
 			default:
 				extensionConfigFileName = "extension.json"
 			}
-			Expect(stdout).To(Equal(``))
-			Expect(stderr).To(MatchRegexp(`^\QScaffolding a new example setup:\E\n`))
-			Expect(stderr).To(MatchRegexp(`\Q* .getenvoy/extension/examples/default/README.md\E\n`))
-			Expect(stderr).To(MatchRegexp(`\Q* .getenvoy/extension/examples/default/envoy.tmpl.yaml\E\n`))
-			Expect(stderr).To(MatchRegexp(`\Q* .getenvoy/extension/examples/default/example.yaml\E\n`))
-			Expect(stderr).To(MatchRegexp(
-				fmt.Sprintf(`\Q* .getenvoy/extension/examples/default/%s\E\n`, extensionConfigFileName)))
-			Expect(stderr).To(MatchRegexp(`\QDone!\E\n$`))
 
-			By("verifying output directory")
-			Expect(filepath.Join(outputDir, ".getenvoy/extension/examples/default/README.md")).To(BeAnExistingFile())
-			Expect(filepath.Join(outputDir, ".getenvoy/extension/examples/default/envoy.tmpl.yaml")).To(BeAnExistingFile())
-			Expect(filepath.Join(outputDir, ".getenvoy/extension/examples/default/example.yaml")).To(BeAnExistingFile())
-			Expect(filepath.Join(outputDir,
-				fmt.Sprintf(".getenvoy/extension/examples/default/%s", extensionConfigFileName))).To(BeAnExistingFile())
+			workDir, removeWorkDir := requireNewTempDir(t)
+			defer removeWorkDir()
 
-			By("running `extension examples list` command")
-			stdout, stderr, err = GetEnvoy("extension examples list").Exec()
-			Expect(err).NotTo(HaveOccurred())
+			revertChDir := requireChDir(t, workDir)
+			defer revertChDir()
 
-			By("verifying stdout/stderr")
-			Expect(stdout).To(Equal(`EXAMPLE
-default
-`))
-			Expect(stderr).To(BeEmpty())
+			// "getenvoy extension example XXX" commands require an extension init to succeed
+			requireExtensionInit(t, workDir, test.Category, test.Language, extensionName)
+			defer requireExtensionClean(t, workDir)
 
-			By("running `extension examples remove` command")
-			stdout, stderr, err = GetEnvoy("extension examples remove --name default").Exec()
-			Expect(err).NotTo(HaveOccurred())
-
-			By("verifying stdout/stderr")
-			Expect(stdout).To(Equal(``))
-			Expect(stderr).To(MatchRegexp(`^\QRemoving example setup:\E\n`))
-			Expect(stderr).To(MatchRegexp(`\Q* .getenvoy/extension/examples/default/README.md\E\n`))
-			Expect(stderr).To(MatchRegexp(`\Q* .getenvoy/extension/examples/default/envoy.tmpl.yaml\E\n`))
-			Expect(stderr).To(MatchRegexp(`\Q* .getenvoy/extension/examples/default/example.yaml\E\n`))
-			Expect(stderr).To(MatchRegexp(fmt.Sprintf(
-				`\Q* .getenvoy/extension/examples/default/%s\E\n`, extensionConfigFileName)))
-			Expect(stderr).To(MatchRegexp(`\QDone!\E\n$`))
-
-			By("running `extension examples list` command")
-			stdout, stderr, err = GetEnvoy("extension examples list").Exec()
-			Expect(err).NotTo(HaveOccurred())
-
-			By("verifying stdout/stderr")
-			Expect(stdout).To(Equal(``))
-			Expect(stderr).To(Equal(`Extension has no example setups.
+			// "getenvoy extension examples list" should start empty
+			cmd := GetEnvoy("extension examples list")
+			stderr := requireExecNoStdout(t, cmd)
+			require.Equal(t, `Extension has no example setups.
 
 Use "getenvoy extension examples add --help" for more information on how to add one.
-`))
-		},
-		testCases()...,
-	)
-})
+`, stderr, `invalid stderr running [%v]`, cmd)
+
+			// "getenvoy extension examples add" should result in stderr describing files created.
+			cmd = GetEnvoy("extension examples add")
+			stderr = requireExecNoStdout(t, cmd)
+
+			exampleFiles := []string{
+				filepath.Join(workDir, ".getenvoy/extension/examples/default/README.md"),
+				filepath.Join(workDir, ".getenvoy/extension/examples/default/envoy.tmpl.yaml"),
+				filepath.Join(workDir, ".getenvoy/extension/examples/default/example.yaml"),
+				fmt.Sprintf(".getenvoy/extension/examples/default/%s", extensionConfigFileName),
+			}
+
+			exampleFileText := fmt.Sprintf(`
+* .getenvoy/extension/examples/default/README.md
+* .getenvoy/extension/examples/default/envoy.tmpl.yaml
+* .getenvoy/extension/examples/default/example.yaml
+* .getenvoy/extension/examples/default/%s
+`, extensionConfigFileName)
+
+			// Check stderr mentions the files created
+			require.Equal(t, fmt.Sprintf("Scaffolding a new example setup:%sDone!\n", exampleFileText),
+				stderr, `invalid stderr running [%v]`, cmd)
+
+			// Check the files mentioned actually exist
+			for _, path := range exampleFiles {
+				require.FileExists(t, path, `example file %s missing after running [%v]`, path, cmd)
+			}
+
+			// "getenvoy extension examples list" should now include an example
+			cmd = GetEnvoy("extension examples list")
+			stdout := requireExecNoStderr(t, cmd)
+			require.Equal(t, "EXAMPLE\ndefault\n", stdout, `invalid stdout running [%v]`, cmd)
+
+			// "getenvoy extension examples add" should result in stderr describing files created.
+			cmd = GetEnvoy("extension examples remove --name default")
+			stderr = requireExecNoStdout(t, cmd)
+
+			// Check stderr mentions the files removed
+			require.Equal(t, fmt.Sprintf("Removing example setup:%sDone!\n", exampleFileText),
+				stderr, `invalid stderr running [%v]`, cmd)
+
+			// Check the files mentioned actually were removed
+			for _, path := range exampleFiles {
+				require.NoFileExists(t, path, `example file %s still exists after running [%v]`, path, cmd)
+			}
+		})
+	}
+}

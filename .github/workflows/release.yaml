@@ -71,33 +71,11 @@ jobs:
       - name: "Push extension builder images"
         run: make builders.push BUILDERS_TAG=${{ env.RELEASE_VERSION }}
 
-  e2e_bin:
-    name: "Build `e2e` binaries for use in e2e tests"
-    runs-on: ubuntu-latest
-    steps:
-      - name: "Checkout"
-        uses: actions/checkout@v2
-
-      - name: "Install Go"
-        uses: actions/setup-go@v2
-        with:
-          go-version: '1.16.2'
-
-      - name: "Build `e2e` binaries"
-        run: make build/bin/linux/amd64/e2e build/bin/darwin/amd64/e2e
-
-      - name: "Share `e2e` binaries with the downstream jobs"
-        uses: actions/upload-artifact@v2
-        with:
-          name: bin
-          path: build/bin
-
   e2e_linux:
     name: "Run e2e tests on Linux"
     needs:
       - getenvoy
       - builders
-      - e2e_bin
     runs-on: ubuntu-latest
     timeout-minutes: 30  # instead of 360 by default
     steps:
@@ -121,7 +99,7 @@ jobs:
         env:
           INPUT_FILE: getenvoy_${{ env.RELEASE_VERSION }}_Linux_x86_64.tar.gz
           INPUT_VERSION: tags/${{ env.RELEASE_TAG }}
-        run: |
+        run: |  # extract getenvoy to location used in `make e2e`. don't chmod because tar.gz should be correct.
           curl -s https://raw.githubusercontent.com/dsaltares/fetch-gh-release-asset/0.0.5/fetch_github_asset.sh | bash
           mkdir -p build/bin/linux/amd64
           tar -C build/bin/linux/amd64 -xf ${INPUT_FILE} getenvoy
@@ -138,7 +116,6 @@ jobs:
     needs:
       - getenvoy
       - builders
-      - e2e_bin
     runs-on: macos-latest
     timeout-minutes: 90  # instead of 360 by default
     steps:
@@ -162,7 +139,7 @@ jobs:
         env:
           INPUT_FILE: getenvoy_${{ env.RELEASE_VERSION }}_Darwin_x86_64.tar.gz
           INPUT_VERSION: tags/${{ env.RELEASE_TAG }}
-        run: |
+        run: |  # extract getenvoy to location used in `make e2e`. don't chmod because tar.gz should be correct.
           curl -s https://raw.githubusercontent.com/dsaltares/fetch-gh-release-asset/0.0.5/fetch_github_asset.sh | bash
           mkdir -p build/bin/darwin/amd64
           tar -C build/bin/darwin/amd64 -xf ${INPUT_FILE} getenvoy
