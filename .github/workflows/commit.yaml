@@ -62,7 +62,9 @@ jobs:
         run: make builders
 
       - name: "Run e2e tests using the `getenvoy` binary built by the upstream job"
-        run: ./ci/e2e/linux/run_tests.sh
+        run: |  # chmod to restore permissions lost in actions/download-artifact@v2
+          chmod a+x build/bin/linux/amd64/getenvoy
+          ./ci/e2e/macos/run_tests.sh
 
   e2e_macos:
     name: "Run e2e tests on MacOS"
@@ -93,4 +95,6 @@ jobs:
         timeout-minutes: 10  # fail fast if MacOS runner becomes to slow
 
       - name: "Run e2e tests using the `getenvoy` binary built by the upstream job"
-        run: ./ci/e2e/macos/run_tests.sh
+        run: |  # chmod to restore permissions lost in actions/download-artifact@v2
+          chmod a+x build/bin/linux/amd64/getenvoy
+          ./ci/e2e/macos/run_tests.sh

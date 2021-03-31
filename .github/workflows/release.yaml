@@ -99,7 +99,7 @@ jobs:
         env:
           INPUT_FILE: getenvoy_${{ env.RELEASE_VERSION }}_Linux_x86_64.tar.gz
           INPUT_VERSION: tags/${{ env.RELEASE_TAG }}
-        run: |
+        run: |  # extract getenvoy to location used in `make e2e`. don't chmod because tar.gz should be correct.
           curl -s https://raw.githubusercontent.com/dsaltares/fetch-gh-release-asset/0.0.5/fetch_github_asset.sh | bash
           mkdir -p build/bin/linux/amd64
           tar -C build/bin/linux/amd64 -xf ${INPUT_FILE} getenvoy
@@ -139,7 +139,7 @@ jobs:
         env:
           INPUT_FILE: getenvoy_${{ env.RELEASE_VERSION }}_Darwin_x86_64.tar.gz
           INPUT_VERSION: tags/${{ env.RELEASE_TAG }}
-        run: |
+        run: |  # extract getenvoy to location used in `make e2e`. don't chmod because tar.gz should be correct.
           curl -s https://raw.githubusercontent.com/dsaltares/fetch-gh-release-asset/0.0.5/fetch_github_asset.sh | bash
           mkdir -p build/bin/darwin/amd64
           tar -C build/bin/darwin/amd64 -xf ${INPUT_FILE} getenvoy
