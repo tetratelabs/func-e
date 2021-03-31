@@ -16,6 +16,7 @@ package e2e_test
 
 import (
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"regexp"
 	"testing"
@@ -25,29 +26,32 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tetratelabs/log"
 
+	"github.com/tetratelabs/getenvoy/pkg/common"
 	e2e "github.com/tetratelabs/getenvoy/test/e2e/util"
 	utilenvoy "github.com/tetratelabs/getenvoy/test/e2e/util/envoy"
 )
+
+const extensionName = "getenvoy_extension_run"
+const terminateTimeout = 2 * time.Minute
 
 // TestGetEnvoyExtensionRun runs the equivalent of "getenvoy extension run" for a matrix of extension.Categories and
 // extension.Languages. "getenvoy extension init" is a prerequisite, so run first.
 //
 // Note: "getenvoy extension run" can be extremely slow due to implicit responsibilities such as downloading modules
 // or compilation. This uses Docker, so changes to the Dockerfile or contents like "commands.sh" effect performance.
+//
+// Note: Pay close attention to values of util.E2E_BUILTIN_TOOLCHAIN_CONTAINER_OPTIONS as these can change assumptions.
+// CI may override this to set HOME or CARGO_HOME (rust) used by "getenvoy" and effect directories used here.
 func TestGetEnvoyExtensionRun(t *testing.T) {
-	const extensionName = "getenvoy_extension_run"
-	const terminateTimeout = 2 * time.Minute
 	requireEnvoyBinaryPath(t) // Ex. After running "make bin", E2E_GETENVOY_BINARY=$PWD/build/bin/darwin/amd64/getenvoy
+
+	debugDir, revertOriginalDebugDir := backupDebugDir(t)
+	defer revertOriginalDebugDir()
 
 	for _, test := range e2e.GetCategoryLanguageCombinations() {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.String(), func(t *testing.T) {
-			// We override the home directory ~/.getenvoy so as to not overwrite any debug info there. We need to do
-			// this to ensure presence of debug files are from this run, not another one.
-			homeDir, removeHomeDir := requireNewTempDir(t)
-			defer removeHomeDir()
-
 			workDir, removeWorkDir := requireNewTempDir(t)
 			defer removeWorkDir()
 
@@ -60,7 +64,6 @@ func TestGetEnvoyExtensionRun(t *testing.T) {
 
 			// "getenvoy extension run" only returns stdout because `docker run -t` redirects stderr to stdout.
 			cmd := GetEnvoy("extension run --envoy-options '-l trace'").
-				Args("--home-dir", homeDir).
 				Args(e2e.Env.GetBuiltinContainerOptions()...)
 			_, stderr, terminate := cmd.Start(t, terminateTimeout)
 			defer terminate()
@@ -101,10 +104,13 @@ func TestGetEnvoyExtensionRun(t *testing.T) {
 			terminate()
 
 			// verify the debug dump of Envoy state has been taken
-			debugDir := filepath.Join(homeDir, "debug")
 			files, err := ioutil.ReadDir(debugDir)
 			require.NoError(t, err, `error reading %s after stopping [%v]`, debugDir, cmd)
 			require.Equal(t, 1, len(files), `expected 1 file in %s after stopping [%v]`, debugDir, cmd)
+			defer func() {
+				e := os.RemoveAll(debugDir)
+				require.NoError(t, e, `error removing debug dir %s after stopping [%v]`, debugDir, cmd)
+			}()
 
 			// get a listing of the debug archive
 			debugArchive := filepath.Join(debugDir, files[0].Name())
@@ -120,5 +126,34 @@ func TestGetEnvoyExtensionRun(t *testing.T) {
 				require.Contains(t, dumpFiles, file, `debug archive %s doesn't contain %s after stopping [%v]`, debugArchive, file, cmd)
 			}
 		})
+	}
+}
+
+// backupDebugDir backs up ${GETENVOY_HOME}/debug in case the test hasn't overridden it and the developer has existing
+// data there. The function returned reverts this directory.
+//
+// Typically, this will run in the default ~/.getenvoy directory, as a means to avoid re-downloads of files such as
+// .getenvoy/builds/standard/1.17.0/darwin/bin/envoy (~100MB)
+//
+// While CI usually overrides the `HOME` variable with E2E_BUILTIN_TOOLCHAIN_CONTAINER_OPTIONS, a developer may be
+// running this on their laptop. To avoid clobbering their old debug data, backup the
+func backupDebugDir(t *testing.T) (string, func()) {
+	debugDir := filepath.Join(common.HomeDir, "debug")
+
+	if _, err := os.Lstat(debugDir); err != nil && os.IsNotExist(err) {
+		return debugDir, func() {} // do nothing on remove, if there was no debug backup
+	}
+
+	// get a name of a new temp directory, which we'll rename the existing debug to
+	backupDir, _ := requireNewTempDir(t)
+	err := os.RemoveAll(backupDir)
+	require.NoError(t, err, `error removing temp directory: %s`, backupDir)
+
+	err = os.Rename(debugDir, backupDir)
+	require.NoError(t, err, `error renaming debug dir %s to %s`, debugDir, backupDir)
+
+	return debugDir, func() {
+		err = os.Rename(backupDir, debugDir)
+		require.NoError(t, err, `error renaming backup dir %s to %s`, debugDir, backupDir)
 	}
 }

@@ -54,7 +54,8 @@ GO_COVERAGE_OPTS ?= -covermode=atomic -coverpkg=./...
 GO_COVERAGE_EXTRA_OPTS ?=
 
 E2E_PKG_LIST ?= ./test/e2e/...
-E2E_OPTS ?= -test.parallel 1 -test.failfast
+# Set the default timeout >10m as particularly rust e2e tests are slow https://golang.org/cmd/go/#hdr-Testing_flags
+E2E_OPTS ?= -timeout 45m -test.parallel 1 -test.failfast
 E2E_EXTRA_OPTS ?=
 
 GOOSES := linux darwin

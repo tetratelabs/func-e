@@ -34,6 +34,9 @@ import (
 //
 // Note: "getenvoy extension build" can be extremely slow due to implicit responsibilities such as downloading modules
 // or compilation. This uses Docker, so changes to the Dockerfile or contents like "commands.sh" effect performance.
+//
+// Note: Pay close attention to values of util.E2E_BUILTIN_TOOLCHAIN_CONTAINER_OPTIONS as these can change assumptions.
+// CI may override this to set HOME or CARGO_HOME (rust) used by "getenvoy" and effect its execution.
 func TestGetEnvoyExtensionPush(t *testing.T) {
 	const extensionName = "getenvoy_extension_push"
 	// localRegistryWasmImageRef corresponds to a Docker container running the image "registry:2"

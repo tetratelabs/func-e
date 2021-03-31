@@ -28,7 +28,7 @@ mkdir -p "${E2E_CACHE_DIR}"
 # to speed up `getenvoy extension build|test`, re-use a single cache across all extensions created by e2e tests
 export E2E_BUILTIN_TOOLCHAIN_CONTAINER_OPTIONS="${E2E_BUILTIN_TOOLCHAIN_CONTAINER_OPTIONS} -v ${E2E_CACHE_DIR}:/tmp/cache/getenvoy -e CARGO_HOME=/tmp/cache/getenvoy/extension/rust-builder/cargo"
 
-# set HOME directory
+# set HOME directory (TODO: why? and also why not GETENVOY_HOME?)
 export E2E_BUILTIN_TOOLCHAIN_CONTAINER_OPTIONS="${E2E_BUILTIN_TOOLCHAIN_CONTAINER_OPTIONS} -e HOME=/tmp/getenvoy"
 
 # restore executable bit that get lost by Github Actions during artifact upload/download
