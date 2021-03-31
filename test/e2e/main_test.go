@@ -50,11 +50,12 @@ func TestMain(m *testing.M) {
 	// As this is an e2e test, we execute all tests with a binary compiled earlier.
 	//
 	// Ex. After running "make bin", E2E_GETENVOY_BINARY=$PWD/build/bin/darwin/amd64/getenvoy
-	_, err := e2e.Env.GetEnvoyBinary()
+	path, err := e2e.Env.GetEnvoyBinary()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, `failed to start e2e tests: %v`, err)
 		os.Exit(1)
 	}
+	e2e.GetEnvoyBinaryPath = path
 	os.Exit(m.Run())
 }
 
