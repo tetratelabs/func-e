@@ -30,10 +30,9 @@ import (
 // TestGetEnvoyExtensionInit runs the equivalent of "getenvoy extension init" for a matrix of extension.Categories and
 // extension.Languages.
 //
-// "getenvoy extension init" should be fast and reliable because it doesn't use Docker.
+// "getenvoy extension init" does not use Docker. See TestMain for general notes on about the test runtime.
 func TestGetEnvoyExtensionInit(t *testing.T) {
 	const extensionName = "getenvoy_extension_init"
-	requireEnvoyBinaryPath(t) // Ex. After running "make bin", E2E_GETENVOY_BINARY=$PWD/build/bin/darwin/amd64/getenvoy
 
 	type testTuple struct {
 		testName string

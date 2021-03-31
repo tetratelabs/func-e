@@ -15,6 +15,7 @@
 package e2e_test
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -31,16 +32,30 @@ import (
 var (
 	// GetEnvoy is a convenient alias.
 	GetEnvoy = e2e.GetEnvoy
+
+	// stripAnsiEscapeRegexp is a regular expression to clean ANSI Control sequences
+	// feat https://stackoverflow.com/questions/14693701/how-can-i-remove-the-ansi-escape-sequences-from-a-string-in-python#33925425
+	stripAnsiEscapeRegexp = regexp.MustCompile(`(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]`)
 )
 
-// stripAnsiEscapeRegexp is a regular expression to clean ANSI Control sequences
-// feat https://stackoverflow.com/questions/14693701/how-can-i-remove-the-ansi-escape-sequences-from-a-string-in-python#33925425
-var stripAnsiEscapeRegexp = regexp.MustCompile(`(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]`)
-
-func requireEnvoyBinaryPath(t *testing.T) {
-	path, err := e2e.Env.GetEnvoyBinary()
-	require.NoError(t, err, `error reading path to getenvoy binary`)
-	e2e.GetEnvoyBinaryPath = path
+// TestMain ensures state required for all tests, notably that util.E2E_GETENVOY_BINARY is set.
+//
+// Note: "getenvoy extension build" and commands that imply it, can be extremely slow due to implicit responsibilities
+// such as downloading modules or compilation. Commands like this use Docker, so changes to the Dockerfile or contents
+// like "commands.sh" will effect performance.
+//
+// Note: Pay close attention to values of util.E2E_BUILTIN_TOOLCHAIN_CONTAINER_OPTIONS as these can change assumptions.
+// CI may override this to set HOME or CARGO_HOME (rust) used by "getenvoy" and effect its execution.
+func TestMain(m *testing.M) {
+	// As this is an e2e test, we execute all tests with a binary compiled earlier.
+	//
+	// Ex. After running "make bin", E2E_GETENVOY_BINARY=$PWD/build/bin/darwin/amd64/getenvoy
+	_, err := e2e.Env.GetEnvoyBinary()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, `failed to start e2e tests: %v`, err)
+		os.Exit(1)
+	}
+	os.Exit(m.Run())
 }
 
 // requireNewTempDir creates a new directory. The function returned cleans it up.

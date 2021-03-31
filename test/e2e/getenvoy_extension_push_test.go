@@ -32,18 +32,14 @@ import (
 // This test does not attempt to use the image built as that would be redundant to other tests. Rather, this focuses on
 // whether we can read back exactly what was pushed to the registry.
 //
-// Note: "getenvoy extension build" can be extremely slow due to implicit responsibilities such as downloading modules
-// or compilation. This uses Docker, so changes to the Dockerfile or contents like "commands.sh" effect performance.
-//
-// Note: Pay close attention to values of util.E2E_BUILTIN_TOOLCHAIN_CONTAINER_OPTIONS as these can change assumptions.
-// CI may override this to set HOME or CARGO_HOME (rust) used by "getenvoy" and effect its execution.
+// "getenvoy extension run" depends on a Docker container, and "getenvoy extension build" uses Docker.
+// See TestMain for general notes on about the test runtime.
 func TestGetEnvoyExtensionPush(t *testing.T) {
 	const extensionName = "getenvoy_extension_push"
 	// localRegistryWasmImageRef corresponds to a Docker container running the image "registry:2"
 	const localRegistryWasmImageRef = "localhost:5000/getenvoy/" + extensionName
 	// When unspecified, we default the tag to Docker's default "latest". Note: recent tools enforce qualifying this!
 	const defaultTag = "latest"
-	requireEnvoyBinaryPath(t) // Ex. After running "make bin", E2E_GETENVOY_BINARY=$PWD/build/bin/darwin/amd64/getenvoy
 
 	type testTuple struct {
 		name string

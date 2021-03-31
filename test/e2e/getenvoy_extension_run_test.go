@@ -37,14 +37,8 @@ const terminateTimeout = 2 * time.Minute
 // TestGetEnvoyExtensionRun runs the equivalent of "getenvoy extension run" for a matrix of extension.Categories and
 // extension.Languages. "getenvoy extension init" is a prerequisite, so run first.
 //
-// Note: "getenvoy extension run" can be extremely slow due to implicit responsibilities such as downloading modules
-// or compilation. This uses Docker, so changes to the Dockerfile or contents like "commands.sh" effect performance.
-//
-// Note: Pay close attention to values of util.E2E_BUILTIN_TOOLCHAIN_CONTAINER_OPTIONS as these can change assumptions.
-// CI may override this to set HOME or CARGO_HOME (rust) used by "getenvoy" and effect directories used here.
+// "getenvoy extension run" uses Docker. See TestMain for general notes on about the test runtime.
 func TestGetEnvoyExtensionRun(t *testing.T) {
-	requireEnvoyBinaryPath(t) // Ex. After running "make bin", E2E_GETENVOY_BINARY=$PWD/build/bin/darwin/amd64/getenvoy
-
 	debugDir, revertOriginalDebugDir := backupDebugDir(t)
 	defer revertOriginalDebugDir()
 

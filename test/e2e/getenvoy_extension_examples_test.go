@@ -28,10 +28,9 @@ import (
 // TestGetEnvoyExtensionExampleAdd runs the equivalent of "getenvoy extension example XXX" commands for a matrix of
 // extension.Categories and extension.Languages.
 //
-// "getenvoy extension example XXX" should be fast and reliable because they don't use Docker.
+// "getenvoy extension example" does not use Docker. See TestMain for general notes on about the test runtime.
 func TestGetEnvoyExtensionExample(t *testing.T) {
 	const extensionName = "getenvoy_extension_example"
-	requireEnvoyBinaryPath(t) // Ex. After running "make bin", E2E_GETENVOY_BINARY=$PWD/build/bin/darwin/amd64/getenvoy
 
 	for _, test := range e2e.GetCategoryLanguageCombinations() {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
