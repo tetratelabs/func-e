@@ -84,14 +84,7 @@ func (b *cmdBuilder) Start(t *testing.T, terminateTimeout time.Duration) (io.Rea
 		errc <- b.cmd.Wait()
 	}()
 
-	// Ensure terminate is only called once. As this happens from a single thread, there's no need to lock.
-	terminated := false
-	terminate := func() {
-		if terminated {
-			return
-		}
-		terminated = true
-
+	return stdout, stderr, func() {
 		err := b.cmd.Process.Signal(syscall.SIGTERM)
 		require.NoError(t, err, `error terminating [%v]`, b.cmd)
 
@@ -102,6 +95,4 @@ func (b *cmdBuilder) Start(t *testing.T, terminateTimeout time.Duration) (io.Rea
 			t.Fatal(fmt.Sprintf("getenvoy command didn't exit gracefully within %s", terminateTimeout))
 		}
 	}
-
-	return stdout, stderr, terminate
 }

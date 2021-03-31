@@ -60,7 +60,12 @@ func TestGetEnvoyExtensionRun(t *testing.T) {
 			cmd := GetEnvoy("extension run --envoy-options '-l trace'").
 				Args(e2e.Env.GetBuiltinContainerOptions()...)
 			_, stderr, terminate := cmd.Start(t, terminateTimeout)
-			defer terminate()
+
+			// The underlying call is conditional to ensure errors that raise before we stop the server, stop it.
+			deferredTerminate := terminate
+			defer func() {
+				deferredTerminate()
+			}()
 
 			stderrLines := e2e.StreamLines(stderr).Named("stderr")
 
@@ -96,6 +101,9 @@ func TestGetEnvoyExtensionRun(t *testing.T) {
 
 			log.Infof(`stopping Envoy after running [%v]`, cmd)
 			terminate()
+			deferredTerminate = func() {
+				// no-op as we already terminated
+			}
 
 			// verify the debug dump of Envoy state has been taken
 			files, err := ioutil.ReadDir(debugDir)
