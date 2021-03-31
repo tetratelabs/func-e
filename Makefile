@@ -53,7 +53,7 @@ COVERAGE_PKG_LIST ?= $(shell go list ./pkg/... | grep -v -e github.com/tetratela
 GO_COVERAGE_OPTS ?= -covermode=atomic -coverpkg=./...
 GO_COVERAGE_EXTRA_OPTS ?=
 
-E2E_PKG_LIST ?= ./test/e2e/...
+E2E_PKG_LIST ?= ./test/e2e
 # Set the default timeout >10m as particularly rust e2e tests are slow https://golang.org/cmd/go/#hdr-Testing_flags
 # Run only one test at a time, in verbose mode, so that failures are easy to diagnose. Stop at first error.
 E2E_OPTS ?= -timeout 45m -test.parallel 1 -v -test.failfast
@@ -105,7 +105,7 @@ test.ci: generate
 .PHONY: e2e
 e2e: $(call GETENVOY_OUT_PATH,$(GOOS),$(GOARCH))
 	docker-compose up -d
-	E2E_GETENVOY_BINARY=$(PWD)/$(call GETENVOY_OUT_PATH,$(GOOS),$(GOARCH)) go test github.com/tetratelabs/getenvoy/test/e2e $(E2E_OPTS) $(E2E_EXTRA_OPTS) $(E2E_PKG_LIST)
+	go test $(E2E_OPTS) $(E2E_EXTRA_OPTS) $(E2E_PKG_LIST)
 
 .PHONY: bin
 bin: $(foreach os,$(GOOSES), bin/$(os))

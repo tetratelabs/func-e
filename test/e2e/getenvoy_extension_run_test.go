@@ -57,8 +57,7 @@ func TestGetEnvoyExtensionRun(t *testing.T) {
 			defer requireExtensionClean(t, workDir)
 
 			// "getenvoy extension run" only returns stdout because `docker run -t` redirects stderr to stdout.
-			cmd := GetEnvoy("extension run --envoy-options '-l trace'").
-				Args(e2e.Env.GetBuiltinContainerOptions()...)
+			cmd := GetEnvoy("extension run --envoy-options '-l trace'").Args(getBuiltinContainerOptions()...)
 			_, stderr, terminate := cmd.Start(t, terminateTimeout)
 
 			// The underlying call is conditional to ensure errors that raise before we stop the server, stop it.

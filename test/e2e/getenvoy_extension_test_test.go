@@ -45,7 +45,7 @@ func TestGetEnvoyExtensionTest(t *testing.T) {
 			requireExtensionInit(t, workDir, test.Category, test.Language, extensionName)
 			defer requireExtensionClean(t, workDir)
 
-			cmd := GetEnvoy("extension test").Args(e2e.Env.GetBuiltinContainerOptions()...)
+			cmd := GetEnvoy("extension test").Args(getBuiltinContainerOptions()...)
 			// "getenvoy extension test" only returns stdout because `docker run -t` redirects stderr to stdout.
 			stdout := requireExecNoStderr(t, cmd)
 
