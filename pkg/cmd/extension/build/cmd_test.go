@@ -29,13 +29,13 @@ import (
 const relativeWorkspaceDir = "testdata/workspace"
 
 func TestGetEnvoyExtensionBuildValidateFlag(t *testing.T) {
-	type TestCase struct {
+	type testCase struct {
 		flag        string
 		flagValue   string
 		expectedErr string
 	}
 
-	tests := []TestCase{
+	tests := []testCase{
 		{
 			flag:        "--toolchain-container-image",
 			flagValue:   "?invalid value?",

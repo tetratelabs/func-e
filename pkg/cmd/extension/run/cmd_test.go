@@ -33,7 +33,7 @@ import (
 const relativeWorkspaceDir = "testdata/workspace"
 
 func TestGetEnvoyExtensionRunValidateFlag(t *testing.T) {
-	type TestCase struct {
+	type testCase struct {
 		name        string
 		flags       []string
 		flagValues  []string
@@ -48,7 +48,7 @@ func TestGetEnvoyExtensionRunValidateFlag(t *testing.T) {
 	err := ioutil.WriteFile(notExecutable, []byte(`#!/bin/sh`), 0600)
 	require.NoError(t, err, `couldn't create fake envoy script'`)
 
-	tests := []TestCase{
+	tests := []testCase{
 		{
 			name:        "--envoy-options with imbalanced quotes",
 			flags:       []string{"--envoy-options"},
