@@ -234,13 +234,13 @@ var _ = Describe("built-in toolchain", func() {
                     image: build/image
                     options:
                     - -e
-                    - EXIT_CODE=3
+                    - DOCKER_EXIT_CODE=3
                   output:
                     wasmFile: output/file.wasm
 `,
 				tool:           build,
-				expectedStdOut: fmt.Sprintf("testdata/toolchain/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init -e EXIT_CODE=3 build/image build --output-file output/file.wasm\n", workspace.GetDir().GetRootDir()),
-				expectedErr:    fmt.Sprintf("failed to execute an external command \"testdata/toolchain/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init -e EXIT_CODE=3 build/image build --output-file output/file.wasm\": exit status 3", workspace.GetDir().GetRootDir()),
+				expectedStdOut: fmt.Sprintf("testdata/toolchain/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 build/image build --output-file output/file.wasm\n", workspace.GetDir().GetRootDir()),
+				expectedErr:    fmt.Sprintf("failed to execute an external command \"testdata/toolchain/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 build/image build --output-file output/file.wasm\": exit status 3", workspace.GetDir().GetRootDir()),
 			}
 		}),
 		Entry("test using given container image", func() testCase {
@@ -300,11 +300,11 @@ var _ = Describe("built-in toolchain", func() {
                     image: test/image
                     options:
                     - -e
-                    - EXIT_CODE=3
+                    - DOCKER_EXIT_CODE=3
 `,
 				tool:           test,
-				expectedStdOut: fmt.Sprintf("testdata/toolchain/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init -e EXIT_CODE=3 test/image test\n", workspace.GetDir().GetRootDir()),
-				expectedErr:    fmt.Sprintf("failed to execute an external command \"testdata/toolchain/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init -e EXIT_CODE=3 test/image test\": exit status 3", workspace.GetDir().GetRootDir()),
+				expectedStdOut: fmt.Sprintf("testdata/toolchain/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 test/image test\n", workspace.GetDir().GetRootDir()),
+				expectedErr:    fmt.Sprintf("failed to execute an external command \"testdata/toolchain/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 test/image test\": exit status 3", workspace.GetDir().GetRootDir()),
 			}
 		}),
 		Entry("clean using given container image", func() testCase {
@@ -364,11 +364,11 @@ var _ = Describe("built-in toolchain", func() {
                     image: clean/image
                     options:
                     - -e
-                    - EXIT_CODE=3
+                    - DOCKER_EXIT_CODE=3
 `,
 				tool:           clean,
-				expectedStdOut: fmt.Sprintf("testdata/toolchain/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init -e EXIT_CODE=3 clean/image clean\n", workspace.GetDir().GetRootDir()),
-				expectedErr:    fmt.Sprintf("failed to execute an external command \"testdata/toolchain/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init -e EXIT_CODE=3 clean/image clean\": exit status 3", workspace.GetDir().GetRootDir()),
+				expectedStdOut: fmt.Sprintf("testdata/toolchain/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 clean/image clean\n", workspace.GetDir().GetRootDir()),
+				expectedErr:    fmt.Sprintf("failed to execute an external command \"testdata/toolchain/docker run -u 1001:1002 --rm -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 clean/image clean\": exit status 3", workspace.GetDir().GetRootDir()),
 			}
 		}),
 	)

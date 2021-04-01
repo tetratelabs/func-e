@@ -1,6 +1,4 @@
-#!/usr/bin/env bash
-
-# Copyright 2020 Tetrate
+# Copyright 2021 Tetrate
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,14 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-echo "$0" "$@"
-echo >&2 docker stderr
+#
+# Envoy Wasm extension created with getenvoy toolkit.
+#
+kind: Extension
 
-# An arg DOCKER_EXIT_CODE=N exits with that code number
-while test $# -gt 0; do
-	case "$1" in
-	DOCKER_EXIT_CODE=*) exit "${1:17}" ;;
-	esac
-	shift
-done
-exit 0
+name: mycompany.filters.http.custom_metrics
+
+category: envoy.filters.http
+language: rust
+
+# Runtime the extension is being developed against.
+runtime:
+  envoy:
+    version: standard:1.17.0
