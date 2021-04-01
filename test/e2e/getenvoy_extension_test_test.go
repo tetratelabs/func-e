@@ -21,7 +21,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
-	e2e "github.com/tetratelabs/getenvoy/test/e2e/util"
 )
 
 // TestGetEnvoyExtensionTest runs the equivalent of "getenvoy extension test" for a matrix of extension.Categories and
@@ -31,7 +30,7 @@ import (
 func TestGetEnvoyExtensionTest(t *testing.T) {
 	const extensionName = "getenvoy_extension_test"
 
-	for _, test := range e2e.GetCategoryLanguageCombinations() {
+	for _, test := range getExtensionTestMatrix() {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.String(), func(t *testing.T) {
@@ -45,7 +44,7 @@ func TestGetEnvoyExtensionTest(t *testing.T) {
 			requireExtensionInit(t, workDir, test.Category, test.Language, extensionName)
 			defer requireExtensionClean(t, workDir)
 
-			cmd := GetEnvoy("extension test").Args(getBuiltinContainerOptions()...)
+			cmd := getEnvoy("extension test").Args(getToolchainContainerOptions()...)
 			// "getenvoy extension test" only returns stdout because `docker run -t` redirects stderr to stdout.
 			stdout := requireExecNoStderr(t, cmd)
 

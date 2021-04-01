@@ -55,9 +55,11 @@ GO_COVERAGE_EXTRA_OPTS ?=
 
 E2E_PKG_LIST ?= ./test/e2e
 # Set the default timeout >10m as particularly rust e2e tests are slow https://golang.org/cmd/go/#hdr-Testing_flags
-# Run only one test at a time, in verbose mode, so that failures are easy to diagnose. Stop at first error.
-E2E_OPTS ?= -timeout 45m -test.parallel 1 -v -test.failfast
+# Run only one test at a time, in verbose mode, so that failures are easy to diagnose.
+# Note: -failfast helps as it stops at the first error. However, it is not a cacheable flag, so runs won't cache.
+E2E_OPTS ?= -timeout 45m -parallel 1 -v -failfast
 E2E_EXTRA_OPTS ?=
+E2E_EXTENSION_LANGUAGE ?= all
 
 GOOSES := linux darwin
 GOARCHS := amd64
@@ -105,7 +107,7 @@ test.ci: generate
 .PHONY: e2e
 e2e: $(call GETENVOY_OUT_PATH,$(GOOS),$(GOARCH))
 	docker-compose up -d
-	go test $(E2E_OPTS) $(E2E_EXTRA_OPTS) $(E2E_PKG_LIST)
+	E2E_EXTENSION_LANGUAGE=$(E2E_EXTENSION_LANGUAGE) go test $(E2E_OPTS) $(E2E_EXTRA_OPTS) $(E2E_PKG_LIST)
 
 .PHONY: bin
 bin: $(foreach os,$(GOOSES), bin/$(os))

@@ -78,6 +78,13 @@ jobs:
       - builders
     runs-on: ubuntu-latest
     timeout-minutes: 30  # instead of 360 by default
+    strategy:
+      matrix:
+        include:  # Controls language used in all extension tests. Managed by test/e2e/main_test.go
+          - extension-language: rust
+          - extension-language: tinygo
+    env:
+      E2E_EXTENSION_LANGUAGE: ${{ matrix.extension-language }}
     steps:
       - name: "Checkout"
         uses: actions/checkout@v2
@@ -95,7 +102,7 @@ jobs:
           name: bin
           path: build/bin
 
-      - name: "Download `getenvoy` binary from GithHub release assets"
+      - name: "Download `getenvoy` binary from GitHub release assets"
         env:
           INPUT_FILE: getenvoy_${{ env.RELEASE_VERSION }}_Linux_x86_64.tar.gz
           INPUT_VERSION: tags/${{ env.RELEASE_TAG }}
@@ -118,6 +125,13 @@ jobs:
       - builders
     runs-on: macos-latest
     timeout-minutes: 90  # instead of 360 by default
+    strategy:
+      matrix:
+        include:  # Controls language used in all extension tests. Managed by test/e2e/main_test.go
+          - extension-language: rust
+          - extension-language: tinygo
+    env:
+      E2E_EXTENSION_LANGUAGE: ${{ matrix.extension-language }}
     steps:
       - name: "Checkout"
         uses: actions/checkout@v2
@@ -135,7 +149,7 @@ jobs:
           name: bin
           path: build/bin
 
-      - name: "Download `getenvoy` binary from GithHub release assets"
+      - name: "Download `getenvoy` binary from GitHub release assets"
         env:
           INPUT_FILE: getenvoy_${{ env.RELEASE_VERSION }}_Darwin_x86_64.tar.gz
           INPUT_VERSION: tags/${{ env.RELEASE_TAG }}

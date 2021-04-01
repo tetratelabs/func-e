@@ -24,7 +24,6 @@ import (
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 	toolchains "github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain"
-	e2e "github.com/tetratelabs/getenvoy/test/e2e/util"
 )
 
 // TestGetEnvoyExtensionInit runs the equivalent of "getenvoy extension init" for a matrix of extension.Categories and
@@ -42,7 +41,7 @@ func TestGetEnvoyExtensionInit(t *testing.T) {
 	}
 
 	tests := make([]testTuple, 0)
-	for _, c := range e2e.GetCategoryLanguageCombinations() {
+	for _, c := range getExtensionTestMatrix() {
 		tests = append(tests,
 			testTuple{c.String() + "-currentDirectory", c.Category, c.Language, true},
 			testTuple{c.String() + "-newDirectory", c.Category, c.Language, false},
@@ -64,7 +63,7 @@ func TestGetEnvoyExtensionInit(t *testing.T) {
 			}
 
 			// "getenvoy extension init" should result in stderr describing files created.
-			cmd := GetEnvoy("extension init").
+			cmd := getEnvoy("extension init").
 				Arg(workDir).
 				Arg("--category").Arg(test.Category.String()).
 				Arg("--language").Arg(test.Language.String()).

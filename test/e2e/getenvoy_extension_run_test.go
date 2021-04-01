@@ -42,7 +42,7 @@ func TestGetEnvoyExtensionRun(t *testing.T) {
 	debugDir, revertOriginalDebugDir := backupDebugDir(t)
 	defer revertOriginalDebugDir()
 
-	for _, test := range e2e.GetCategoryLanguageCombinations() {
+	for _, test := range getExtensionTestMatrix() {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.String(), func(t *testing.T) {
@@ -57,7 +57,7 @@ func TestGetEnvoyExtensionRun(t *testing.T) {
 			defer requireExtensionClean(t, workDir)
 
 			// "getenvoy extension run" only returns stdout because `docker run -t` redirects stderr to stdout.
-			cmd := GetEnvoy("extension run --envoy-options '-l trace'").Args(getBuiltinContainerOptions()...)
+			cmd := getEnvoy("extension run --envoy-options '-l trace'").Args(getToolchainContainerOptions()...)
 			_, stderr, terminate := cmd.Start(t, terminateTimeout)
 
 			// The underlying call is conditional to ensure errors that raise before we stop the server, stop it.
@@ -136,7 +136,7 @@ func TestGetEnvoyExtensionRun(t *testing.T) {
 // Typically, this will run in the default ~/.getenvoy directory, as a means to avoid re-downloads of files such as
 // .getenvoy/builds/standard/1.17.0/darwin/bin/envoy (~100MB)
 //
-// While CI usually overrides the `HOME` variable with E2E_BUILTIN_TOOLCHAIN_CONTAINER_OPTIONS, a developer may be
+// While CI usually overrides the `HOME` variable with E2E_TOOLCHAIN_CONTAINER_OPTIONS, a developer may be
 // running this on their laptop. To avoid clobbering their old debug data, backup the
 func backupDebugDir(t *testing.T) (string, func()) {
 	debugDir := filepath.Join(common.HomeDir, "debug")

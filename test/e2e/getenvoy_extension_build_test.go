@@ -19,8 +19,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	e2e "github.com/tetratelabs/getenvoy/test/e2e/util"
 )
 
 // TestGetEnvoyExtensionBuild runs the equivalent of "getenvoy extension build" for a matrix of extension.Categories and
@@ -30,7 +28,7 @@ import (
 func TestGetEnvoyExtensionBuild(t *testing.T) {
 	const extensionName = "getenvoy_extension_build"
 
-	for _, test := range e2e.GetCategoryLanguageCombinations() {
+	for _, test := range getExtensionTestMatrix() {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.String(), func(t *testing.T) {
@@ -46,7 +44,7 @@ func TestGetEnvoyExtensionBuild(t *testing.T) {
 
 			// "getenvoy extension build" only returns stdout because `docker run -t` redirects stderr to stdout.
 			// We don't verify stdout because it is low signal vs looking at files created.
-			cmd := GetEnvoy("extension build").Args(getBuiltinContainerOptions()...)
+			cmd := getEnvoy("extension build").Args(getToolchainContainerOptions()...)
 			_ = requireExecNoStderr(t, cmd)
 
 			// Verify the extension built

@@ -25,10 +25,10 @@ mkdir -p "${E2E_CACHE_DIR}"
 
 # TODO: support multiple language
 # to speed up `getenvoy extension build|test`, re-use a single cache across all extensions created by e2e tests
-export E2E_BUILTIN_TOOLCHAIN_CONTAINER_OPTIONS="${E2E_BUILTIN_TOOLCHAIN_CONTAINER_OPTIONS} -v ${E2E_CACHE_DIR}:/tmp/cache/getenvoy -e CARGO_HOME=/tmp/cache/getenvoy/extension/rust-builder/cargo"
+export E2E_TOOLCHAIN_CONTAINER_OPTIONS="${E2E_TOOLCHAIN_CONTAINER_OPTIONS} -v ${E2E_CACHE_DIR}:/tmp/cache/getenvoy -e CARGO_HOME=/tmp/cache/getenvoy/extension/rust-builder/cargo"
 
 # set HOME directory (TODO: why? why not GETENVOY_HOME? why not also in linux?)
-export E2E_BUILTIN_TOOLCHAIN_CONTAINER_OPTIONS="${E2E_BUILTIN_TOOLCHAIN_CONTAINER_OPTIONS} -e HOME=/tmp/getenvoy"
+export E2E_TOOLCHAIN_CONTAINER_OPTIONS="${E2E_TOOLCHAIN_CONTAINER_OPTIONS} -e HOME=/tmp/getenvoy"
 
 # run the normal make script.
 make e2e
