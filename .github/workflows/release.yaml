@@ -159,7 +159,7 @@ jobs:
           tar -C build/bin/darwin/amd64 -xf ${INPUT_FILE} getenvoy
 
       - name: "Install 'Docker for Mac' (an older version that can be installed in CI environment)"
-        run: ./ci/e2e/macos/install_docker.sh
+        run: ./ci/e2e/darwin/install_docker.sh
         timeout-minutes: 7  # unfortunately, installing `Docker for Mac` in CI environment is fragile; be ready to restart the job ocasionally
 
       - name: "Pull extension builder images"
@@ -169,4 +169,4 @@ jobs:
         timeout-minutes: 10  # fail fast if MacOS runner becomes to slow
 
       - name: "Run e2e tests using released `getenvoy` binary and published extension builder images"
-        run: ./ci/e2e/macos/run_tests.sh
+        run: ./ci/e2e/darwin/run_tests.sh
