@@ -69,7 +69,7 @@ func TestGetEnvoyExtensionPush(t *testing.T) {
 			wasmBytes := requireExtensionBuild(t, test.Language, workDir)
 
 			// After pushing, stderr should include the registry URL and the image tag.
-			cmd := GetEnvoy("extension push").Arg(localRegistryWasmImageRef)
+			cmd := getEnvoy("extension push").Arg(localRegistryWasmImageRef)
 			stderr := requireExecNoStdout(t, cmd)
 
 			// Assemble a fully-qualified image ref as we'll pull this later

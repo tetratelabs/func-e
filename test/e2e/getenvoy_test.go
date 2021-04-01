@@ -21,7 +21,7 @@ import (
 )
 
 func TestGetEnvoyVersion(t *testing.T) {
-	stdout, stderr, err := GetEnvoy("--version").Exec()
+	stdout, stderr, err := getEnvoy("--version").Exec()
 
 	require.Regexp(t, `^getenvoy version ([^\s]+)\n$`, stdout)
 	require.Equal(t, ``, stderr)
@@ -29,7 +29,7 @@ func TestGetEnvoyVersion(t *testing.T) {
 }
 
 func TestGetEnvoyString(t *testing.T) {
-	g := GetEnvoy("--version")
+	g := getEnvoy("--version")
 
 	require.Regexp(t, `.*getenvoy --version$`, g.String())
 }

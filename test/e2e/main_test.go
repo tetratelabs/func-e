@@ -31,8 +31,10 @@ import (
 )
 
 var (
-	// GetEnvoy is a convenient alias.
-	GetEnvoy = e2e.GetEnvoy
+	// getEnvoy is the absolute path to the "getenvoy" binary used in all tests.
+	getEnvoy = e2e.GetEnvoy
+	// "getenvoy extension" tests default to run these
+	extensionLanguages []extension.Language
 
 	// stripAnsiEscapeRegexp is a regular expression to clean ANSI Control sequences
 	// feat https://stackoverflow.com/questions/14693701/how-can-i-remove-the-ansi-escape-sequences-from-a-string-in-python#33925425
@@ -41,27 +43,72 @@ var (
 
 //nolint:golint
 const (
-	E2E_GETENVOY_BINARY                     = "E2E_GETENVOY_BINARY"
-	E2E_BUILTIN_TOOLCHAIN_CONTAINER_OPTIONS = "E2E_BUILTIN_TOOLCHAIN_CONTAINER_OPTIONS"
+	E2E_EXTENSION_LANGUAGE          = "E2E_EXTENSION_LANGUAGE"
+	E2E_GETENVOY_BINARY             = "E2E_GETENVOY_BINARY"
+	E2E_TOOLCHAIN_CONTAINER_OPTIONS = "E2E_TOOLCHAIN_CONTAINER_OPTIONS"
 )
 
-// TestMain ensures util.GetEnvoyBinaryPath is set as all end-to-end (e2e) tests will invoke it.
+// ExtensionTestTuple represents a combination of extension category and  programming language.
+type extensionTestTuple struct {
+	extension.Category
+	extension.Language
+}
+
+func (t extensionTestTuple) String() string {
+	return fmt.Sprintf("category=%s, language=%s", t.Category, t.Language)
+}
+
+// getExtensionTestMatrix returns the base matrix of category and language "getenvoy extension" tests run.
+func getExtensionTestMatrix() []extensionTestTuple {
+	tuples := make([]extensionTestTuple, 0)
+	for _, category := range extension.Categories {
+		for _, language := range extensionLanguages {
+			tuples = append(tuples, extensionTestTuple{category, language})
+		}
+	}
+	return tuples
+}
+
+// TestMain ensures the "getenvoy" binary and "--language" parameter to "get envoy init" are valid, as these are
+// constant for all tests that us them.
 //
 // Note: "getenvoy extension build" and commands that imply it, can be extremely slow due to implicit responsibilities
 // such as downloading modules or compilation. Commands like this use Docker, so changes to the Dockerfile or contents
 // like "commands.sh" will effect performance.
 //
-// Note: Pay close attention to values of util.E2E_BUILTIN_TOOLCHAIN_CONTAINER_OPTIONS as these can change assumptions.
+// Note: Pay close attention to values of util.E2E_TOOLCHAIN_CONTAINER_OPTIONS as these can change assumptions.
 // CI may override this to set HOME or CARGO_HOME (rust) used by "getenvoy" and effect its execution.
 func TestMain(m *testing.M) {
 	// As this is an e2e test, we execute all tests with a binary compiled earlier.
 	path, err := getEnvoyBinary()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, `failed to start e2e tests: %v`, err)
+		fmt.Fprintf(os.Stderr, `failed to start e2e tests due to an invalid "getenvoy" binary: %v`, err)
 		os.Exit(1)
 	}
 	e2e.GetEnvoyBinaryPath = path
+	extensionLanguages, err = getExtensionLanguages()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, `failed to start e2e tests due to an invalid extension language": %v`, err)
+		os.Exit(1)
+	}
+
 	os.Exit(m.Run())
+}
+
+// getExtensionLanguage reads E2E_EXTENSION_LANGUAGE or defaults to extension.LanguageTinyGo because it builds an order
+// of magnitude faster extension.LanguageRust. All languages test when "E2E_EXTENSION_LANGUAGE=all".
+func getExtensionLanguages() ([]extension.Language, error) {
+	fromEnv := os.Getenv(E2E_EXTENSION_LANGUAGE)
+	if fromEnv == "all" {
+		return extension.Languages, nil
+	} else if fromEnv == "" {
+		fromEnv = extension.LanguageTinyGo.String() // default
+	}
+	parsed, err := extension.ParseLanguage(fromEnv)
+	if err != nil {
+		return nil, fmt.Errorf("%s is not a valid extension language. Correct environment variable %s", fromEnv, E2E_GETENVOY_BINARY)
+	}
+	return []extension.Language{parsed}, nil
 }
 
 // getEnvoyBinary reads E2E_GETENVOY_BINARY or defaults to "$PWD/build/bin/$GOOS/$GOARCH/getenvoy"
@@ -73,7 +120,7 @@ func getEnvoyBinary() (string, error) {
 		relativePath := filepath.Join("..", "..", "build", "bin", runtime.GOOS, runtime.GOARCH, "getenvoy")
 		abs, err := filepath.Abs(relativePath)
 		if err != nil {
-			return "", fmt.Errorf("resolve path to %s. Correct environment variable %s", path, E2E_GETENVOY_BINARY)
+			return "", fmt.Errorf("%s didn't resolve to a valid path. Correct environment variable %s", path, E2E_GETENVOY_BINARY)
 		}
 		path = abs
 	}
@@ -92,8 +139,8 @@ func getEnvoyBinary() (string, error) {
 	return path, nil
 }
 
-func getBuiltinContainerOptions() []string {
-	value := os.Getenv(E2E_BUILTIN_TOOLCHAIN_CONTAINER_OPTIONS)
+func getToolchainContainerOptions() []string {
+	value := os.Getenv(E2E_TOOLCHAIN_CONTAINER_OPTIONS)
 	if value == "" {
 		return nil
 	}
@@ -140,7 +187,7 @@ func requireAbsDir(t *testing.T, d string) string {
 	return dir
 }
 
-// Command gives us an interface needed for testing GetEnvoy
+// Command gives us an interface needed for testing getEnvoy
 type Command interface {
 	Exec() (string, string, error)
 }
@@ -172,7 +219,7 @@ func requireExec(t *testing.T, cmd Command) (string, string) {
 
 // requireExtensionInit is useful for tests that depend on "getenvoy extension init" as a prerequisite.
 func requireExtensionInit(t *testing.T, workDir string, category extension.Category, language extension.Language, name string) {
-	cmd := GetEnvoy("extension init").
+	cmd := getEnvoy("extension init").
 		Arg(workDir).
 		Arg("--category").Arg(string(category)).
 		Arg("--language").Arg(string(language)).
@@ -181,21 +228,10 @@ func requireExtensionInit(t *testing.T, workDir string, category extension.Categ
 	_ = requireExecNoStdout(t, cmd)
 }
 
-// extensionWasmPath returns the language-specific location of the extension.wasm.
-func extensionWasmPath(language extension.Language) string {
-	switch language {
-	case extension.LanguageRust:
-		return filepath.Join("target", "getenvoy", "extension.wasm")
-	case extension.LanguageTinyGo:
-		return filepath.Join("build", "extension.wasm")
-	}
-	panic("unsupported language " + language)
-}
-
 // requireExtensionInit is useful for tests that depend on "getenvoy extension build" as a prerequisite.
 // The result of calling this is the bytes representing the built wasm
 func requireExtensionBuild(t *testing.T, language extension.Language, workDir string) []byte {
-	cmd := GetEnvoy("extension build").Args(getBuiltinContainerOptions()...)
+	cmd := getEnvoy("extension build").Args(getToolchainContainerOptions()...)
 	// stderr returned is not tested because doing so is redundant to TestGetEnvoyExtensionInit.
 	_ = requireExecNoStderr(t, cmd)
 
@@ -214,6 +250,27 @@ func requireExtensionClean(t *testing.T, workDir string) {
 	err := os.Chdir(workDir)
 	require.NoError(t, err, `error changing to directory: %v`, workDir)
 
-	cmd := GetEnvoy("extension clean")
+	cmd := getEnvoy("extension clean")
 	_, _ = requireExec(t, cmd)
+}
+
+// extensionWasmPath returns the language-specific location of the extension.wasm.
+func extensionWasmPath(language extension.Language) string {
+	switch language {
+	case extension.LanguageRust:
+		return filepath.Join("target", "getenvoy", "extension.wasm")
+	case extension.LanguageTinyGo:
+		return filepath.Join("build", "extension.wasm")
+	}
+	panic("unsupported extension language " + language)
+}
+
+// extensionWasmPath returns the language-specific basename of the extension config file.
+func extensionConfigFileName(language extension.Language) string {
+	switch language {
+	case extension.LanguageTinyGo:
+		return "extension.txt"
+	default:
+		return "extension.json"
+	}
 }

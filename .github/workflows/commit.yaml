@@ -48,6 +48,13 @@ jobs:
       - bin
     runs-on: ubuntu-latest
     timeout-minutes: 30  # instead of 360 by default
+    strategy:
+      matrix:
+        include:  # Controls language used in all extension tests. Managed by test/e2e/main_test.go
+          - extension-language: rust
+          - extension-language: tinygo
+    env:
+      E2E_EXTENSION_LANGUAGE: ${{ matrix.extension-language }}
     steps:
       - name: "Checkout"
         uses: actions/checkout@v2
@@ -72,6 +79,13 @@ jobs:
       - bin
     runs-on: macos-latest
     timeout-minutes: 90  # instead of 360 by default
+    strategy:
+      matrix:
+        include:  # Controls language used in all extension tests. Managed by test/e2e/main_test.go
+          - extension-language: rust
+          - extension-language: tinygo
+    env:
+      E2E_EXTENSION_LANGUAGE: ${{ matrix.extension-language }}
     steps:
       - name: "Checkout"
         uses: actions/checkout@v2

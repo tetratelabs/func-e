@@ -20,9 +20,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
-	e2e "github.com/tetratelabs/getenvoy/test/e2e/util"
 )
 
 // TestGetEnvoyExtensionExampleAdd runs the equivalent of "getenvoy extension example XXX" commands for a matrix of
@@ -32,17 +29,11 @@ import (
 func TestGetEnvoyExtensionExample(t *testing.T) {
 	const extensionName = "getenvoy_extension_example"
 
-	for _, test := range e2e.GetCategoryLanguageCombinations() {
+	for _, test := range getExtensionTestMatrix() {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.String(), func(t *testing.T) {
-			var extensionConfigFileName string
-			switch test.Language {
-			case extension.LanguageTinyGo:
-				extensionConfigFileName = "extension.txt"
-			default:
-				extensionConfigFileName = "extension.json"
-			}
+			extensionConfigFileName := extensionConfigFileName(test.Language)
 
 			workDir, removeWorkDir := requireNewTempDir(t)
 			defer removeWorkDir()
@@ -55,7 +46,7 @@ func TestGetEnvoyExtensionExample(t *testing.T) {
 			defer requireExtensionClean(t, workDir)
 
 			// "getenvoy extension examples list" should start empty
-			cmd := GetEnvoy("extension examples list")
+			cmd := getEnvoy("extension examples list")
 			stderr := requireExecNoStdout(t, cmd)
 			require.Equal(t, `Extension has no example setups.
 
@@ -63,7 +54,7 @@ Use "getenvoy extension examples add --help" for more information on how to add 
 `, stderr, `invalid stderr running [%v]`, cmd)
 
 			// "getenvoy extension examples add" should result in stderr describing files created.
-			cmd = GetEnvoy("extension examples add")
+			cmd = getEnvoy("extension examples add")
 			stderr = requireExecNoStdout(t, cmd)
 
 			exampleFiles := []string{
@@ -90,12 +81,12 @@ Use "getenvoy extension examples add --help" for more information on how to add 
 			}
 
 			// "getenvoy extension examples list" should now include an example
-			cmd = GetEnvoy("extension examples list")
+			cmd = getEnvoy("extension examples list")
 			stdout := requireExecNoStderr(t, cmd)
 			require.Equal(t, "EXAMPLE\ndefault\n", stdout, `invalid stdout running [%v]`, cmd)
 
 			// "getenvoy extension examples add" should result in stderr describing files created.
-			cmd = GetEnvoy("extension examples remove --name default")
+			cmd = getEnvoy("extension examples remove --name default")
 			stderr = requireExecNoStdout(t, cmd)
 
 			// Check stderr mentions the files removed

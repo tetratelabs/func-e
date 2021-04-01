@@ -58,6 +58,7 @@ E2E_PKG_LIST ?= ./test/e2e
 # Run only one test at a time, in verbose mode, so that failures are easy to diagnose. Stop at first error.
 E2E_OPTS ?= -timeout 45m -test.parallel 1 -v -test.failfast
 E2E_EXTRA_OPTS ?=
+E2E_EXTENSION_LANGUAGE ?= all
 
 GOOSES := linux darwin
 GOARCHS := amd64
@@ -105,7 +106,7 @@ test.ci: generate
 .PHONY: e2e
 e2e: $(call GETENVOY_OUT_PATH,$(GOOS),$(GOARCH))
 	docker-compose up -d
-	go test $(E2E_OPTS) $(E2E_EXTRA_OPTS) $(E2E_PKG_LIST)
+	E2E_EXTENSION_LANGUAGE=$(E2E_EXTENSION_LANGUAGE) go test $(E2E_OPTS) $(E2E_EXTRA_OPTS) $(E2E_PKG_LIST)
 
 .PHONY: bin
 bin: $(foreach os,$(GOOSES), bin/$(os))
