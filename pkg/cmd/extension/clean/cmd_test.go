@@ -21,12 +21,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/pkg/test/cmd/extension"
+	cmd2 "github.com/tetratelabs/getenvoy/pkg/test/cmd"
 	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 
 // relativeWorkspaceDir points to a usable pre-initialized workspace
-const relativeWorkspaceDir = "../build/testdata/workspace"
+const relativeWorkspaceDir = "testdata/workspace"
 
 func TestGetEnvoyExtensionCleanValidateFlag(t *testing.T) {
 	type testCase struct {
@@ -51,9 +51,9 @@ func TestGetEnvoyExtensionCleanValidateFlag(t *testing.T) {
 	for _, test := range tests {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
-		t.Run(test.flag, func(t *testing.T) {
+		t.Run(test.flag+"="+test.flagValue, func(t *testing.T) {
 			// Run "getenvoy extension clean" with the flags we are testing
-			cmd, stdout, stderr := extension.NewRootCommand()
+			cmd, stdout, stderr := cmd2.NewRootCommand()
 			cmd.SetArgs([]string{"extension", "clean", test.flag, test.flagValue})
 			err := cmdutil.Execute(cmd)
 			require.EqualError(t, err, test.expectedErr, `expected an error running [%v]`, cmd)
@@ -68,11 +68,11 @@ func TestGetEnvoyExtensionCleanValidateFlag(t *testing.T) {
 
 func TestGetEnvoyExtensionCleanFailsOutsideWorkspaceDirectory(t *testing.T) {
 	// Change to a non-workspace dir
-	dir, revertWd := extension.RequireChDir(t, relativeWorkspaceDir+"/..")
+	dir, revertWd := cmd2.RequireChDir(t, relativeWorkspaceDir+"/..")
 	defer revertWd()
 
 	// Run "getenvoy extension clean"
-	cmd, stdout, stderr := extension.NewRootCommand()
+	cmd, stdout, stderr := cmd2.NewRootCommand()
 	cmd.SetArgs([]string{"extension", "clean"})
 	err := cmdutil.Execute(cmd)
 
@@ -86,20 +86,20 @@ func TestGetEnvoyExtensionCleanFailsOutsideWorkspaceDirectory(t *testing.T) {
 
 func TestGetEnvoyExtensionClean(t *testing.T) {
 	// We use a fake docker command to capture the commandline that would be invoked
-	dockerDir, revertPath := extension.RequireOverridePath(t, extension.FakeDockerDir)
+	dockerDir, revertPath := cmd2.RequireOverridePath(t, cmd2.FakeDockerDir)
 	defer revertPath()
 
 	// "getenvoy extension clean" must be in a valid workspace directory
-	workspaceDir, revertWd := extension.RequireChDir(t, relativeWorkspaceDir)
+	workspaceDir, revertWd := cmd2.RequireChDir(t, relativeWorkspaceDir)
 	defer revertWd()
 
 	// Fake the current user so we can test it is used in the docker args
 	expectedUser := user.User{Uid: "1001", Gid: "1002"}
-	revertGetCurrentUser := extension.OverrideGetCurrentUser(&expectedUser)
+	revertGetCurrentUser := cmd2.OverrideGetCurrentUser(&expectedUser)
 	defer revertGetCurrentUser()
 
 	// Run "getenvoy extension clean"
-	cmd, stdout, stderr := extension.NewRootCommand()
+	cmd, stdout, stderr := cmd2.NewRootCommand()
 	cmd.SetArgs([]string{"extension", "clean"})
 	err := cmdutil.Execute(cmd)
 
@@ -116,15 +116,15 @@ func TestGetEnvoyExtensionClean(t *testing.T) {
 // This tests --toolchain-container flags become docker command options
 func TestGetEnvoyExtensionCleanWithDockerOptions(t *testing.T) {
 	// We use a fake docker command to capture the commandline that would be invoked
-	_, revertPath := extension.RequireOverridePath(t, extension.FakeDockerDir)
+	_, revertPath := cmd2.RequireOverridePath(t, cmd2.FakeDockerDir)
 	defer revertPath()
 
 	// "getenvoy extension clean" must be in a valid workspace directory
-	_, revertWd := extension.RequireChDir(t, relativeWorkspaceDir)
+	_, revertWd := cmd2.RequireChDir(t, relativeWorkspaceDir)
 	defer revertWd()
 
 	// Run "getenvoy extension clean"
-	cmd, stdout, stderr := extension.NewRootCommand()
+	cmd, stdout, stderr := cmd2.NewRootCommand()
 	cmd.SetArgs([]string{"extension", "clean",
 		"--toolchain-container-image", "clean/image",
 		"--toolchain-container-options", `-e 'VAR=VALUE' -v "/host:/container"`,
@@ -140,22 +140,22 @@ func TestGetEnvoyExtensionCleanWithDockerOptions(t *testing.T) {
 // TestGetEnvoyExtensionCleanFail ensures clean failures show useful information in stderr
 func TestGetEnvoyExtensionCleanFail(t *testing.T) {
 	// We use a fake docker command to capture the commandline that would be invoked, and force a failure.
-	dockerDir, revertPath := extension.RequireOverridePath(t, extension.FakeDockerDir)
+	dockerDir, revertPath := cmd2.RequireOverridePath(t, cmd2.FakeDockerDir)
 	defer revertPath()
 
 	// "getenvoy extension clean" must be in a valid workspace directory
-	workspaceDir, revertWd := extension.RequireChDir(t, relativeWorkspaceDir)
+	workspaceDir, revertWd := cmd2.RequireChDir(t, relativeWorkspaceDir)
 	defer revertWd()
 
 	// Fake the current user so we can test it is used in the docker args
 	expectedUser := user.User{Uid: "1001", Gid: "1002"}
-	revertGetCurrentUser := extension.OverrideGetCurrentUser(&expectedUser)
+	revertGetCurrentUser := cmd2.OverrideGetCurrentUser(&expectedUser)
 	defer revertGetCurrentUser()
 
 	// "-e DOCKER_EXIT_CODE=3" is a special instruction handled in the fake docker script
 	toolchainOptions := "-e DOCKER_EXIT_CODE=3"
 	// Run "getenvoy extension clean"
-	cmd, stdout, stderr := extension.NewRootCommand()
+	cmd, stdout, stderr := cmd2.NewRootCommand()
 	cmd.SetArgs([]string{"extension", "clean", "--toolchain-container-options", toolchainOptions})
 	err := cmdutil.Execute(cmd)
 

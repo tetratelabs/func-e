@@ -21,7 +21,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/pkg/test/cmd/extension"
+	cmd2 "github.com/tetratelabs/getenvoy/pkg/test/cmd"
 	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 
@@ -37,11 +37,11 @@ const defaultTag = "latest"
 
 // TestGetEnvoyExtensionPush shows current directory is usable, provided it is a valid workspace.
 func TestGetEnvoyExtensionPush(t *testing.T) {
-	_, revertWd := extension.RequireChDir(t, relativeWorkspaceDir)
+	_, revertWd := cmd2.RequireChDir(t, relativeWorkspaceDir)
 	defer revertWd()
 
 	// Run "getenvoy extension push localhost:5000/getenvoy/sample"
-	cmd, stdout, stderr := extension.NewRootCommand()
+	cmd, stdout, stderr := cmd2.NewRootCommand()
 	cmd.SetArgs([]string{"extension", "push", localRegistryWasmImageRef})
 	err := cmdutil.Execute(cmd)
 
@@ -59,11 +59,11 @@ digest: sha256`, defaultTag, imageRef), `unexpected stderr after running [%v]`, 
 
 func TestGetEnvoyExtensionPushFailsOutsideWorkspaceDirectory(t *testing.T) {
 	// Change to a non-workspace dir
-	dir, revertWd := extension.RequireChDir(t, relativeWorkspaceDir+"/..")
+	dir, revertWd := cmd2.RequireChDir(t, relativeWorkspaceDir+"/..")
 	defer revertWd()
 
 	// Run "getenvoy extension push localhost:5000/getenvoy/sample"
-	cmd, stdout, stderr := extension.NewRootCommand()
+	cmd, stdout, stderr := cmd2.NewRootCommand()
 	cmd.SetArgs([]string{"extension", "push", localRegistryWasmImageRef})
 	err := cmdutil.Execute(cmd)
 
@@ -75,17 +75,17 @@ func TestGetEnvoyExtensionPushFailsOutsideWorkspaceDirectory(t *testing.T) {
 	require.Equal(t, expectedStderr, stderr.String(), `expected stderr running [%v]`, cmd)
 }
 
-// TestGetEnvoyExtensionPushWithExplicitFileOption shows
+// TestGetEnvoyExtensionPushWithExplicitFileOption shows we don't need to be in a workspace directory to push a wasm.
 func TestGetEnvoyExtensionPushWithExplicitFileOption(t *testing.T) {
 	// Change to a non-workspace dir
-	dir, revertWd := extension.RequireChDir(t, relativeWorkspaceDir+"/..")
+	dir, revertWd := cmd2.RequireChDir(t, relativeWorkspaceDir+"/..")
 	defer revertWd()
 
 	// Point to a wasm file explicitly
 	wasm := filepath.Join(dir, "workspace", "extension.wasm")
 
 	// Run "getenvoy extension push localhost:5000/getenvoy/sample --extension-file testdata/workspace/extension.wasm"
-	cmd, stdout, stderr := extension.NewRootCommand()
+	cmd, stdout, stderr := cmd2.NewRootCommand()
 	cmd.SetArgs([]string{"extension", "push", localRegistryWasmImageRef, "--extension-file", wasm})
 	err := cmdutil.Execute(cmd)
 

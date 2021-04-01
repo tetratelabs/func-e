@@ -26,12 +26,14 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/runtime"
 	. "github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/runtime/getenvoy"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
-	"github.com/tetratelabs/getenvoy/pkg/test/cmd/extension"
+	"github.com/tetratelabs/getenvoy/pkg/test/cmd"
 	ioutil "github.com/tetratelabs/getenvoy/pkg/util/io"
 )
 
-// relativeWorkspaceDir points to a usable pre-initialized workspace
-const relativeWorkspaceDir = "../configdir/testdata/workspace1"
+const (
+	relativeWorkspaceDir = "testdata/workspace"
+	invalidWorkspaceDir  = "testdata/invalidWorkspace"
+)
 
 func TestRuntimeRun(t *testing.T) {
 	workspace, err := workspaces.GetWorkspaceAt(relativeWorkspaceDir)
@@ -49,7 +51,7 @@ func TestRuntimeRun(t *testing.T) {
 	require.NoError(t, err, `expected no error running running [%v]`, ctx)
 
 	// The working directory of envoy is a temp directory not controlled by this test, so we have to parse it.
-	envoyWd := extension.ParseEnvoyWorkDirectory(stdout)
+	envoyWd := cmd.ParseEnvoyWorkDirectory(stdout)
 
 	// Verify we executed the indicated envoy binary, and it captured the arguments we expected
 	expectedStdout := fmt.Sprintf(`envoy pwd: %s
@@ -63,7 +65,7 @@ envoy args: -c %s/envoy.tmpl.yaml
 }
 
 func TestRuntimeRunFailsOnInvalidWorkspace(t *testing.T) {
-	invalidWorkspaceDir := extension.RequireAbsDir(t, "../configdir/testdata/workspace5")
+	invalidWorkspaceDir := cmd.RequireAbsDir(t, invalidWorkspaceDir)
 	workspace, err := workspaces.GetWorkspaceAt(invalidWorkspaceDir)
 	require.NoError(t, err, `expected no error getting workspace from directory %s`, invalidWorkspaceDir)
 
@@ -79,7 +81,7 @@ func TestRuntimeRunFailsOnInvalidWorkspace(t *testing.T) {
 
 	// Verify the error raised parsing the template from the input directory, before running envoy.
 	invalidTemplate := invalidWorkspaceDir + "/.getenvoy/extension/examples/default/envoy.tmpl.yaml"
-	expectedErr := fmt.Sprintf(`failed to process Envoy config template coming from "%s": failed to render Envoy config template: template: :4:19: executing "" at <.GetEnvoy.DefaultValue>: error calling DefaultValue: unknown property "???"`, invalidTemplate)
+	expectedErr := fmt.Sprintf(`failed to process Envoy config template coming from "%s": failed to render Envoy config template: template: :18:19: executing "" at <.GetEnvoy.DefaultValue>: error calling DefaultValue: unknown property "???"`, invalidTemplate)
 	require.EqualError(t, err, expectedErr, `expected an error running [%v]`, ctx)
 
 	// Verify there was no stdout or stderr because envoy shouldn't have run, yet.
@@ -121,12 +123,12 @@ func runContext(workspace model.Workspace, example model.Example, envoyPath stri
 func setupFakeEnvoy(t *testing.T) (string, func()) {
 	var tearDown []func()
 
-	tempDir, deleteTempDir := extension.RequireNewTempDir(t)
+	tempDir, deleteTempDir := cmd.RequireNewTempDir(t)
 	tearDown = append(tearDown, deleteTempDir)
 
 	envoyHome := filepath.Join(tempDir, "envoy_home")
-	fakeEnvoyPath := extension.InitFakeEnvoyHome(t, envoyHome)
-	revertHomeDir := extension.OverrideHomeDir(envoyHome)
+	fakeEnvoyPath := cmd.InitFakeEnvoyHome(t, envoyHome)
+	revertHomeDir := cmd.OverrideHomeDir(envoyHome)
 	tearDown = append(tearDown, revertHomeDir)
 
 	return fakeEnvoyPath, func() {

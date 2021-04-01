@@ -25,7 +25,7 @@ import (
 	"github.com/otiai10/copy"
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/pkg/test/cmd/extension"
+	cmd2 "github.com/tetratelabs/getenvoy/pkg/test/cmd"
 	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 
@@ -40,7 +40,7 @@ func TestGetEnvoyExtensionRunValidateFlag(t *testing.T) {
 		expectedErr string
 	}
 
-	tempDir, closer := extension.RequireNewTempDir(t)
+	tempDir, closer := cmd2.RequireNewTempDir(t)
 	defer closer()
 
 	// Create a fake envoy script so that we can verify execute bit is required.
@@ -128,7 +128,7 @@ func TestGetEnvoyExtensionRunValidateFlag(t *testing.T) {
 
 		t.Run(test.name, func(t *testing.T) {
 			// Run "getenvoy extension run" with the flags we are testing
-			cmd, stdout, stderr := extension.NewRootCommand()
+			cmd, stdout, stderr := cmd2.NewRootCommand()
 			args := []string{"extension", "run"}
 			for i := range test.flags {
 				args = append(args, test.flags[i], test.flagValues[i])
@@ -151,7 +151,7 @@ func TestGetEnvoyExtensionRunFailsOutsideWorkspaceDirectory(t *testing.T) {
 	defer cleanup()
 
 	// Run "getenvoy extension run"
-	cmd, stdout, stderr := extension.NewRootCommand()
+	cmd, stdout, stderr := cmd2.NewRootCommand()
 	cmd.SetArgs([]string{"extension", "run"})
 	err := cmdutil.Execute(cmd)
 
@@ -168,7 +168,7 @@ func TestGetEnvoyExtensionRun(t *testing.T) {
 	defer cleanup()
 
 	// Run "getenvoy extension run"
-	cmd, stdout, stderr := extension.NewRootCommand()
+	cmd, stdout, stderr := cmd2.NewRootCommand()
 	cmd.SetArgs([]string{"extension", "run", "--home-dir", config.envoyHome})
 	err := cmdutil.Execute(cmd)
 
@@ -177,7 +177,7 @@ func TestGetEnvoyExtensionRun(t *testing.T) {
 
 	envoyBin := filepath.Join(config.envoyHome, "builds/standard/1.17.0", config.platform, "/bin/envoy")
 	// The working directory of envoy isn't the same as docker or the workspace
-	envoyWd := extension.ParseEnvoyWorkDirectory(stdout)
+	envoyWd := cmd2.ParseEnvoyWorkDirectory(stdout)
 
 	// We expect docker to build from the correct path, as the current user and mount a volume for the correct workspace.
 	expectedStdout := fmt.Sprintf(`%s/docker run -u %s --rm -t -v %s:/source -w /source --init getenvoy/extension-rust-builder:latest build --output-file target/getenvoy/extension.wasm
@@ -205,7 +205,7 @@ func TestGetEnvoyExtensionRunDockerFail(t *testing.T) {
 	// "-e DOCKER_EXIT_CODE=3" is a special instruction handled in the fake docker script
 	toolchainOptions := "-e DOCKER_EXIT_CODE=3"
 	// Run "getenvoy extension run"
-	cmd, _, stderr := extension.NewRootCommand()
+	cmd, _, stderr := cmd2.NewRootCommand()
 	cmd.SetArgs([]string{"extension", "run", "--toolchain-container-options", toolchainOptions})
 	err := cmdutil.Execute(cmd)
 
@@ -229,7 +229,7 @@ func TestGetEnvoyExtensionRunWithExplicitVersion(t *testing.T) {
 	defer cleanup()
 
 	// Run "getenvoy extension run --envoy-version wasm:stable"
-	cmd, stdout, _ := extension.NewRootCommand()
+	cmd, stdout, _ := cmd2.NewRootCommand()
 	cmd.SetArgs([]string{"extension", "run", "--home-dir", config.envoyHome, "--envoy-version", "wasm:stable"})
 	err := cmdutil.Execute(cmd)
 
@@ -247,7 +247,7 @@ func TestGetEnvoyExtensionRunFailWithUnknownVersion(t *testing.T) {
 
 	version := "wasm:unknown"
 	// Run "getenvoy extension run --envoy-version wasm:unknown"
-	cmd, _, stderr := extension.NewRootCommand()
+	cmd, _, stderr := cmd2.NewRootCommand()
 	cmd.SetArgs([]string{"extension", "run", "--home-dir", config.envoyHome, "--envoy-version", version})
 	err := cmdutil.Execute(cmd)
 
@@ -267,7 +267,7 @@ func TestGetEnvoyExtensionRunWithCustomBinary(t *testing.T) {
 
 	// Run "getenvoy extension run --envoy-path $ENVOY_HOME/bin/envoy"
 	envoyBin := filepath.Join(config.envoyHome, "bin/envoy")
-	cmd, stdout, _ := extension.NewRootCommand()
+	cmd, stdout, _ := cmd2.NewRootCommand()
 	cmd.SetArgs([]string{"extension", "run", "--envoy-path", envoyBin})
 	err := cmdutil.Execute(cmd)
 
@@ -283,7 +283,7 @@ func TestGetEnvoyExtensionRunWithOptions(t *testing.T) {
 	defer cleanup()
 
 	// Run "getenvoy extension run ..."
-	cmd, stdout, _ := extension.NewRootCommand()
+	cmd, stdout, _ := cmd2.NewRootCommand()
 	cmd.SetArgs([]string{"extension", "run", "--home-dir", config.envoyHome,
 		"--envoy-options", "'--concurrency 2 --component-log-level wasm:debug,config:trace'"})
 	err := cmdutil.Execute(cmd)
@@ -292,7 +292,7 @@ func TestGetEnvoyExtensionRunWithOptions(t *testing.T) {
 	require.NoError(t, err, `expected no error running [%v]`, cmd)
 
 	// The working directory of envoy is a temp directory not controlled by this test, so we have to parse it.
-	envoyWd := extension.ParseEnvoyWorkDirectory(stdout)
+	envoyWd := cmd2.ParseEnvoyWorkDirectory(stdout)
 
 	envoyArgs := fmt.Sprintf(`-c %s/envoy.tmpl.yaml --concurrency 2 --component-log-level wasm:debug,config:trace`, envoyWd)
 	require.Contains(t, stdout.String(), "envoy args: "+envoyArgs, `expected stdout running [%v]`, cmd)
@@ -309,7 +309,7 @@ func TestGetEnvoyExtensionRunWithWasm(t *testing.T) {
 	require.NoError(t, err, `expected no error creating extension.wasm: %s`, wasmFile)
 
 	// Run "getenvoy extension run --extension-file /path/to/extension.wasm"
-	cmd, stdout, stderr := extension.NewRootCommand()
+	cmd, stdout, stderr := cmd2.NewRootCommand()
 	cmd.SetArgs([]string{"extension", "run", "--home-dir", config.envoyHome, "--extension-file", wasmFile})
 	err = cmdutil.Execute(cmd)
 
@@ -319,7 +319,7 @@ func TestGetEnvoyExtensionRunWithWasm(t *testing.T) {
 	envoyBin := filepath.Join(config.envoyHome, "builds/standard/1.17.0", config.platform, "/bin/envoy")
 
 	// The working directory of envoy is a temp directory not controlled by this test, so we have to parse it.
-	envoyWd := extension.ParseEnvoyWorkDirectory(stdout)
+	envoyWd := cmd2.ParseEnvoyWorkDirectory(stdout)
 
 	// We expect docker to not have ran, since we supplied a pre-existing wasm. However, envoy should have.
 	expectedStdout := fmt.Sprintf(`envoy pwd: %s
@@ -346,7 +346,7 @@ func TestGetEnvoyExtensionRunWithConfig(t *testing.T) {
 	require.NoError(t, err, `expected no error creating extension.wasm: %s`, configFile)
 
 	// Run "getenvoy extension run --extension-config-file /path/to/config.json"
-	cmd, _, _ := extension.NewRootCommand()
+	cmd, _, _ := cmd2.NewRootCommand()
 	cmd.SetArgs([]string{"extension", "run", "--home-dir", config.envoyHome, "--extension-config-file", configFile})
 	err = cmdutil.Execute(cmd)
 
@@ -365,7 +365,7 @@ func TestGetEnvoyExtensionRunCreatesExampleWhenMissing(t *testing.T) {
 	defer cleanup()
 
 	// Run "getenvoy extension run"
-	cmd, _, stderr := extension.NewRootCommand()
+	cmd, _, stderr := cmd2.NewRootCommand()
 	cmd.SetArgs([]string{"extension", "run", "--home-dir", config.envoyHome})
 	err := cmdutil.Execute(cmd)
 
@@ -390,7 +390,7 @@ func TestGetEnvoyExtensionRunTinyGo(t *testing.T) {
 	defer cleanup()
 
 	// Run "getenvoy extension run"
-	cmd, stdout, _ := extension.NewRootCommand()
+	cmd, stdout, _ := cmd2.NewRootCommand()
 	cmd.SetArgs([]string{"extension", "run", "--home-dir", config.envoyHome})
 	err := cmdutil.Execute(cmd)
 
@@ -423,17 +423,17 @@ func setupTest(t *testing.T, relativeWorkspaceTemplate string) (*testEnvoyExtens
 	result := testEnvoyExtensionConfig{}
 	var tearDown []func()
 
-	tempDir, deleteTempDir := extension.RequireNewTempDir(t)
+	tempDir, deleteTempDir := cmd2.RequireNewTempDir(t)
 	tearDown = append(tearDown, deleteTempDir)
 	result.tempDir = tempDir
 
 	// We use a fake docker command to capture the commandline that would be invoked
-	dockerDir, revertPath := extension.RequireOverridePath(t, extension.FakeDockerDir)
+	dockerDir, revertPath := cmd2.RequireOverridePath(t, cmd2.FakeDockerDir)
 	tearDown = append(tearDown, revertPath)
 	result.dockerDir = dockerDir
 
 	envoyHome := filepath.Join(tempDir, "envoy_home")
-	extension.InitFakeEnvoyHome(t, envoyHome)
+	cmd2.InitFakeEnvoyHome(t, envoyHome)
 	result.envoyHome = envoyHome
 
 	// create a new workspaceDir under tempDir
@@ -442,22 +442,22 @@ func setupTest(t *testing.T, relativeWorkspaceTemplate string) (*testEnvoyExtens
 	require.NoError(t, err, `error creating directory: %s`, workspaceDir)
 
 	// Copy the template into the new workspaceDir to avoid tainting the source tree
-	err = copy.Copy(extension.RequireAbsDir(t, relativeWorkspaceTemplate), workspaceDir)
+	err = copy.Copy(cmd2.RequireAbsDir(t, relativeWorkspaceTemplate), workspaceDir)
 	require.NoError(t, err, `expected no error copying the directory: %s`, relativeWorkspaceTemplate)
 	result.workspaceDir = workspaceDir
 
 	// "getenvoy extension run" must be executed inside a valid workspace directory
-	_, revertWd := extension.RequireChDir(t, workspaceDir)
+	_, revertWd := cmd2.RequireChDir(t, workspaceDir)
 	tearDown = append(tearDown, revertWd)
 
-	platform := extension.RequireManifestPlatform(t)
-	shutdownTestServer := extension.RequireManifestTestServer(t, envoyHome)
+	platform := cmd2.RequireManifestPlatform(t)
+	shutdownTestServer := cmd2.RequireManifestTestServer(t, envoyHome)
 	tearDown = append(tearDown, shutdownTestServer)
 	result.platform = platform
 
 	// Fake the current user so we can test it is used in the docker args
 	expectedUser := user.User{Uid: "1001", Gid: "1002"}
-	revertGetCurrentUser := extension.OverrideGetCurrentUser(&expectedUser)
+	revertGetCurrentUser := cmd2.OverrideGetCurrentUser(&expectedUser)
 	tearDown = append(tearDown, revertGetCurrentUser)
 	result.expectedUidGid = expectedUser.Uid + ":" + expectedUser.Gid
 
