@@ -71,7 +71,7 @@ jobs:
       - name: "Run e2e tests using the `getenvoy` binary built by the upstream job"
         run: |  # chmod to restore permissions lost in actions/download-artifact@v2
           chmod a+x build/bin/linux/amd64/getenvoy
-          ./ci/e2e/macos/run_tests.sh
+          ./ci/e2e/linux/run_tests.sh
 
   e2e_macos:
     name: "Run e2e tests on MacOS"
@@ -110,5 +110,5 @@ jobs:
 
       - name: "Run e2e tests using the `getenvoy` binary built by the upstream job"
         run: |  # chmod to restore permissions lost in actions/download-artifact@v2
-          chmod a+x build/bin/linux/amd64/getenvoy
+          chmod a+x build/bin/macos/amd64/getenvoy
           ./ci/e2e/macos/run_tests.sh
