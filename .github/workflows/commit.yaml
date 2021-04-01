@@ -71,7 +71,7 @@ jobs:
       - name: "Run e2e tests using the `getenvoy` binary built by the upstream job"
         run: |  # chmod to restore permissions lost in actions/download-artifact@v2
           chmod a+x build/bin/linux/amd64/getenvoy
-          ./ci/e2e/macos/run_tests.sh
+          ./ci/e2e/linux/run_tests.sh
 
   e2e_macos:
     name: "Run e2e tests on MacOS"
@@ -97,7 +97,7 @@ jobs:
           path: build/bin
 
       - name: "Install 'Docker for Mac' (an older version that can be installed in CI environment)"
-        run: ./ci/e2e/macos/install_docker.sh
+        run: ./ci/e2e/darwin/install_docker.sh
         timeout-minutes: 7  # unfortunately, installing `Docker for Mac` in CI environment is fragile; be ready to restart the job occasionally
 
       - name: "Build language-specific Docker build images"
@@ -110,5 +110,5 @@ jobs:
 
       - name: "Run e2e tests using the `getenvoy` binary built by the upstream job"
         run: |  # chmod to restore permissions lost in actions/download-artifact@v2
-          chmod a+x build/bin/linux/amd64/getenvoy
-          ./ci/e2e/macos/run_tests.sh
+          chmod a+x build/bin/darwin/amd64/getenvoy
+          ./ci/e2e/darwin/run_tests.sh
