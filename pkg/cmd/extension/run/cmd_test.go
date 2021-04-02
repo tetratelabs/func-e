@@ -20,6 +20,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/Masterminds/semver"
@@ -169,11 +170,11 @@ func TestGetEnvoyExtensionRun(t *testing.T) {
 	envoyWd := cmd.ParseEnvoyWorkDirectory(stdout)
 
 	// We expect docker to build from the correct path, as the current user and mount a volume for the correct workspace.
-	expectedStdout := fmt.Sprintf(`%s/docker run -u %s --rm -t -v %s:/source -w /source --init getenvoy/extension-rust-builder:latest build --output-file target/getenvoy/extension.wasm
+	expectedStdout := fmt.Sprintf(`%s/docker run -u %s --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init getenvoy/extension-rust-builder:latest build --output-file target/getenvoy/extension.wasm
 envoy pwd: %s
 envoy bin: %s
 envoy args: -c %s/envoy.tmpl.yaml`,
-		config.dockerDir, config.expectedUidGid, config.workspaceDir, envoyWd, envoyBin, envoyWd)
+		config.dockerDir, config.expectedUidGid, runtime.GOOS, config.workspaceDir, envoyWd, envoyBin, envoyWd)
 	require.Equal(t, expectedStdout+"\n", stdout.String(), `expected stdout running [%v]`, c)
 	require.Equal(t, "docker stderr\nenvoy stderr\n", stderr.String(), `expected stderr running [%v]`, c)
 
@@ -199,8 +200,8 @@ func TestGetEnvoyExtensionRunDockerFail(t *testing.T) {
 	err := cmdutil.Execute(c)
 
 	// We expect the exit instruction to have gotten to the fake docker script, along with the default options.
-	expectedDockerExec := fmt.Sprintf("%s/docker run -u %s --rm -t -v %s:/source -w /source --init %s getenvoy/extension-rust-builder:latest build --output-file target/getenvoy/extension.wasm",
-		config.dockerDir, config.expectedUidGid, config.workspaceDir, toolchainOptions)
+	expectedDockerExec := fmt.Sprintf("%s/docker run -u %s --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init %s getenvoy/extension-rust-builder:latest build --output-file target/getenvoy/extension.wasm",
+		config.dockerDir, config.expectedUidGid, runtime.GOOS, config.workspaceDir, toolchainOptions)
 
 	// Verify the command failed with the expected error.
 	expectedErr := fmt.Sprintf(`failed to build Envoy extension using "default" toolchain: failed to execute an external command "%s": exit status 3`, expectedDockerExec)

@@ -14,25 +14,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -e
+set -ue
 
 SCRIPT_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}")"  && pwd)
-GETENVOY_WORKSPACE_DIR="${GETENVOY_WORKSPACE_DIR:-$PWD}"
 
-USAGE="usage: build [--output-file PATH]
+# Note: we are using option syntax for --output-file even if this was always required. This is for compatibility with
+# older versions of the getenvoy binary.
+USAGE="usage: build --output-file path/to/extension.wasm
    or: test
    or: clean
 
 examples:
-   # build Wasm extension (location of *.wasm file is undefined)
-   build
-
    # build Wasm extension and copy *.wasm file to a given location
    build --output-file target/extension.wasm
-
-options:
-   build:
-   --output-file PATH   Path relative to the workspace root to copy *.wasm file to
 "
 
 usage() {

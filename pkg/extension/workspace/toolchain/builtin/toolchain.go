@@ -19,6 +19,7 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"runtime"
 
 	config "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/toolchain/builtin"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
@@ -97,6 +98,7 @@ func (t *builtin) dockerCliArgs(container *config.ContainerConfig) (executil.Arg
 		"run",
 		"-u", fmt.Sprintf("%s:%s", u.Uid, u.Gid), // to get proper ownership on files created by the container
 		"--rm",
+		"-e", "GETENVOY_GOOS=" + runtime.GOOS, // Allows builder images to act based on execution env
 		"-t", // to get interactive/colored output out of container
 		"-v", fmt.Sprintf("%s:%s", t.workspace.GetDir().GetRootDir(), "/source"),
 		"-w", "/source",
