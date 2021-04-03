@@ -45,7 +45,8 @@ type OpenFileStat struct {
 	Name   string `json:"name"` // name of the mount point and file system on which the file resides
 }
 
-// EnableOpenFilesDataCollection is a preset option that registers collection of statistics of files opened by envoy instance(s)
+// EnableOpenFilesDataCollection is a preset option that registers collection of statistics of files opened by envoy
+// instance(s). This is unsupported on macOS/Darwin because it does not support process.OpenFiles
 func EnableOpenFilesDataCollection(r *envoy.Runtime) {
 	if err := os.Mkdir(filepath.Join(r.DebugStore(), "lsof"), os.ModePerm); err != nil {
 		log.Errorf("error in creating a directory to write open file data of envoy to: %v", err)
@@ -80,7 +81,7 @@ func retrieveOpenFilesData(r binary.Runner) error {
 
 	openFiles, err := envoyProcess.OpenFiles()
 	if err != nil {
-		return fmt.Errorf("error in getting open file statistics: %v", err)
+		return fmt.Errorf("error in getting open file statistics: %w", err)
 	}
 
 	for _, stat := range openFiles {

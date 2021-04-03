@@ -36,7 +36,6 @@ require (
 	github.com/tetratelabs/getenvoy-package v0.0.0-20190730071641-da31aed4333e
 	github.com/tetratelabs/log v0.0.0-20190710134534-eb04d1e84fb8
 	github.com/tetratelabs/multierror v1.1.0
-	gotest.tools v2.2.0+incompatible
 	istio.io/api v0.0.0-20200227213531-891bf31f3c32
 	istio.io/istio v0.0.0-20200304114959-c3c353285578
 	rsc.io/letsencrypt v0.0.3 // indirect

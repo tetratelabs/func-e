@@ -24,55 +24,43 @@ import (
 	"testing"
 
 	"github.com/mholt/archiver"
-	"gotest.tools/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func Test_VersionedIstioTemplate(t *testing.T) {
-	t.Run(fmt.Sprintf("checking Istio bootstrap matches version %s", IstioVersion), func(t *testing.T) {
-		got := retrieveIstioBootstrap(t)
-		assert.Equal(t, istioBootStrapTemplate, string(got))
-	})
-}
-
-func retrieveIstioBootstrap(t *testing.T) []byte {
+// TestIstioBootStrapTemplateEqualsReleaseJson ensures istioBootStrapTemplate is exactly the same as what would have been
+// downloaded from the istio release for version IstioVersion.
+func TestIstioBootStrapTemplateEqualsReleaseJson(t *testing.T) {
 	// Retrieve Istio tarball os doesn't matter we only car about the bootstrap JSON
-	url := fmt.Sprintf("https://github.com/istio/istio/releases/download/%v/istio-%v-linux.tar.gz", IstioVersion, IstioVersion)
+	url := fmt.Sprintf("https://github.com/istio/istio/releases/download/%s/istio-%s-linux.tar.gz", IstioVersion, IstioVersion)
 	resp, err := http.Get(url)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err, "error getting tarball for istio version %s", IstioVersion)
+
 	defer resp.Body.Close() //nolint
-	if resp.StatusCode != http.StatusOK {
-		t.Errorf("received %v status code", resp.StatusCode)
-	}
-	dst := os.TempDir()
+	require.Equal(t, http.StatusOK, resp.StatusCode, "unexpected HTTP status from %s", url)
+
+	dst, err := ioutil.TempDir("", "")
+	require.NoError(t, err, `ioutil.TempDir("", "") erred`)
 	defer os.RemoveAll(dst)
+
 	tarball := filepath.Join(dst, "istio.tar.gz")
 	f, err := os.OpenFile(tarball, os.O_CREATE|os.O_WRONLY, 0600)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err, "Couldn't open file %s", tarball)
 	defer f.Close() //nolint
+
 	_, err = io.Copy(f, resp.Body)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err, "Couldn't download %s into %s", url, tarball)
 
 	// Walk the tarball until we find the bootstrap
+	bootstrapName := "envoy_bootstrap_v2.json"
 	var bytes []byte
-	if walkErr := archiver.Walk(tarball, func(f archiver.File) error {
-		if f.Name() == "envoy_bootstrap_v2.json" {
+	err = archiver.Walk(tarball, func(f archiver.File) error {
+		if f.Name() == bootstrapName {
 			bytes, err = ioutil.ReadAll(f)
-			if err != nil {
-				return err
-			}
+			require.NoError(t, err, "error reading %s in %s", bootstrapName, url)
 		}
 		return nil
-	}); walkErr != nil {
-		t.Fatal(err)
-	}
-	if bytes == nil {
-		t.Fatal("no boostrap found")
-	}
-	return bytes
+	})
+
+	require.NotNil(t, bytes, "couldn't find %s in %s", bootstrapName, url)
+	require.Equal(t, istioBootStrapTemplate, string(bytes), "istioBootStrapTemplate isn't the same as the istio %s distribution", IstioVersion)
 }
