@@ -86,6 +86,7 @@ func (s *scaffolder) walk(sourceDirName, destinationDirName string) (errs error)
 	if err != nil && err != io.EOF {
 		return err
 	}
+
 	for _, sourceFile := range sourceFiles {
 		if sourceFile.IsDir() {
 			if err := s.walk(path.Join(sourceDirName, sourceFile.Name()), filepath.Join(destinationDirName, sourceFile.Name())); err != nil {
@@ -102,10 +103,13 @@ func (s *scaffolder) walk(sourceDirName, destinationDirName string) (errs error)
 
 func (s *scaffolder) visit(sourceDirName, destinationDirName string, sourceFileInfo os.FileInfo) (errs error) {
 	baseOutputFileName := sourceFileInfo.Name()
-	// We rename go.mod to go.mod_ to workaround https://github.com/golang/go/issues/45197
-	if baseOutputFileName == "go.mod_" {
-		baseOutputFileName = "go.mod"
+	switch baseOutputFileName {
+	case ".gitignore", ".licenserignore":
+		return nil // Ignore files shouldn't end up in the output directory
+	case "go.mod_":
+		baseOutputFileName = "go.mod" // rename workaround for https://github.com/golang/go/issues/45197
 	}
+
 	relOutputFileName := filepath.Join(destinationDirName, baseOutputFileName)
 	outputFileName := filepath.Join(s.opts.OutputDir, relOutputFileName)
 	if err := osutil.EnsureDirExists(filepath.Dir(outputFileName)); err != nil {

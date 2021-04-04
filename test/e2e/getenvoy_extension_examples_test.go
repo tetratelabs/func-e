@@ -20,6 +20,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	. "github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
 // TestGetEnvoyExtensionExampleAdd runs the equivalent of "getenvoy extension example XXX" commands for a matrix of
@@ -35,10 +37,10 @@ func TestGetEnvoyExtensionExample(t *testing.T) {
 		t.Run(test.String(), func(t *testing.T) {
 			extensionConfigFileName := extensionConfigFileName(test.Language)
 
-			workDir, removeWorkDir := requireNewTempDir(t)
+			workDir, removeWorkDir := RequireNewTempDir(t)
 			defer removeWorkDir()
 
-			revertChDir := requireChDir(t, workDir)
+			_, revertChDir := RequireChDir(t, workDir)
 			defer revertChDir()
 
 			// "getenvoy extension example XXX" commands require an extension init to succeed
@@ -46,16 +48,16 @@ func TestGetEnvoyExtensionExample(t *testing.T) {
 			defer requireExtensionClean(t, workDir)
 
 			// "getenvoy extension examples list" should start empty
-			cmd := getEnvoy("extension examples list")
-			stderr := requireExecNoStdout(t, cmd)
+			c := getEnvoy("extension examples list")
+			stderr := requireExecNoStdout(t, c)
 			require.Equal(t, `Extension has no example setups.
 
 Use "getenvoy extension examples add --help" for more information on how to add one.
-`, stderr, `invalid stderr running [%v]`, cmd)
+`, stderr, `invalid stderr running [%v]`, c)
 
 			// "getenvoy extension examples add" should result in stderr describing files created.
-			cmd = getEnvoy("extension examples add")
-			stderr = requireExecNoStdout(t, cmd)
+			c = getEnvoy("extension examples add")
+			stderr = requireExecNoStdout(t, c)
 
 			exampleFiles := []string{
 				filepath.Join(workDir, ".getenvoy/extension/examples/default/README.md"),
@@ -73,29 +75,29 @@ Use "getenvoy extension examples add --help" for more information on how to add 
 
 			// Check stderr mentions the files created
 			require.Equal(t, fmt.Sprintf("Scaffolding a new example setup:%sDone!\n", exampleFileText),
-				stderr, `invalid stderr running [%v]`, cmd)
+				stderr, `invalid stderr running [%v]`, c)
 
 			// Check the files mentioned actually exist
 			for _, path := range exampleFiles {
-				require.FileExists(t, path, `example file %s missing after running [%v]`, path, cmd)
+				require.FileExists(t, path, `example file %s missing after running [%v]`, path, c)
 			}
 
 			// "getenvoy extension examples list" should now include an example
-			cmd = getEnvoy("extension examples list")
-			stdout := requireExecNoStderr(t, cmd)
-			require.Equal(t, "EXAMPLE\ndefault\n", stdout, `invalid stdout running [%v]`, cmd)
+			c = getEnvoy("extension examples list")
+			stdout := requireExecNoStderr(t, c)
+			require.Equal(t, "EXAMPLE\ndefault\n", stdout, `invalid stdout running [%v]`, c)
 
 			// "getenvoy extension examples add" should result in stderr describing files created.
-			cmd = getEnvoy("extension examples remove --name default")
-			stderr = requireExecNoStdout(t, cmd)
+			c = getEnvoy("extension examples remove --name default")
+			stderr = requireExecNoStdout(t, c)
 
 			// Check stderr mentions the files removed
 			require.Equal(t, fmt.Sprintf("Removing example setup:%sDone!\n", exampleFileText),
-				stderr, `invalid stderr running [%v]`, cmd)
+				stderr, `invalid stderr running [%v]`, c)
 
 			// Check the files mentioned actually were removed
 			for _, path := range exampleFiles {
-				require.NoFileExists(t, path, `example file %s still exists after running [%v]`, path, cmd)
+				require.NoFileExists(t, path, `example file %s still exists after running [%v]`, path, c)
 			}
 		})
 	}

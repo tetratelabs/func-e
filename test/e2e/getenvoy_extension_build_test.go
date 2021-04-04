@@ -19,6 +19,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	. "github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
 // TestGetEnvoyExtensionBuild runs the equivalent of "getenvoy extension build" for a matrix of extension.Categories and
@@ -32,10 +34,10 @@ func TestGetEnvoyExtensionBuild(t *testing.T) {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.String(), func(t *testing.T) {
-			workDir, removeWorkDir := requireNewTempDir(t)
+			workDir, removeWorkDir := RequireNewTempDir(t)
 			defer removeWorkDir()
 
-			revertChDir := requireChDir(t, workDir)
+			_, revertChDir := RequireChDir(t, workDir)
 			defer revertChDir()
 
 			// test requires "get envoy extension init" to have succeeded
@@ -44,12 +46,12 @@ func TestGetEnvoyExtensionBuild(t *testing.T) {
 
 			// "getenvoy extension build" only returns stdout because `docker run -t` redirects stderr to stdout.
 			// We don't verify stdout because it is low signal vs looking at files created.
-			cmd := getEnvoy("extension build").Args(getToolchainContainerOptions()...)
-			_ = requireExecNoStderr(t, cmd)
+			c := getEnvoy("extension build").Args(getToolchainContainerOptions()...)
+			_ = requireExecNoStderr(t, c)
 
 			// Verify the extension built
 			extensionWasmFile := filepath.Join(workDir, extensionWasmPath(test.Language))
-			require.FileExists(t, extensionWasmFile, `extension wasm file %s missing after running [%v]`, extensionWasmFile, cmd)
+			require.FileExists(t, extensionWasmFile, `extension wasm file %s missing after running [%v]`, extensionWasmFile, c)
 		})
 	}
 }

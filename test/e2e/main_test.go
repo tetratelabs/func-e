@@ -48,22 +48,22 @@ const (
 	E2E_TOOLCHAIN_CONTAINER_OPTIONS = "E2E_TOOLCHAIN_CONTAINER_OPTIONS"
 )
 
-// ExtensionTestTuple represents a combination of extension category and  programming language.
-type extensionTestTuple struct {
+// ExtensionTestCase represents a combination of extension category and  programming language.
+type extensionTestCase struct {
 	extension.Category
 	extension.Language
 }
 
-func (t extensionTestTuple) String() string {
+func (t extensionTestCase) String() string {
 	return fmt.Sprintf("category=%s, language=%s", t.Category, t.Language)
 }
 
 // getExtensionTestMatrix returns the base matrix of category and language "getenvoy extension" tests run.
-func getExtensionTestMatrix() []extensionTestTuple {
-	tuples := make([]extensionTestTuple, 0)
+func getExtensionTestMatrix() []extensionTestCase {
+	tuples := make([]extensionTestCase, 0)
 	for _, category := range extension.Categories {
 		for _, language := range extensionLanguages {
-			tuples = append(tuples, extensionTestTuple{category, language})
+			tuples = append(tuples, extensionTestCase{category, language})
 		}
 	}
 	return tuples
@@ -147,100 +147,60 @@ func getToolchainContainerOptions() []string {
 	return []string{"--toolchain-container-options", value}
 }
 
-// requireNewTempDir creates a new directory. The function returned cleans it up.
-func requireNewTempDir(t *testing.T) (string, func()) {
-	d, err := ioutil.TempDir("", "")
-	if err != nil {
-		require.NoError(t, err, `ioutil.TempDir("", "") erred`)
-	}
-	dir := requireAbsDir(t, d)
-	return dir, func() {
-		e := os.RemoveAll(dir)
-		require.NoError(t, e, `error removing directory: %v`, dir)
-	}
-}
-
-// RequireChDir will os.Chdir into the indicated dir, panicing on any problem.
-// The function returned reverts to the original.
-func requireChDir(t *testing.T, d string) func() {
-	// Save previous working directory to that it can be reverted later.
-	previous, err := os.Getwd()
-	require.NoError(t, err, `error determining current directory`)
-
-	// Now, actually change to the directory.
-	err = os.Chdir(d)
-	require.NoError(t, err, `error changing to directory: %v`, d)
-	return func() {
-		e := os.Chdir(previous)
-		require.NoError(t, e, `error changing to directory: %v`, previous)
-	}
-}
-
-// requireAbsDir runs filepath.Abs and ensures there are no errors and the input is a directory.
-func requireAbsDir(t *testing.T, d string) string {
-	dir, err := filepath.Abs(d)
-	require.NoError(t, err, `error determining absolute directory: %v`, d)
-	require.DirExists(t, dir, `directory doesn't exist': %v`, dir)
-	dir, err = filepath.EvalSymlinks(dir)
-	require.NoError(t, err, `filepath.EvalSymlinks(%s) erred`, dir)
-	require.NotEmpty(t, dir, `filepath.EvalSymlinks(%s) returned ""`)
-	return dir
-}
-
 // Command gives us an interface needed for testing getEnvoy
 type Command interface {
 	Exec() (string, string, error)
 }
 
 // requireExecNoStdout invokes the command and returns its stderr if successful and stdout is empty.
-func requireExecNoStdout(t *testing.T, cmd Command) string {
-	stdout, stderr := requireExec(t, cmd)
-	require.Empty(t, stdout, `expected no stdout running [%v]`, cmd)
-	require.NotEmpty(t, stderr, `expected stderr running [%v]`, cmd)
+func requireExecNoStdout(t *testing.T, c Command) string {
+	stdout, stderr := requireExec(t, c)
+	require.Empty(t, stdout, `expected no stdout running [%v]`, c)
+	require.NotEmpty(t, stderr, `expected stderr running [%v]`, c)
 	return stderr
 }
 
 // requireExecNoStderr invokes the command and returns its stdout if successful and stderr is empty.
-func requireExecNoStderr(t *testing.T, cmd Command) string {
-	stdout, stderr := requireExec(t, cmd)
-	require.NotEmpty(t, stdout, `expected stdout running [%v]`, cmd)
-	require.Empty(t, stderr, `expected no stderr running [%v]`, cmd)
+func requireExecNoStderr(t *testing.T, c Command) string {
+	stdout, stderr := requireExec(t, c)
+	require.NotEmpty(t, stdout, `expected stdout running [%v]`, c)
+	require.Empty(t, stderr, `expected no stderr running [%v]`, c)
 	return stdout
 }
 
 // requireExec invokes the command and returns its (stdout, stderr) if successful.
-func requireExec(t *testing.T, cmd Command) (string, string) {
-	log.Infof(`running [%v]`, cmd)
-	stdout, stderr, err := cmd.Exec()
+func requireExec(t *testing.T, c Command) (string, string) {
+	log.Infof(`running [%v]`, c)
+	stdout, stderr, err := c.Exec()
 
-	require.NoError(t, err, `error running [%v]`, cmd)
+	require.NoError(t, err, `error running [%v]`, c)
 	return stdout, stderr
 }
 
 // requireExtensionInit is useful for tests that depend on "getenvoy extension init" as a prerequisite.
 func requireExtensionInit(t *testing.T, workDir string, category extension.Category, language extension.Language, name string) {
-	cmd := getEnvoy("extension init").
+	c := getEnvoy("extension init").
 		Arg(workDir).
 		Arg("--category").Arg(string(category)).
 		Arg("--language").Arg(string(language)).
 		Arg("--name").Arg(name)
 	// stderr returned is not tested because doing so is redundant to TestGetEnvoyExtensionInit.
-	_ = requireExecNoStdout(t, cmd)
+	_ = requireExecNoStdout(t, c)
 }
 
 // requireExtensionInit is useful for tests that depend on "getenvoy extension build" as a prerequisite.
 // The result of calling this is the bytes representing the built wasm
 func requireExtensionBuild(t *testing.T, language extension.Language, workDir string) []byte {
-	cmd := getEnvoy("extension build").Args(getToolchainContainerOptions()...)
+	c := getEnvoy("extension build").Args(getToolchainContainerOptions()...)
 	// stderr returned is not tested because doing so is redundant to TestGetEnvoyExtensionInit.
-	_ = requireExecNoStderr(t, cmd)
+	_ = requireExecNoStderr(t, c)
 
 	extensionWasmFile := filepath.Join(workDir, extensionWasmPath(language))
-	require.FileExists(t, extensionWasmFile, `extension wasm file %s missing after running [%v]`, extensionWasmFile, cmd)
+	require.FileExists(t, extensionWasmFile, `extension wasm file %s missing after running [%v]`, extensionWasmFile, c)
 
 	wasmBytes, err := ioutil.ReadFile(extensionWasmFile)
-	require.NoError(t, err, `error reading %s after running [%v]: %s`, extensionWasmFile, cmd)
-	require.NotEmpty(t, wasmBytes, `%s empty after running [%v]`, extensionWasmFile, cmd)
+	require.NoError(t, err, `error reading %s after running [%v]: %s`, extensionWasmFile, c)
+	require.NotEmpty(t, wasmBytes, `%s empty after running [%v]`, extensionWasmFile, c)
 	return wasmBytes
 }
 
@@ -250,8 +210,8 @@ func requireExtensionClean(t *testing.T, workDir string) {
 	err := os.Chdir(workDir)
 	require.NoError(t, err, `error changing to directory: %v`, workDir)
 
-	cmd := getEnvoy("extension clean")
-	_, _ = requireExec(t, cmd)
+	c := getEnvoy("extension clean")
+	_, _ = requireExec(t, c)
 }
 
 // extensionWasmPath returns the language-specific location of the extension.wasm.

@@ -16,72 +16,40 @@ package init
 
 import (
 	"bytes"
+	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
 	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/require"
 
 	scaffold "github.com/tetratelabs/getenvoy/pkg/extension/init"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 	uiutil "github.com/tetratelabs/getenvoy/pkg/util/ui"
 )
 
-var _ = Describe("feedback", func() {
-	Describe("console output", func() {
-		type testCase struct {
-			noColors   bool
-			usedWizard bool
-			expected   string
-		}
-		DescribeTable("should depend on whether colors are enabled",
-			func(given testCase) {
-				uiutil.StylesEnabled = !given.noColors
-
-				c := &cobra.Command{
-					Use: "init",
-				}
-				stdout := new(bytes.Buffer)
-				stderr := new(bytes.Buffer)
-				c.SetOut(stdout)
-				c.SetErr(stderr)
-
-				f := &feedback{
-					cmd: c,
-					opts: &scaffold.ScaffoldOpts{
-						Extension: &extension.Descriptor{
-							Category: extension.EnvoyHTTPFilter,
-							Language: extension.LanguageRust,
-							Name:     "my_company.my_http_filter",
-						},
-						OutputDir: "/path/to/dir",
-					},
-					usedWizard: given.usedWizard,
-					w:          c.ErrOrStderr(),
-				}
-
-				f.OnStart()
-				f.OnFile("Cargo.toml")
-				f.OnFile("src/lib.rs")
-				f.OnComplete()
-
-				Expect(stdout.String()).To(BeEmpty())
-				Expect(stderr.String()).To(Equal(given.expected))
-			},
-			Entry("--no-colors", testCase{
-				noColors:   true,
-				usedWizard: false,
-				expected: `Scaffolding a new extension:
+func TestFeedbackArgs(t *testing.T) {
+	type testCase struct {
+		name       string
+		noColors   bool
+		usedWizard bool
+		expected   string
+	}
+	tests := []testCase{
+		{
+			name:       "--no-colors",
+			noColors:   true,
+			usedWizard: false,
+			expected: `Scaffolding a new extension:
 Generating files in /path/to/dir:
 * Cargo.toml
 * src/lib.rs
 Done!
 `,
-			}),
-			Entry("--no-colors + wizard", testCase{
-				noColors:   true,
-				usedWizard: true,
-				expected: `Scaffolding a new extension:
+		},
+		{
+			name:       "--no-colors + wizard",
+			noColors:   true,
+			usedWizard: true,
+			expected: `Scaffolding a new extension:
 Generating files in /path/to/dir:
 * Cargo.toml
 * src/lib.rs
@@ -91,29 +59,65 @@ Hint:
 Next time you can skip the wizard by running
   init --category envoy.filters.http --language rust --name my_company.my_http_filter /path/to/dir
 `,
-			}),
-			Entry("--no-colors=false", testCase{
-				noColors:   false,
-				usedWizard: false,
-				expected: "\x1b[4mScaffolding a new extension:\x1b[0m\n" +
-					"Generating files in \x1b[2m/path/to/dir\x1b[0m:\n" +
-					"\x1b[32m✔\x1b[0m Cargo.toml\n" +
-					"\x1b[32m✔\x1b[0m src/lib.rs\n" +
-					"Done!\n",
-			}),
-			Entry("--no-colors=false + wizard", testCase{
-				noColors:   false,
-				usedWizard: true,
-				expected: "\x1b[4mScaffolding a new extension:\x1b[0m\n" +
-					"Generating files in \x1b[2m/path/to/dir\x1b[0m:\n" +
-					"\x1b[32m✔\x1b[0m Cargo.toml\n" +
-					"\x1b[32m✔\x1b[0m src/lib.rs\n" +
-					"Done!\n" +
-					"\n" +
-					"\x1b[2m\x1b[4mHint:\x1b[0m\n" +
-					"\x1b[2mNext time you can skip the wizard by running\x1b[0m\n" +
-					"\x1b[2m  init --category envoy.filters.http --language rust --name my_company.my_http_filter /path/to/dir\x1b[0m\n",
-			}),
-		)
-	})
-})
+		}, {
+			name:       "--no-colors=false",
+			noColors:   false,
+			usedWizard: false,
+			expected: "\x1b[4mScaffolding a new extension:\x1b[0m\n" +
+				"Generating files in \x1b[2m/path/to/dir\x1b[0m:\n" +
+				"\x1b[32m✔\x1b[0m Cargo.toml\n" +
+				"\x1b[32m✔\x1b[0m src/lib.rs\n" +
+				"Done!\n",
+		}, {
+			name:       "--no-colors=false + wizard",
+			noColors:   false,
+			usedWizard: true,
+			expected: "\x1b[4mScaffolding a new extension:\x1b[0m\n" +
+				"Generating files in \x1b[2m/path/to/dir\x1b[0m:\n" +
+				"\x1b[32m✔\x1b[0m Cargo.toml\n" +
+				"\x1b[32m✔\x1b[0m src/lib.rs\n" +
+				"Done!\n" +
+				"\n" +
+				"\x1b[2m\x1b[4mHint:\x1b[0m\n" +
+				"\x1b[2mNext time you can skip the wizard by running\x1b[0m\n" +
+				"\x1b[2m  init --category envoy.filters.http --language rust --name my_company.my_http_filter /path/to/dir\x1b[0m\n",
+		},
+	}
+	for _, test := range tests {
+		test := test // pin! see https://github.com/kyoh86/scopelint for why
+
+		t.Run(test.name, func(t *testing.T) {
+			uiutil.StylesEnabled = !test.noColors
+
+			c := &cobra.Command{
+				Use: "init",
+			}
+			stdout := new(bytes.Buffer)
+			stderr := new(bytes.Buffer)
+			c.SetOut(stdout)
+			c.SetErr(stderr)
+
+			f := &feedback{
+				cmd: c,
+				opts: &scaffold.ScaffoldOpts{
+					Extension: &extension.Descriptor{
+						Category: extension.EnvoyHTTPFilter,
+						Language: extension.LanguageRust,
+						Name:     "my_company.my_http_filter",
+					},
+					OutputDir: "/path/to/dir",
+				},
+				usedWizard: test.usedWizard,
+				w:          c.ErrOrStderr(),
+			}
+
+			f.OnStart()
+			f.OnFile("Cargo.toml")
+			f.OnFile("src/lib.rs")
+			f.OnComplete()
+
+			require.Empty(t, stdout.String(), `expected no stdout running [%v]`, c)
+			require.Equal(t, test.expected, stderr.String(), `unexpected stderr running [%v]`, c)
+		})
+	}
+}

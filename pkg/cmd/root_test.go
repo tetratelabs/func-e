@@ -15,220 +15,187 @@
 package cmd_test
 
 import (
-	"bytes"
-	"io"
-	"os"
+	"fmt"
 	"path/filepath"
-	"strings"
+	"testing"
 
 	"github.com/mitchellh/go-homedir"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/require"
 
-	. "github.com/tetratelabs/getenvoy/pkg/cmd"
 	"github.com/tetratelabs/getenvoy/pkg/common"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
+	cmdtest "github.com/tetratelabs/getenvoy/pkg/test/cmd"
+	. "github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 
-var _ = Describe("getenvoy", func() {
+func TestGetEnvoyValidateArgs(t *testing.T) {
+	type testCase struct {
+		name        string
+		args        []string
+		expectedErr string
+	}
 
-	var backupEnviron []string
+	tests := []testCase{
+		{
+			name:        "--home-dir empty",
+			args:        []string{"--home-dir", ""},
+			expectedErr: `GetEnvoy home directory cannot be empty`,
+		},
+		{
+			name:        "--manifest empty",
+			args:        []string{"--manifest", ""},
+			expectedErr: `GetEnvoy manifest URL cannot be empty`,
+		},
+		{
+			name:        "--manifest not a URL",
+			args:        []string{"--manifest", "/not/url"},
+			expectedErr: `"/not/url" is not a valid manifest URL`,
+		},
+	}
 
-	BeforeEach(func() {
-		backupEnviron = os.Environ()
-	})
+	for _, test := range tests {
+		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
-	AfterEach(func() {
-		for _, pair := range backupEnviron {
-			parts := strings.SplitN(pair, "=", 2)
-			key, value := parts[0], parts[1]
-			os.Setenv(key, value)
-		}
-	})
+		t.Run(test.name, func(t *testing.T) {
+			c, stdout, stderr := cmdtest.NewRootCommand()
+			c.SetArgs(append(test.args, "help"))
+			err := cmdutil.Execute(c)
+			require.EqualError(t, err, test.expectedErr, `expected an error running [%v]`, c)
 
-	var stdout *bytes.Buffer
-	var stderr *bytes.Buffer
-
-	BeforeEach(func() {
-		stdout = new(bytes.Buffer)
-		stderr = new(bytes.Buffer)
-	})
-
-	newRootCmd := func(stdout, stderr io.Writer) *cobra.Command {
-		c := NewRoot()
-		c.SetOut(stdout)
-		c.SetErr(stderr)
-
-		// add a fake sub-command for unit test
-		c.AddCommand(&cobra.Command{
-			Use: "fake-command",
-			RunE: func(_ *cobra.Command, _ []string) error {
-				return nil
-			},
+			// Verify the command failed with the expected error
+			require.Empty(t, stdout.String(), `expected no stdout running [%v]`, c)
+			expectedStderr := fmt.Sprintf("Error: %s\n\nRun 'getenvoy help --help' for usage.\n", test.expectedErr)
+			require.Equal(t, expectedStderr, stderr.String(), `unexpected stderr running [%v]`, c)
 		})
-		return c
+	}
+}
+
+func TestGetEnvoyHomeDir(t *testing.T) {
+	type testCase struct {
+		name string
+		args []string
+		// setup returns a tear-down function
+		setup    func() func()
+		expected string
 	}
 
-	defaultHomeDir := func() string {
-		home, err := homedir.Dir()
-		Expect(err).NotTo(HaveOccurred())
-		return filepath.Join(home, ".getenvoy")
+	emptySetup := func() func() {
+		return func() {
+		}
 	}
 
-	It("should not have any required arguments", func() {
-		By("running command")
-		c := newRootCmd(stdout, stderr)
-		c.SetArgs([]string{"fake-command"})
-		err := cmdutil.Execute(c)
-		Expect(err).NotTo(HaveOccurred())
+	home, err := homedir.Dir()
+	require.NoError(t, err, `error getting current user's home dir'`)
+	defaultHomeDir, err := filepath.Abs(filepath.Join(home, ".getenvoy"))
+	require.NoError(t, err, `error resolving absolute path to default GETENVOY_HOME'`)
 
-		By("verifying command output")
-		Expect(stdout.String()).To(BeEmpty())
-		Expect(stderr.String()).To(BeEmpty())
+	tests := []testCase{ // we don't test default as that depends on the runtime env
+		{
+			name:     "default is ~/.getenvoy",
+			setup:    emptySetup,
+			expected: defaultHomeDir,
+		},
+		{
+			name: "GETENVOY_HOME env",
+			setup: func() func() {
+				return RequireSetenv(t, "GETENVOY_HOME", "/from/GETENVOY_HOME/env")
+			},
+			expected: "/from/GETENVOY_HOME/env",
+		},
+		{
+			name:     "--home-dir arg",
+			args:     []string{"--home-dir", "/from/home-dir/arg"},
+			setup:    emptySetup,
+			expected: "/from/home-dir/arg",
+		},
+		{
+			name: "prioritizes --home-dir arg over GETENVOY_HOME env",
+			args: []string{"--home-dir", "/from/home-dir/arg"},
+			setup: func() func() {
+				return RequireSetenv(t, "GETENVOY_HOME", "/from/GETENVOY_HOME/env")
+			},
+			expected: "/from/home-dir/arg",
+		},
+	}
 
-		By("verifying global state")
-		Expect(common.HomeDir).To(Equal(defaultHomeDir()))
-		Expect(manifest.GetURL()).To(Equal(`https://tetrate.bintray.com/getenvoy/manifest.json`))
-	})
+	for _, test := range tests {
+		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
-	It("should support 'GETENVOY_HOME' environment variable", func() {
-		expected := "/path/to/getenvoy/home" //nolint:goconst
+		t.Run(test.name, func(t *testing.T) {
+			tearDown := test.setup()
+			defer tearDown()
+			c, stdout, stderr := cmdtest.NewRootCommand()
+			c.SetArgs(append(test.args, "help"))
+			err := cmdutil.Execute(c)
 
-		By("running command")
-		os.Setenv("GETENVOY_HOME", expected)
-		c := newRootCmd(stdout, stderr)
-		c.SetArgs([]string{"fake-command"})
-		err := cmdutil.Execute(c)
-		Expect(err).NotTo(HaveOccurred())
+			require.NoError(t, err, `expected no error running [%v]`, c)
+			require.NotEmpty(t, stdout.String(), `expected stdout running [%v]`, c)
+			require.Empty(t, stderr.String(), `expected no stderr running [%v]`, c)
 
-		By("verifying global state")
-		Expect(common.HomeDir).To(Equal(expected))
-	})
+			require.Equal(t, test.expected, common.HomeDir)
+		})
+	}
+}
 
-	It("should support '--home-dir' command line option", func() {
-		expected := "/path/to/getenvoy/home" //nolint:goconst
+func TestGetEnvoyManifest(t *testing.T) {
+	type testCase struct {
+		name string
+		args []string
+		// setup returns a tear-down function
+		setup    func() func()
+		expected string
+	}
 
-		By("running command")
-		c := newRootCmd(stdout, stderr)
-		c.SetArgs([]string{"--home-dir", expected, "fake-command"})
-		err := cmdutil.Execute(c)
-		Expect(err).NotTo(HaveOccurred())
+	emptySetup := func() func() {
+		return func() {
+		}
+	}
 
-		By("verifying global state")
-		Expect(common.HomeDir).To(Equal(expected))
-	})
+	tests := []testCase{ // we don't test default as that depends on the runtime env
+		{
+			name:     "default is https://tetrate.bintray.com/getenvoy/manifest.json",
+			setup:    emptySetup,
+			expected: "https://tetrate.bintray.com/getenvoy/manifest.json",
+		},
+		{
+			name: "GETENVOY_MANIFEST_URL env",
+			setup: func() func() {
+				return RequireSetenv(t, "GETENVOY_MANIFEST_URL", "http://GETENVOY_MANIFEST_URL/env")
+			},
+			expected: "http://GETENVOY_MANIFEST_URL/env",
+		},
+		{
+			name:     "--manifest arg",
+			args:     []string{"--manifest", "http://manifest/arg"},
+			setup:    emptySetup,
+			expected: "http://manifest/arg",
+		},
+		{
+			name: "prioritizes --manifest arg over GETENVOY_MANIFEST_URL env",
+			args: []string{"--manifest", "http://manifest/arg"},
+			setup: func() func() {
+				return RequireSetenv(t, "GETENVOY_MANIFEST_URL", "http://GETENVOY_MANIFEST_URL/env")
+			},
+			expected: "http://manifest/arg",
+		},
+	}
 
-	It("should prioritize '--home-dir' command line option over 'GETENVOY_HOME' environment variable", func() {
-		unexpected := "/path/that/should/be/ignored"
-		expected := "/path/to/getenvoy/home" //nolint:goconst
+	for _, test := range tests {
+		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
-		By("running command")
-		os.Setenv("GETENVOY_HOME", unexpected)
-		c := newRootCmd(stdout, stderr)
-		c.SetArgs([]string{"--home-dir", expected, "fake-command"})
-		err := cmdutil.Execute(c)
-		Expect(err).NotTo(HaveOccurred())
+		t.Run(test.name, func(t *testing.T) {
+			tearDown := test.setup()
+			defer tearDown()
+			c, stdout, stderr := cmdtest.NewRootCommand()
+			c.SetArgs(append(test.args, "help"))
+			err := cmdutil.Execute(c)
 
-		By("verifying global state")
-		Expect(common.HomeDir).To(Equal(expected))
-	})
+			require.NoError(t, err, `expected no error running [%v]`, c)
+			require.NotEmpty(t, stdout.String(), `expected stdout running [%v]`, c)
+			require.Empty(t, stderr.String(), `expected no stderr running [%v]`, c)
 
-	It("should reject empty '--home-dir'", func() {
-		unexpected := "/path/that/should/be/ignored"
-
-		By("running command")
-		os.Setenv("GETENVOY_HOME", unexpected)
-		c := newRootCmd(stdout, stderr)
-		c.SetArgs([]string{"--home-dir=", "fake-command"})
-		err := cmdutil.Execute(c)
-		Expect(err).To(HaveOccurred())
-
-		By("verifying command output")
-		Expect(stdout.String()).To(BeEmpty())
-		Expect(stderr.String()).To(Equal(`Error: GetEnvoy home directory cannot be empty
-
-Run 'getenvoy fake-command --help' for usage.
-`))
-	})
-
-	It("should support 'GETENVOY_MANIFEST_URL' environment variable", func() {
-		expected := "http://host/path/to/manifest"
-
-		By("running command")
-		os.Setenv("GETENVOY_MANIFEST_URL", expected)
-		c := newRootCmd(stdout, stderr)
-		c.SetArgs([]string{"fake-command"})
-		err := cmdutil.Execute(c)
-		Expect(err).NotTo(HaveOccurred())
-
-		By("verifying global state")
-		Expect(manifest.GetURL()).To(Equal(expected))
-	})
-
-	It("should support '--manifest' command line option", func() {
-		expected := "http://host/path/to/manifest"
-
-		By("running command")
-		c := newRootCmd(stdout, stderr)
-		c.SetArgs([]string{"--manifest", expected, "fake-command"})
-		err := cmdutil.Execute(c)
-		Expect(err).NotTo(HaveOccurred())
-
-		By("verifying global state")
-		Expect(manifest.GetURL()).To(Equal(expected))
-	})
-
-	It("should prioritize '--manifest' command line option over 'GETENVOY_MANIFEST_URL' environment variable", func() {
-		unexpected := "https://host/path/that/should/be/ignored" //nolint:goconst
-		expected := "https://host/path/to/manifest"
-
-		By("running command")
-		os.Setenv("GETENVOY_MANIFEST_URL", unexpected)
-		c := newRootCmd(stdout, stderr)
-		c.SetArgs([]string{"--manifest", expected, "fake-command"})
-		err := cmdutil.Execute(c)
-		Expect(err).NotTo(HaveOccurred())
-
-		By("verifying global state")
-		Expect(manifest.GetURL()).To(Equal(expected))
-	})
-
-	It("should reject empty '--manifest' command line option", func() {
-		unexpected := "https://host/path/that/should/be/ignored" //nolint:goconst
-
-		By("running command")
-		os.Setenv("GETENVOY_MANIFEST_URL", unexpected)
-		c := newRootCmd(stdout, stderr)
-		c.SetArgs([]string{"--manifest=", "fake-command"})
-		err := cmdutil.Execute(c)
-		Expect(err).To(HaveOccurred())
-
-		By("verifying command output")
-		Expect(stdout.String()).To(BeEmpty())
-		Expect(stderr.String()).To(Equal(`Error: GetEnvoy manifest URL cannot be empty
-
-Run 'getenvoy fake-command --help' for usage.
-`))
-	})
-
-	It("should reject invalid '--manifest' command line option", func() {
-		unexpected := "https://host/path/that/should/be/ignored" //nolint:goconst
-		invalid := "/not/a/url"
-
-		By("running command")
-		os.Setenv("GETENVOY_MANIFEST_URL", unexpected)
-		c := newRootCmd(stdout, stderr)
-		c.SetArgs([]string{"--manifest", invalid, "fake-command"})
-		err := cmdutil.Execute(c)
-		Expect(err).To(HaveOccurred())
-
-		By("verifying command output")
-		Expect(stdout.String()).To(BeEmpty())
-		Expect(stderr.String()).To(Equal(`Error: "/not/a/url" is not a valid manifest URL
-
-Run 'getenvoy fake-command --help' for usage.
-`))
-	})
-})
+			require.Equal(t, test.expected, manifest.GetURL())
+		})
+	}
+}

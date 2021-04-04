@@ -16,89 +16,81 @@ package init
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
+	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/require"
+
+	. "github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
-var _ = Describe("Params", func() {
-	Describe("OutputDir", func() {
-		It("should reject output path that is a file", func() {
-			By("creating a file")
-			tmpFile, err := ioutil.TempFile("", "file")
-			Expect(err).ToNot(HaveOccurred())
-			defer func() {
-				Expect(tmpFile.Close()).To(Succeed())
-				Expect(os.Remove(tmpFile.Name())).To(Succeed())
-			}()
+func TestOutputDirValidatorReject(t *testing.T) {
+	type testCase struct {
+		name        string
+		path        string
+		expectedErr string
+	}
 
-			By("verifying file path")
-			err = newParams().OutputDir.Validator(tmpFile.Name())
-			Expect(err).To(MatchError(fmt.Sprintf(`output path is not a directory: %s`, tmpFile.Name())))
+	cwd, err := os.Getwd()
+	require.NoError(t, err, "error getting current working directory")
+
+	file := os.Args[0]
+	pathUnderFile := filepath.Join(file, "subdir")
+	tests := []testCase{
+		{
+			name:        "output path that is a file",
+			path:        file,
+			expectedErr: fmt.Sprintf(`output path is not a directory: %s`, file),
+		},
+		{
+			name:        "output path under a file",
+			path:        pathUnderFile,
+			expectedErr: fmt.Sprintf(`stat %s: not a directory`, pathUnderFile),
+		},
+		{
+			name:        "output path not empty",
+			path:        cwd,
+			expectedErr: fmt.Sprintf(`output directory must be empty or new: %s`, cwd),
+		},
+	}
+
+	for _, test := range tests {
+		test := test // pin! see https://github.com/kyoh86/scopelint for why
+
+		t.Run(test.name, func(t *testing.T) {
+			err = newParams().OutputDir.Validator(test.path)
+			require.EqualError(t, err, test.expectedErr)
 		})
+	}
+}
 
-		It("should reject output path that is under a file", func() {
-			By("creating a file")
-			tmpFile, err := ioutil.TempFile("", "file")
-			Expect(err).ToNot(HaveOccurred())
-			defer func() {
-				Expect(tmpFile.Close()).To(Succeed())
-				Expect(os.Remove(tmpFile.Name())).To(Succeed())
-			}()
+func TestOutputDirValidatorAccept(t *testing.T) {
+	tempDir, revertTempDir := RequireNewTempDir(t)
+	defer revertTempDir()
 
-			By("verifying path under a file")
-			invalidPath := filepath.Join(tmpFile.Name(), "new_dir")
-			err = newParams().OutputDir.Validator(invalidPath)
-			Expect(err).To(MatchError(fmt.Sprintf(`stat %s: not a directory`, invalidPath)))
+	type testCase struct {
+		name string
+		path string
+	}
+
+	tests := []testCase{
+		{
+			name: "output path that is an empty directory",
+			path: tempDir,
+		},
+		{
+			name: "output path that doesn't exist",
+			path: filepath.Join(tempDir, "subdir"),
+		},
+	}
+
+	for _, test := range tests {
+		test := test // pin! see https://github.com/kyoh86/scopelint for why
+
+		t.Run(test.name, func(t *testing.T) {
+			err := newParams().OutputDir.Validator(test.path)
+			require.NoError(t, err)
 		})
-
-		It("should reject output path that is a non-empty existing dir", func() {
-			By("creating a dir")
-			tmpDir, err := ioutil.TempDir("", "dir")
-			Expect(err).ToNot(HaveOccurred())
-			defer func() {
-				Expect(os.Remove(tmpDir)).To(Succeed())
-			}()
-			By("creating another dir inside")
-			innerDir, err := ioutil.TempDir(tmpDir, "dir")
-			Expect(err).ToNot(HaveOccurred())
-			defer func() {
-				Expect(os.Remove(innerDir)).To(Succeed())
-			}()
-
-			By("verifying non-empty existing dir")
-			err = newParams().OutputDir.Validator(tmpDir)
-			Expect(err).To(MatchError(fmt.Sprintf(`output directory must be empty or new: %s`, tmpDir)))
-		})
-
-		It("should accept output path that is a non-existing dir", func() {
-			By("creating a dir")
-			tmpDir, err := ioutil.TempDir("", "dir")
-			Expect(err).ToNot(HaveOccurred())
-			defer func() {
-				Expect(os.Remove(tmpDir)).To(Succeed())
-			}()
-
-			By("verifying non-existing dir")
-			validPath := filepath.Join(tmpDir, "child_dir", "grand_child_dir")
-			err = newParams().OutputDir.Validator(validPath)
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("should accept output path that is an empty existing dir", func() {
-			By("creating a dir")
-			tmpDir, err := ioutil.TempDir("", "dir")
-			Expect(err).ToNot(HaveOccurred())
-			defer func() {
-				Expect(os.Remove(tmpDir)).To(Succeed())
-			}()
-
-			By("verifying an empty existing dir")
-			err = newParams().OutputDir.Validator(tmpDir)
-			Expect(err).NotTo(HaveOccurred())
-		})
-	})
-})
+	}
+}

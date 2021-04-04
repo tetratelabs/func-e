@@ -15,92 +15,68 @@
 package extension_test
 
 import (
-	"bytes"
+	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
-	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/pkg/cmd"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/globals"
+	cmdtest "github.com/tetratelabs/getenvoy/pkg/test/cmd"
 	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 
-var _ = Describe("getenvoy extension", func() {
+func TestGetEnvoyExtensionGlobalFlags(t *testing.T) {
+	type testCase struct {
+		flag     string
+		value    *bool
+		expected bool
+	}
+	tests := []testCase{ // we don't test default as that depends on the runtime env
+		{
+			flag:     "--no-prompt",
+			value:    &globals.NoPrompt,
+			expected: true,
+		},
+		{
+			flag:     "--no-prompt=true",
+			value:    &globals.NoPrompt,
+			expected: true,
+		},
+		{
+			flag:     "--no-prompt=false",
+			value:    &globals.NoPrompt,
+			expected: false,
+		},
+		{
+			flag:     "--no-colors",
+			value:    &globals.NoColors,
+			expected: true,
+		},
+		{
+			flag:     "--no-colors=true",
+			value:    &globals.NoColors,
+			expected: true,
+		},
+		{
+			flag:     "--no-colors=false",
+			value:    &globals.NoColors,
+			expected: false,
+		},
+	}
 
-	var stdout *bytes.Buffer
-	var stderr *bytes.Buffer
+	for _, test := range tests {
+		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
-	BeforeEach(func() {
-		stdout = new(bytes.Buffer)
-		stderr = new(bytes.Buffer)
-	})
+		t.Run(test.flag, func(t *testing.T) {
+			// Run "getenvoy extension"
+			c, stdout, stderr := cmdtest.NewRootCommand()
+			c.SetArgs(append([]string{"extension"}, test.flag))
+			err := cmdutil.Execute(c)
 
-	var c *cobra.Command
+			require.NoError(t, err, `expected no error running [%v]`, c)
+			require.NotEmpty(t, stdout.String(), `expected stdout running [%v]`, c)
+			require.Empty(t, stderr.String(), `expected no stderr running [%v]`, c)
 
-	BeforeEach(func() {
-		c = cmd.NewRoot()
-		c.SetOut(stdout)
-		c.SetErr(stderr)
-	})
-
-	Describe("--no-prompt", func() {
-		type testCase struct {
-			args     []string
-			expected bool
-		}
-		DescribeTable("should be available as `globals.NoPrompt` variable",
-			func(given testCase) {
-				By("running command")
-				c.SetArgs(append([]string{"extension"}, given.args...))
-				err := cmdutil.Execute(c)
-				Expect(err).ToNot(HaveOccurred())
-
-				By("verifying side effects")
-				Expect(globals.NoPrompt).To(Equal(given.expected))
-
-				By("verifying command output")
-				Expect(stdout.String()).ToNot(BeEmpty())
-				Expect(stderr.String()).To(BeEmpty())
-			},
-			Entry("--no-prompt", testCase{
-				args:     []string{"--no-prompt"},
-				expected: true,
-			}),
-			Entry("--no-prompt=false", testCase{
-				args:     []string{"--no-prompt=false"},
-				expected: false,
-			}),
-		)
-	})
-	Describe("--no-colors", func() {
-		type testCase struct {
-			args     []string
-			expected bool
-		}
-		DescribeTable("should be available as `globals.NoColors` variable",
-			func(given testCase) {
-				By("running command")
-				c.SetArgs(append([]string{"extension"}, given.args...))
-				err := cmdutil.Execute(c)
-				Expect(err).ToNot(HaveOccurred())
-
-				By("verifying side effects")
-				Expect(globals.NoColors).To(Equal(given.expected))
-
-				By("verifying command output")
-				Expect(stdout.String()).ToNot(BeEmpty())
-				Expect(stderr.String()).To(BeEmpty())
-			},
-			Entry("--no-colors", testCase{
-				args:     []string{"--no-colors"},
-				expected: true,
-			}),
-			Entry("--no-colors=false", testCase{
-				args:     []string{"--no-colors=false"},
-				expected: false,
-			}),
-		)
-	})
-})
+			require.Equal(t, test.expected, *test.value)
+		})
+	}
+}

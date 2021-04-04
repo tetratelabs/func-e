@@ -24,6 +24,7 @@ import (
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/wasmimage"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
+	. "github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
 // TestGetEnvoyExtensionPush runs the equivalent of "getenvoy extension push". "getenvoy extension init" and
@@ -41,7 +42,7 @@ func TestGetEnvoyExtensionPush(t *testing.T) {
 	// When unspecified, we default the tag to Docker's default "latest". Note: recent tools enforce qualifying this!
 	const defaultTag = "latest"
 
-	type testTuple struct {
+	type testCase struct {
 		name string
 		extension.Category
 		extension.Language
@@ -49,7 +50,7 @@ func TestGetEnvoyExtensionPush(t *testing.T) {
 
 	// Push is not language-specific, so we don't need to test a large matrix, and doing so would slow down e2e runtime.
 	// Instead, we choose something that executes "getenvoy extension build" quickly.
-	tests := []testTuple{
+	tests := []testCase{
 		{"tinygo HTTP filter", extension.EnvoyHTTPFilter, extension.LanguageTinyGo},
 	}
 
@@ -57,10 +58,10 @@ func TestGetEnvoyExtensionPush(t *testing.T) {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.name, func(t *testing.T) {
-			workDir, removeWorkDir := requireNewTempDir(t)
+			workDir, removeWorkDir := RequireNewTempDir(t)
 			defer removeWorkDir()
 
-			revertChDir := requireChDir(t, workDir)
+			_, revertChDir := RequireChDir(t, workDir)
 			defer revertChDir()
 
 			// push requires "get envoy extension init" and "get envoy extension build" to have succeeded
@@ -69,8 +70,8 @@ func TestGetEnvoyExtensionPush(t *testing.T) {
 			wasmBytes := requireExtensionBuild(t, test.Language, workDir)
 
 			// After pushing, stderr should include the registry URL and the image tag.
-			cmd := getEnvoy("extension push").Arg(localRegistryWasmImageRef)
-			stderr := requireExecNoStdout(t, cmd)
+			c := getEnvoy("extension push").Arg(localRegistryWasmImageRef)
+			stderr := requireExecNoStdout(t, c)
 
 			// Assemble a fully-qualified image ref as we'll pull this later
 			imageRef := localRegistryWasmImageRef + ":" + defaultTag
@@ -78,28 +79,28 @@ func TestGetEnvoyExtensionPush(t *testing.T) {
 			// Verify stderr shows the latest tag and the correct image ref
 			require.Contains(t, stderr, fmt.Sprintf(`Using default tag: %s
 Pushed %s
-digest: sha256`, defaultTag, imageRef), `unexpected stderr after running [%v]`, cmd)
+digest: sha256`, defaultTag, imageRef), `unexpected stderr after running [%v]`, c)
 
 			// Get a puller we can use to pull what we just pushed.
 			puller, err := wasmimage.NewPuller(false, false)
-			require.NoError(t, err, `error getting puller instance after running [%v]`, cmd)
-			require.NotNil(t, puller, `nil puller instance after running [%v]`, cmd)
+			require.NoError(t, err, `error getting puller instance after running [%v]`, c)
+			require.NotNil(t, puller, `nil puller instance after running [%v]`, c)
 
 			// Pull the wasm we just pushed, writing it to a local file.
 			dstPath := filepath.Join(workDir, "pulled_extension.wasm")
 			desc, err := puller.Pull(imageRef, dstPath)
-			require.NoError(t, err, `error pulling wasm after running [%v]: %s`, cmd)
+			require.NoError(t, err, `error pulling wasm after running [%v]: %s`, c)
 
 			// Verify the pulled image descriptor is valid and the image file exists/
-			require.Equal(t, "application/vnd.module.wasm.content.layer.v1+wasm", desc.MediaType, `invalid media type after running [%v]`, cmd)
-			require.Equal(t, "extension.wasm", desc.Annotations["org.opencontainers.image.title"], `invalid image title after running [%v]`, cmd)
-			require.FileExists(t, dstPath, `image not written after running [%v]`, cmd)
+			require.Equal(t, "application/vnd.module.wasm.content.layer.v1+wasm", desc.MediaType, `invalid media type after running [%v]`, c)
+			require.Equal(t, "extension.wasm", desc.Annotations["org.opencontainers.image.title"], `invalid image title after running [%v]`, c)
+			require.FileExists(t, dstPath, `image not written after running [%v]`, c)
 
 			// Verify the bytes pulled are exactly the same as what we pushed.
 			pulledBytes, err := ioutil.ReadFile(dstPath)
-			require.NoError(t, err, `error reading file wasm %s after running [%v]`, dstPath, cmd)
-			require.NotEmpty(t, wasmBytes, `%s empty after running [%v]`, dstPath, cmd)
-			require.Equal(t, wasmBytes, pulledBytes, `pulled bytes don't match source after running [%v]`, cmd)
+			require.NoError(t, err, `error reading file wasm %s after running [%v]`, dstPath, c)
+			require.NotEmpty(t, wasmBytes, `%s empty after running [%v]`, dstPath, c)
+			require.Equal(t, wasmBytes, pulledBytes, `pulled bytes don't match source after running [%v]`, c)
 		})
 	}
 }

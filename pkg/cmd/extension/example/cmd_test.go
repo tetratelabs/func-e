@@ -1,4 +1,4 @@
-// Copyright 2020 Tetrate
+// Copyright 2021 Tetrate
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,14 +14,11 @@
 
 package example_test
 
-import (
-	"testing"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+const (
+	relativeRustWorkspaceDirWithNoExample   = "testdata/workspaceRustNoExample"
+	relativeTinyGoWorkspaceDirWithNoExample = "testdata/workspaceTinyGoNoExample"
+	// relativeRustWorkspaceDirWithOneExample is a workspace with example "default"
+	relativeRustWorkspaceDirWithOneExample = "testdata/workspaceRustOneExample"
+	// relativeWorkspaceDirWithTwoExamples is a workspace with examples "default" and "another"
+	relativeWorkspaceDirWithTwoExamples = "testdata/workspaceRustTwoExamples"
 )
-
-func TestRun(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Run Suite")
-}
