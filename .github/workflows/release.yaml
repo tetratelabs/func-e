@@ -72,7 +72,7 @@ jobs:
         run: make builders.push BUILDERS_TAG=${{ env.RELEASE_VERSION }}
 
   e2e:
-    name: "Run end-to-end (e2e) tests"
+    name: Run e2e tests (${{ matrix.runner.os }}, ${{ matrix.args.extension-language }})
     needs:
       - getenvoy
       - builders

@@ -43,7 +43,7 @@ jobs:
           path: build/bin
 
   e2e:
-    name: "Run end-to-end (e2e) tests"
+    name: Run e2e tests (${{ matrix.runner.os }}, ${{ matrix.args.extension-language }})
     needs:
       - bin
     runs-on: ${{ matrix.runner.os }}
