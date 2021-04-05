@@ -54,7 +54,7 @@ jobs:
         run: go run cmd/getenvoy/main.go fetch standard:1.11.0
 
       - name: "Run unit tests"
-        run: make test GO_TEST_EXTRA_OPTS="-timeout 60s"
+        run: make test GO_TEST_EXTRA_OPTS="-timeout 60s -v"
 
       - name: "Generate test coverage report"
         if: runner.os == 'Linux'  # no need to do this per operating system
