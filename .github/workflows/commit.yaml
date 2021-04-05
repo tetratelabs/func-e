@@ -42,50 +42,26 @@ jobs:
           name: bin
           path: build/bin
 
-  e2e_linux:
-    name: "Run e2e tests on Linux"
+  e2e:
+    name: Run e2e tests (${{ matrix.runner.os }}, ${{ matrix.args.extension-language }})
     needs:
       - bin
-    runs-on: ubuntu-latest
-    timeout-minutes: 30  # instead of 360 by default
-    strategy:
-      matrix:
-        include:  # Controls language used in all extension tests. Managed by test/e2e/main_test.go
-          - extension-language: rust
-          - extension-language: tinygo
-    env:
-      E2E_EXTENSION_LANGUAGE: ${{ matrix.extension-language }}
-    steps:
-      - name: "Checkout"
-        uses: actions/checkout@v2
-
-      - name: "Re-use the `getenvoy` binary pre-built by the upstream job"
-        uses: actions/download-artifact@v2
-        with:
-          name: bin
-          path: build/bin
-
-      - name: "Build language-specific Docker build images"
-        run: make builders
-
-      - name: "Run e2e tests using the `getenvoy` binary built by the upstream job"
-        run: |  # chmod to restore permissions lost in actions/download-artifact@v2
-          chmod a+x build/bin/linux/amd64/getenvoy
-          ./ci/e2e/linux/run_tests.sh
-
-  e2e_macos:
-    name: "Run e2e tests on MacOS"
-    needs:
-      - bin
-    runs-on: macos-latest
+    runs-on: ${{ matrix.runner.os }}
     timeout-minutes: 90  # instead of 360 by default
     strategy:
       matrix:
-        include:  # Controls language used in all extension tests. Managed by test/e2e/main_test.go
+        runner:
+          - os: macos-latest
+          - os: ubuntu-latest
+        args:  # Controls arguments used in all extension tests. Managed by test/e2e/main_test.go
           - extension-language: rust
+            # Attempt to avoid re-downloading almost 200MB of deps per test that implies "getenvoy extension build"
+            # This uses the RUNNER_TEMP variable directly to avoid having to mkdir a sub-path.
+            toolchain-container-options: "-v ${RUNNER_TEMP}:/tmp/cargohome -e CARGO_HOME=/tmp/cargohome"
           - extension-language: tinygo
+            toolchain-container-options: ""
     env:
-      E2E_EXTENSION_LANGUAGE: ${{ matrix.extension-language }}
+      E2E_EXTENSION_LANGUAGE: ${{ matrix.args.extension-language }}
     steps:
       - name: "Checkout"
         uses: actions/checkout@v2
@@ -96,19 +72,26 @@ jobs:
           name: bin
           path: build/bin
 
-      - name: "Install 'Docker for Mac' (an older version that can be installed in CI environment)"
-        run: ./ci/e2e/darwin/install_docker.sh
-        timeout-minutes: 7  # unfortunately, installing `Docker for Mac` in CI environment is fragile; be ready to restart the job occasionally
+      - name: "Install 'Docker for Mac' (Latest)"
+        uses: docker-practice/actions-setup-docker@v1
+        if: runner.os == 'macOS' && matrix.args.extension-language == 'tinygo'
+        with:
+          docker_buildx: false  # Install is flakey. When it, we can install it via docker/setup-buildx-action@v1
+        timeout-minutes: 20  # fail fast if MacOS install takes too long
+
+      - name: "Install 'Docker for Mac' (2.0.0.3 2019-02-15)"  # Avoid >1hr tests on macOS+rust. See issue #145
+        if: runner.os == 'macOS' && matrix.args.extension-language == 'rust'
+        # don't use `DOCKER_BUILDKIT=1`, `--build-arg BUILDKIT_INLINE_CACHE=1` and `--cache-from`
+        # options when using this version of `Docker for Mac`
+        run: |
+          ./ci/e2e/darwin/install_docker.sh
+          echo "USE_DOCKER_BUILDKIT_CACHE=no" >> $GITHUB_ENV
+        timeout-minutes: 20  # fail fast if MacOS install takes too long
 
       - name: "Build language-specific Docker build images"
-        env:
-          # don't use `DOCKER_BUILDKIT=1`, `--build-arg BUILDKIT_INLINE_CACHE=1` and `--cache-from`
-          # options when using `Docker for Mac` in CI environment
-          USE_DOCKER_BUILDKIT_CACHE: 'no'
         run: make builders
-        timeout-minutes: 10  # fail fast if MacOS runner becomes to slow
+        timeout-minutes: 10  # fail fast if MacOS runner becomes too slow
 
       - name: "Run e2e tests using the `getenvoy` binary built by the upstream job"
-        run: |  # chmod to restore permissions lost in actions/download-artifact@v2
-          chmod a+x build/bin/darwin/amd64/getenvoy
-          ./ci/e2e/darwin/run_tests.sh
+        # expand E2E_TOOLCHAIN_CONTAINER_OPTIONS here to allow shell interpolation
+        run: E2E_TOOLCHAIN_CONTAINER_OPTIONS="${{ matrix.args.toolchain-container-options }}" make e2e
