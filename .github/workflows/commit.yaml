@@ -54,11 +54,11 @@ jobs:
         run: go run cmd/getenvoy/main.go fetch standard:1.11.0
 
       - name: "Run unit tests"
-        run: make test GO_TEST_EXTRA_OPTS="-timeout 60s -v"
+        run: make test
 
       - name: "Generate test coverage report"
         if: runner.os == 'Linux'  # no need to do this per operating system
-        run: make coverage GO_COVERAGE_EXTRA_OPTS="-p 1"
+        run: make coverage
 
       - name: "Upload test coverage report"
         uses: actions/upload-artifact@v2
