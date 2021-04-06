@@ -48,13 +48,12 @@ jobs:
       - name: "Verify clean check-in"
         run: make check
 
-      # prefetch implicit version needed by pkg/binary/envoy/controlplane/istio_test.go until #136. This avoids:
-      # Unable to start Envoy process: fork/exec /home/circleci/.getenvoy/builds/standard/1.11.0/linux_glibc/bin/envoy: text file busy
-      - name: "Pre-fetch envoy"
-        run: go run cmd/getenvoy/main.go fetch standard:1.11.0
-
       - name: "Run unit tests"
-        run: make test
+        # prefetch implicit version needed by pkg/binary/envoy/controlplane/istio_test.go until #136. This avoids:
+        # Unable to start Envoy process: fork/exec /home/circleci/.getenvoy/builds/standard/1.11.0/linux_glibc/bin/envoy: text file busy
+        run: |
+          go run cmd/getenvoy/main.go fetch standard:1.11.0
+          make test
 
       - name: "Generate test coverage report"
         if: runner.os == 'Linux'  # no need to do this per operating system
