@@ -112,12 +112,21 @@ func Run(cmd *exec.Cmd, streams ioutil.StdStreams) error {
 		}
 		return nil
 	case sig := <-stopCh:
-		terminate(cmd)
+		terminate(cmd, errCh)
 		return commonerrors.NewShutdownError(sig)
 	}
 }
 
-func terminate(cmd *exec.Cmd) {
+func terminate(cmd *exec.Cmd, errCh <-chan error) {
+	defer func() {
+		// if the external process didn't exit gracefully, kill it
+		if isProcessRunning(cmd.Process.Pid) {
+			if e := cmd.Process.Kill(); e != nil {
+				log.Warnf("failed to send SIGKILL to the external process %q: %v", cmd, e)
+			}
+		}
+	}()
+
 	if isProcessRunning(cmd.Process.Pid) {
 		// first, give the external process a chance to exit gracefully,
 		// which is a must in case of `docker run` command.
@@ -126,12 +135,12 @@ func terminate(cmd *exec.Cmd) {
 		}
 	}
 
-	<-time.After(killTimeout)
-	if isProcessRunning(cmd.Process.Pid) {
+	// wait for the external process to exit or a timeout to expire
+	select {
+	case <-errCh:
+		// don't warn about errors in response to SIGTERM
+	case <-time.After(killTimeout):
 		log.Warnf("external process didn't exit gracefully within %s: %q", killTimeout, cmd)
-		if e := cmd.Process.Kill(); e != nil {
-			log.Warnf("failed to send SIGKILL to the external process %q: %v", cmd, e)
-		}
 	}
 	_ = cmd.Process.Release()
 }

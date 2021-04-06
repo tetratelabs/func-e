@@ -135,10 +135,6 @@ func TestRunSendsSIGTERMIfProcessStillRunningAfterStopSignal(t *testing.T) {
 	})
 	defer revertSetupSignalHandler()
 
-	// We want to test that SIGTERM was indeed caught, so make sure the process exits (via kill timeout > sleep)
-	revertKillTimeout := overrideKillTimeout(3 * time.Second)
-	defer revertKillTimeout()
-
 	// We run the command in a goroutine as we need to SIGTERM the process, which results in an error.
 	errCh := make(chan error)
 	go func() {
