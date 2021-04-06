@@ -21,7 +21,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	cmd2 "github.com/tetratelabs/getenvoy/pkg/test/cmd"
+	"github.com/tetratelabs/getenvoy/pkg/test/cmd"
+	. "github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 
@@ -37,62 +38,62 @@ const defaultTag = "latest"
 
 // TestGetEnvoyExtensionPush shows current directory is usable, provided it is a valid workspace.
 func TestGetEnvoyExtensionPush(t *testing.T) {
-	_, revertWd := cmd2.RequireChDir(t, relativeWorkspaceDir)
+	_, revertWd := RequireChDir(t, relativeWorkspaceDir)
 	defer revertWd()
 
 	// Run "getenvoy extension push localhost:5000/getenvoy/sample"
-	cmd, stdout, stderr := cmd2.NewRootCommand()
-	cmd.SetArgs([]string{"extension", "push", localRegistryWasmImageRef})
-	err := cmdutil.Execute(cmd)
+	c, stdout, stderr := cmd.NewRootCommand()
+	c.SetArgs([]string{"extension", "push", localRegistryWasmImageRef})
+	err := cmdutil.Execute(c)
 
 	// A fully qualified image ref includes the tag
 	imageRef := localRegistryWasmImageRef + ":" + defaultTag
 
 	// Verify stdout shows the latest tag and the correct image ref
-	require.NoError(t, err, `expected no error running [%v]`, cmd)
+	require.NoError(t, err, `expected no error running [%v]`, c)
 
 	require.Contains(t, stdout.String(), fmt.Sprintf(`Using default tag: %s
 Pushed %s
-digest: sha256`, defaultTag, imageRef), `unexpected stderr after running [%v]`, cmd)
-	require.Empty(t, stderr.String(), `expected no stderr running [%v]`, cmd)
+digest: sha256`, defaultTag, imageRef), `unexpected stderr after running [%v]`, c)
+	require.Empty(t, stderr, `expected no stderr running [%v]`, c)
 }
 
 func TestGetEnvoyExtensionPushFailsOutsideWorkspaceDirectory(t *testing.T) {
 	// Change to a non-workspace dir
-	dir, revertWd := cmd2.RequireChDir(t, relativeWorkspaceDir+"/..")
+	dir, revertWd := RequireChDir(t, relativeWorkspaceDir+"/..")
 	defer revertWd()
 
 	// Run "getenvoy extension push localhost:5000/getenvoy/sample"
-	cmd, stdout, stderr := cmd2.NewRootCommand()
-	cmd.SetArgs([]string{"extension", "push", localRegistryWasmImageRef})
-	err := cmdutil.Execute(cmd)
+	c, stdout, stderr := cmd.NewRootCommand()
+	c.SetArgs([]string{"extension", "push", localRegistryWasmImageRef})
+	err := cmdutil.Execute(c)
 
 	// Verify the command failed with the expected error
 	expectedErr := "there is no extension directory at or above: " + dir
-	require.EqualError(t, err, expectedErr, `expected an error running [%v]`, cmd)
-	require.Empty(t, stdout.String(), `expected no stdout running [%v]`, cmd)
+	require.EqualError(t, err, expectedErr, `expected an error running [%v]`, c)
+	require.Empty(t, stdout.String(), `expected no stdout running [%v]`, c)
 	expectedStderr := fmt.Sprintf("Error: %s\n\nRun 'getenvoy extension push --help' for usage.\n", expectedErr)
-	require.Equal(t, expectedStderr, stderr.String(), `expected stderr running [%v]`, cmd)
+	require.Equal(t, expectedStderr, stderr.String(), `expected stderr running [%v]`, c)
 }
 
 // TestGetEnvoyExtensionPushWithExplicitFileOption shows we don't need to be in a workspace directory to push a wasm.
 func TestGetEnvoyExtensionPushWithExplicitFileOption(t *testing.T) {
 	// Change to a non-workspace dir
-	dir, revertWd := cmd2.RequireChDir(t, relativeWorkspaceDir+"/..")
+	dir, revertWd := RequireChDir(t, relativeWorkspaceDir+"/..")
 	defer revertWd()
 
 	// Point to a wasm file explicitly
 	wasm := filepath.Join(dir, "workspace", "extension.wasm")
 
 	// Run "getenvoy extension push localhost:5000/getenvoy/sample --extension-file testdata/workspace/extension.wasm"
-	cmd, stdout, stderr := cmd2.NewRootCommand()
-	cmd.SetArgs([]string{"extension", "push", localRegistryWasmImageRef, "--extension-file", wasm})
-	err := cmdutil.Execute(cmd)
+	c, stdout, stderr := cmd.NewRootCommand()
+	c.SetArgs([]string{"extension", "push", localRegistryWasmImageRef, "--extension-file", wasm})
+	err := cmdutil.Execute(c)
 
 	// Verify the pushed a latest tag to the correct registry
-	require.NoError(t, err, `expected no error running [%v]`, cmd)
+	require.NoError(t, err, `expected no error running [%v]`, c)
 	require.Contains(t, stdout.String(), fmt.Sprintf(`Using default tag: latest
 Pushed %s:latest
 digest: sha256`, localRegistryWasmImageRef))
-	require.Empty(t, stderr.String(), `expected no stderr running [%v]`, cmd)
+	require.Empty(t, stderr, `expected no stderr running [%v]`, c)
 }

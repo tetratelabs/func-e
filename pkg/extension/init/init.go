@@ -104,8 +104,9 @@ func (s *scaffolder) visit(sourceDirName, destinationDirName string, sourceFileI
 	baseOutputFileName := sourceFileInfo.Name()
 	// We rename go.mod to go.mod_ to workaround https://github.com/golang/go/issues/45197
 	if baseOutputFileName == "go.mod_" {
-		baseOutputFileName = "go.mod"
+		baseOutputFileName = "go.mod" // rename workaround for https://github.com/golang/go/issues/45197
 	}
+
 	relOutputFileName := filepath.Join(destinationDirName, baseOutputFileName)
 	outputFileName := filepath.Join(s.opts.OutputDir, relOutputFileName)
 	if err := osutil.EnsureDirExists(filepath.Dir(outputFileName)); err != nil {

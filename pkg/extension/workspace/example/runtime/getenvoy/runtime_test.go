@@ -27,6 +27,7 @@ import (
 	. "github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/runtime/getenvoy"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
 	"github.com/tetratelabs/getenvoy/pkg/test/cmd"
+	. "github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 	ioutil "github.com/tetratelabs/getenvoy/pkg/util/io"
 )
 
@@ -65,7 +66,7 @@ envoy args: -c %s/envoy.tmpl.yaml
 }
 
 func TestRuntimeRunFailsOnInvalidWorkspace(t *testing.T) {
-	invalidWorkspaceDir := cmd.RequireAbsDir(t, invalidWorkspaceDir)
+	invalidWorkspaceDir := RequireAbsDir(t, invalidWorkspaceDir)
 	workspace, err := workspaces.GetWorkspaceAt(invalidWorkspaceDir)
 	require.NoError(t, err, `expected no error getting workspace from directory %s`, invalidWorkspaceDir)
 
@@ -123,7 +124,7 @@ func runContext(workspace model.Workspace, example model.Example, envoyPath stri
 func setupFakeEnvoy(t *testing.T) (string, func()) {
 	var tearDown []func()
 
-	tempDir, deleteTempDir := cmd.RequireNewTempDir(t)
+	tempDir, deleteTempDir := RequireNewTempDir(t)
 	tearDown = append(tearDown, deleteTempDir)
 
 	envoyHome := filepath.Join(tempDir, "envoy_home")

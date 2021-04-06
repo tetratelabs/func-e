@@ -70,10 +70,10 @@ var _ = Describe("Run()", func() {
 	})
 
 	It("should properly pipe standard I/O", func() {
-		cmd := exec.Command("testdata/test_stdio.sh", "0", "stderr")
+		c := exec.Command("testdata/test_stdio.sh", "0", "stderr")
 		stdin.WriteString("stdin\n")
 
-		err := Run(cmd, stdio)
+		err := Run(c, stdio)
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(stdout.String()).To(Equal(`stdin`))
@@ -81,10 +81,10 @@ var _ = Describe("Run()", func() {
 	})
 
 	It("should return a meaningful error when a command cannot start", func() {
-		cmd := exec.Command("testdata/test_stdio.sh", "123")
-		cmd.Dir = "testdata"
+		c := exec.Command("testdata/test_stdio.sh", "123")
+		c.Dir = "testdata"
 
-		err := Run(cmd, stdio)
+		err := Run(c, stdio)
 
 		Expect(err).To(HaveOccurred())
 		Expect(err).To(MatchError(`failed to execute an external command "testdata/test_stdio.sh 123": ` +
@@ -99,9 +99,9 @@ var _ = Describe("Run()", func() {
 	})
 
 	It("should return a meaningful error when a command exits with a non-0 code", func() {
-		cmd := exec.Command("testdata/test_stdio.sh", "123")
+		c := exec.Command("testdata/test_stdio.sh", "123")
 
-		err := Run(cmd, stdio)
+		err := Run(c, stdio)
 
 		Expect(err).To(HaveOccurred())
 		Expect(err).To(MatchError(`failed to execute an external command "testdata/test_stdio.sh 123": exit status 123`))

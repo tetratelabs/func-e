@@ -15,214 +15,145 @@
 package example_test
 
 import (
-	"bytes"
 	"fmt"
-	"io/ioutil"
-	"os"
 	"path/filepath"
+	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/otiai10/copy"
-	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/pkg/cmd"
+	"github.com/tetratelabs/getenvoy/pkg/test/cmd"
+	. "github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 
-var _ = Describe("getenvoy extension examples remove", func() {
-
-	var cwdBackup string
-
-	BeforeEach(func() {
-		cwd, err := os.Getwd()
-		Expect(err).ToNot(HaveOccurred())
-		cwdBackup = cwd
-	})
-
-	AfterEach(func() {
-		if cwdBackup != "" {
-			Expect(os.Chdir(cwdBackup)).To(Succeed())
-		}
-	})
-
-	var tempDir string
-
-	BeforeEach(func() {
-		dir, err := ioutil.TempDir("", "")
-		Expect(err).NotTo(HaveOccurred())
-		tempDir = dir
-	})
-
-	AfterEach(func() {
-		if tempDir != "" {
-			Expect(os.RemoveAll(tempDir)).To(Succeed())
-		}
-	})
-
-	var stdout *bytes.Buffer
-	var stderr *bytes.Buffer
-
-	BeforeEach(func() {
-		stdout = new(bytes.Buffer)
-		stderr = new(bytes.Buffer)
-	})
-
-	var c *cobra.Command
-
-	BeforeEach(func() {
-		c = cmd.NewRoot()
-		c.SetOut(stdout)
-		c.SetErr(stderr)
-	})
-
-	It("should require --name flag", func() {
-		By("running command")
-		c.SetArgs([]string{"extension", "examples", "remove"})
-		err := cmdutil.Execute(c)
-		Expect(err).To(HaveOccurred())
-
-		By("verifying command output")
-		Expect(stdout.String()).To(BeEmpty())
-		Expect(stderr.String()).To(Equal(`Error: example name cannot be empty
-
-Run 'getenvoy extension examples remove --help' for usage.
-`))
-	})
-
-	//nolint:lll
-	It("should validate --name flag", func() {
-		By("running command")
-		c.SetArgs([]string{"extension", "examples", "remove", "--name", "my:example"})
-		err := cmdutil.Execute(c)
-		Expect(err).To(HaveOccurred())
-
-		By("verifying command output")
-		Expect(stdout.String()).To(BeEmpty())
-		Expect(stderr.String()).To(Equal(`Error: "my:example" is not a valid example name. Example name must match the format "^[a-z0-9._-]+$". E.g., 'my.example', 'my-example' or 'my_example'
-
-Run 'getenvoy extension examples remove --help' for usage.
-`))
-	})
-
-	chdir := func(path string) string {
-		dir, err := filepath.Abs(path)
-		Expect(err).ToNot(HaveOccurred())
-
-		dir, err = filepath.EvalSymlinks(dir)
-		Expect(err).ToNot(HaveOccurred())
-
-		err = os.Chdir(dir)
-		Expect(err).ToNot(HaveOccurred())
-
-		return dir
+func TestGetEnvoyExtensionExamplesRemoveValidateFlag(t *testing.T) {
+	type testCase struct {
+		name        string
+		args        []string
+		expectedErr string
 	}
 
-	//nolint:lll
-	Context("inside a workspace directory", func() {
+	tests := []testCase{
+		{
+			name:        "--name is missing",
+			args:        []string{},
+			expectedErr: `example name cannot be empty`,
+		},
+		{
+			name:        "--name with invalid value",
+			args:        []string{"--name", "my:example"},
+			expectedErr: `"my:example" is not a valid example name. Example name must match the format "^[a-z0-9._-]+$". E.g., 'my.example', 'my-example' or 'my_example'`,
+		},
+	}
 
-		var tempDir string
+	for _, test := range tests {
+		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
-		BeforeEach(func() {
-			dir, err := ioutil.TempDir("", "")
-			Expect(err).NotTo(HaveOccurred())
-			tempDir = dir
+		t.Run(test.name, func(t *testing.T) {
+			// Run "getenvoy extension examples remove" with the flags we are testing
+			c, stdout, stderr := cmd.NewRootCommand()
+			c.SetArgs(append([]string{"extension", "examples", "remove"}, test.args...))
+			err := cmdutil.Execute(c)
+			require.EqualError(t, err, test.expectedErr, `expected an error running [%v]`, c)
+
+			// Verify the command failed with the expected error
+			require.Empty(t, stdout.String(), `expected no stdout running [%v]`, c)
+			expectedStderr := fmt.Sprintf("Error: %s\n\nRun 'getenvoy extension examples remove --help' for usage.\n", test.expectedErr)
+			require.Equal(t, expectedStderr, stderr.String(), `unexpected stderr running [%v]`, c)
 		})
+	}
+}
 
-		AfterEach(func() {
-			if tempDir != "" {
-				Expect(os.RemoveAll(tempDir)).To(Succeed())
-			}
-		})
+func TestGetEnvoyExtensionExamplesRemoveFailsOutsideWorkspaceDirectory(t *testing.T) {
+	// Change to a non-workspace dir
+	dir, revertWd := RequireChDir(t, relativeRustWorkspaceDirWithOneExample+"/..")
+	defer revertWd()
 
-		It("should be able to remove the 'default' example setup", func() {
-			By("simulating a workspace with the 'default' example setup")
-			err := copy.Copy("testdata/workspace2", tempDir)
-			Expect(err).NotTo(HaveOccurred())
+	// Run "getenvoy extension examples remove"
+	c, stdout, stderr := cmd.NewRootCommand()
+	c.SetArgs([]string{"extension", "examples", "remove", "--name", "default"})
+	err := cmdutil.Execute(c)
 
-			By("changing to a workspace dir")
-			chdir(tempDir)
+	// Verify the command failed with the expected error
+	expectedErr := "there is no extension directory at or above: " + dir
+	require.EqualError(t, err, expectedErr, `expected an error running [%v]`, c)
+	require.Empty(t, stdout.String(), `expected no stdout running [%v]`, c)
+	expectedStderr := fmt.Sprintf("Error: %s\n\nRun 'getenvoy extension examples remove --help' for usage.\n", expectedErr)
+	require.Equal(t, expectedStderr, stderr.String(), `unexpected stderr running [%v]`, c)
+}
 
-			By("running command")
-			c.SetArgs([]string{"extension", "examples", "remove", "--name", "default"})
-			err = cmdutil.Execute(c)
-			Expect(err).ToNot(HaveOccurred())
+func TestGetEnvoyExtensionExamplesRemoveWarnsOnMissingExample(t *testing.T) {
+	_, revertWd := RequireChDir(t, relativeRustWorkspaceDirWithOneExample)
+	defer revertWd()
 
-			By("verifying command output")
-			Expect(stdout.String()).To(BeEmpty())
-			Expect(stderr.String()).To(Equal(`Removing example setup:
+	name := "doesnt-exist"
+	// Run "getenvoy extension examples remove"
+	c, stdout, stderr := cmd.NewRootCommand()
+	c.SetArgs([]string{"extension", "examples", "remove", "--name", name})
+	err := cmdutil.Execute(c)
+
+	// The command shouldn't err, but it should warn to stderr
+	require.NoError(t, err, `expected no error running [%v]`, c)
+	require.Empty(t, stdout.String(), `expected no stdout running [%v]`, c)
+	require.Equal(t, fmt.Sprintf(`There is no example setup named "%s".
+
+Use "getenvoy extension examples list" to list existing example setups.
+`, name), stderr.String(), `unexpected stderr running [%v]`, c)
+}
+
+func TestGetEnvoyExtensionExamplesRemoveDefault(t *testing.T) {
+	// Copy the workspace as this test will delete it, and we don't want to mutate our test data!
+	workspaceDir, revertWorkspaceDir := RequireCopyOfDir(t, relativeRustWorkspaceDirWithOneExample)
+	defer revertWorkspaceDir()
+
+	// "getenvoy extension examples remove" must be in a valid workspace directory
+	_, revertWd := RequireChDir(t, workspaceDir)
+	defer revertWd()
+
+	// Run "getenvoy extension examples remove"
+	c, stdout, stderr := cmd.NewRootCommand()
+	c.SetArgs([]string{"extension", "examples", "remove", "--name", "default"})
+	err := cmdutil.Execute(c)
+
+	// Verify the files deleted end up in stderr
+	require.NoError(t, err, `expected no error running [%v]`, c)
+	require.Empty(t, stdout.String(), `expected no stdout running [%v]`, c)
+	require.Equal(t, `Removing example setup:
 * .getenvoy/extension/examples/default/envoy.tmpl.yaml
 * .getenvoy/extension/examples/default/example.yaml
 * .getenvoy/extension/examples/default/extension.json
 Done!
-`))
-			By("verifying file system")
-			Expect(filepath.Join(tempDir, ".getenvoy/extension/examples/default")).NotTo(BeAnExistingFile())
-		})
+`, stderr.String(), `unexpected stderr running [%v]`, c)
 
-		It("should be able to remove a non-default example setup", func() {
-			By("simulating a workspace with a non-default example setup")
-			err := copy.Copy("testdata/workspace3", tempDir)
-			Expect(err).NotTo(HaveOccurred())
+	// Verify the directory actually deleted
+	require.NoDirExists(t, filepath.Join(workspaceDir, ".getenvoy/extension/examples/default"), `expected to not delete example "default"`)
+}
 
-			By("changing to a workspace dir")
-			chdir(tempDir)
+func TestGetEnvoyExtensionExamplesRemoveDoesntEffectOtherExample(t *testing.T) {
+	// Copy the workspace as this test will delete it, and we don't want to mutate our test data!
+	workspaceDir, revertWorkspaceDir := RequireCopyOfDir(t, relativeWorkspaceDirWithTwoExamples)
+	defer revertWorkspaceDir()
 
-			By("running command")
-			c.SetArgs([]string{"extension", "examples", "remove", "--name", "another"})
-			err = cmdutil.Execute(c)
-			Expect(err).ToNot(HaveOccurred())
+	// "getenvoy extension examples remove" must be in a valid workspace directory
+	_, revertWd := RequireChDir(t, workspaceDir)
+	defer revertWd()
 
-			By("verifying command output")
-			Expect(stdout.String()).To(BeEmpty())
-			Expect(stderr.String()).To(Equal(`Removing example setup:
+	// Run "getenvoy extension examples remove"
+	c, stdout, stderr := cmd.NewRootCommand()
+	c.SetArgs([]string{"extension", "examples", "remove", "--name", "another"})
+	err := cmdutil.Execute(c)
+
+	// Verify the files deleted end up in stderr
+	require.NoError(t, err, `expected no error running [%v]`, c)
+	require.Empty(t, stdout.String(), `expected no stdout running [%v]`, c)
+	require.Equal(t, `Removing example setup:
 * .getenvoy/extension/examples/another/envoy.tmpl.yaml
 * .getenvoy/extension/examples/another/example.yaml
 * .getenvoy/extension/examples/another/extension.json
 Done!
-`))
-			By("verifying file system")
-			Expect(filepath.Join(tempDir, ".getenvoy/extension/examples/another")).NotTo(BeAnExistingFile())
-		})
+`, stderr.String(), `unexpected stderr running [%v]`, c)
 
-		It("should not fail if such example doesn't exist", func() {
-			By("simulating a workspace with the 'default' example")
-			err := copy.Copy("testdata/workspace2", tempDir)
-			Expect(err).NotTo(HaveOccurred())
-
-			By("changing to a workspace dir")
-			chdir(tempDir)
-
-			By("running command")
-			c.SetArgs([]string{"extension", "examples", "remove", "--name", "non-existing-setup"})
-			err = cmdutil.Execute(c)
-			Expect(err).NotTo(HaveOccurred())
-
-			By("verifying command output")
-			Expect(stdout.String()).To(BeEmpty())
-			Expect(stderr.String()).To(Equal(`There is no example setup named "non-existing-setup".
-
-Use "getenvoy extension examples list" to list existing example setups.
-`))
-		})
-	})
-
-	Context("outside of a workspace directory", func() {
-		It("should fail", func() {
-			By("changing to a non-workspace dir")
-			dir := chdir("testdata")
-
-			By("running command")
-			c.SetArgs([]string{"extension", "examples", "remove", "--name", "default"})
-			err := cmdutil.Execute(c)
-			Expect(err).To(HaveOccurred())
-
-			By("verifying command output")
-			Expect(stdout.String()).To(BeEmpty())
-			Expect(stderr.String()).To(Equal(fmt.Sprintf(`Error: there is no extension directory at or above: %s
-
-Run 'getenvoy extension examples remove --help' for usage.
-`, dir)))
-		})
-	})
-})
+	// Verify the other example still exists
+	require.NoDirExists(t, filepath.Join(workspaceDir, ".getenvoy/extension/examples/another"), `expected to delete example "another"`)
+	require.DirExists(t, filepath.Join(workspaceDir, ".getenvoy/extension/examples/default"), `expected to not delete example "default"`)
+}

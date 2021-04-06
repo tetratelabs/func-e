@@ -15,133 +15,86 @@
 package example_test
 
 import (
-	"bytes"
 	"fmt"
-	"os"
-	"path/filepath"
+	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/pkg/cmd"
+	"github.com/tetratelabs/getenvoy/pkg/test/cmd"
+	. "github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 
-var _ = Describe("getenvoy extension examples list", func() {
+func TestGetEnvoyExtensionExamplesListFailsOutsideWorkspaceDirectory(t *testing.T) {
+	// Change to a non-workspace dir
+	dir, revertWd := RequireChDir(t, relativeRustWorkspaceDirWithOneExample+"/..")
+	defer revertWd()
 
-	var cwdBackup string
+	// Run "getenvoy extension examples list"
+	c, stdout, stderr := cmd.NewRootCommand()
+	c.SetArgs([]string{"extension", "examples", "list"})
+	err := cmdutil.Execute(c)
 
-	BeforeEach(func() {
-		cwd, err := os.Getwd()
-		Expect(err).ToNot(HaveOccurred())
-		cwdBackup = cwd
-	})
+	// Verify the command failed with the expected error
+	expectedErr := "there is no extension directory at or above: " + dir
+	require.EqualError(t, err, expectedErr, `expected an error running [%v]`, c)
+	require.Empty(t, stdout.String(), `expected no stdout running [%v]`, c)
+	expectedStderr := fmt.Sprintf("Error: %s\n\nRun 'getenvoy extension examples list --help' for usage.\n", expectedErr)
+	require.Equal(t, expectedStderr, stderr.String(), `expected stderr running [%v]`, c)
+}
 
-	AfterEach(func() {
-		if cwdBackup != "" {
-			Expect(os.Chdir(cwdBackup)).To(Succeed())
-		}
-	})
+func TestGetEnvoyExtensionExamplesListNone(t *testing.T) {
+	// "getenvoy extension examples list" must be in a valid workspace directory
+	_, revertWd := RequireChDir(t, relativeTinyGoWorkspaceDirWithNoExample)
+	defer revertWd()
 
-	var stdout *bytes.Buffer
-	var stderr *bytes.Buffer
+	// Run "getenvoy extension examples list"
+	c, stdout, stderr := cmd.NewRootCommand()
+	c.SetArgs([]string{"extension", "examples", "list"})
+	err := cmdutil.Execute(c)
 
-	BeforeEach(func() {
-		stdout = new(bytes.Buffer)
-		stderr = new(bytes.Buffer)
-	})
-
-	var c *cobra.Command
-
-	BeforeEach(func() {
-		c = cmd.NewRoot()
-		c.SetOut(stdout)
-		c.SetErr(stderr)
-	})
-
-	chdir := func(path string) string {
-		dir, err := filepath.Abs(path)
-		Expect(err).ToNot(HaveOccurred())
-
-		dir, err = filepath.EvalSymlinks(dir)
-		Expect(err).ToNot(HaveOccurred())
-
-		err = os.Chdir(dir)
-		Expect(err).ToNot(HaveOccurred())
-
-		return dir
-	}
-
-	//nolint:lll
-	Context("inside a workspace directory", func() {
-		It("should support a case with no examples", func() {
-			By("changing to a workspace dir")
-			chdir("testdata/workspace1")
-
-			By("running command")
-			c.SetArgs([]string{"extension", "examples", "list"})
-			err := cmdutil.Execute(c)
-			Expect(err).ToNot(HaveOccurred())
-
-			By("verifying command output")
-			Expect(stdout.String()).To(BeEmpty())
-			Expect(stderr.String()).To(Equal(`Extension has no example setups.
+	// Verify lack of examples on list is a warning. not an error.
+	require.NoError(t, err, `expected no error running [%v]`, c)
+	require.Empty(t, stdout.String(), `expected no stdout running [%v]`, c)
+	require.Equal(t, `Extension has no example setups.
 
 Use "getenvoy extension examples add --help" for more information on how to add one.
-`))
-		})
+`, stderr.String(), `unexpected stderr running [%v]`, c)
+}
 
-		It("should support a case with 1 example", func() {
-			By("changing to a workspace dir")
-			chdir("testdata/workspace2")
+func TestGetEnvoyExtensionExamplesListOne(t *testing.T) {
+	// "getenvoy extension examples list" must be in a valid workspace directory
+	_, revertWd := RequireChDir(t, relativeRustWorkspaceDirWithOneExample)
+	defer revertWd()
 
-			By("running command")
-			c.SetArgs([]string{"extension", "examples", "list"})
-			err := cmdutil.Execute(c)
-			Expect(err).ToNot(HaveOccurred())
+	// Run "getenvoy extension examples list"
+	c, stdout, stderr := cmd.NewRootCommand()
+	c.SetArgs([]string{"extension", "examples", "list"})
+	err := cmdutil.Execute(c)
 
-			By("verifying command output")
-			Expect(stdout.String()).To(Equal(`EXAMPLE
+	// Verify the simple name of each example ended up in stdout
+	require.NoError(t, err, `expected no error running [%v]`, c)
+	require.Equal(t, `EXAMPLE
 default
-`))
-			Expect(stderr.String()).To(BeEmpty())
-		})
+`, stdout.String(), `unexpected stdout running [%v]`, c)
+	require.Empty(t, stderr, `expected no stderr running [%v]`, c)
+}
 
-		It("should support a case with multiple examples", func() {
-			By("changing to a workspace dir")
-			chdir("testdata/workspace3")
+func TestGetEnvoyExtensionExamplesListTwo(t *testing.T) {
+	// "getenvoy extension examples list" must be in a valid workspace directory
+	_, revertWd := RequireChDir(t, relativeWorkspaceDirWithTwoExamples)
+	defer revertWd()
 
-			By("running command")
-			c.SetArgs([]string{"extension", "examples", "list"})
-			err := cmdutil.Execute(c)
-			Expect(err).ToNot(HaveOccurred())
+	// Run "getenvoy extension examples list"
+	c, stdout, stderr := cmd.NewRootCommand()
+	c.SetArgs([]string{"extension", "examples", "list"})
+	err := cmdutil.Execute(c)
 
-			By("verifying command output")
-			Expect(stdout.String()).To(Equal(`EXAMPLE
+	// Verify the simple name of each example ended up in stdout
+	require.NoError(t, err, `expected no error running [%v]`, c)
+	require.Equal(t, `EXAMPLE
 another
 default
-`))
-			Expect(stderr.String()).To(BeEmpty())
-		})
-	})
-
-	Context("outside of a workspace directory", func() {
-		It("should fail", func() {
-			By("changing to a non-workspace dir")
-			dir := chdir("testdata")
-
-			By("running command")
-			c.SetArgs([]string{"extension", "examples", "list"})
-			err := cmdutil.Execute(c)
-			Expect(err).To(HaveOccurred())
-
-			By("verifying command output")
-			Expect(stdout.String()).To(BeEmpty())
-			Expect(stderr.String()).To(Equal(fmt.Sprintf(`Error: there is no extension directory at or above: %s
-
-Run 'getenvoy extension examples list --help' for usage.
-`, dir)))
-		})
-	})
-})
+`, stdout.String(), `unexpected stdout running [%v]`, c)
+	require.Empty(t, stderr, `expected no stderr running [%v]`, c)
+}

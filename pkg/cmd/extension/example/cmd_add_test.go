@@ -15,243 +15,168 @@
 package example_test
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
+	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/otiai10/copy"
-	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/pkg/cmd"
+	"github.com/tetratelabs/getenvoy/pkg/test/cmd"
+	. "github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 
-var _ = Describe("getenvoy extension examples add", func() {
-
-	var cwdBackup string
-
-	BeforeEach(func() {
-		cwd, err := os.Getwd()
-		Expect(err).ToNot(HaveOccurred())
-		cwdBackup = cwd
-	})
-
-	AfterEach(func() {
-		if cwdBackup != "" {
-			Expect(os.Chdir(cwdBackup)).To(Succeed())
-		}
-	})
-
-	var tempDir string
-
-	BeforeEach(func() {
-		dir, err := ioutil.TempDir("", "")
-		Expect(err).NotTo(HaveOccurred())
-		tempDir = dir
-	})
-
-	AfterEach(func() {
-		if tempDir != "" {
-			Expect(os.RemoveAll(tempDir)).To(Succeed())
-		}
-	})
-
-	var stdout *bytes.Buffer
-	var stderr *bytes.Buffer
-
-	BeforeEach(func() {
-		stdout = new(bytes.Buffer)
-		stderr = new(bytes.Buffer)
-	})
-
-	var c *cobra.Command
-
-	BeforeEach(func() {
-		c = cmd.NewRoot()
-		c.SetOut(stdout)
-		c.SetErr(stderr)
-	})
-
-	//nolint:lll
-	It("should validate --name flag", func() {
-		By("running command")
-		c.SetArgs([]string{"extension", "examples", "add", "--name", "my:example"})
-		err := cmdutil.Execute(c)
-		Expect(err).To(HaveOccurred())
-
-		By("verifying command output")
-		Expect(stdout.String()).To(BeEmpty())
-		Expect(stderr.String()).To(Equal(`Error: "my:example" is not a valid example name. Example name must match the format "^[a-z0-9._-]+$". E.g., 'my.example', 'my-example' or 'my_example'
-
-Run 'getenvoy extension examples add --help' for usage.
-`))
-	})
-
-	chdir := func(path string) string {
-		dir, err := filepath.Abs(path)
-		Expect(err).ToNot(HaveOccurred())
-
-		dir, err = filepath.EvalSymlinks(dir)
-		Expect(err).ToNot(HaveOccurred())
-
-		err = os.Chdir(dir)
-		Expect(err).ToNot(HaveOccurred())
-
-		return dir
+func TestGetEnvoyExtensionExamplesAddValidateFlag(t *testing.T) {
+	type testCase struct {
+		name        string
+		args        []string
+		expectedErr string
 	}
 
-	//nolint:lll
-	Context("inside a workspace directory", func() {
-		It("should create 'default' example setup when no --name is omitted", func() {
-			By("simulating a workspace without any examples")
-			err := copy.Copy("testdata/workspace1", tempDir)
-			Expect(err).NotTo(HaveOccurred())
+	tests := []testCase{
+		{
+			name:        "--name with invalid value",
+			args:        []string{"--name", "my:example"},
+			expectedErr: `"my:example" is not a valid example name. Example name must match the format "^[a-z0-9._-]+$". E.g., 'my.example', 'my-example' or 'my_example'`,
+		},
+	}
 
-			By("changing to a workspace dir")
-			chdir(tempDir)
+	for _, test := range tests {
+		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
-			By("running command")
-			c.SetArgs([]string{"extension", "examples", "add"})
-			err = cmdutil.Execute(c)
-			Expect(err).ToNot(HaveOccurred())
-
-			By("verifying command output")
-			Expect(stdout.String()).To(BeEmpty())
-			Expect(stderr.String()).To(Equal(`Scaffolding a new example setup:
-* .getenvoy/extension/examples/default/README.md
-* .getenvoy/extension/examples/default/envoy.tmpl.yaml
-* .getenvoy/extension/examples/default/example.yaml
-* .getenvoy/extension/examples/default/extension.json
-Done!
-`))
-			By("verifying file system")
-			readmePath := filepath.Join(tempDir, ".getenvoy/extension/examples/default/README.md")
-			Expect(readmePath).To(BeAnExistingFile())
-			Expect(filepath.Join(tempDir, ".getenvoy/extension/examples/default/envoy.tmpl.yaml")).To(BeAnExistingFile())
-			Expect(filepath.Join(tempDir, ".getenvoy/extension/examples/default/example.yaml")).To(BeAnExistingFile())
-			Expect(filepath.Join(tempDir, ".getenvoy/extension/examples/default/extension.json")).To(BeAnExistingFile())
-			// Check README substitution: ${EXTENSION_CONFIG_FILE_NAME} must be replaced with "extension.json".
-			data, err := ioutil.ReadFile(readmePath)
-			Expect(err).ToNot(HaveOccurred())
-			readme := string(data)
-			Expect(readme).To(ContainSubstring("extension.json"))
-			Expect(readme).NotTo(ContainSubstring("EXTENSION_CONFIG_FILE_NAME"))
-		})
-
-		It("should create example setup with a given --name", func() {
-			By("simulating a workspace without any examples")
-			err := copy.Copy("testdata/workspace1", tempDir)
-			Expect(err).NotTo(HaveOccurred())
-
-			By("changing to a workspace dir")
-			chdir(tempDir)
-
-			By("running command")
-			c.SetArgs([]string{"extension", "examples", "add", "--name", "advanced"})
-			err = cmdutil.Execute(c)
-			Expect(err).ToNot(HaveOccurred())
-
-			By("verifying command output")
-			Expect(stdout.String()).To(BeEmpty())
-			Expect(stderr.String()).To(Equal(`Scaffolding a new example setup:
-* .getenvoy/extension/examples/advanced/README.md
-* .getenvoy/extension/examples/advanced/envoy.tmpl.yaml
-* .getenvoy/extension/examples/advanced/example.yaml
-* .getenvoy/extension/examples/advanced/extension.json
-Done!
-`))
-			By("verifying file system")
-			readmePath := filepath.Join(tempDir, ".getenvoy/extension/examples/advanced/README.md")
-			Expect(readmePath).To(BeAnExistingFile())
-			Expect(filepath.Join(tempDir, ".getenvoy/extension/examples/advanced/envoy.tmpl.yaml")).To(BeAnExistingFile())
-			Expect(filepath.Join(tempDir, ".getenvoy/extension/examples/advanced/example.yaml")).To(BeAnExistingFile())
-			Expect(filepath.Join(tempDir, ".getenvoy/extension/examples/advanced/extension.json")).To(BeAnExistingFile())
-			// Check README substitution: ${EXTENSION_CONFIG_FILE_NAME} must be replaced with "extension.json".
-			data, err := ioutil.ReadFile(readmePath)
-			Expect(err).ToNot(HaveOccurred())
-			readme := string(data)
-			Expect(readme).To(ContainSubstring("extension.json"))
-			Expect(readme).NotTo(ContainSubstring("${EXTENSION_CONFIG_FILE_NAME}"))
-		})
-
-		It("should fail if such example already exists", func() {
-			By("simulating a workspace with the 'default' example")
-			err := copy.Copy("testdata/workspace2", tempDir)
-			Expect(err).NotTo(HaveOccurred())
-
-			By("changing to a workspace dir")
-			chdir(tempDir)
-
-			By("running command")
-			c.SetArgs([]string{"extension", "examples", "add"})
-			err = cmdutil.Execute(c)
-			Expect(err).To(HaveOccurred())
-
-			By("verifying command output")
-			Expect(stdout.String()).To(BeEmpty())
-			Expect(stderr.String()).To(Equal(`Error: example setup "default" already exists
-
-Run 'getenvoy extension examples add --help' for usage.
-`))
-		})
-
-		It("should create 'default' example setup when no --name is omitted for TinyGo", func() {
-			By("simulating a workspace without any examples")
-			err := copy.Copy("testdata/workspace4", tempDir)
-			Expect(err).NotTo(HaveOccurred())
-
-			By("changing to a workspace dir")
-			chdir(tempDir)
-
-			By("running command")
-			c.SetArgs([]string{"extension", "examples", "add"})
-			err = cmdutil.Execute(c)
-			Expect(err).ToNot(HaveOccurred())
-
-			By("verifying command output")
-			Expect(stdout.String()).To(BeEmpty())
-			Expect(stderr.String()).To(Equal(`Scaffolding a new example setup:
-* .getenvoy/extension/examples/default/README.md
-* .getenvoy/extension/examples/default/envoy.tmpl.yaml
-* .getenvoy/extension/examples/default/example.yaml
-* .getenvoy/extension/examples/default/extension.txt
-Done!
-`))
-			By("verifying file system")
-			readmePath := filepath.Join(tempDir, ".getenvoy/extension/examples/default/README.md")
-			Expect(readmePath).To(BeAnExistingFile())
-			Expect(filepath.Join(tempDir, ".getenvoy/extension/examples/default/envoy.tmpl.yaml")).To(BeAnExistingFile())
-			Expect(filepath.Join(tempDir, ".getenvoy/extension/examples/default/example.yaml")).To(BeAnExistingFile())
-			Expect(filepath.Join(tempDir, ".getenvoy/extension/examples/default/extension.txt")).To(BeAnExistingFile())
-			// Check README substitution: ${EXTENSION_CONFIG_FILE_NAME} must be replaced with "extension.txt".
-			data, err := ioutil.ReadFile(readmePath)
-			Expect(err).ToNot(HaveOccurred())
-			readme := string(data)
-			Expect(readme).To(ContainSubstring("extension.txt"))
-			Expect(readme).NotTo(ContainSubstring("${EXTENSION_CONFIG_FILE_NAME}"))
-		})
-	})
-
-	Context("outside of a workspace directory", func() {
-		It("should fail", func() {
-			By("changing to a non-workspace dir")
-			dir := chdir("testdata")
-
-			By("running command")
-			c.SetArgs([]string{"extension", "examples", "add"})
+		t.Run(test.name, func(t *testing.T) {
+			// Run "getenvoy extension examples add" with the args we are testing
+			c, stdout, stderr := cmd.NewRootCommand()
+			c.SetArgs(append([]string{"extension", "examples", "add"}, test.args...))
 			err := cmdutil.Execute(c)
-			Expect(err).To(HaveOccurred())
+			require.EqualError(t, err, test.expectedErr, `expected an error running [%v]`, c)
 
-			By("verifying command output")
-			Expect(stdout.String()).To(BeEmpty())
-			Expect(stderr.String()).To(Equal(fmt.Sprintf(`Error: there is no extension directory at or above: %s
-
-Run 'getenvoy extension examples add --help' for usage.
-`, dir)))
+			// Verify the command failed with the expected error
+			require.Empty(t, stdout.String(), `expected no stdout running [%v]`, c)
+			expectedStderr := fmt.Sprintf("Error: %s\n\nRun 'getenvoy extension examples add --help' for usage.\n", test.expectedErr)
+			require.Equal(t, expectedStderr, stderr.String(), `unexpected stderr running [%v]`, c)
 		})
-	})
-})
+	}
+}
+
+func TestGetEnvoyExtensionExamplesAddFailsOutsideWorkspaceDirectory(t *testing.T) {
+	// Change to a non-workspace dir
+	dir, revertWd := RequireChDir(t, relativeRustWorkspaceDirWithOneExample+"/..")
+	defer revertWd()
+
+	// Run "getenvoy extension examples add"
+	c, stdout, stderr := cmd.NewRootCommand()
+	c.SetArgs([]string{"extension", "examples", "add"})
+	err := cmdutil.Execute(c)
+
+	// Verify the command failed with the expected error
+	expectedErr := "there is no extension directory at or above: " + dir
+	require.EqualError(t, err, expectedErr, `expected an error running [%v]`, c)
+	require.Empty(t, stdout.String(), `expected no stdout running [%v]`, c)
+	expectedStderr := fmt.Sprintf("Error: %s\n\nRun 'getenvoy extension examples add --help' for usage.\n", expectedErr)
+	require.Equal(t, expectedStderr, stderr.String(), `unexpected stderr running [%v]`, c)
+}
+
+func TestGetEnvoyExtensionExamplesAddFailsWhenExampleExists(t *testing.T) {
+	_, revertWd := RequireChDir(t, relativeRustWorkspaceDirWithOneExample)
+	defer revertWd()
+
+	// Run "getenvoy extension examples add"
+	c, stdout, stderr := cmd.NewRootCommand()
+	c.SetArgs([]string{"extension", "examples", "add"})
+	err := cmdutil.Execute(c)
+
+	// Verify the command failed with the expected error
+	expectedErr := `example setup "default" already exists`
+	require.EqualError(t, err, expectedErr, `expected an error running [%v]`, c)
+	require.Empty(t, stdout.String(), `expected no stdout running [%v]`, c)
+	expectedStderr := fmt.Sprintf("Error: %s\n\nRun 'getenvoy extension examples add --help' for usage.\n", expectedErr)
+	require.Equal(t, expectedStderr, stderr.String(), `unexpected stderr running [%v]`, c)
+}
+
+func TestGetEnvoyExtensionExamplesAdd(t *testing.T) {
+	type testCase struct {
+		name                   string
+		templateWorkspace      string
+		args                   []string
+		expectedName           string
+		expectedConfigFileName string
+	}
+
+	tests := []testCase{
+		{
+			name:                   `rust workspace`,
+			templateWorkspace:      relativeRustWorkspaceDirWithNoExample,
+			args:                   []string{"--name", "test-example"},
+			expectedName:           `test-example`,
+			expectedConfigFileName: `extension.json`,
+		},
+		{
+			name:                   `tinygo workspace`,
+			templateWorkspace:      relativeTinyGoWorkspaceDirWithNoExample,
+			args:                   []string{"--name", "test-example"},
+			expectedName:           `test-example`,
+			expectedConfigFileName: `extension.txt`,
+		},
+		{
+			name:                   `--name defaults to "default"`,
+			templateWorkspace:      relativeTinyGoWorkspaceDirWithNoExample,
+			args:                   []string{},
+			expectedName:           `default`,
+			expectedConfigFileName: `extension.txt`,
+		},
+	}
+
+	for _, test := range tests {
+		test := test // pin! see https://github.com/kyoh86/scopelint for why
+
+		t.Run(test.name, func(t *testing.T) {
+			// Copy the workspace as this test will delete it, and we don't want to mutate our test data!
+			workspaceDir, revertWorkspaceDir := RequireCopyOfDir(t, test.templateWorkspace)
+			defer revertWorkspaceDir()
+
+			// "getenvoy extension examples add" must be in a valid workspace directory
+			_, revertWd := RequireChDir(t, workspaceDir)
+			defer revertWd()
+
+			// Run "getenvoy extension examples add"
+			c, stdout, stderr := cmd.NewRootCommand()
+			c.SetArgs(append([]string{"extension", "examples", "add"}, test.args...))
+			err := cmdutil.Execute(c)
+
+			exampleDir := filepath.Join(`.getenvoy`, `extension`, `examples`, test.expectedName)
+
+			// Verify the files created end up in stderr
+			require.NoError(t, err, `expected no error running [%v]`, c)
+			require.Empty(t, stdout.String(), `expected no stderr running [%v]`, c)
+			require.Equal(t, fmt.Sprintf(`Scaffolding a new example setup:
+* %[1]s/README.md
+* %[1]s/envoy.tmpl.yaml
+* %[1]s/example.yaml
+* %[1]s/%[2]s
+Done!
+`, exampleDir, test.expectedConfigFileName), stderr.String(), `unexpected stderr running [%v]`, c)
+
+			// Get the absolute path
+			exampleDir = filepath.Join(workspaceDir, exampleDir)
+
+			// Verify the files actually exist.
+			for _, p := range []string{
+				`README.md`, `envoy.tmpl.yaml`, `example.yaml`, test.expectedConfigFileName,
+			} {
+				require.FileExists(t, filepath.Join(exampleDir, p), `expected to find %s in %s`, p, exampleDir)
+			}
+
+			// Check README substitution: ${EXTENSION_CONFIG_FILE_NAME} must be replaced with "extension.json".
+			readmePath := filepath.Join(exampleDir, `README.md`)
+			data, err := ioutil.ReadFile(readmePath)
+			require.NoError(t, err, `expected no error reading README.md file: %s`, readmePath)
+
+			// Check one variable, noting that EXTENSION_CONFIG_FILE_NAME is language specific.
+			readme := string(data)
+			require.NotContains(t, readme, `EXTENSION_CONFIG_FILE_NAME`, `expected variables to be replaced in %s`, readmePath)
+			require.Contains(t, readme, test.expectedConfigFileName, `expected to see config file %s in %s`, test.expectedConfigFileName, readmePath)
+		})
+	}
+}

@@ -21,6 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
+	. "github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
 // TestGetEnvoyExtensionTest runs the equivalent of "getenvoy extension test" for a matrix of extension.Categories and
@@ -34,31 +35,31 @@ func TestGetEnvoyExtensionTest(t *testing.T) {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.String(), func(t *testing.T) {
-			workDir, removeWorkDir := requireNewTempDir(t)
+			workDir, removeWorkDir := RequireNewTempDir(t)
 			defer removeWorkDir()
 
-			revertChDir := requireChDir(t, workDir)
+			_, revertChDir := RequireChDir(t, workDir)
 			defer revertChDir()
 
 			// test requires "get envoy extension init" to have succeeded
 			requireExtensionInit(t, workDir, test.Category, test.Language, extensionName)
 			defer requireExtensionClean(t, workDir)
 
-			cmd := getEnvoy("extension test").Args(getToolchainContainerOptions()...)
+			c := getEnvoy("extension test").Args(getToolchainContainerOptions()...)
 			// "getenvoy extension test" only returns stdout because `docker run -t` redirects stderr to stdout.
-			stdout := requireExecNoStderr(t, cmd)
+			stdout := requireExecNoStderr(t, c)
 
 			// Verify the tests ran
 			switch test.Language {
 			case extension.LanguageRust:
 				// `cargo` colorizes output. After stripping ANSI codes, ensure the output is successful.
 				stdout = stripAnsiEscapeRegexp.ReplaceAllString(stdout, "")
-				require.Regexp(t, `(?s)^.*test result: ok.*$`, stdout, `invalid stdout running [%v]`, cmd)
+				require.Regexp(t, `(?s)^.*test result: ok.*$`, stdout, `invalid stdout running [%v]`, c)
 
 			case extension.LanguageTinyGo:
 				// We expect the test output to include the extension name.
 				stdoutRegexp := fmt.Sprintf(`(?s)^.*ok  	%s.*$`, extensionName)
-				require.Regexp(t, stdoutRegexp, stdout, `invalid stdout running [%v]`, cmd)
+				require.Regexp(t, stdoutRegexp, stdout, `invalid stdout running [%v]`, c)
 			}
 		})
 	}
