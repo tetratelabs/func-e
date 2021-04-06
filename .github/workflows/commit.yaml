@@ -24,7 +24,7 @@ jobs:
     strategy:
       matrix:
         runner:
-          - os: macos-latest
+          # - os: macos-latest  ## revisit once all tests are off ginkgo
           - os: ubuntu-latest
     steps:
       - name: "Checkout"
