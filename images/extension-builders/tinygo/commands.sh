@@ -16,19 +16,21 @@
 set -ue
 
 extension_build()  {
+	set_trap
 	tinygo build -o "$1" -scheduler=none -target wasi main.go
-	# This is necessary since the created go caches are with read-only permission,
-	# and without this, the host user cannot delete the build directory with "rm -rf".
-	chmod -R u+rw "${GOMODCACHE}"
 }
 
 extension_test()  {
+	set_trap
 	go test -tags=proxytest -v ./...
-	# This is necessary since the created go caches are with read-only permission,
-	# and without this, the host user cannot delete the build directory with "rm -rf".
-	chmod -R u+rw "${GOMODCACHE}"
 }
 
 extension_clean()  {
 	rm -rf build
+}
+
+set_trap() {
+	# This is necessary since the created go caches are with read-only permission,
+	# and without this, the host user cannot delete the build directory with "rm -rf".
+	trap "chmod -R u+rw ${GOMODCACHE}" EXIT ERR INT TERM
 }
