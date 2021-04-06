@@ -17,6 +17,7 @@ package exec
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"syscall"
 	"time"
@@ -89,7 +90,7 @@ func Run(cmd *exec.Cmd, streams ioutil.StdStreams) error {
 		return newRunError(cmd, err)
 	}
 
-	// use a dedicated gorutine to wait for the command to complete
+	// use a dedicated goroutine to wait for the command to complete
 	errCh := make(chan error)
 	go func() {
 		defer close(errCh)
@@ -98,7 +99,7 @@ func Run(cmd *exec.Cmd, streams ioutil.StdStreams) error {
 		}
 	}()
 
-	// setup a cancellable handler for stop signals
+	// setup a cancelable handler for stop signals
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	stopCh := setupSignalHandler(ctx)
@@ -117,25 +118,16 @@ func Run(cmd *exec.Cmd, streams ioutil.StdStreams) error {
 }
 
 func terminate(cmd *exec.Cmd, errCh <-chan error) {
-	exited := func() bool {
-		select {
-		case <-errCh:
-			return true
-		default:
-			return false
-		}
-	}
-
 	defer func() {
 		// if the external process didn't exit gracefully, kill it
-		if !exited() {
+		if isProcessRunning(cmd.Process.Pid) {
 			if e := cmd.Process.Kill(); e != nil {
 				log.Warnf("failed to send SIGKILL to the external process %q: %v", cmd, e)
 			}
 		}
 	}()
 
-	if !exited() {
+	if isProcessRunning(cmd.Process.Pid) {
 		// first, give the external process a chance to exit gracefully,
 		// which is a must in case of `docker run` command.
 		if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
@@ -150,4 +142,15 @@ func terminate(cmd *exec.Cmd, errCh <-chan error) {
 	case <-time.After(killTimeout):
 		log.Warnf("external process didn't exit gracefully within %s: %q", killTimeout, cmd)
 	}
+	_ = cmd.Process.Release()
+}
+
+// Same as cgi.isProcessRunning.
+// See https://github.com/golang/go/issues/34396 for tracking long term solution.
+func isProcessRunning(pid int) bool {
+	p, err := os.FindProcess(pid)
+	if err != nil {
+		return false
+	}
+	return p.Signal(syscall.Signal(0)) == nil
 }

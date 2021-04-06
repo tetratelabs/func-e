@@ -14,8 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-printf >&1 '%s' "running"
+echo running
 
-trap 'echo "SIGTERM caught!"' TERM
+trap 'echo >&2 "SIGTERM caught!"' TERM
 
 sleep "$1"
