@@ -17,6 +17,55 @@ on:
   workflow_dispatch:
 
 jobs:
+  test:
+    name: "Run unit tests"
+    runs-on: ${{ matrix.runner.os }}
+    timeout-minutes: 90  # instead of 360 by default
+    strategy:
+      matrix:
+        runner:
+          # - os: macos-latest  ## revisit once all tests are off ginkgo
+          - os: ubuntu-latest
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v2
+
+      - name: "Install Go"
+        uses: actions/setup-go@v2
+        with:
+          go-version: '1.16.2'
+
+      - name: "Install 'Docker for Mac' (Latest)"
+        uses: docker-practice/actions-setup-docker@v1  # needed while TestGetEnvoyExtensionPush uses a real registry
+        if: runner.os == 'macOS'
+        with:
+          docker_buildx: false  # Install is flakey. When it, we can install it via docker/setup-buildx-action@v1
+        timeout-minutes: 20  # fail fast if MacOS install takes too long
+
+      - name: "Init on first use"
+        run: make init
+
+      - name: "Verify clean check-in"
+        run: make check
+
+      - name: "Run unit tests"
+        # prefetch implicit version needed by pkg/binary/envoy/controlplane/istio_test.go until #136. This avoids:
+        # Unable to start Envoy process: fork/exec /home/circleci/.getenvoy/builds/standard/1.11.0/linux_glibc/bin/envoy: text file busy
+        run: |
+          go run cmd/getenvoy/main.go fetch standard:1.11.0
+          make test
+
+      - name: "Generate test coverage report"
+        if: runner.os == 'Linux'  # no need to do this per operating system
+        run: make coverage
+
+      - name: "Upload test coverage report"
+        uses: actions/upload-artifact@v2
+        if: runner.os == 'Linux'  # no need to do this per operating system
+        with:
+          name: coverage
+          path: build/coverage
+
   bin:
     name: "Build the `getenvoy` binary for use in e2e tests"
     runs-on: ubuntu-latest

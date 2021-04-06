@@ -19,7 +19,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -28,33 +28,29 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
 )
 
-// TODO: this test fails on darwin due to process.Process.OpenFiles being unsupported. See #88
 func TestGetOpenFileStats(t *testing.T) {
-	t.Run("creates non-empty files", func(t *testing.T) {
-		r, err := envoy.NewRuntime(EnableOpenFilesDataCollection)
-		defer os.RemoveAll(r.DebugStore())
-		require.NoError(t, err, "error getting envoy runtime")
+	r, err := envoy.NewRuntime(EnableOpenFilesDataCollection)
+	require.NoError(t, err, "error getting envoy runtime")
+	defer os.RemoveAll(r.DebugStore())
 
-		err = envoytest.RunKill(r, filepath.Join("testdata", "null.yaml"), 0)
-		require.NoError(t, err, "error from envoytest.RunKill")
+	err = envoytest.RunKill(r, filepath.Join("testdata", "null.yaml"), 0)
+	require.NoError(t, err, "error from envoytest.RunKill")
 
-		files := [...]string{"lsof/lsof.json"}
+	file := "lsof/lsof.json"
+	path := filepath.Join(r.DebugStore(), file)
+	f, err := os.Stat(path)
+	require.NoError(t, err, "error stating %v", path)
 
-		for _, file := range files {
-			path := filepath.Join(r.DebugStore(), file)
-			f, err := os.Stat(path)
-			require.NoError(t, err, "error stating %v", path)
-			require.NotEmpty(t, f.Size(), "file %v was empty", path)
+	if runtime.GOOS == `darwin` { // process.OpenFiles in unsupported, so this feature won't work
+		require.Empty(t, f.Size(), "file %v was not empty", path)
+	} else {
+		require.NotEmpty(t, f.Size(), "file %v was empty", path)
+		raw, err := ioutil.ReadFile(path)
+		require.NoError(t, err, "error reading file %v", path)
 
-			if strings.HasSuffix(file, ".json") {
-				raw, err := ioutil.ReadFile(path)
-				require.NoError(t, err, "error reading file %v", path)
-
-				var is []interface{}
-				err = json.Unmarshal(raw, &is)
-				require.NoError(t, err, "error to unmarshal json string, %v: \"%v\"", err, raw)
-				require.NotEmpty(t, len(is), "unmarshaled content is empty, expected to be a non-empty array: \"%v\"", raw)
-			}
-		}
-	})
+		var is []interface{}
+		err = json.Unmarshal(raw, &is)
+		require.NoError(t, err, "error to unmarshal json string, %v: \"%v\"", err, raw)
+		require.NotEmpty(t, len(is), "unmarshalled content is empty, expected to be a non-empty array: \"%v\"", raw)
+	}
 }

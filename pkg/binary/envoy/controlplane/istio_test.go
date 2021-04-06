@@ -16,14 +16,13 @@ package controlplane
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"istio.io/istio/pilot/pkg/bootstrap"
 	"istio.io/istio/tests/util"
 
@@ -32,42 +31,44 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
 )
 
-func TestMain(m *testing.M) {
-	if err := envoytest.Fetch(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	os.Exit(m.Run())
-}
+func TestConnectsToMockPilotAsAGateway(t *testing.T) {
+	err := envoytest.Fetch()
+	require.NoError(t, err, "error running envoytest.Fetch()")
+	_, teardown := setupMockPilot()
+	defer teardown()
 
-// NOTE: This test will fail on macOS due to an issue with Envoy, the same issue as debug logging
-func Test_IstioGateway(t *testing.T) {
-	t.Run("connects to mock Pilot as a gateway", func(t *testing.T) {
-		_, teardown := setupMockPilot()
-		defer teardown()
-		cfg := envoy.NewConfig(
-			func(c *envoy.Config) {
-				c.Mode = envoy.ParseMode("loadbalancer")
-				c.XDSAddress = util.MockPilotGrpcAddr
-				c.IPAddresses = []string{"1.1.1.1"}
-			},
-		)
-		runtime, _ := envoy.NewRuntime(
-			func(r *envoy.Runtime) { r.Config = cfg },
-			debug.EnableEnvoyAdminDataCollection,
-			Istio,
-		)
-		defer os.RemoveAll(runtime.DebugStore() + ".tar.gz")
-		defer os.RemoveAll(runtime.DebugStore())
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-		defer cancel()
-		assert.NoError(t, envoytest.Run(ctx, runtime, ""))
-		time.Sleep(time.Millisecond * 500) // Pilot config propagation
-		assert.NoError(t, envoytest.Kill(ctx, runtime))
-		gotListeners, _ := ioutil.ReadFile(filepath.Join(runtime.DebugStore(), "listeners.txt"))
-		assert.Contains(t, string(gotListeners), "0.0.0.0_8443::0.0.0.0:8443")
-		assert.Contains(t, string(gotListeners), "0.0.0.0_8080::0.0.0.0:8080")
-	})
+	cfg := envoy.NewConfig(
+		func(c *envoy.Config) {
+			c.Mode = envoy.ParseMode("loadbalancer")
+			c.XDSAddress = util.MockPilotGrpcAddr
+			c.IPAddresses = []string{"1.1.1.1"}
+		},
+	)
+
+	runtime, err := envoy.NewRuntime(
+		func(r *envoy.Runtime) { r.Config = cfg },
+		debug.EnableEnvoyAdminDataCollection,
+		Istio,
+	)
+	require.NoError(t, err, "error creating envoy runtime")
+	defer os.RemoveAll(runtime.DebugStore())
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	err = envoytest.Run(ctx, runtime, "")
+	require.NoError(t, err, "error running envoy")
+
+	time.Sleep(time.Millisecond * 500) // Pilot config propagation
+
+	err = envoytest.Kill(ctx, runtime)
+	require.NoError(t, err, "error killing envoy")
+
+	gotListeners, err := ioutil.ReadFile(filepath.Join(runtime.DebugStore(), "listeners.txt"))
+	require.NoError(t, err, "error killing envoy listeners")
+
+	require.Contains(t, string(gotListeners), "0.0.0.0_8443::0.0.0.0:8443")
+	require.Contains(t, string(gotListeners), "0.0.0.0_8080::0.0.0.0:8080")
 }
 
 func setupMockPilot() (*bootstrap.Server, util.TearDownFunc) {
@@ -76,6 +77,10 @@ func setupMockPilot() (*bootstrap.Server, util.TearDownFunc) {
 		args.Config.FileDir = "testdata"
 		args.Plugins = bootstrap.DefaultPlugins
 		args.Mesh.MixerAddress = ""
+		// In a normal macOS setup, you cannot write to /dev/stdout, which is the default path here.
+		// While not Docker-specific, there are related notes here https://github.com/moby/moby/issues/31243
+		// Since this test doesn't read access logs anyway, the easier workaround is to disable access logging.
+		args.MeshConfig.AccessLogFile = ""
 		args.Service.Registries = []string{}
 	})
 }

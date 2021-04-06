@@ -52,7 +52,7 @@ func Fetch() error {
 // It is blocking and will only return once ready (nil) or context timeout is exceeded (error)
 func Run(ctx context.Context, r binary.Runner, bootstrap string) error {
 	key, _ := manifest.NewKey(Reference)
-	args := []string{}
+	var args []string
 	if bootstrap != "" {
 		args = append(args, "-c", bootstrap)
 	}
