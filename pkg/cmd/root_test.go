@@ -80,11 +80,6 @@ func TestGetEnvoyHomeDir(t *testing.T) {
 		expected string
 	}
 
-	emptySetup := func() func() {
-		return func() {
-		}
-	}
-
 	home, err := homedir.Dir()
 	require.NoError(t, err, `error getting current user's home dir'`)
 	defaultHomeDir, err := filepath.Abs(filepath.Join(home, ".getenvoy"))
@@ -93,7 +88,6 @@ func TestGetEnvoyHomeDir(t *testing.T) {
 	tests := []testCase{ // we don't test default as that depends on the runtime env
 		{
 			name:     "default is ~/.getenvoy",
-			setup:    emptySetup,
 			expected: defaultHomeDir,
 		},
 		{
@@ -106,7 +100,6 @@ func TestGetEnvoyHomeDir(t *testing.T) {
 		{
 			name:     "--home-dir arg",
 			args:     []string{"--home-dir", "/from/home-dir/arg"},
-			setup:    emptySetup,
 			expected: "/from/home-dir/arg",
 		},
 		{
@@ -123,8 +116,10 @@ func TestGetEnvoyHomeDir(t *testing.T) {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.name, func(t *testing.T) {
-			tearDown := test.setup()
-			defer tearDown()
+			if test.setup != nil {
+				tearDown := test.setup()
+				defer tearDown()
+			}
 			c, stdout, stderr := cmdtest.NewRootCommand()
 			c.SetArgs(append(test.args, "help"))
 			err := cmdutil.Execute(c)

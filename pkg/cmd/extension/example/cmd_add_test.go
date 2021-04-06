@@ -99,8 +99,7 @@ func TestGetEnvoyExtensionExamplesAdd(t *testing.T) {
 	type testCase struct {
 		name                   string
 		templateWorkspace      string
-		flags                  []string
-		flagValues             []string
+		args                   []string
 		expectedName           string
 		expectedConfigFileName string
 	}
@@ -109,24 +108,21 @@ func TestGetEnvoyExtensionExamplesAdd(t *testing.T) {
 		{
 			name:                   `rust workspace`,
 			templateWorkspace:      relativeRustWorkspaceDirWithNoExample,
-			flags:                  []string{"--name"},
-			flagValues:             []string{"test-example"},
+			args:                   []string{"--name", "test-example"},
 			expectedName:           `test-example`,
 			expectedConfigFileName: `extension.json`,
 		},
 		{
 			name:                   `tinygo workspace`,
 			templateWorkspace:      relativeTinyGoWorkspaceDirWithNoExample,
-			flags:                  []string{"--name"},
-			flagValues:             []string{"test-example"},
+			args:                   []string{"--name", "test-example"},
 			expectedName:           `test-example`,
 			expectedConfigFileName: `extension.txt`,
 		},
 		{
 			name:                   `--name defaults to "default"`,
 			templateWorkspace:      relativeTinyGoWorkspaceDirWithNoExample,
-			flags:                  []string{},
-			flagValues:             []string{},
+			args:                   []string{},
 			expectedName:           `default`,
 			expectedConfigFileName: `extension.txt`,
 		},
@@ -146,11 +142,7 @@ func TestGetEnvoyExtensionExamplesAdd(t *testing.T) {
 
 			// Run "getenvoy extension examples add"
 			c, stdout, stderr := cmd.NewRootCommand()
-			args := []string{"extension", "examples", "add"}
-			for i := range test.flags {
-				args = append(args, test.flags[i], test.flagValues[i])
-			}
-			c.SetArgs(args)
+			c.SetArgs(append([]string{"extension", "examples", "add"}, test.args...))
 			err := cmdutil.Execute(c)
 
 			exampleDir := filepath.Join(`.getenvoy`, `extension`, `examples`, test.expectedName)
