@@ -17,6 +17,7 @@ package test_test
 import (
 	"fmt"
 	"os/user"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -105,8 +106,8 @@ func TestGetEnvoyExtensionTest(t *testing.T) {
 	err := cmdutil.Execute(c)
 
 	// We expect docker to run from the correct path, as the current user and mount a volume for the correct workspace.
-	expectedDockerExec := fmt.Sprintf("%s/docker run -u %s:%s --rm -t -v %s:/source -w /source --init getenvoy/extension-rust-builder:latest build --output-file target/getenvoy/extension.wasm",
-		dockerDir, expectedUser.Uid, expectedUser.Gid, workspaceDir)
+	expectedDockerExec := fmt.Sprintf("%s/docker run -u %s:%s --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init getenvoy/extension-rust-builder:latest build --output-file target/getenvoy/extension.wasm",
+		dockerDir, expectedUser.Uid, expectedUser.Gid, runtime.GOOS, workspaceDir)
 
 	// Verify the command invoked, passing the correct default commandline
 	require.NoError(t, err, `expected no error running [%v]`, c)
@@ -161,8 +162,8 @@ func TestGetEnvoyExtensionTestFail(t *testing.T) {
 	err := cmdutil.Execute(c)
 
 	// We expect the exit instruction to have gotten to the fake docker script, along with the default options.
-	expectedDockerExec := fmt.Sprintf("%s/docker run -u %s:%s --rm -t -v %s:/source -w /source --init %s getenvoy/extension-rust-builder:latest test",
-		dockerDir, expectedUser.Uid, expectedUser.Gid, workspaceDir, toolchainOptions)
+	expectedDockerExec := fmt.Sprintf("%s/docker run -u %s:%s --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init %s getenvoy/extension-rust-builder:latest test",
+		dockerDir, expectedUser.Uid, expectedUser.Gid, runtime.GOOS, workspaceDir, toolchainOptions)
 
 	// Verify the command failed with the expected error.
 	expectedErr := fmt.Sprintf(`failed to unit test Envoy extension using "default" toolchain: failed to execute an external command "%s": exit status 3`, expectedDockerExec)

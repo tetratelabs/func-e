@@ -19,9 +19,9 @@ FROM rust:1.44.1
 
 RUN rustup target add wasm32-unknown-unknown
 
-# Unset CARGO_HOME. This way we will be able to determine when a user
-# provides an override value.
+# Unset CARGO_HOME and CARGO_TARGET_DIR. This way we will know when a user overrides them.
 ENV CARGO_HOME=
+ENV CARGO_TARGET_DIR=
 
 COPY ./entrypoint.sh /usr/local/getenvoy/extension/builder/entrypoint.sh
 COPY ./rust/commands.sh /usr/local/getenvoy/extension/builder/commands.sh
