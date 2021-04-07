@@ -17,19 +17,17 @@ package util
 import (
 	"reflect"
 	"strings"
+	"testing"
 
 	envoylistener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	"github.com/golang/protobuf/proto"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
 )
 
-var _ = Describe("Load()", func() {
-	It("should not fail on unknown Any types", func() {
-		config := &model.File{Source: "/path/to/envoy.yaml", Content: []byte(`
+func TestLoadAllowsUnknownAnyTypes(t *testing.T) {
+	config := &model.File{Source: "/path/to/envoy.yaml", Content: []byte(`
         unknown_field: unknown_value
         filter_chains:
         - filters:
@@ -40,42 +38,49 @@ var _ = Describe("Load()", func() {
               c: 1000
 `)}
 
-		var listener envoylistener.Listener
-		err := Load(config, &listener)
-		Expect(err).ToNot(HaveOccurred())
-	})
+	var listener envoylistener.Listener
+	err := Load(config, &listener)
+	require.NoError(t, err)
+}
 
-	//nolint:lll
-	It("should fail if input is not a valid YAML", func() {
-		config := &model.File{Source: "/path/to/envoy.yaml", Content: []byte(`
+func TestLoadValidatesYAML(t *testing.T) {
+	config := &model.File{Source: "/path/to/envoy.yaml", Content: []byte(`
         code: {{ .GetEnvoy.Extension.Code }}
 `)}
-		expectedErr := `failed to convert into JSON Envoy config coming from "/path/to/envoy.yaml": yaml: invalid map key: map[interface {}]interface {}{".GetEnvoy.Extension.Code":interface {}(nil)}`
 
-		var listener envoylistener.Listener
-		err := Load(config, &listener)
-		Expect(err).To(MatchError(expectedErr))
-	})
-})
+	var listener envoylistener.Listener
+	err := Load(config, &listener)
 
-var _ = Describe("newFakeAnyResolver()", func() {
-	DescribeTable("should be able to resolve any type URL",
-		func(given string) {
+	expectedErr := `failed to convert into JSON Envoy config coming from "/path/to/envoy.yaml": yaml: invalid map key: map[interface {}]interface {}{".GetEnvoy.Extension.Code":interface {}(nil)}`
+	require.EqualError(t, err, expectedErr)
+}
+
+func TestNewFakeAnyResolver(t *testing.T) {
+	tests := []struct {
+		name    string
+		typeURL string
+	}{
+		{"unknown type", "type.googleapis.com/unknown.Type"},
+		{"known type", "type.googleapis.com/envoy.config.bootstrap.v3.Bootstrap"},
+	}
+
+	for _, test := range tests {
+		test := test // pin! see https://github.com/kyoh86/scopelint for why
+
+		t.Run(test.name, func(t *testing.T) {
 			resolver := newFakeAnyResolver()
 
-			actual, err := resolver.Resolve(given)
-			Expect(err).ToNot(HaveOccurred())
+			actual, err := resolver.Resolve(test.typeURL)
+			require.NoError(t, err)
 
 			props := proto.GetProperties(reflect.ValueOf(actual).Elem().Type())
 			fields := MessageFields(props.Prop).Filter(func(field *proto.Properties) bool {
 				return !strings.HasPrefix(field.Name, "XXX_")
 			})
-			Expect(fields).To(HaveLen(0))
-		},
-		Entry("unknown type", "type.googleapis.com/unknown.Type"),
-		Entry("known type", "type.googleapis.com/envoy.config.bootstrap.v3.Bootstrap"),
-	)
-})
+			require.Empty(t, fields)
+		})
+	}
+}
 
 type MessageFields []*proto.Properties
 
