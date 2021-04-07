@@ -54,7 +54,7 @@ func TestSetupSignalHandlerIgnoresWhenContextCanceledBeforeSignal(t *testing.T) 
 	err := syscall.Kill(syscall.Getpid(), syscall.SIGINT)
 	require.NoError(t, err)
 
-	// First relevant signal closes the channel, but doesn't terminate
+	// The signal is ignored because the context closed prior to receiving it
 	requireNoSignal(t, stopCh)
 }
 
