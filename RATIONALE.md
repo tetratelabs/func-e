@@ -29,7 +29,7 @@ of `go:embed` impact how these template directories are laid out, and the workar
 impacts are noted below for information and future follow-up:
 
 #### `go:embed` doesn't traverse hidden directories, but Rust projects include a hidden directory 
-Our Rust examples use [Cargo][https://doc.rust-lang.org/cargo/reference/config.html] as a build tool. This stores
+Our Rust examples use [Cargo](https://doc.rust-lang.org/cargo/reference/config.html) as a build tool. This stores
 configuration in a hidden directory `.cargo`. As of Go 1.16, hidden directories are not yet supported with `go:embed`.
 See https://github.com/golang/go/issues/43854
 
