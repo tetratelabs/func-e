@@ -142,5 +142,8 @@ jobs:
         timeout-minutes: 10  # fail fast if MacOS runner becomes to slow
 
       - name: "Run e2e tests using released `getenvoy` binary and published extension builder images"
+        # chmod to restore permissions lost in actions/download-artifact@v2
         # expand E2E_TOOLCHAIN_CONTAINER_OPTIONS here to allow shell interpolation
-        run: E2E_TOOLCHAIN_CONTAINER_OPTIONS="${{ matrix.args.toolchain-container-options }}" make e2e
+        run: |
+          chmod a+x build/bin/*/*/getenvoy
+          E2E_TOOLCHAIN_CONTAINER_OPTIONS="${{ matrix.args.toolchain-container-options }}" make e2e

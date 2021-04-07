@@ -6,17 +6,18 @@ This project resolves templates into working examples or extensions via `getenvo
 `getenvoy extension init`. Input [example](data/example/init/templates) and [extension](data/extension/init/templates)
 templates are embedded in the `getenvoy` binary for user convenience.
 
-We implement embedding with a Go 1.16 with a directive `//go:embed templates/*`, which presents an `fs.FS` interface of
-the directory tree. 
+We implement embedding with a Go 1.16+ directive `//go:embed templates/*`, which presents an `fs.FS` interface of the
+directory tree. Using this requires no extra build steps. Ex. `go build -o getenvoy ./cmd/getenvoy/main.go` works.
 
-This is a standard library, and requires no extra build steps. However, there are some constraints to understand. It is
-accepted that while imperfect, this solution is more sustainable than a bespoke alternative to embedding.
+However, there are some constraints to understand. It is accepted that while imperfect, this solution is an acceptable
+alternative to a custom solution.
 
 ### Embedded files must be in a sub-path
-The go source file embedding content via `go:embed` must reference files without leaving the current directory tree.
+The go source file embedding content via `go:embed` must reference paths in the current directory tree. In other words,
+paths like `../../templates` are not allowed.
 
-This means we have to move the embedded directory tree where code refers to it, or make an accessor utility referred to
-elsewhere. We use the latter pattern, specifically here:
+This means we have to move the embedded directory tree where code refers to it, or make an accessor utility for each
+directory root. We use the latter pattern, specifically here:
 * [data/example/init/templates.go](data/example/init/templates.go) 
 * [data/extension/init/templates.go](data/extension/init/templates.go)
 
