@@ -48,7 +48,8 @@ func TestSetupSignalHandlerIgnoresWhenContextCanceledBeforeSignal(t *testing.T) 
 	defer cancel()
 
 	stopCh := SetupSignalHandler(ctx)
-	cancel()
+
+	cancel() // context canceled
 
 	// send a relevant signal to the process
 	err := syscall.Kill(syscall.Getpid(), syscall.SIGINT)
@@ -79,7 +80,7 @@ func requireSignal(t *testing.T, expected os.Signal, ch <-chan os.Signal) {
 		default:
 			return false
 		}
-	}, 10*time.Millisecond, 1*time.Millisecond)
+	}, 50*time.Millisecond, 10*time.Millisecond)
 }
 
 func requireChannelClosed(t *testing.T, ch <-chan os.Signal) {
@@ -100,7 +101,7 @@ func requireNoSignal(t *testing.T, ch <-chan os.Signal) {
 		default:
 			return false
 		}
-	}, 10*time.Millisecond, 1*time.Millisecond)
+	}, 100*time.Millisecond, 10*time.Millisecond)
 }
 
 // overrideTerminateWithBool returns a boolean made true on terminate. The function returned reverts the original.
@@ -140,7 +141,7 @@ func TestSetupSignalHandlerTerminatesOnSecondRelevantSignal(t *testing.T) {
 	// Second relevant signal terminates the process
 	require.Eventually(t, func() bool {
 		return *terminated
-	}, 10*time.Millisecond, 1*time.Millisecond)
+	}, 50*time.Millisecond, 10*time.Millisecond)
 }
 
 func TestSetupSignalHandlerDoesntTerminateWhenContextCanceledBeforeSecondRelevantSignal(t *testing.T) {
@@ -161,8 +162,7 @@ func TestSetupSignalHandlerDoesntTerminateWhenContextCanceledBeforeSecondRelevan
 	requireChannelClosed(t, stopCh)
 	require.False(t, *terminated)
 
-	// context canceled
-	cancel()
+	cancel() // context canceled
 
 	// send another relevant signal to the process
 	err = syscall.Kill(syscall.Getpid(), syscall.SIGINT)
@@ -171,5 +171,5 @@ func TestSetupSignalHandlerDoesntTerminateWhenContextCanceledBeforeSecondRelevan
 	// Second relevant signal doesn't terminate the process
 	require.Never(t, func() bool {
 		return *terminated
-	}, 10*time.Millisecond, 1*time.Millisecond)
+	}, 50*time.Millisecond, 10*time.Millisecond)
 }
