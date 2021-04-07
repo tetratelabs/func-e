@@ -16,109 +16,106 @@ package cmd_test
 
 import (
 	"errors"
+	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/require"
 
 	. "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 
-var _ = Describe("ComposableRunE", func() {
-	Describe("ThenE()", func() {
-		It("should not call the next func if a previous one fails", func() {
-			expectedErr := errors.New("expected")
-			unexpectedErr := errors.New("unexpected")
+func TestComposableRunEThenE(t *testing.T) {
+	expectedErr := errors.New("expected")
 
-			compositeFn := ComposableRunE(func(cmd *cobra.Command, args []string) error {
-				return expectedErr
-			}).ThenE(func(cmd *cobra.Command, args []string) error {
-				return unexpectedErr
-			})
-
-			actualErr := compositeFn(new(cobra.Command), nil)
-
-			Expect(actualErr).To(Equal(expectedErr))
-		})
-
-		It("should call the next func if a previous one doesn't fail", func() {
-			expectedErr := errors.New("expected")
-
-			compositeFn := ComposableRunE(func(cmd *cobra.Command, args []string) error {
-				return nil
-			}).ThenE(func(cmd *cobra.Command, args []string) error {
-				return expectedErr
-			})
-
-			actualErr := compositeFn(new(cobra.Command), nil)
-
-			Expect(actualErr).To(Equal(expectedErr))
-		})
+	compositeFn := ComposableRunE(func(cmd *cobra.Command, args []string) error {
+		return nil
+	}).ThenE(func(cmd *cobra.Command, args []string) error {
+		return expectedErr
 	})
 
-	Describe("Then()", func() {
-		It("should not call the next func if a previous one fails", func() {
-			expectedErr := errors.New("expected")
-			nextCalled := false
+	actualErr := compositeFn(new(cobra.Command), nil)
 
-			compositeFn := ComposableRunE(func(cmd *cobra.Command, args []string) error {
-				return expectedErr
-			}).Then(func(cmd *cobra.Command, args []string) {
-				nextCalled = true
-			})
+	// We expect ThenE to be called because the upstream didn't err
+	require.Equal(t, expectedErr, actualErr)
+}
 
-			actualErr := compositeFn(new(cobra.Command), nil)
+func TestComposableRunEThenEPriorError(t *testing.T) {
+	expectedErr := errors.New("expected")
 
-			Expect(actualErr).To(Equal(expectedErr))
-			Expect(nextCalled).To(BeFalse())
-		})
-
-		It("should call the next func if a previous one doesn't fail", func() {
-			nextCalled := false
-
-			compositeFn := ComposableRunE(func(cmd *cobra.Command, args []string) error {
-				return nil
-			}).Then(func(cmd *cobra.Command, args []string) {
-				nextCalled = true
-			})
-
-			actualErr := compositeFn(new(cobra.Command), nil)
-
-			Expect(actualErr).To(BeNil())
-			Expect(nextCalled).To(BeTrue())
-		})
-	})
-})
-
-var _ = Describe("CallParentPersistentPreRunE()", func() {
-	It("should call PersistentPreRunE on the parent", func() {
-		expectedErr := errors.New("expected")
-		root := &cobra.Command{
-			PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-				return expectedErr
-			},
-		}
-		nested := new(cobra.Command)
-		root.AddCommand(nested)
-
-		actualErr := CallParentPersistentPreRunE()(nested, nil)
-
-		Expect(actualErr).To(Equal(expectedErr))
+	compositeFn := ComposableRunE(func(cmd *cobra.Command, args []string) error {
+		return expectedErr
+	}).ThenE(func(cmd *cobra.Command, args []string) error {
+		return errors.New("unexpected")
 	})
 
-	It("should call PersistentPreRun on the parent", func() {
-		parentCalled := false
-		root := &cobra.Command{
-			PersistentPreRun: func(cmd *cobra.Command, args []string) {
-				parentCalled = true
-			},
-		}
-		nested := new(cobra.Command)
-		root.AddCommand(nested)
+	actualErr := compositeFn(new(cobra.Command), nil)
 
-		actualErr := CallParentPersistentPreRunE()(nested, nil)
+	// We expect ThenE to not be called because the upstream erred
+	require.Equal(t, expectedErr, actualErr)
+}
 
-		Expect(actualErr).To(BeNil())
-		Expect(parentCalled).To(BeTrue())
+func TestComposableRunEThen(t *testing.T) {
+	nextCalled := false
+
+	compositeFn := ComposableRunE(func(cmd *cobra.Command, args []string) error {
+		return nil
+	}).Then(func(cmd *cobra.Command, args []string) {
+		nextCalled = true
 	})
-})
+
+	err := compositeFn(new(cobra.Command), nil)
+
+	// We expect Then to be called because the upstream didn't err
+	require.NoError(t, err)
+	require.True(t, nextCalled)
+}
+
+func TestComposableRunEThenPriorError(t *testing.T) {
+	expectedErr := errors.New("expected")
+	nextCalled := false
+
+	compositeFn := ComposableRunE(func(cmd *cobra.Command, args []string) error {
+		return expectedErr
+	}).Then(func(cmd *cobra.Command, args []string) {
+		nextCalled = true
+	})
+
+	actualErr := compositeFn(new(cobra.Command), nil)
+
+	// We expect Then to not be called because the upstream erred
+	require.Equal(t, expectedErr, actualErr)
+	require.False(t, nextCalled)
+}
+
+func TestCallParentPersistentPreRunE(t *testing.T) {
+	parentCalled := false
+	root := &cobra.Command{
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			parentCalled = true
+		},
+	}
+	nested := new(cobra.Command)
+	root.AddCommand(nested)
+
+	err := CallParentPersistentPreRunE()(nested, nil)
+
+	// We expect the parent to be called
+	require.NoError(t, err)
+	require.True(t, parentCalled)
+}
+
+func TestCallParentPersistentPreRunEParentError(t *testing.T) {
+	expectedErr := errors.New("expected")
+	root := &cobra.Command{
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return expectedErr
+		},
+	}
+	nested := new(cobra.Command)
+	root.AddCommand(nested)
+
+	err := CallParentPersistentPreRunE()(nested, nil)
+
+	// We expect to see the error from the root's PersistentPreRunE
+	require.Equal(t, expectedErr, err)
+}

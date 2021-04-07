@@ -18,136 +18,158 @@ import (
 	"context"
 	"os"
 	"syscall"
+	"testing"
+	"time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/require"
 )
 
-var _ = Describe("SetupSignalHandler()", func() {
-	It("should register for SIGTERM and SIGINT", func() {
-		Expect(shutdownSignals).To(ConsistOf(syscall.SIGINT, syscall.SIGTERM))
-	})
+func TestShutdownSignals(t *testing.T) {
+	// This is a base-case, just verifying the default values
+	require.Equal(t, []os.Signal{syscall.SIGINT, syscall.SIGTERM}, shutdownSignals)
+}
 
-	Context("with a given set of shutdown signals", func() {
-		var relevantSignal = syscall.SIGUSR1
-		var irrelevantSignal = syscall.SIGUSR2
+func TestSetupSignalHandlerCatchesRelevantSignalAndClosesTheChannel(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-		var shutdownSignalsBackup []os.Signal
+	stopCh := SetupSignalHandler(ctx)
 
-		BeforeEach(func() {
-			shutdownSignalsBackup = shutdownSignals
-			shutdownSignals = []os.Signal{relevantSignal}
-		})
+	// send a relevant signal to the process
+	err := syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+	require.NoError(t, err)
 
-		AfterEach(func() {
-			shutdownSignals = shutdownSignalsBackup
-		})
+	requireSignal(t, syscall.SIGINT, stopCh)
+	requireChannelClosed(t, stopCh)
+}
 
-		It("should not close the returned channel on irrelevant signals", func() {
-			By("doing set up")
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
-			stopCh := SetupSignalHandler(ctx)
+func TestSetupSignalHandlerIgnoresWhenContextCanceledBeforeSignal(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-			By("sending an irrelevant signal to the process")
-			Expect(syscall.Kill(syscall.Getpid(), irrelevantSignal)).To(Succeed())
-			Consistently(stopCh).ShouldNot(Receive())
-			Expect(stopCh).NotTo(BeClosed())
-		})
+	stopCh := SetupSignalHandler(ctx)
+	cancel()
 
-		It("should close the returned channel on the first relevant signal", func() {
-			By("doing set up")
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
-			stopCh := SetupSignalHandler(ctx)
+	// send a relevant signal to the process
+	err := syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+	require.NoError(t, err)
 
-			By("sending a relevant signal to the process")
-			Expect(syscall.Kill(syscall.Getpid(), relevantSignal)).To(Succeed())
-			Eventually(stopCh).Should(Receive(Equal(relevantSignal)))
-			Eventually(stopCh).Should(BeClosed())
-		})
+	// First relevant signal closes the channel, but doesn't terminate
+	requireNoSignal(t, stopCh)
+}
 
-		Context("with a stub instead of terminate logic", func() {
+func TestSetupSignalHandlerIgnoresIrrelevantSignal(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-			var terminateBackup func()
-			var terminateCh chan struct{}
+	stopCh := SetupSignalHandler(ctx)
 
-			BeforeEach(func() {
-				terminateBackup = terminate
-				terminateCh = make(chan struct{})
-				terminate = func() {
-					close(terminateCh)
-				}
-			})
+	// send an irrelevant signal to the process
+	err := syscall.Kill(syscall.Getpid(), syscall.SIGUSR2)
+	require.NoError(t, err)
 
-			AfterEach(func() {
-				terminate = terminateBackup
-			})
+	requireNoSignal(t, stopCh)
+}
 
-			It("should terminate the process on the second relevant signal", func() {
-				By("doing set up")
-				ctx, cancel := context.WithCancel(context.Background())
-				defer cancel()
-				stopCh := SetupSignalHandler(ctx)
+func requireSignal(t *testing.T, expected os.Signal, ch <-chan os.Signal) {
+	require.Eventually(t, func() bool {
+		select {
+		case s, ok := <-ch:
+			return s == expected && ok
+		default:
+			return false
+		}
+	}, 10*time.Millisecond, 1*time.Millisecond)
+}
 
-				By("sending first relevant signal to the process")
-				Expect(syscall.Kill(syscall.Getpid(), relevantSignal)).To(Succeed())
-				Eventually(stopCh).Should(Receive(Equal(relevantSignal)))
-				Eventually(stopCh).Should(BeClosed())
-				Consistently(terminateCh).ShouldNot(BeClosed())
+func requireChannelClosed(t *testing.T, ch <-chan os.Signal) {
+	select {
+	case _, ok := <-ch:
+		require.False(t, ok)
+	default:
+		t.Fatal()
+	}
+}
 
-				By("sending second relevant signal to the process")
-				Expect(syscall.Kill(syscall.Getpid(), relevantSignal)).To(Succeed())
-				Expect(stopCh).To(BeClosed())
-				Eventually(terminateCh).Should(BeClosed())
-			})
+// requireNoSignal ensures the channel is open, but there are no signals in it.
+func requireNoSignal(t *testing.T, ch <-chan os.Signal) {
+	require.Never(t, func() bool {
+		select {
+		case v, ok := <-ch:
+			return v != nil || ok
+		default:
+			return false
+		}
+	}, 10*time.Millisecond, 1*time.Millisecond)
+}
 
-			It("should not terminate the process if the context becomes done before the first signal", func() {
-				By("doing set up")
-				ctx, cancel := context.WithCancel(context.Background())
-				defer cancel()
-				stopCh := SetupSignalHandler(ctx)
+// overrideTerminateWithBool returns a boolean made true on terminate. The function returned reverts the original.
+func overrideTerminateWithBool() (*bool, func()) {
+	previous := terminate
+	closed := false
+	terminate = func() {
+		closed = true
+	}
+	return &closed, func() {
+		terminate = previous
+	}
+}
 
-				By("canceling the context before the first signal")
-				cancel()
-				// give SetupSignalHandler some time to notice that the context is done
-				Consistently(stopCh).ShouldNot(BeClosed())
+func TestSetupSignalHandlerTerminatesOnSecondRelevantSignal(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-				By("sending first relevant signal to the process")
-				Expect(syscall.Kill(syscall.Getpid(), relevantSignal)).To(Succeed())
-				Consistently(stopCh).ShouldNot(Receive())
-				Expect(stopCh).NotTo(BeClosed())
-				Consistently(terminateCh).ShouldNot(BeClosed())
+	terminated, revertTerminate := overrideTerminateWithBool()
+	defer revertTerminate()
 
-				By("sending second relevant signal to the process")
-				Expect(syscall.Kill(syscall.Getpid(), relevantSignal)).To(Succeed())
-				Consistently(stopCh).ShouldNot(Receive())
-				Expect(stopCh).NotTo(BeClosed())
-				Consistently(terminateCh).ShouldNot(BeClosed())
-			})
+	stopCh := SetupSignalHandler(ctx)
 
-			It("should not terminate the process if the context becomes done before the second signal", func() {
-				By("doing set up")
-				ctx, cancel := context.WithCancel(context.Background())
-				defer cancel()
-				stopCh := SetupSignalHandler(ctx)
+	// send a relevant signal to the process
+	err := syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+	require.NoError(t, err)
 
-				By("sending first relevant signal to the process")
-				Expect(syscall.Kill(syscall.Getpid(), relevantSignal)).To(Succeed())
-				Eventually(stopCh).Should(Receive(Equal(relevantSignal)))
-				Eventually(stopCh).Should(BeClosed())
-				Consistently(terminateCh).ShouldNot(BeClosed())
+	// First relevant signal closes the channel, but doesn't terminate
+	requireSignal(t, syscall.SIGINT, stopCh)
+	requireChannelClosed(t, stopCh)
+	require.False(t, *terminated)
 
-				By("canceling the context before the second signal")
-				cancel()
-				// give SetupSignalHandler some time to notice that the context is done
-				Consistently(terminateCh).ShouldNot(BeClosed())
+	// send another relevant signal to the process
+	err = syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+	require.NoError(t, err)
 
-				By("sending second relevant signal to the process")
-				Expect(syscall.Kill(syscall.Getpid(), relevantSignal)).To(Succeed())
-				Expect(stopCh).To(BeClosed())
-				Consistently(terminateCh).ShouldNot(BeClosed())
-			})
-		})
-	})
-})
+	// Second relevant signal terminates the process
+	require.Eventually(t, func() bool {
+		return *terminated
+	}, 10*time.Millisecond, 1*time.Millisecond)
+}
+
+func TestSetupSignalHandlerDoesntTerminateWhenContextCanceledBeforeSecondRelevantSignal(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	terminated, revertTerminate := overrideTerminateWithBool()
+	defer revertTerminate()
+
+	stopCh := SetupSignalHandler(ctx)
+
+	// send a relevant signal to the process
+	err := syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+	require.NoError(t, err)
+
+	// First relevant signal closes the channel, but doesn't terminate
+	requireSignal(t, syscall.SIGINT, stopCh)
+	requireChannelClosed(t, stopCh)
+	require.False(t, *terminated)
+
+	// context canceled
+	cancel()
+
+	// send another relevant signal to the process
+	err = syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+	require.NoError(t, err)
+
+	// Second relevant signal doesn't terminate the process
+	require.Never(t, func() bool {
+		return *terminated
+	}, 10*time.Millisecond, 1*time.Millisecond)
+}

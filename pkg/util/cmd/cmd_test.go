@@ -16,131 +16,132 @@ package cmd_test
 
 import (
 	"bytes"
+	"fmt"
 	"syscall"
+	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/require"
 
 	commonerrors "github.com/tetratelabs/getenvoy/pkg/errors"
 	. "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 
-var _ = Describe("Execute()", func() {
+func TestExecute(t *testing.T) {
+	stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
 
-	var stdout *bytes.Buffer
-	var stderr *bytes.Buffer
+	c := &cobra.Command{
+		Use: "getenvoy",
+		Run: func(_ *cobra.Command, _ []string) {},
+	}
+	c.SetOut(stdout)
+	c.SetErr(stderr)
+	c.SetArgs([]string{})
 
-	BeforeEach(func() {
-		stdout = new(bytes.Buffer)
-		stderr = new(bytes.Buffer)
-	})
+	err := Execute(c)
+	require.NoError(t, err)
+	require.Empty(t, stdout)
+	require.Empty(t, stderr)
+}
 
-	Describe("should properly format errors", func() {
-		It(`should properly format "unknown command" error`, func() {
-			rootCmd := &cobra.Command{
+func TestExecuteValidatesArgs(t *testing.T) {
+	tests := []struct {
+		name        string
+		args        []string
+		expectedErr string
+	}{
+		{
+			name:        "unknown flag",
+			args:        []string{"--xyz"},
+			expectedErr: `unknown flag: --xyz`,
+		},
+		{
+			name:        "unknown command",
+			args:        []string{"other command"},
+			expectedErr: `unknown command "other command" for "getenvoy"`,
+		},
+	}
+
+	for _, test := range tests {
+		test := test // pin! see https://github.com/kyoh86/scopelint for why
+
+		t.Run(test.name, func(t *testing.T) {
+			stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
+
+			c := &cobra.Command{
 				Use: "getenvoy",
+				RunE: func(_ *cobra.Command, _ []string) error {
+					return errors.New("unexpected root error")
+				},
 			}
-			rootCmd.AddCommand(&cobra.Command{
+			c.AddCommand(&cobra.Command{
 				Use: "init",
 				RunE: func(_ *cobra.Command, _ []string) error {
-					return errors.New("unexpected error")
+					return errors.New("unexpected subcommand error")
 				},
 			})
-			rootCmd.SetOut(stdout)
-			rootCmd.SetErr(stderr)
-			rootCmd.SetArgs([]string{"other", "command"})
+			c.SetOut(stdout)
+			c.SetErr(stderr)
+			c.SetArgs(test.args)
 
-			err := Execute(rootCmd)
-			Expect(err).To(HaveOccurred())
+			err := Execute(c)
+			require.EqualError(t, err, test.expectedErr, `expected an error running [%v]`, c)
+			require.Empty(t, stdout)
+			expectedStderr := fmt.Sprintf("Error: %s\n\nRun 'getenvoy --help' for usage.\n", test.expectedErr)
+			require.Equal(t, expectedStderr, stderr.String(), `unexpected stderr running [%v]`, c)
+		})
+	}
+}
 
-			Expect(stdout.String()).To(BeEmpty())
-			Expect(stderr.String()).To(Equal(`Error: unknown command "other" for "getenvoy"
+func TestExecuteApplicationSpecificError(t *testing.T) {
+	tests := []struct {
+		name           string
+		expectedErr    error
+		expectedStderr string
+	}{
+		{
+			name:        "arbitrary error",
+			expectedErr: errors.New("expected error"),
+			expectedStderr: `Error: expected error
 
 Run 'getenvoy --help' for usage.
-`))
-		})
+`,
+		},
+		{
+			name:        "shutdown error",
+			expectedErr: commonerrors.NewShutdownError(syscall.SIGINT),
+			expectedStderr: `NOTE: Shutting down early because a Ctrl-C ("interrupt") was received.
+`,
+		},
+		{
+			name:        "wrapped shutdown error",
+			expectedErr: errors.Wrap(commonerrors.NewShutdownError(syscall.SIGINT), "wrapped"),
+			expectedStderr: `NOTE: Shutting down early because a Ctrl-C ("interrupt") was received.
+`,
+		},
+	}
 
-		It(`should properly format "unknown flag" error`, func() {
-			rootCmd := &cobra.Command{
+	for _, test := range tests {
+		test := test // pin! see https://github.com/kyoh86/scopelint for why
+
+		t.Run(test.name, func(t *testing.T) {
+			stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
+
+			c := &cobra.Command{
 				Use: "getenvoy",
 				RunE: func(_ *cobra.Command, _ []string) error {
-					return errors.New("unexpected error")
+					return test.expectedErr
 				},
 			}
-			rootCmd.SetOut(stdout)
-			rootCmd.SetErr(stderr)
-			rootCmd.SetArgs([]string{"--xyz"})
+			c.SetOut(stdout)
+			c.SetErr(stderr)
+			c.SetArgs([]string{})
 
-			err := Execute(rootCmd)
-			Expect(err).To(HaveOccurred())
-
-			Expect(stdout.String()).To(BeEmpty())
-			Expect(stderr.String()).To(Equal(`Error: unknown flag: --xyz
-
-Run 'getenvoy --help' for usage.
-`))
+			err := Execute(c)
+			require.Equal(t, test.expectedErr, err)
+			require.Empty(t, stdout)
+			require.Equal(t, test.expectedStderr, stderr.String())
 		})
-
-		Context("application-specific errors", func() {
-			type testCase struct {
-				err         error
-				expectedOut string
-			}
-			DescribeTable("should properly format application-specific errors",
-				func(given testCase) {
-					rootCmd := &cobra.Command{
-						Use: "getenvoy",
-						RunE: func(_ *cobra.Command, _ []string) error {
-							return given.err
-						},
-					}
-					rootCmd.SetOut(stdout)
-					rootCmd.SetErr(stderr)
-					rootCmd.SetArgs([]string{})
-
-					err := Execute(rootCmd)
-					Expect(err).To(Equal(given.err))
-
-					Expect(stdout.String()).To(BeEmpty())
-					Expect(stderr.String()).To(Equal(given.expectedOut))
-				},
-				Entry("arbitrary error", testCase{
-					err: errors.New("expected error"),
-					expectedOut: `Error: expected error
-
-Run 'getenvoy --help' for usage.
-`,
-				}),
-				Entry("shutdown error", testCase{
-					err: commonerrors.NewShutdownError(syscall.SIGINT),
-					expectedOut: `NOTE: Shutting down early because a Ctrl-C ("interrupt") was received.
-`,
-				}),
-				Entry("wrapped shutdown error", testCase{
-					err: errors.Wrap(commonerrors.NewShutdownError(syscall.SIGINT), "wrapped"),
-					expectedOut: `NOTE: Shutting down early because a Ctrl-C ("interrupt") was received.
-`,
-				}),
-			)
-		})
-	})
-
-	It(`should support commands that run without an error`, func() {
-		rootCmd := &cobra.Command{
-			Use: "getenvoy",
-			Run: func(_ *cobra.Command, _ []string) {},
-		}
-		rootCmd.SetOut(stdout)
-		rootCmd.SetErr(stderr)
-		rootCmd.SetArgs([]string{})
-
-		err := Execute(rootCmd)
-
-		Expect(err).ToNot(HaveOccurred())
-		Expect(stdout.String()).To(BeEmpty())
-		Expect(stderr.String()).To(BeEmpty())
-	})
-})
+	}
+}
