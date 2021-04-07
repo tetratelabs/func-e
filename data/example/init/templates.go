@@ -21,8 +21,7 @@ import (
 
 // templatesFs includes only the relative path of "templates".
 //
-// Assets must be in this directory because go:embed doesn't support navigation outside (ex. ../)
-// See https://pkg.go.dev/embed#hdr-Directives
+// See RATIONALE.md for more information on embedding
 //go:embed templates/*
 var templatesFs embed.FS
 

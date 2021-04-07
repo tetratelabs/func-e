@@ -36,7 +36,8 @@ require (
 	github.com/tetratelabs/getenvoy-package v0.0.0-20190730071641-da31aed4333e
 	github.com/tetratelabs/log v0.0.0-20190710134534-eb04d1e84fb8
 	github.com/tetratelabs/multierror v1.1.0
-	github.com/tetratelabs/proxy-wasm-go-sdk v0.12.0
+	// Match data/extension/init/templates/tinygo/*/default/go.mod_ See RATIONALE.md for why
+	github.com/tetratelabs/proxy-wasm-go-sdk v0.1.1
 	istio.io/api v0.0.0-20200227213531-891bf31f3c32
 	istio.io/istio v0.0.0-20200304114959-c3c353285578
 	rsc.io/letsencrypt v0.0.3 // indirect

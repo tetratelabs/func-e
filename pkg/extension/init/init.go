@@ -102,12 +102,12 @@ func (s *scaffolder) walk(sourceDirName, destinationDirName string) (errs error)
 
 func (s *scaffolder) visit(sourceDirName, destinationDirName string, sourceFileInfo os.FileInfo) (errs error) {
 	baseOutputFileName := sourceFileInfo.Name()
-	// This works around go:embed limitations via renaming per https://github.com/golang/go/issues/45197
-	// This logic should be moved to a decorating http.FileSystem when one exists.
-	if baseOutputFileName == "go.mod_" { // go.mod is a forbidden name
+	// This works around go:embed limitations and should be moved to a decorating http.FileSystem when one exists.
+	// See /RATIONALE.md for more information on embedding
+	if baseOutputFileName == "go.mod_" { // All files need to stay in the same module https://github.com/golang/go/issues/45197
 		baseOutputFileName = "go.mod"
 	}
-	if destinationDirName == "cargo" { // go:embed doesn't recurse hidden directories
+	if destinationDirName == "cargo" { // go:embed doesn't recurse hidden directories https://github.com/golang/go/issues/43854
 		destinationDirName = ".cargo"
 	}
 	relOutputFileName := filepath.Join(destinationDirName, baseOutputFileName)

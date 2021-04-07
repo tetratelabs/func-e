@@ -1,4 +1,4 @@
-# We rename .cargo to cargo because go:embed doesn't recurse hidden directories
+# We rename .cargo to cargo See /RATIONALE.md for why
 .cargo
 Cargo.lock
 target/
