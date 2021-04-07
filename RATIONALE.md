@@ -25,15 +25,14 @@ See https://pkg.go.dev/embed#hdr-Directives for more information.
 ### Limitations of `go:embed` impact extension init templates
 `getenvoy extension init` creates a workspace directory for a given category and programming language. Some constraints
 of `go:embed` impact how these template directories are laid out, and the workarounds are file rename in basis. The
-impacts are noted below for information and future follow-up
+impacts are noted below for information and future follow-up:
 
-
-### `go:embed` doesn't traverse hidden directories, but Rust projects include a hidden directory 
+#### `go:embed` doesn't traverse hidden directories, but Rust projects include a hidden directory 
 Our Rust examples use [Cargo][https://doc.rust-lang.org/cargo/reference/config.html] as a build tool. This stores
 configuration in a hidden directory `.cargo`. As of Go 1.16, hidden directories are not yet supported with `go:embed`.
 See https://github.com/golang/go/issues/43854
 
-### `go:embed` stops traversing at module boundaries, and TinyGo examples look like sub-modules
+#### `go:embed` stops traversing at module boundaries, and TinyGo examples look like sub-modules
 Go modules need to be built from the zip-file uploaded to the mirror. This implies `go:embed` must refer to the
 current module. https://github.com/golang/go/issues/45197 explains embedding stops traversing when it encounters a
 `go.mod` file, and there is no plan to change this.
