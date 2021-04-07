@@ -1,4 +1,4 @@
-// Copyright 2020 Tetrate
+// Copyright 2021 Tetrate
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,23 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package registry
+package init
 
 import (
-	"net/http"
-	"path"
-
-	exampleTemplates "github.com/tetratelabs/getenvoy/data/example/init"
-	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
+	"embed"
+	"io/fs"
 )
 
-var templatesFs = exampleTemplates.GetTemplates()
+// templatesFs includes only the relative path of "templates".
+//
+// See RATIONALE.md for more information on embedding
+//go:embed templates/*
+var templatesFs embed.FS
 
-func newDefaultRegistry() registry {
-	return &fsRegistry{
-		fs: http.FS(templatesFs),
-		namingScheme: func(category extension.Category, example string) string {
-			return "/" + path.Join(category.String(), example)
-		},
+// GetTemplates returns the templates directory as a filesystem
+func GetTemplates() fs.FS {
+	f, err := fs.Sub(templatesFs, "templates")
+	if err != nil {
+		panic(err) // unexpected or a typo
 	}
+	return f
 }

@@ -514,6 +514,8 @@ github.com/mailru/easyjson v0.0.0-20190312143242-1de009706dbe/go.mod h1:C1wdFJiN
 github.com/mailru/easyjson v0.0.0-20190614124828-94de47d64c63/go.mod h1:C1wdFJiN94OJF2b5HbByQZoLdCWB1Yqtg26g4irojpc=
 github.com/mailru/easyjson v0.0.0-20190626092158-b2ccc519800e/go.mod h1:C1wdFJiN94OJF2b5HbByQZoLdCWB1Yqtg26g4irojpc=
 github.com/mailru/easyjson v0.7.0/go.mod h1:KAzv3t3aY1NaHWoQz1+4F1ccyAH66Jk7yos7ldAVICs=
+github.com/manifoldco/promptui v0.8.0 h1:R95mMF+McvXZQ7j1g8ucVZE1gLP3Sv6j9vlF9kyRqQo=
+github.com/manifoldco/promptui v0.8.0/go.mod h1:n4zTdgP0vr0S3w7/O/g98U+e0gwLScEXGwov2nIKuGQ=
 github.com/marstr/guid v1.1.0/go.mod h1:74gB1z2wpxxInTG6yaqA7KrtM0NZ+RbrcqDvYHefzho=
 github.com/mattn/go-colorable v0.0.9 h1:UVL0vNpWh04HeJXV0KLcaT7r06gOH2l4OW6ddYRUIY4=
 github.com/mattn/go-colorable v0.0.9/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=
@@ -738,6 +740,7 @@ github.com/stretchr/testify v0.0.0-20151208002404-e3a8ff8ce365/go.mod h1:a8OnRci
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
+github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5CcY=
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/syndtr/gocapability v0.0.0-20170704070218-db04d3cc01c8/go.mod h1:hkRG7XYTFWNJGYcbNJQlaLq0fg1yr4J4t/NcTQtrfww=
@@ -747,6 +750,8 @@ github.com/tetratelabs/log v0.0.0-20190710134534-eb04d1e84fb8 h1:a7FN/XPymdzttMa
 github.com/tetratelabs/log v0.0.0-20190710134534-eb04d1e84fb8/go.mod h1:w+dEBsxcYEFg0I6whrgkMzjD8GBBQgmDq9hykB30pt8=
 github.com/tetratelabs/multierror v1.1.0 h1:cKmV/Pbf42K5wp8glxa2YIausbxIraPN8fzru9Pn1Cg=
 github.com/tetratelabs/multierror v1.1.0/go.mod h1:kH3SzI/z+FwEbV9bxQDx4GiIgE2djuyb8wiB2DaUBnY=
+github.com/tetratelabs/proxy-wasm-go-sdk v0.1.1 h1:m8O4nWCyb+8VlAxVxppobGNnC1N9CoAQBmMfRjTq/hU=
+github.com/tetratelabs/proxy-wasm-go-sdk v0.1.1/go.mod h1:y1ZQT4bQEBnR8Do4nSOzb3roczzPvcAp8UrF6NEYWNY=
 github.com/tidwall/pretty v1.0.0/go.mod h1:XNkn88O1ChpSDQmQeStsy+sBenx6DDtFZJxhVysOjyk=
 github.com/tinylib/msgp v1.0.2/go.mod h1:+d+yLhGm8mzTaHzB+wgMYrodPfmZrzkirds8fDWklFE=
 github.com/tmc/grpc-websocket-proxy v0.0.0-20170815181823-89b8d40f7ca8/go.mod h1:ncp9v5uamzpCO7NfCPTXjqaC+bZgJeR0sMTm6dMHP7U=
@@ -775,10 +780,6 @@ github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:
 github.com/yashtewari/glob-intersection v0.0.0-20180206001645-7af743e8ec84/go.mod h1:HptNXiXVDcJjXe9SqMd0v2FsL9f8dz4GnXgltU6q/co=
 github.com/yl2chen/cidranger v0.0.0-20180214081945-928b519e5268 h1:lkoOjizoHqOcEFsvYGE5c8Ykdijjnd0R3r1yDYHzLno=
 github.com/yl2chen/cidranger v0.0.0-20180214081945-928b519e5268/go.mod h1:mq0zhomp/G6rRTb0dvHWXRHr/2+Qgeq5hMXfJ670+i4=
-github.com/yskopets/promptui v0.7.1-0.20200429230902-361491009c11 h1:MlzMpHq1fRfH1RYzfQ7Ch7JjdGnBq/m29jJtPOExWuw=
-github.com/yskopets/promptui v0.7.1-0.20200429230902-361491009c11/go.mod h1:n4zTdgP0vr0S3w7/O/g98U+e0gwLScEXGwov2nIKuGQ=
-github.com/yskopets/statik v0.1.8-0.20200501213002-c2d8dcc79889 h1:f62aKW+gryXYYtNut+3b6i5n1ioXCXJWpDgA11l6Pak=
-github.com/yskopets/statik v0.1.8-0.20200501213002-c2d8dcc79889/go.mod h1:AlZONWzMtEnMs7W4e/1LURLiI49pIMmp6V9Unghqrcc=
 github.com/yuin/gopher-lua v0.0.0-20180316054350-84ea3a3c79b3/go.mod h1:aEV29XrmTYFr3CiRxZeGHpkvbwq+prZduBqMaascyCU=
 github.com/yvasiyarov/go-metrics v0.0.0-20140926110328-57bccd1ccd43 h1:+lm10QQTNSBd8DVTNGHx7o/IKu9HYDvLMffDhbyLccI=
 github.com/yvasiyarov/go-metrics v0.0.0-20140926110328-57bccd1ccd43/go.mod h1:aX5oPXxHm3bOH+xeAttToC8pqch2ScQN/JoXYupl6xs=

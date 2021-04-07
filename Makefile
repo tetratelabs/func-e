@@ -66,21 +66,14 @@ GETENVOY_OUT_PATH = $(BIN_DIR)/$(1)/$(2)/getenvoy
 
 define GEN_GETENVOY_BUILD_TARGET
 .PHONY: $(call GETENVOY_OUT_PATH,$(1),$(2))
-$(call GETENVOY_OUT_PATH,$(1),$(2)): generate
+$(call GETENVOY_OUT_PATH,$(1),$(2)):
 	CGO_ENABLED=0 GOOS=$(1) GOARCH=$(2) go build $(GO_LD_FLAGS) -o $(call GETENVOY_OUT_PATH,$(1),$(2)) ./cmd/getenvoy/main.go
 endef
 $(foreach os,$(GOOSES),$(foreach arch,$(GOARCHS),$(eval $(call GEN_GETENVOY_BUILD_TARGET,$(os),$(arch)))))
 
-.PHONY: init
-init: generate
-
 .PHONY: deps
 deps:
 	go mod download
-
-.PHONY: generate
-generate: deps
-	go generate ./pkg/...
 
 .PHONY: build
 build: $(call GETENVOY_OUT_PATH,$(GOOS),$(GOARCH))
@@ -94,7 +87,7 @@ release.dryrun:
 	goreleaser release --skip-publish --snapshot --rm-dist
 
 .PHONY: test
-test: generate
+test:
 	docker-compose up -d
 	go test $(GO_TEST_OPTS) $(GO_TEST_EXTRA_OPTS) $(TEST_PKG_LIST)
 
@@ -119,7 +112,7 @@ endef
 $(foreach os,$(GOOSES),$(foreach arch,$(GOARCHS),$(eval $(call GEN_BIN_GOOS_GOARCH_TARGET,$(os),$(arch)))))
 
 .PHONY: coverage
-coverage: generate
+coverage:
 	mkdir -p "$(shell dirname "$(COVERAGE_PROFILE)")"
 	go test $(GO_COVERAGE_OPTS) $(GO_COVERAGE_EXTRA_OPTS) -coverprofile="$(COVERAGE_PROFILE)" $(COVERAGE_PKG_LIST)
 	go tool cover -html="$(COVERAGE_PROFILE)" -o "$(COVERAGE_REPORT)"
@@ -176,8 +169,7 @@ builders.pull: $(foreach lang,$(BUILDERS_LANGS), pull/builder/$(lang))
 
 LINT_OPTS ?= --timeout 5m
 .PHONY: lint
-# generate must be called while generated source is still used
-lint: generate $(GOLANGCI_LINT) $(SHFMT) $(LICENSER) .golangci.yml  ## Run the linters
+lint: $(GOLANGCI_LINT) $(SHFMT) $(LICENSER) .golangci.yml  ## Run the linters
 	@echo "--- lint ---"
 	@$(SHFMT) -d .
 	@$(LICENSER) verify -r .
