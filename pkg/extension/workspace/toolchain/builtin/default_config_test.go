@@ -17,55 +17,48 @@ package builtin
 import (
 	"fmt"
 	"io/ioutil"
+	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 )
 
-var _ = Describe("defaultConfigFor()", func() {
+func TestDefaultConfigForValidate(t *testing.T) {
 	type testCase struct {
+		name      string
 		extension *extension.Descriptor
 		expected  string
 	}
-	DescribeTable("should generate proper default config for every supported programming language",
-		func(given testCase) {
-			cfg := defaultConfigFor(given.extension)
-			Expect(cfg.Validate()).To(Succeed())
+
+	tests := make([]testCase, len(extension.Languages))
+	for i, lang := range extension.Languages {
+		expected, err := ioutil.ReadFile(fmt.Sprintf("testdata/default_config/%s.toolchain.yaml", lang))
+		if err != nil {
+			panic(fmt.Errorf("missing default config for language %s: %w", lang, err))
+		}
+		tests[i] = testCase{lang.String(), &extension.Descriptor{Language: lang}, string(expected)}
+	}
+
+	for _, test := range tests {
+		test := test // pin! see https://github.com/kyoh86/scopelint for why
+
+		t.Run(test.name, func(t *testing.T) {
+			cfg := defaultConfigFor(test.extension)
+
+			err := cfg.Validate()
+			require.NoError(t, err)
 
 			actual, err := config.Marshal(cfg)
-			Expect(err).ToNot(HaveOccurred())
+			require.NoError(t, err)
+			require.YAMLEq(t, test.expected, string(actual))
+		})
+	}
+}
 
-			Expect(actual).To(MatchYAML(given.expected))
-		},
-		func() []TableEntry {
-			entries := make([]TableEntry, len(extension.Languages))
-			for i, lang := range extension.Languages {
-				expected, err := ioutil.ReadFile(fmt.Sprintf("testdata/default_config/%s.toolchain.yaml", lang))
-				if err != nil {
-					panic(errors.Wrapf(err, "missing default config for language %q", lang))
-				}
-				entries[i] = Entry(lang.String(), testCase{
-					extension: &extension.Descriptor{
-						Language: lang,
-					},
-					expected: string(expected),
-				})
-			}
-			return entries
-		}()...,
-	)
-
-	It("should panic if the programming language is unknown", func() {
-		descriptor := &extension.Descriptor{
-			Language: "",
-		}
-
-		Expect(func() { defaultConfigFor(descriptor) }).
-			To(PanicWith(MatchError(`failed to determine default build image for unsupported programming language ""`)))
+func TestDefaultConfigForPanicsOnUnknownLanguage(t *testing.T) {
+	require.PanicsWithError(t, `failed to determine default build image for unsupported programming language ""`, func() {
+		_ = defaultConfigFor(&extension.Descriptor{Language: ""})
 	})
-})
+}

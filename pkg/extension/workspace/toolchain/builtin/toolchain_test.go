@@ -19,168 +19,74 @@ package builtin_test
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"os/user"
-	"path/filepath"
 	"runtime"
-	"strings"
+	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/require"
 
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config"
 	builtinconfig "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/toolchain/builtin"
-	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
 	. "github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain/builtin"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain/types"
+	"github.com/tetratelabs/getenvoy/pkg/test/cmd"
+	. "github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 	ioutil "github.com/tetratelabs/getenvoy/pkg/util/io"
 )
 
-var _ = Describe("built-in toolchain", func() {
+func TestBuiltinToolchain(t *testing.T) {
+	// We use a fake docker command to capture the commandline that would be invoked
+	dockerDir, revertPath := RequireOverridePath(t, "testdata/toolchain")
+	defer revertPath()
 
-	var pathBackup string
+	// Fake the current user so we can test it is used in the docker args
+	expectedUser := user.User{Uid: "1001", Gid: "1002"}
+	revertGetCurrentUser := cmd.OverrideGetCurrentUser(&expectedUser)
+	defer revertGetCurrentUser()
 
-	BeforeEach(func() {
-		pathBackup = os.Getenv("PATH")
-	})
+	workspace, err := workspaces.GetWorkspaceAt("testdata/workspace")
+	require.NoError(t, err)
 
-	AfterEach(func() {
-		os.Setenv("PATH", pathBackup)
-	})
-
-	BeforeEach(func() {
-		// override PATH to overshadow `docker` executable during the test
-		path := strings.Join([]string{"testdata/toolchain", pathBackup}, string(filepath.ListSeparator))
-		os.Setenv("PATH", path)
-	})
-
-	var getCurrentUserBackup func() (*user.User, error)
-
-	BeforeEach(func() {
-		getCurrentUserBackup = GetCurrentUser
-	})
-
-	AfterEach(func() {
-		GetCurrentUser = getCurrentUserBackup
-	})
-
-	BeforeEach(func() {
-		GetCurrentUser = func() (*user.User, error) {
-			return &user.User{Uid: "1001", Gid: "1002"}, nil
-		}
-	})
-
-	var workspace model.Workspace
-
-	BeforeEach(func() {
-		w, err := workspaces.GetWorkspaceAt("testdata/workspace")
-		Expect(err).ToNot(HaveOccurred())
-		workspace = w
-	})
-
-	var stdin *bytes.Buffer
-	var stdout *bytes.Buffer
-	var stderr *bytes.Buffer
-	var stdio ioutil.StdStreams
-
-	BeforeEach(func() {
-		stdin = new(bytes.Buffer)
-		stdout = new(bytes.Buffer)
-		stderr = new(bytes.Buffer)
-		stdio = ioutil.StdStreams{
-			In:  stdin,
-			Out: stdout,
-			Err: stderr,
-		}
-	})
-
-	type testCase struct {
+	tests := []struct {
+		name           string
 		config         string
-		tool           func(toolchain types.Toolchain) error
-		expectedStdOut string
+		tool           func(toolchain types.Toolchain, stdio ioutil.StdStreams) error
+		expectedStdout string
 		expectedErr    string
-	}
-
-	parseConfig := func(yaml string) *builtinconfig.ToolchainConfig {
-		var cfg builtinconfig.ToolchainConfig
-		Expect(config.Unmarshal([]byte(yaml), &cfg)).To(Succeed())
-		Expect(cfg.Validate()).To(Succeed())
-		return &cfg
-	}
-
-	build := func(toolchain types.Toolchain) error {
-		By("running 'build' tool")
-		return toolchain.Build(types.BuildContext{IO: stdio})
-	}
-
-	test := func(toolchain types.Toolchain) error {
-		By("running 'test' tool")
-		return toolchain.Test(types.TestContext{IO: stdio})
-	}
-
-	clean := func(toolchain types.Toolchain) error {
-		By("running 'clean' tool")
-		return toolchain.Clean(types.CleanContext{IO: stdio})
-	}
-
-	DescribeTable("should execute `docker run` with a given container image and Docker cli options",
-		func(givenFn func() testCase) {
-			given := givenFn()
-			cfg := parseConfig(given.config)
-
-			By("creating builtin toolchain")
-			toolchain := NewToolchain("test", cfg, workspace)
-
-			By("using toolchain")
-			err := given.tool(toolchain)
-			if given.expectedErr == "" {
-				Expect(err).ToNot(HaveOccurred())
-			} else {
-				Expect(err).To(MatchError(given.expectedErr))
-			}
-
-			By("verifying stdout and stderr")
-			Expect(stdout.String()).To(Equal(given.expectedStdOut))
-			Expect(stderr.String()).To(Equal("docker stderr\n"))
+	}{{
+		name: "build using default container image",
+		config: `
+                kind: BuiltinToolchain
+                container:
+                  image: default/image
+`,
+		tool:           build,
+		expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init default/image build --output-file extension.wasm\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+	},
+		{
+			name: "test using default container image",
+			config: `
+                kind: BuiltinToolchain
+                container:
+                  image: default/image
+`,
+			tool:           test,
+			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init default/image test\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
 		},
-		Entry("build using default container image", func() testCase {
-			return testCase{
-				config: `
+		{
+			name: "clean using default container image",
+			config: `
                 kind: BuiltinToolchain
                 container:
                   image: default/image
 `,
-				tool:           build,
-				expectedStdOut: fmt.Sprintf("testdata/toolchain/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init default/image build --output-file extension.wasm\n", runtime.GOOS, workspace.GetDir().GetRootDir()),
-			}
-		}),
-		Entry("test using default container image", func() testCase {
-			return testCase{
-				config: `
-                kind: BuiltinToolchain
-                container:
-                  image: default/image
-`,
-				tool:           test,
-				expectedStdOut: fmt.Sprintf("testdata/toolchain/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init default/image test\n", runtime.GOOS, workspace.GetDir().GetRootDir()),
-			}
-		}),
-		Entry("clean using default container image", func() testCase {
-			return testCase{
-				config: `
-                kind: BuiltinToolchain
-                container:
-                  image: default/image
-`,
-				tool:           clean,
-				expectedStdOut: fmt.Sprintf("testdata/toolchain/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init default/image clean\n", runtime.GOOS, workspace.GetDir().GetRootDir()),
-			}
-		}),
-		Entry("build using given container image", func() testCase {
-			return testCase{
-				config: `
+			tool:           clean,
+			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init default/image clean\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+		},
+		{
+			name: "build using test container image",
+			config: `
                 kind: BuiltinToolchain
                 container:
                   image: default/image
@@ -194,13 +100,13 @@ var _ = Describe("built-in toolchain", func() {
                   container:
                     image: test/image
 `,
-				tool:           build,
-				expectedStdOut: fmt.Sprintf("testdata/toolchain/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init build/image build --output-file output/file.wasm\n", runtime.GOOS, workspace.GetDir().GetRootDir()),
-			}
-		}),
-		Entry("build using given container image and Docker cli options", func() testCase {
-			return testCase{
-				config: `
+			tool:           build,
+			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init build/image build --output-file output/file.wasm\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+		},
+		{
+			name: "build using test container image and Docker cli options",
+
+			config: `
                 kind: BuiltinToolchain
                 container:
                   image: default/image
@@ -220,13 +126,12 @@ var _ = Describe("built-in toolchain", func() {
                     - -v
                     - /host/path=/container/path
 `,
-				tool:           build,
-				expectedStdOut: fmt.Sprintf("testdata/toolchain/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -e VAR=VALUE build/image build --output-file output/file.wasm\n", runtime.GOOS, workspace.GetDir().GetRootDir()),
-			}
-		}),
-		Entry("build fails with a non-0 exit code", func() testCase {
-			return testCase{
-				config: `
+			tool:           build,
+			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -e VAR=VALUE build/image build --output-file output/file.wasm\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+		},
+		{
+			name: "build fails with a non-0 exit code",
+			config: `
                 kind: BuiltinToolchain
                 container:
                   image: default/image
@@ -239,14 +144,13 @@ var _ = Describe("built-in toolchain", func() {
                   output:
                     wasmFile: output/file.wasm
 `,
-				tool:           build,
-				expectedStdOut: fmt.Sprintf("testdata/toolchain/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 build/image build --output-file output/file.wasm\n", runtime.GOOS, workspace.GetDir().GetRootDir()),
-				expectedErr:    fmt.Sprintf("failed to execute an external command \"testdata/toolchain/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 build/image build --output-file output/file.wasm\": exit status 3", runtime.GOOS, workspace.GetDir().GetRootDir()),
-			}
-		}),
-		Entry("test using given container image", func() testCase {
-			return testCase{
-				config: `
+			tool:           build,
+			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 build/image build --output-file output/file.wasm\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+			expectedErr:    fmt.Sprintf("failed to execute an external command \"%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 build/image build --output-file output/file.wasm\": exit status 3", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+		},
+		{
+			name: "test using test container image",
+			config: `
                 kind: BuiltinToolchain
                 container:
                   image: default/image
@@ -260,13 +164,12 @@ var _ = Describe("built-in toolchain", func() {
                   container:
                     image: test/image
 `,
-				tool:           test,
-				expectedStdOut: fmt.Sprintf("testdata/toolchain/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init test/image test\n", runtime.GOOS, workspace.GetDir().GetRootDir()),
-			}
-		}),
-		Entry("test using given container image and Docker cli options", func() testCase {
-			return testCase{
-				config: `
+			tool:           test,
+			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init test/image test\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+		},
+		{
+			name: "test using test container image and Docker cli options",
+			config: `
                 kind: BuiltinToolchain
                 container:
                   image: default/image
@@ -286,13 +189,12 @@ var _ = Describe("built-in toolchain", func() {
                     - -v
                     - /host/path=/container/path
 `,
-				tool:           test,
-				expectedStdOut: fmt.Sprintf("testdata/toolchain/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -v /host/path=/container/path test/image test\n", runtime.GOOS, workspace.GetDir().GetRootDir()),
-			}
-		}),
-		Entry("test fails with a non-0 exit code", func() testCase {
-			return testCase{
-				config: `
+			tool:           test,
+			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -v /host/path=/container/path test/image test\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+		},
+		{
+			name: "test fails with a non-0 exit code",
+			config: `
                 kind: BuiltinToolchain
                 container:
                   image: default/image
@@ -303,14 +205,13 @@ var _ = Describe("built-in toolchain", func() {
                     - -e
                     - DOCKER_EXIT_CODE=3
 `,
-				tool:           test,
-				expectedStdOut: fmt.Sprintf("testdata/toolchain/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 test/image test\n", runtime.GOOS, workspace.GetDir().GetRootDir()),
-				expectedErr:    fmt.Sprintf("failed to execute an external command \"testdata/toolchain/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 test/image test\": exit status 3", runtime.GOOS, workspace.GetDir().GetRootDir()),
-			}
-		}),
-		Entry("clean using given container image", func() testCase {
-			return testCase{
-				config: `
+			tool:           test,
+			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 test/image test\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+			expectedErr:    fmt.Sprintf("failed to execute an external command \"%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 test/image test\": exit status 3", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+		},
+		{
+			name: "clean using test container image",
+			config: `
                 kind: BuiltinToolchain
                 container:
                   image: default/image
@@ -324,13 +225,12 @@ var _ = Describe("built-in toolchain", func() {
                   container:
                     image: clean/image
 `,
-				tool:           clean,
-				expectedStdOut: fmt.Sprintf("testdata/toolchain/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init clean/image clean\n", runtime.GOOS, workspace.GetDir().GetRootDir()),
-			}
-		}),
-		Entry("clean using given container image and Docker cli options", func() testCase {
-			return testCase{
-				config: `
+			tool:           clean,
+			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init clean/image clean\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+		},
+		{
+			name: "clean using test container image and Docker cli options",
+			config: `
                 kind: BuiltinToolchain
                 container:
                   image: default/image
@@ -350,13 +250,12 @@ var _ = Describe("built-in toolchain", func() {
                     - -v
                     - /host/path=/container/path
 `,
-				tool:           clean,
-				expectedStdOut: fmt.Sprintf("testdata/toolchain/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -v /host/path=/container/path clean/image clean\n", runtime.GOOS, workspace.GetDir().GetRootDir()),
-			}
-		}),
-		Entry("clean fails with a non-0 exit code", func() testCase {
-			return testCase{
-				config: `
+			tool:           clean,
+			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -v /host/path=/container/path clean/image clean\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+		},
+		{
+			name: "clean fails with a non-0 exit code",
+			config: `
                 kind: BuiltinToolchain
                 container:
                   image: default/image
@@ -367,10 +266,49 @@ var _ = Describe("built-in toolchain", func() {
                     - -e
                     - DOCKER_EXIT_CODE=3
 `,
-				tool:           clean,
-				expectedStdOut: fmt.Sprintf("testdata/toolchain/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 clean/image clean\n", runtime.GOOS, workspace.GetDir().GetRootDir()),
-				expectedErr:    fmt.Sprintf("failed to execute an external command \"testdata/toolchain/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 clean/image clean\": exit status 3", runtime.GOOS, workspace.GetDir().GetRootDir()),
+			tool:           clean,
+			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 clean/image clean\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+			expectedErr:    fmt.Sprintf("failed to execute an external command \"%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 clean/image clean\": exit status 3", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+		},
+	}
+
+	for _, test := range tests {
+		test := test // pin! see https://github.com/kyoh86/scopelint for why
+
+		t.Run(test.name, func(t *testing.T) {
+			var cfg builtinconfig.ToolchainConfig
+			err = config.Unmarshal([]byte(test.config), &cfg)
+			require.NoError(t, err)
+
+			err = cfg.Validate()
+			require.NoError(t, err)
+
+			toolchain := NewToolchain("test", &cfg, workspace)
+			stdin, stdout, stderr := new(bytes.Buffer), new(bytes.Buffer), new(bytes.Buffer)
+			stdio := ioutil.StdStreams{In: stdin, Out: stdout, Err: stderr}
+
+			// invoke the toolchain
+			err := test.tool(toolchain, stdio)
+			if test.expectedErr == "" {
+				require.NoError(t, err)
+			} else {
+				require.EqualError(t, err, test.expectedErr)
 			}
-		}),
-	)
-})
+
+			require.Equal(t, test.expectedStdout, stdout.String())
+			require.Equal(t, "docker stderr\n", stderr.String())
+		})
+	}
+}
+
+func build(toolchain types.Toolchain, stdio ioutil.StdStreams) error {
+	return toolchain.Build(types.BuildContext{IO: stdio})
+}
+
+func test(toolchain types.Toolchain, stdio ioutil.StdStreams) error {
+	return toolchain.Test(types.TestContext{IO: stdio})
+}
+
+func clean(toolchain types.Toolchain, stdio ioutil.StdStreams) error {
+	return toolchain.Clean(types.CleanContext{IO: stdio})
+}

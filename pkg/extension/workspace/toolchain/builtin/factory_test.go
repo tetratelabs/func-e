@@ -11,68 +11,31 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-package builtin_test
+package builtin
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
+	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config"
 	extensionconfig "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 	builtinconfig "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/toolchain/builtin"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
-	. "github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain/builtin"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain/registry"
 )
 
-var _ = Describe("built-in toolchain factory", func() {
-
-	var workspace model.Workspace
-
-	BeforeEach(func() {
-		w, err := workspaces.GetWorkspaceAt("testdata/workspace")
-		Expect(err).ToNot(HaveOccurred())
-		workspace = w
-	})
-
-	type testCase struct {
+func TestBuiltinToolchainLoadConfig(t *testing.T) {
+	workspace, err := workspaces.GetWorkspaceAt("testdata/workspace")
+	require.NoError(t, err)
+	tests := []struct {
+		name     string
 		config   string
 		expected string
-	}
-
-	DescribeTable("should load toolchain config and apply defaults",
-		func(given testCase) {
-			By("verifying built-in toolchain is registered")
-			factory, exists := registry.Get(builtinconfig.Kind)
-			Expect(exists).To(BeTrue())
-
-			By("loading toolchain config")
-			builder, err := factory.LoadConfig(registry.LoadConfigArgs{
-				Workspace: workspace,
-				Toolchain: registry.ToolchainConfig{
-					Name: "example",
-					Config: &model.File{
-						Source:  "<memory>",
-						Content: []byte(given.config),
-					},
-				},
-			})
-			Expect(err).ToNot(HaveOccurred())
-
-			By("verifying that defaults get applied to the toolchain config")
-			actual, err := config.Marshal(builder.GetConfig())
-			Expect(err).ToNot(HaveOccurred())
-			Expect(actual).To(MatchYAML(given.expected))
-
-			By("creating a toolchain")
-			toolchain, err := builder.Build()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(toolchain).ToNot(BeNil())
-		},
-		Entry("empty config", testCase{
+	}{
+		{
+			name:   "empty config",
 			config: `kind: BuiltinToolchain`,
 			expected: `
             kind: BuiltinToolchain
@@ -82,8 +45,9 @@ var _ = Describe("built-in toolchain factory", func() {
               output:
                 wasmFile: target/getenvoy/extension.wasm
 `,
-		}),
-		Entry("example config", testCase{
+		},
+		{
+			name: "example config",
 			config: string(ExampleConfig(&extensionconfig.Descriptor{
 				Language: extensionconfig.LanguageRust,
 			})),
@@ -95,8 +59,9 @@ var _ = Describe("built-in toolchain factory", func() {
               output:
                 wasmFile: target/getenvoy/extension.wasm
 `,
-		}),
-		Entry("full config", testCase{
+		},
+		{
+			name: "full config",
 			config: `
             kind: BuiltinToolchain
             container:
@@ -135,6 +100,39 @@ var _ = Describe("built-in toolchain factory", func() {
                 - -v
                 - /host:/container
 `,
-		}),
-	)
-})
+		},
+	}
+
+	for _, test := range tests {
+		test := test // pin! see https://github.com/kyoh86/scopelint for why
+
+		t.Run(test.name, func(t *testing.T) {
+			// verify built-in toolchain is registered
+			factory, exists := registry.Get(builtinconfig.Kind)
+			require.True(t, exists)
+
+			// load toolchain config
+			builder, err := factory.LoadConfig(registry.LoadConfigArgs{
+				Workspace: workspace,
+				Toolchain: registry.ToolchainConfig{
+					Name: "example",
+					Config: &model.File{
+						Source:  "<memory>",
+						Content: []byte(test.config),
+					},
+				},
+			})
+			require.NoError(t, err)
+
+			// verify defaults get applied to the toolchain config
+			actual, err := config.Marshal(builder.GetConfig())
+			require.NoError(t, err)
+			require.YAMLEq(t, test.expected, string(actual))
+
+			// create a toolchain
+			toolchain, err := builder.Build()
+			require.NoError(t, err)
+			require.NotNil(t, toolchain)
+		})
+	}
+}

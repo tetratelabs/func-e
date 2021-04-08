@@ -16,70 +16,64 @@ package toolchain_test
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
+	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/require"
 
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/fs"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
 	toolchains "github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain"
+	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
-var _ = Describe("LoadToolchain()", func() {
-	It("should fail to load toolchains other than `default`", func() {
-		workspace, err := workspaces.GetWorkspaceAt("testdata/workspace1")
-		Expect(err).ToNot(HaveOccurred())
+func TestLoadToolchainFailsIfNotDefault(t *testing.T) {
+	workspace, err := workspaces.GetWorkspaceAt("testdata/workspace1")
+	require.NoError(t, err)
 
-		_, err = toolchains.LoadToolchain("non-existing", workspace)
-		Expect(err).To(MatchError(`unknown toolchain "non-existing". At the moment, only "default" toolchain is supported`))
-	})
+	_, err = toolchains.LoadToolchain("non-existing", workspace)
+	require.EqualError(t, err, `unknown toolchain "non-existing". At the moment, only "default" toolchain is supported`) //nolint:lll
+}
 
-	//nolint:lll
-	It("should fail to load toolchain of unknown kind", func() {
-		workspace, err := workspaces.GetWorkspaceAt("testdata/workspace1")
-		Expect(err).ToNot(HaveOccurred())
+func TestLoadToolchainFailsIfUnknown(t *testing.T) {
+	workspace, err := workspaces.GetWorkspaceAt("testdata/workspace1")
+	require.NoError(t, err)
 
-		_, err = toolchains.LoadToolchain(toolchains.Default, workspace)
-		Expect(err).To(MatchError(fmt.Sprintf(`toolchain "default" has invalid configuration coming from "%s/.getenvoy/extension/toolchains/default.yaml": `+
-			`unknown toolchain kind "UnknownToolchain"`, workspace.GetDir().GetRootDir())))
-	})
+	_, err = toolchains.LoadToolchain(toolchains.Default, workspace)
+	require.EqualError(t, err, fmt.Sprintf(`toolchain "default" has invalid configuration coming from "%s/.getenvoy/extension/toolchains/default.yaml": `+ //nolint:lll
+		`unknown toolchain kind "UnknownToolchain"`, workspace.GetDir().GetRootDir()))
+}
 
-	//nolint:lll
-	It("should fail to load toolchain with invalid config", func() {
-		workspace, err := workspaces.GetWorkspaceAt("testdata/workspace2")
-		Expect(err).ToNot(HaveOccurred())
+//nolint:lll
+func TestLoadToolchainFailsOnInvalidConfig(t *testing.T) {
+	workspace, err := workspaces.GetWorkspaceAt("testdata/workspace2")
+	require.NoError(t, err)
 
-		_, err = toolchains.LoadToolchain(toolchains.Default, workspace)
-		Expect(err).To(MatchError(fmt.Sprintf(`toolchain "default" has invalid configuration coming from "%s/.getenvoy/extension/toolchains/default.yaml": `+
-			`'build' tool config is not valid: container configuration is not valid: "?invalid value?" is not a valid image name: invalid reference format`, workspace.GetDir().GetRootDir())))
-	})
+	_, err = toolchains.LoadToolchain(toolchains.Default, workspace)
+	require.EqualError(t, err, fmt.Sprintf(`toolchain "default" has invalid configuration coming from "%s/.getenvoy/extension/toolchains/default.yaml": `+
+		`'build' tool config is not valid: container configuration is not valid: "?invalid value?" is not a valid image name: invalid reference format`, workspace.GetDir().GetRootDir()))
+}
 
-	It("should load toolchain with a valid config", func() {
-		workspace, err := workspaces.GetWorkspaceAt("testdata/workspace3")
-		Expect(err).ToNot(HaveOccurred())
+func TestLoadToolchain(t *testing.T) {
+	workspace, err := workspaces.GetWorkspaceAt("testdata/workspace3")
+	require.NoError(t, err)
 
-		builder, err := toolchains.LoadToolchain(toolchains.Default, workspace)
-		Expect(err).ToNot(HaveOccurred())
+	builder, err := toolchains.LoadToolchain(toolchains.Default, workspace)
+	require.NoError(t, err)
 
-		toolchain, err := builder.Build()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(toolchain).ToNot(BeNil())
-	})
+	toolchain, err := builder.Build()
+	require.NoError(t, err)
+	require.NotNil(t, toolchain)
+}
 
-	It("should create default toolchain if missing", func() {
-		tempDir, err := ioutil.TempDir("", "workspace")
-		Expect(err).ToNot(HaveOccurred())
-		defer func() {
-			Expect(os.RemoveAll(tempDir)).To(Succeed())
-		}()
+func TestLoadToolchainCreatesDefaultWhenMissing(t *testing.T) {
+	outputDir, revertOutputDir := morerequire.RequireNewTempDir(t)
+	defer revertOutputDir()
 
-		dir, err := fs.CreateWorkspaceDir(tempDir)
-		Expect(err).ToNot(HaveOccurred())
+	dir, err := fs.CreateWorkspaceDir(outputDir)
+	require.NoError(t, err)
 
-		err = dir.WriteFile(model.DescriptorFile, []byte(`
+	err = dir.WriteFile(model.DescriptorFile, []byte(`
 kind: Extension
 
 name: mycompany.filters.http.custom_metrics
@@ -92,22 +86,24 @@ runtime:
   envoy:
     version: standard:1.17.0
 `))
-		Expect(err).ToNot(HaveOccurred())
+	require.NoError(t, err)
 
-		workspace, err := workspaces.GetWorkspaceAt(tempDir)
-		Expect(err).ToNot(HaveOccurred())
+	workspace, err := workspaces.GetWorkspaceAt(outputDir)
+	require.NoError(t, err)
 
-		builder, err := toolchains.LoadToolchain(toolchains.Default, workspace)
-		Expect(err).ToNot(HaveOccurred())
+	builder, err := toolchains.LoadToolchain(toolchains.Default, workspace)
+	require.NoError(t, err)
 
-		toolchain, err := builder.Build()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(toolchain).ToNot(BeNil())
+	toolchain, err := builder.Build()
+	require.NoError(t, err)
+	require.NotNil(t, toolchain)
 
-		Expect(workspace.HasToolchain(toolchains.Default)).To(BeTrue())
-		file, err := workspace.GetToolchainConfig(toolchains.Default)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(file).ToNot(BeNil())
-		Expect(file.Content).ToNot(BeEmpty())
-	})
-})
+	hasDefaultToolchain, err := workspace.HasToolchain(toolchains.Default)
+	require.NoError(t, err)
+	require.True(t, hasDefaultToolchain)
+
+	file, err := workspace.GetToolchainConfig(toolchains.Default)
+	require.NoError(t, err)
+	require.NotNil(t, file)
+	require.NotEmpty(t, file.Content)
+}

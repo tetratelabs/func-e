@@ -15,35 +15,36 @@
 package args_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
+	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	. "github.com/tetratelabs/getenvoy/pkg/util/args"
 )
 
-var _ = Describe("SplitCommandLine()", func() {
-	type testCase struct {
+func TestSplitCommandLine(t *testing.T) {
+	tests := []struct {
+		name     string
 		input    []string
 		expected []string
-	}
-	DescribeTable("should split command line properly",
-		func(given testCase) {
-			Expect(SplitCommandLine(given.input...)).To(Equal(given.expected))
-		},
-		Entry("nil", testCase{
+	}{
+		{
+			name:     "nil",
 			input:    nil,
 			expected: []string{},
-		}),
-		Entry("empty", testCase{
+		},
+		{
+			name:     "empty",
 			input:    []string{},
 			expected: []string{},
-		}),
-		Entry("already split", testCase{
+		},
+		{
+			name:     "already split",
 			input:    []string{"-e", "VAR=VALUE"},
 			expected: []string{"-e", "VAR=VALUE"},
-		}),
-		Entry("command line", testCase{
+		},
+		{
+			name:  "command line",
 			input: []string{"-e VAR=VALUE -v /host/path:/container/path"},
 			expected: []string{
 				"-e",
@@ -51,13 +52,24 @@ var _ = Describe("SplitCommandLine()", func() {
 				"-v",
 				"/host/path:/container/path",
 			},
-		}),
-		Entry("quoted command line", testCase{
+		},
+		{
+			name:  "quoted command line",
 			input: []string{`'-e VAR=VALUE' "-v /host/path:/container/path"`},
 			expected: []string{
 				"-e VAR=VALUE",
 				"-v /host/path:/container/path",
 			},
-		}),
-	)
-})
+		},
+	}
+
+	for _, test := range tests {
+		test := test // pin! see https://github.com/kyoh86/scopelint for why
+
+		t.Run(test.name, func(t *testing.T) {
+			actual, err := SplitCommandLine(test.input...)
+			require.NoError(t, err)
+			require.Equal(t, test.expected, actual)
+		})
+	}
+}

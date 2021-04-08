@@ -55,9 +55,9 @@ func (fn ComposableRunE) Then(nextFn Run) ComposableRunE {
 // Using this function it is possible to compose more sophisticated behavior, e.g. one
 // where a handler function is called on multiple commands.
 func CallParentPersistentPreRunE() ComposableRunE {
-	return ComposableRunE(func(cmd *cobra.Command, args []string) error {
+	return func(cmd *cobra.Command, args []string) error {
 		return persistentPreRunE(cmd.Parent(), args)
-	})
+	}
 }
 
 // persistentPreRunE walks command tree up and calls PersistentPreRunE/PersistentPreRun

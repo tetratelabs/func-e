@@ -16,80 +16,52 @@ package extension_test
 
 import (
 	"fmt"
+	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config"
 	. "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 )
 
-var _ = Describe("Extension", func() {
-	Describe("Unmarshal()", func() {
-		Describe("in case of invalid input", func() {
-			type testCase struct {
-				input       string
-				expectedErr string
-			}
-			DescribeTable("should fail with a proper error",
-				func(given testCase) {
-					var descriptor Descriptor
-					err := config.Unmarshal([]byte(given.input), &descriptor)
-					Expect(err).To(MatchError(given.expectedErr))
-				},
-				Entry("invalid programming language", testCase{
-					input: `#
+func TestDescriptorValidate(t *testing.T) {
+	input := `#
 # Envoy Wasm extension created with getenvoy toolkit.
 #
 kind: Extension
 
 name: mycompany.filters.http.custom_metrics
 
-language: invalid
 category: envoy.filters.http
-`,
-					expectedErr: `error unmarshaling JSON: "invalid" is not a valid programming language`,
-				}),
-				Entry("invalid extension category", testCase{
-					input: `#
-# Envoy Wasm extension created with getenvoy toolkit.
-#
-kind: Extension
-
-name: mycompany.filters.http.custom_metrics
-
 language: rust
-category: invalid
-`,
-					expectedErr: `error unmarshaling JSON: "invalid" is not a valid extension category`,
-				}),
-			)
-		})
-	})
 
-	//nolint:lll
-	Describe("Validate()", func() {
-		Describe("in case of invalid input", func() {
-			type testCase struct {
-				input       string
-				expectedErr string
-			}
-			DescribeTable("should fail with a proper error",
-				func(given testCase) {
-					var descriptor Descriptor
-					err := config.Unmarshal([]byte(given.input), &descriptor)
-					Expect(err).ToNot(HaveOccurred())
+# Runtime the extension is being developed against.
+runtime:
+  envoy:
+    version: standard:1.17.0
+`
+	var descriptor Descriptor
+	err := config.Unmarshal([]byte(input), &descriptor)
+	require.NoError(t, err)
 
-					err = descriptor.Validate()
-					Expect(err).To(MatchError(given.expectedErr))
-				},
-				Entry("empty", testCase{
-					input:       ``,
-					expectedErr: `4 errors occurred: extension name cannot be empty; extension category cannot be empty; programming language cannot be empty; runtime description is not valid: Envoy version cannot be empty`,
-				}),
-				Entry("invalid Envoy version", testCase{
-					input: `#
+	err = descriptor.Validate()
+	require.NoError(t, err)
+}
+
+func TestDescriptorValidateError(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		expectedErr string
+	}{
+		{
+			name:        "empty",
+			input:       ``,
+			expectedErr: `4 errors occurred: extension name cannot be empty; extension category cannot be empty; programming language cannot be empty; runtime description is not valid: Envoy version cannot be empty`,
+		},
+		{
+			name: "invalid Envoy version",
+			input: `#
 # Envoy Wasm extension created with getenvoy toolkit.
 #
 kind: Extension
@@ -104,10 +76,11 @@ runtime:
   envoy:
     version: invalid value
 `,
-					expectedErr: `runtime description is not valid: Envoy version is not valid: "invalid value" is not a valid GetEnvoy reference. Expected format: <flavor>:<version>[/<platform>]`,
-				}),
-				Entry("missing extension name", testCase{
-					input: `#
+			expectedErr: `runtime description is not valid: Envoy version is not valid: "invalid value" is not a valid GetEnvoy reference. Expected format: <flavor>:<version>[/<platform>]`,
+		},
+		{
+			name: "missing extension name",
+			input: `#
 # Envoy Wasm extension created with getenvoy toolkit.
 #
 kind: Extension
@@ -120,10 +93,10 @@ runtime:
   envoy:
     version: standard:1.17.0
 `,
-					expectedErr: `extension name cannot be empty`,
-				}),
-				Entry("invalid extension name", testCase{
-					input: `#
+			expectedErr: `extension name cannot be empty`,
+		}, {
+			name: "invalid extension name",
+			input: `#
 # Envoy Wasm extension created with getenvoy toolkit.
 #
 kind: Extension
@@ -138,108 +111,87 @@ runtime:
   envoy:
     version: standard:1.17.0
 `,
-					expectedErr: `"?!@#$%" is not a valid extension name. Extension name must match the format "^[a-z0-9_]+(\\.[a-z0-9_]+)*$". E.g., 'mycompany.filters.http.custom_metrics'`,
-				}),
-			)
-		})
-		Describe("in case of valid input", func() {
-			type testCase struct {
-				input string
-			}
-			DescribeTable("should not return any error",
-				func(given testCase) {
-					var descriptor Descriptor
-					err := config.Unmarshal([]byte(given.input), &descriptor)
-					Expect(err).ToNot(HaveOccurred())
-
-					err = descriptor.Validate()
-					Expect(err).ToNot(HaveOccurred())
-
-					actual, err := config.Marshal(&descriptor)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(actual).To(MatchYAML(given.input))
-				},
-				Entry("invalid Envoy version", testCase{
-					input: `#
-# Envoy Wasm extension created with getenvoy toolkit.
-#
-kind: Extension
-
-name: mycompany.filters.http.custom_metrics
-
-category: envoy.filters.http
-language: rust
-
-# Runtime the extension is being developed against.
-runtime:
-  envoy:
-    version: standard:1.17.0
-`,
-				}),
-			)
-		})
-	})
-})
-
-var _ = Describe("ValidateExtensionName()", func() {
-	DescribeTable("should accept valid names",
-		func(given string) {
-			err := ValidateExtensionName(given)
-			Expect(err).ToNot(HaveOccurred())
+			expectedErr: `"?!@#$%" is not a valid extension name. Extension name must match the format "^[a-z0-9_]+(\\.[a-z0-9_]+)*$". E.g., 'mycompany.filters.http.custom_metrics'`,
 		},
-		Entry("Envoy-like name", "mycompany.filters.http.custom_metrics"),
-		Entry("no segments", "myextension"),
-		Entry("numbers", "911.i18n.v2"),
-		Entry("'_'", "_._"),
-	)
-	//nolint:lll
-	DescribeTable("should reject invalid names",
-		func(given string) {
-			err := ValidateExtensionName(given)
-			Expect(err).To(MatchError(fmt.Sprintf(`%q is not a valid extension name. Extension name must match the format "^[a-z0-9_]+(\\.[a-z0-9_]+)*$". E.g., 'mycompany.filters.http.custom_metrics'`, given)))
-		},
-		Entry("trailing '.'", "myextension."),
-		Entry("upper-case", "MYEXTENSION"),
-		Entry("'-'", "-.-"),
-		Entry("non alpha-num characters", `!@#$%^&*()-+<>?~:;"'\[]{}`),
-	)
-})
-
-var _ = Describe("SanitizeExtensionName()", func() {
-	type testCase struct {
-		input    []string
-		expected string
 	}
-	DescribeTable("should replace unsafe characters",
-		func(given testCase) {
-			actual := SanitizeExtensionName(given.input...)
-			Expect(actual).To(Equal(given.expected))
-			Expect(ValidateExtensionName(actual)).To(Succeed())
-		},
-		Entry("upper-case, non-alpha-num and empty", testCase{
-			input:    []string{`My-C0mpany.com`, ``, `e!x@t#`},
-			expected: `my_c0mpany_com.e_x_t_`,
-		}),
-	)
-})
 
-var _ = Describe("SanitizeExtensionNameSegment()", func() {
-	type testCase struct {
+	for _, test := range tests {
+		test := test // pin! see https://github.com/kyoh86/scopelint for why
+
+		t.Run(test.name, func(t *testing.T) {
+			var descriptor Descriptor
+			err := config.Unmarshal([]byte(test.input), &descriptor)
+			require.NoError(t, err)
+
+			err = descriptor.Validate()
+			require.EqualError(t, err, test.expectedErr)
+		})
+	}
+}
+
+func TestValidateExtensionName(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+	}{
+		{"Envoy-like name", "mycompany.filters.http.custom_metrics"},
+		{"no segments", "myextension"},
+		{"numbers", "911.i18n.v2"},
+		{"'_'", "_._"},
+	}
+
+	for _, test := range tests {
+		test := test // pin! see https://github.com/kyoh86/scopelint for why
+
+		t.Run(test.name, func(t *testing.T) {
+			err := ValidateExtensionName(test.input)
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestValidateExtensionNameError(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+	}{
+		{"trailing '.'", "myextension."},
+		{"upper-case", "MYEXTENSION"},
+		{"'-'", "-.-"},
+		{"non alpha-num characters", `!@#$%^&*()-+<>?~:;"'\[]{}`},
+	}
+
+	for _, test := range tests {
+		test := test // pin! see https://github.com/kyoh86/scopelint for why
+
+		t.Run(test.name, func(t *testing.T) {
+			err := ValidateExtensionName(test.input)
+			expectedErr := fmt.Sprintf(`%q is not a valid extension name. Extension name must match the format "^[a-z0-9_]+(\\.[a-z0-9_]+)*$". E.g., 'mycompany.filters.http.custom_metrics'`, test.input) //nolint:lll
+			require.EqualError(t, err, expectedErr, test.input)
+		})
+	}
+}
+
+func TestSanitizeExtensionName(t *testing.T) {
+	actual := SanitizeExtensionName(`My-C0mpany.com`, ``, `e!x@t#`)
+	require.Equal(t, `my_c0mpany_com.e_x_t_`, actual)
+}
+
+func TestSanitizeExtensionNameSegment(t *testing.T) {
+	tests := []struct {
 		input    string
 		expected string
+	}{
+		{`My-C0mpany.com`, `my_c0mpany_com`},
+		{`!@#$%^&*()-+<>?~:;"'\[]{}`, `_________________________`},
 	}
-	DescribeTable("should replace unsafe characters",
-		func(given testCase) {
-			actual := SanitizeExtensionNameSegment(given.input)
-			Expect(actual).To(Equal(given.expected))
-		},
-		Entry("upper-case", testCase{
-			input:    `My-C0mpany.com`,
-			expected: `my_c0mpany_com`,
-		}),
-		Entry("non alpha-num characters", testCase{
-			input:    `!@#$%^&*()-+<>?~:;"'\[]{}`,
-			expected: `_________________________`,
-		}),
-	)
-})
+
+	for _, test := range tests {
+		test := test // pin! see https://github.com/kyoh86/scopelint for why
+
+		t.Run(test.input, func(t *testing.T) {
+			actual := SanitizeExtensionNameSegment(test.input)
+			require.Equal(t, test.expected, actual)
+		})
+	}
+}

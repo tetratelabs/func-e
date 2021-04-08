@@ -15,51 +15,39 @@
 package builtin_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
+	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config"
 	. "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/toolchain/builtin"
 )
 
-var _ = Describe("ToolchainConfig", func() {
-	Describe("Validate()", func() {
-		Describe("in case of valid input", func() {
-			type testCase struct {
-				input string
-			}
-			DescribeTable("should not return any error",
-				func(given testCase) {
-					var toolchain ToolchainConfig
-					err := config.Unmarshal([]byte(given.input), &toolchain)
-					Expect(err).NotTo(HaveOccurred())
-
-					err = toolchain.Validate()
-					Expect(err).ToNot(HaveOccurred())
-
-					actual, err := config.Marshal(toolchain)
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(actual).To(MatchYAML(given.input))
-				},
-				Entry("default build container", testCase{
-					input: `
+func TestToolchainConfigValidate(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+	}{
+		{
+			name: "default build container",
+			input: `
                     kind: BuiltinToolchain
                     container:
                       image: default/image
 `,
-				}),
-				Entry("empty build config", testCase{
-					input: `
+		},
+		{
+			name: "empty build config",
+			input: `
                     kind: BuiltinToolchain
                     container:
                       image: default/image
                     build: {}
 `,
-				}),
-				Entry("'build' config with container", testCase{
-					input: `
+		},
+		{
+			name: "'build' config with container",
+			input: `
                     kind: BuiltinToolchain
                     container:
                       image: default/image
@@ -67,9 +55,10 @@ var _ = Describe("ToolchainConfig", func() {
                       container:
                         image: build/image
 `,
-				}),
-				Entry("'build' config with *.wasm file output path", testCase{
-					input: `
+		},
+		{
+			name: "'build' config with *.wasm file output path",
+			input: `
                     kind: BuiltinToolchain
                     container:
                       image: default/image
@@ -79,9 +68,10 @@ var _ = Describe("ToolchainConfig", func() {
                       output:
                         wasmFile: output/extension.wasm
 `,
-				}),
-				Entry("'test' config with container", testCase{
-					input: `
+		},
+		{
+			name: "'test' config with container",
+			input: `
                     kind: BuiltinToolchain
                     container:
                       image: default/image
@@ -89,9 +79,10 @@ var _ = Describe("ToolchainConfig", func() {
                       container:
                         image: test/image
 `,
-				}),
-				Entry("'clean' config with container", testCase{
-					input: `
+		},
+		{
+			name: "'clean' config with container",
+			input: `
                     kind: BuiltinToolchain
                     container:
                       image: default/image
@@ -99,61 +90,72 @@ var _ = Describe("ToolchainConfig", func() {
                       container:
                         image: clean/image
 `,
-				}),
-			)
+		},
+	}
+
+	for _, test := range tests {
+		test := test // pin! see https://github.com/kyoh86/scopelint for why
+
+		t.Run(test.name, func(t *testing.T) {
+			var toolchainConfig ToolchainConfig
+			err := config.Unmarshal([]byte(test.input), &toolchainConfig)
+			require.NoError(t, err)
+
+			err = toolchainConfig.Validate()
+			require.NoError(t, err)
 		})
+	}
+}
 
-		Describe("in case of invalid input", func() {
-			type testCase struct {
-				input       string
-				expectedErr string
-			}
-			DescribeTable("should fail with a proper error",
-				func(given testCase) {
-					var toolchain ToolchainConfig
-					err := config.Unmarshal([]byte(given.input), &toolchain)
-					Expect(err).NotTo(HaveOccurred())
-
-					err = toolchain.Validate()
-					Expect(err).To(MatchError(given.expectedErr))
-				},
-				Entry("blank", testCase{
-					input:       ``,
-					expectedErr: `configuration of the default build container cannot be empty`,
-				}),
-				Entry("no default build container", testCase{
-					input: `
+func TestToolchainConfigValidateError(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		expectedErr string
+	}{
+		{
+			name:        "blank",
+			input:       ``,
+			expectedErr: `configuration of the default build container cannot be empty`,
+		},
+		{
+			name: "no default build container",
+			input: `
                     kind: BuiltinToolchain
 `,
-					expectedErr: `configuration of the default build container cannot be empty`,
-				}),
-				Entry("default build container: no image name", testCase{
-					input: `
+			expectedErr: `configuration of the default build container cannot be empty`,
+		},
+		{
+			name: "default build container: no image name",
+			input: `
                     kind: BuiltinToolchain
                     container: {}
 `,
-					expectedErr: `configuration of the default build container is not valid: image name cannot be empty`,
-				}),
-				Entry("default build container: invalid image name", testCase{
-					input: `
+			expectedErr: `configuration of the default build container is not valid: image name cannot be empty`,
+		},
+		{
+			name: "default build container: invalid image name",
+			input: `
                     kind: BuiltinToolchain
                     container:
                       image: ???
 `,
-					expectedErr: `configuration of the default build container is not valid: "???" is not a valid image name: invalid reference format`,
-				}),
-				Entry("build tool: no image name", testCase{
-					input: `
+			expectedErr: `configuration of the default build container is not valid: "???" is not a valid image name: invalid reference format`,
+		},
+		{
+			name: "build tool: no image name",
+			input: `
                     kind: BuiltinToolchain
                     container:
                       image: default/image
                     build:
                       container: {}
 `,
-					expectedErr: `'build' tool config is not valid: container configuration is not valid: image name cannot be empty`,
-				}),
-				Entry("build tool: no image name", testCase{
-					input: `
+			expectedErr: `'build' tool config is not valid: container configuration is not valid: image name cannot be empty`,
+		},
+		{
+			name: "build tool: no image name",
+			input: `
                     kind: BuiltinToolchain
                     container:
                       image: default/image
@@ -161,10 +163,11 @@ var _ = Describe("ToolchainConfig", func() {
                       container:
                         image: ???
 `,
-					expectedErr: `'build' tool config is not valid: container configuration is not valid: "???" is not a valid image name: invalid reference format`,
-				}),
-				Entry("build tool: no *.wasm file output path", testCase{
-					input: `
+			expectedErr: `'build' tool config is not valid: container configuration is not valid: "???" is not a valid image name: invalid reference format`,
+		},
+		{
+			name: "build tool: no *.wasm file output path",
+			input: `
                     kind: BuiltinToolchain
                     container:
                       image: default/image
@@ -173,10 +176,11 @@ var _ = Describe("ToolchainConfig", func() {
                         image: build/image
                       output: {}
 `,
-					expectedErr: `'build' tool config is not valid: output configuration is not valid: *.wasm file output path cannot be empty`,
-				}),
-				Entry("build tool: *.wasm file absolute output path", testCase{
-					input: `
+			expectedErr: `'build' tool config is not valid: output configuration is not valid: *.wasm file output path cannot be empty`,
+		},
+		{
+			name: "build tool: *.wasm file absolute output path",
+			input: `
                     kind: BuiltinToolchain
                     container:
                       image: default/image
@@ -186,20 +190,22 @@ var _ = Describe("ToolchainConfig", func() {
                       output:
                         wasmFile: /absolute/path/to/extension.wasm
 `,
-					expectedErr: `'build' tool config is not valid: output configuration is not valid: *.wasm file output path must be relative to the workspace root`,
-				}),
-				Entry("test tool: no image name", testCase{
-					input: `
+			expectedErr: `'build' tool config is not valid: output configuration is not valid: *.wasm file output path must be relative to the workspace root`,
+		},
+		{
+			name: "test tool: no image name",
+			input: `
                     kind: BuiltinToolchain
                     container:
                       image: default/image
                     test:
                       container: {}
 `,
-					expectedErr: `'test' tool config is not valid: container configuration is not valid: image name cannot be empty`,
-				}),
-				Entry("test tool: no image name", testCase{
-					input: `
+			expectedErr: `'test' tool config is not valid: container configuration is not valid: image name cannot be empty`,
+		},
+		{
+			name: "test tool: no image name",
+			input: `
                     kind: BuiltinToolchain
                     container:
                       image: default/image
@@ -207,20 +213,22 @@ var _ = Describe("ToolchainConfig", func() {
                       container:
                         image: ???
 `,
-					expectedErr: `'test' tool config is not valid: container configuration is not valid: "???" is not a valid image name: invalid reference format`,
-				}),
-				Entry("clean tool: no image name", testCase{
-					input: `
+			expectedErr: `'test' tool config is not valid: container configuration is not valid: "???" is not a valid image name: invalid reference format`,
+		},
+		{
+			name: "clean tool: no image name",
+			input: `
                     kind: BuiltinToolchain
                     container:
                       image: default/image
                     clean:
                       container: {}
 `,
-					expectedErr: `'clean' tool config is not valid: container configuration is not valid: image name cannot be empty`,
-				}),
-				Entry("clean tool: no image name", testCase{
-					input: `
+			expectedErr: `'clean' tool config is not valid: container configuration is not valid: image name cannot be empty`,
+		},
+		{
+			name: "clean tool: no image name",
+			input: `
                     kind: BuiltinToolchain
                     container:
                       image: default/image
@@ -228,54 +236,63 @@ var _ = Describe("ToolchainConfig", func() {
                       container:
                         image: ???
 `,
-					expectedErr: `'clean' tool config is not valid: container configuration is not valid: "???" is not a valid image name: invalid reference format`,
-				}),
-			)
+			expectedErr: `'clean' tool config is not valid: container configuration is not valid: "???" is not a valid image name: invalid reference format`,
+		},
+	}
+
+	for _, test := range tests {
+		test := test // pin! see https://github.com/kyoh86/scopelint for why
+
+		t.Run(test.name, func(t *testing.T) {
+			var toolchainConfig ToolchainConfig
+			err := config.Unmarshal([]byte(test.input), &toolchainConfig)
+			require.NoError(t, err)
+
+			err = toolchainConfig.Validate()
+			require.EqualError(t, err, test.expectedErr)
 		})
-	})
+	}
+}
 
-	Describe("GetBuildOutputWasmFile()", func() {
-		type testCase struct {
-			input    string
-			expected string
-		}
-		DescribeTable("should return proper output path",
-			func(given testCase) {
-				var toolchain ToolchainConfig
-				err := config.Unmarshal([]byte(given.input), &toolchain)
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(toolchain.GetBuildOutputWasmFile()).To(Equal(given.expected))
-			},
-			Entry("build: no config", testCase{
-				input: `
+func TestToolchainConfigGetBuildOutputWasmFile(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name: "build: no config",
+			input: `
                 kind: BuiltinToolchain
                 container:
                   image: default/image
 `,
-				expected: `extension.wasm`,
-			}),
-			Entry("build: empty config", testCase{
-				input: `
+			expected: `extension.wasm`,
+		},
+		{
+			name: "build: empty config",
+			input: `
                 kind: BuiltinToolchain
                 container:
                   image: default/image
                 build: {}
 `,
-				expected: `extension.wasm`,
-			}),
-			Entry("build: empty output config", testCase{
-				input: `
+			expected: `extension.wasm`,
+		},
+		{
+			name: "build: empty output config",
+			input: `
                 kind: BuiltinToolchain
                 container:
                   image: default/image
                 build:
                   output: {}
 `,
-				expected: `extension.wasm`,
-			}),
-			Entry("build: empty *.wasm file output path", testCase{
-				input: `
+			expected: `extension.wasm`,
+		},
+		{
+			name: "build: empty *.wasm file output path",
+			input: `
                 kind: BuiltinToolchain
                 container:
                   image: default/image
@@ -283,10 +300,11 @@ var _ = Describe("ToolchainConfig", func() {
                   output:
                     wasmFile:
 `,
-				expected: `extension.wasm`,
-			}),
-			Entry("build: non-empty *.wasm file output path", testCase{
-				input: `
+			expected: `extension.wasm`,
+		},
+		{
+			name: "build: non-empty *.wasm file output path",
+			input: `
                 kind: BuiltinToolchain
                 container:
                   image: default/image
@@ -294,8 +312,20 @@ var _ = Describe("ToolchainConfig", func() {
                   output:
                     wasmFile: output/extension.wasm
 `,
-				expected: `output/extension.wasm`,
-			}),
-		)
-	})
-})
+			expected: `output/extension.wasm`,
+		},
+	}
+
+	for _, test := range tests {
+		test := test // pin! see https://github.com/kyoh86/scopelint for why
+
+		t.Run(test.name, func(t *testing.T) {
+			var toolchainConfig ToolchainConfig
+			err := config.Unmarshal([]byte(test.input), &toolchainConfig)
+			require.NoError(t, err)
+
+			actual := toolchainConfig.GetBuildOutputWasmFile()
+			require.Equal(t, test.expected, actual)
+		})
+	}
+}

@@ -15,36 +15,22 @@
 package init
 
 import (
+	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
+	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
+	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
-var _ = Describe("interpolate()", func() {
-	type testCase struct {
-		extension   *extension.Descriptor
-		fileName    string
-		fileContent string
-		expected    string
+func TestInterpolateExtensionName(t *testing.T) {
+	e := extension.Descriptor{
+		Name: "my_company.my_extension",
 	}
-	DescribeTable("should interpolate extension name",
-		func(given testCase) {
-			actual, err := interpolate(given.extension)(given.fileName, []byte(given.fileContent))
-			Expect(err).NotTo(HaveOccurred())
-			Expect(string(actual)).To(Equal(given.expected))
-		},
-		Entry("src/factory.rs", testCase{
-			extension: &extension.Descriptor{
-				Name: "my_company.my_extension",
-			},
-			fileName: "src/factory.rs",
-			fileContent: `
+	actual, err := interpolate(&e)("src/factory.rs", []byte(`
 impl<'a> ExtensionFactory for SampleHttpFilterFactory<'a> {
     type Extension = SampleHttpFilter<'a>;
 
@@ -54,8 +40,10 @@ impl<'a> ExtensionFactory for SampleHttpFilterFactory<'a> {
     /// (also known as "group_name").
 	const NAME: &'static str = "{{ .Extension.Name }}";
 }
-`,
-			expected: `
+`))
+
+	require.NoError(t, err)
+	require.Equal(t, fmt.Sprintf(`
 impl<'a> ExtensionFactory for SampleHttpFilterFactory<'a> {
     type Extension = SampleHttpFilter<'a>;
 
@@ -63,50 +51,20 @@ impl<'a> ExtensionFactory for SampleHttpFilterFactory<'a> {
     ///
     /// This name appears in "Envoy" configuration as a value of "root_id" field
     /// (also known as "group_name").
-	const NAME: &'static str = "my_company.my_extension";
+	const NAME: &'static str = "%s";
 }
-`,
-		}),
-	)
-})
+`, e.Name), string(actual))
+}
 
-var _ = Describe("Scaffold()", func() {
-	var tmpDir string
-
-	BeforeEach(func() {
-		dir, err := ioutil.TempDir("", "")
-		Expect(err).NotTo(HaveOccurred())
-		tmpDir = dir
-	})
-
-	AfterEach(func() {
-		if tmpDir != "" {
-			Expect(os.RemoveAll(tmpDir)).To(Succeed())
-		}
-	})
-
-	type testCase struct {
+func TestScaffold(t *testing.T) {
+	tests := []struct {
+		name      string
 		extension *extension.Descriptor
 		file      string
 		expected  string
-	}
-	DescribeTable("should interpolate extension name",
-		func(given testCase) {
-			opts := &ScaffoldOpts{
-				Extension:    given.extension,
-				TemplateName: "default",
-				OutputDir:    tmpDir,
-			}
-
-			err := Scaffold(opts)
-			Expect(err).NotTo(HaveOccurred())
-
-			actual, err := ioutil.ReadFile(filepath.Join(opts.OutputDir, given.file))
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(string(actual)).To(ContainSubstring(given.expected))
-		},
-		Entry("rust/filters/http", testCase{
+	}{
+		{
+			name: "rust/filters/http",
 			extension: &extension.Descriptor{
 				Name:     "my_company.my_extension",
 				Category: extension.EnvoyHTTPFilter,
@@ -114,8 +72,9 @@ var _ = Describe("Scaffold()", func() {
 			},
 			file:     "src/factory.rs",
 			expected: `"my_company.my_extension"`,
-		}),
-		Entry("rust/filters/network", testCase{
+		},
+		{
+			name: "rust/filters/network",
 			extension: &extension.Descriptor{
 				Name:     "my_company.my_extension",
 				Category: extension.EnvoyNetworkFilter,
@@ -123,8 +82,9 @@ var _ = Describe("Scaffold()", func() {
 			},
 			file:     "src/factory.rs",
 			expected: `"my_company.my_extension"`,
-		}),
-		Entry("rust/access_logger", testCase{
+		},
+		{
+			name: "rust/access_logger",
 			extension: &extension.Descriptor{
 				Name:     "my_company.my_extension",
 				Category: extension.EnvoyAccessLogger,
@@ -132,6 +92,28 @@ var _ = Describe("Scaffold()", func() {
 			},
 			file:     "src/logger.rs",
 			expected: `"my_company.my_extension"`,
-		}),
-	)
-})
+		},
+	}
+
+	for _, test := range tests {
+		test := test // pin! see https://github.com/kyoh86/scopelint for why
+
+		t.Run(test.name, func(t *testing.T) {
+			outputDir, revertOutputDir := morerequire.RequireNewTempDir(t)
+			defer revertOutputDir()
+
+			opts := &ScaffoldOpts{
+				Extension:    test.extension,
+				TemplateName: "default",
+				OutputDir:    outputDir,
+			}
+
+			err := Scaffold(opts)
+			require.NoError(t, err)
+
+			actual, err := ioutil.ReadFile(filepath.Join(outputDir, test.file))
+			require.NoError(t, err)
+			require.Contains(t, string(actual), test.expected)
+		})
+	}
+}
