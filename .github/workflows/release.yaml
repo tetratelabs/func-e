@@ -27,7 +27,7 @@ jobs:
       - name: "Set up Go"
         uses: actions/setup-go@v2
         with:
-          go-version: '1.16.2'
+          go-version: '1.16.3'
 
       - name: "Login into DockerHub"
         uses: azure/docker-login@v1
@@ -79,6 +79,7 @@ jobs:
     runs-on: ${{ matrix.runner.os }}
     timeout-minutes: 90  # instead of 360 by default
     strategy:
+      fail-fast: false  # don't fail fast as sometimes failures are operating system specific
       matrix:
         runner:
           - os: macos-latest
@@ -99,7 +100,7 @@ jobs:
       - name: "Install Go"
         uses: actions/setup-go@v2
         with:
-          go-version: '1.16.2'
+          go-version: '1.16.3'
 
       - name: "Get tag name"
         run: | # Trim "v" prefix in the release tag

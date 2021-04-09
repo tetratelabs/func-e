@@ -15,6 +15,7 @@
 package debug
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -22,9 +23,10 @@ import (
 	"path/filepath"
 	"syscall"
 	"text/tabwriter"
+	"time"
 
-	"github.com/shirou/gopsutil/net"
-	"github.com/shirou/gopsutil/process"
+	"github.com/shirou/gopsutil/v3/net"
+	"github.com/shirou/gopsutil/v3/process"
 	"github.com/tetratelabs/log"
 
 	"github.com/tetratelabs/getenvoy/pkg/binary"
@@ -42,76 +44,105 @@ func EnableNodeCollection(r *envoy.Runtime) {
 	r.RegisterPreTermination(activeConnections)
 }
 
+// Don't wait forever. This has hung on macOS before
+const processTimeout = 3 * time.Second
+
+// Errors from platform-specific libraries log to debug instead of raising an error or logging in an error category.
+// This avoids filling logs for unresolvable reasons.
 func ps(r binary.Runner) error {
 	f, err := os.Create(filepath.Join(r.DebugStore(), "node/ps.txt"))
 	if err != nil {
-		return fmt.Errorf("unable to create file to write ps output to: %v", err)
+		return fmt.Errorf("unable to create file to write ps output to: %w", err)
 	}
 	defer f.Close() //nolint
 
-	processes, err := process.Processes()
-	if err != nil {
-		return fmt.Errorf("unable to get list of running processes: %v", err)
+	ctx, cancel := context.WithTimeout(context.Background(), processTimeout)
+	defer cancel()
+
+	processes, err := process.ProcessesWithContext(ctx)
+	if ctx.Err() == context.DeadlineExceeded {
+		log.Debugf("timeout getting a list of running processes")
+		return nil
 	}
-	return processPrinter(f, processes)
+	if err != nil {
+		log.Debugf("unable to get list of running processes: %v", err)
+		return nil
+	}
+
+	return printProcessTable(ctx, f, processes)
 }
 
-func processPrinter(out io.Writer, processes []*process.Process) error {
+func printProcessTable(ctx context.Context, out io.Writer, processes []*process.Process) error {
 	w := tabwriter.NewWriter(out, 0, 8, 5, ' ', 0)
 	fmt.Fprintln(w, "PID\tUSERNAME\tSTATUS\tRSS\tVSZ\tMINFLT\tMAJFLT\tPCPU\tPMEM\tARGS")
 	for _, p := range processes {
-		proc := safeProc(p)
-		fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\t%v\t%v\t%.2f\t%.2f\t%v\n", proc.pid, proc.username, proc.status, proc.rss, proc.vms, proc.minflt,
+		proc := safeProc(ctx, p)
+		if proc == empty { // Ignore, but continue. The process could have died between the process listing and now.
+			continue
+		}
+		status := ""
+		if proc.status != nil && len(proc.status) > 0 {
+			status = proc.status[0]
+		}
+		fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\t%v\t%v\t%.2f\t%.2f\t%v\n", proc.pid, proc.username, status, proc.rss, proc.vms, proc.minflt,
 			proc.majflt, proc.pCPU, proc.pMem, proc.cmd)
 	}
 	return w.Flush()
 }
 
 type proc struct {
-	username, status, cmd    string
+	username, cmd            string
+	status                   []string
 	rss, vms, minflt, majflt uint64
 	pCPU                     float64
 	pid                      int32
 	pMem                     float32
 }
 
-func safeProc(p *process.Process) *proc {
-	// These are onloy debug logs as on certain OSs these features are not supported
-	// If we errorf we spam stderr with errors for every single process
-	user, err := p.Username()
-	if err != nil {
-		log.Debugf("unable to retrieve username of %v: %v", p.Pid, err)
+var empty = &proc{}
+
+func safeProc(ctx context.Context, p *process.Process) *proc {
+	user, err := p.UsernameWithContext(ctx)
+	if logDebugOnError(ctx, err, "username", p.Pid) {
+		return empty
 	}
-	status, err := p.Status()
-	if err != nil {
-		log.Debugf("unable to retrieve status of %v: %v", p.Pid, err)
+
+	status, err := p.StatusWithContext(ctx)
+	if logDebugOnError(ctx, err, "status", p.Pid) {
+		return empty
 	}
-	mem, err := p.MemoryInfo()
-	if err != nil {
-		log.Debugf("unable to retrieve memory information of %v: %v", p.Pid, err)
+
+	mem, err := p.MemoryInfoWithContext(ctx)
+	if logDebugOnError(ctx, err, "memory information", p.Pid) {
+		return empty
 	}
 	if mem == nil {
 		mem = &process.MemoryInfoStat{}
 	}
-	pagefault, err := p.PageFaults()
-	if err != nil {
-		log.Debugf("unable to retrieve page fault information of %v: %v", p.Pid, err)
+
+	pagefault, err := p.PageFaultsWithContext(ctx)
+	if logDebugOnError(ctx, err, "page faults", p.Pid) {
+		return empty
 	}
 	if pagefault == nil {
 		pagefault = &process.PageFaultsStat{}
 	}
-	pCPU, err := p.CPUPercent()
-	if err != nil {
-		log.Debugf("unable to retrieve cpu percentage information of %v: %v", p.Pid, err)
+
+	pCPU, err := p.CPUPercentWithContext(ctx)
+	if logDebugOnError(ctx, err, "CPU percent", p.Pid) {
+		return empty
 	}
-	pMem, err := p.MemoryPercent()
-	if err != nil {
-		log.Debugf("unable to retrieve memory percentage information of %v: %v", p.Pid, err)
+
+	pMem, err := p.MemoryPercentWithContext(ctx)
+	if logDebugOnError(ctx, err, "memory percent", p.Pid) {
+		return empty
 	}
-	cmd, err := p.Cmdline()
-	if err != nil {
-		log.Debugf("unable to retrieve command information of %v: %v", p.Pid, err)
+
+	cmd, err := p.CmdlineWithContext(ctx)
+	if logDebugOnError(ctx, err, "command-line", p.Pid) {
+		return empty
 	}
+
 	return &proc{
 		username: user,
 		status:   status,
@@ -123,6 +154,17 @@ func safeProc(p *process.Process) *proc {
 		pMem:     pMem,
 		cmd:      cmd,
 	}
+}
+
+func logDebugOnError(ctx context.Context, err error, field string, pid int32) bool {
+	if ctx.Err() == context.DeadlineExceeded {
+		log.Debugf("timeout getting %s of pid %d", field, pid)
+		return true
+	} else if err != nil {
+		log.Debugf("unable to retrieve %s of pid %d: %v", field, pid, err)
+		return true
+	}
+	return false
 }
 
 func networkInterfaces(r binary.Runner) error {

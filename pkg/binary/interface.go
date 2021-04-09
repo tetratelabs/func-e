@@ -15,7 +15,6 @@
 package binary
 
 import (
-	"context"
 	"io"
 	"os"
 
@@ -34,8 +33,6 @@ type Runner interface {
 	Status() int
 	GetPid() (int, error)
 	AppendArgs([]string)
-	Wait(int)
-	WaitWithContext(context.Context, int)
 	DebugStore() string
 	SetStdout(func(io.Writer) io.Writer)
 	SetStderr(func(io.Writer) io.Writer)
@@ -47,7 +44,7 @@ type Runner interface {
 
 const (
 	// The Runner's child process is represented as a finite state machine
-	// The states are ordered and monotonic i.e. starting -> started -> ready -> terminated (0 -> 1 -> 2 -> 3)
+	// The states are ordered and monotonic i.e. starting -> started -> initializing -> ready -> terminated (0 -> 1 -> 2 -> 3 -> 4)
 	// Any additional states must be added to the iota in the order they are expected to occur
 
 	// StatusStarting indicates the child process is not yet started
@@ -55,6 +52,8 @@ const (
 	// StatusStarted indicates the child process has started but is not yet ready
 	// If there is no concept of readiness for the child process then this status is skipped
 	StatusStarted
+	// StatusInitializing indicates the child process is initializing
+	StatusInitializing
 	// StatusReady indicates the child process is ready
 	StatusReady
 	// StatusTerminated indicates the child process has been shut down

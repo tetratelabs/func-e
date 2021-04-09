@@ -16,7 +16,6 @@ package envoy
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -24,9 +23,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/getenvoy/pkg/binary"
+	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
 func TestRuntime_RunPath(t *testing.T) {
@@ -59,24 +59,32 @@ func TestRuntime_RunPath(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// This ensures functions are called in the correct order
 			r, preStartCalled, preTerminationCalled := newRuntimeWithMockFunctions(t)
-			tmpDir, _ := ioutil.TempDir("", "getenvoy-test-")
-			defer os.RemoveAll(tmpDir)
-			r.store = tmpDir
+			tempDir, revertTempDir := morerequire.RequireNewTempDir(t)
+			defer revertTempDir()
+			r.store = tempDir
+
+			wd, err := os.Getwd()
+			require.NoError(t, err, "error reading working directory")
+			sleep := filepath.Join(wd, "testdata", "sleep.sh")
 
 			wg := &sync.WaitGroup{}
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				r.RunPath(filepath.Join("testdata", "sleep.sh"), tc.args)
+				r.RunPath(sleep, tc.args)
 			}()
 
-			r.Wait(binary.StatusStarted)
+			require.Eventually(t, func() bool {
+				return r.Status() == binary.StatusStarted || r.Status() == binary.StatusTerminated
+			}, 10*time.Second, 100*time.Millisecond, "never achieved StatusStarted or StatusTerminated")
+			require.Equal(t, binary.StatusStarted, r.Status(), "never achieved StatusStarted or StatusTerminated")
+
 			tc.killerFunc(r)
 			wg.Wait()
 
 			// Assert appropriate functions are called
-			assert.True(t, *preStartCalled, "preStart was not called")
-			assert.Equal(t, tc.wantPreTerm, *preTerminationCalled, fmt.Sprintf("expected preTermination execution to be %v", tc.wantPreTerm))
+			require.True(t, *preStartCalled, "preStart was not called")
+			require.Equal(t, tc.wantPreTerm, *preTerminationCalled, fmt.Sprintf("expected preTermination execution to be %v", tc.wantPreTerm))
 		})
 	}
 }

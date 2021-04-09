@@ -22,7 +22,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sync"
-	"time"
 
 	"github.com/tetratelabs/getenvoy/pkg/binary"
 	"github.com/tetratelabs/getenvoy/pkg/common"
@@ -85,6 +84,7 @@ type fetcher struct {
 
 // Runtime manages an Envoy lifecycle including fetching (if necessary) and running
 type Runtime struct {
+	binary.FetchRunner
 	fetcher
 
 	RootDir  string
@@ -104,7 +104,16 @@ type Runtime struct {
 	preStart       []func(binary.Runner) error
 	preTermination []func(binary.Runner) error
 
-	isReady bool
+	getAdminAddress func(r *Runtime) string
+	isReady         bool
+}
+
+// GetAdminAddress returns the current admin address in host:port format, or empty if not yet available.
+func (r *Runtime) GetAdminAddress() string {
+	if r.getAdminAddress == nil {
+		return r.Config.GetAdminAddress()
+	}
+	return r.getAdminAddress(r)
 }
 
 // Status indicates the state of the child process
@@ -112,9 +121,11 @@ func (r *Runtime) Status() int {
 	switch {
 	case r.cmd == nil, r.cmd.Process == nil:
 		return binary.StatusStarting
-	case r.cmd.ProcessState == nil:
-		if r.envoyReady() {
-			return binary.StatusReady
+	case r.cmd.ProcessState == nil: // the process started, but it hasn't completed, yet
+		// TODO: envoyReady() can succeed when there's a port collision even when the process managed by this
+		// runtime dies. We should consider checking for conflict on admin port_value when non-zero
+		if status, err := r.envoyReady(); err == nil {
+			return status
 		}
 		return binary.StatusStarted
 	default:
@@ -130,49 +141,33 @@ func (r *Runtime) GetPid() (int, error) {
 	return r.cmd.Process.Pid, nil
 }
 
-func (r *Runtime) envoyReady() bool {
+// envoyReady reads the HTTP status from the /ready endpoint and returns binary.StatusReady on 200 or
+// binary.StatusInitializing on 503.
+func (r *Runtime) envoyReady() (int, error) {
+	adminAddress := r.GetAdminAddress()
+	if adminAddress == "" { // don't yet have an admin address
+		return binary.StatusInitializing, nil
+	}
+
 	// Once we have seen its ready once stop spamming the ready endpoint.
 	// If we expand the interface to support ready <-> not ready then
 	// this approach will be wrong but as the states are monotonic this is good enough for now
 	if r.isReady {
-		return true
+		return binary.StatusReady, nil
 	}
-	resp, err := http.Get(fmt.Sprintf("http://%s/ready", r.Config.GetAdminAddress()))
+	resp, err := http.Get(fmt.Sprintf("http://%s/ready", adminAddress))
 	if err != nil {
-		return false
+		return 0, err
 	}
 	defer resp.Body.Close() //nolint
-	if resp.StatusCode == http.StatusOK {
+	switch resp.StatusCode {
+	case http.StatusOK:
 		r.isReady = true
-		return r.isReady
-	}
-	return false
-}
-
-// Wait blocks until the child process reaches the state passed
-// Note: It does not guarantee that it is in the specified state just that it has reached it
-func (r *Runtime) Wait(state int) {
-	for r.Status() < state {
-		// This is a call to a function to allow the goroutine to be preempted for garbage collection
-		// The sleep duration is somewhat arbitrary
-		func() { time.Sleep(time.Millisecond * 100) }()
-	}
-}
-
-// WaitWithContext blocks until the child process reaches the state passed or the context is canceled
-// Note: It does not guarantee that it is in the specified state just that it has reached it
-func (r *Runtime) WaitWithContext(ctx context.Context, state int) {
-	done := make(chan struct{})
-	go func() {
-		r.Wait(state)
-		close(done)
-	}()
-	select {
-	case <-done:
-		return
-	case <-ctx.Done():
-		return
-
+		return binary.StatusReady, nil
+	case http.StatusServiceUnavailable:
+		return binary.StatusInitializing, nil
+	default:
+		return 0, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 }
 

@@ -26,7 +26,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/mholt/archiver"
+	"github.com/mholt/archiver/v3"
 	"github.com/tetratelabs/log"
 
 	"github.com/tetratelabs/getenvoy/pkg/manifest"

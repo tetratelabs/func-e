@@ -15,8 +15,10 @@
 package controlplane
 
 import (
+	_ "embed" //nolint
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -38,6 +40,12 @@ const (
 	defaultControlplane   = "istio-pilot:15010"
 	initialEpochBootstrap = "envoy-rev1.json"
 )
+
+// envoyBootstrapTemplate is the "envoy_bootstrap_v2.json" from the Istio release tag or distribution
+//go:embed istio-1.6.14/tools/packaging/common/envoy_bootstrap_v2.json
+var envoyBootstrapTemplate []byte
+
+//  ^^ ex source: https://raw.githubusercontent.com/istio/istio/1.6.14/tools/packaging/common/envoy_bootstrap_v2.json
 
 // Istio tells GetEnvoy that it's using Istio for xDS and should bootstrap accordingly
 func Istio(r *envoy.Runtime) {
@@ -88,15 +96,14 @@ func writeBootstrap(r binary.Runner) error {
 		return errors.New("unable to write Istio bootstrap: binary.Runner is not an Envoy runtime")
 	}
 	cfg := generateIstioConfig(e)
-	if err := writeIstioTemplate(cfg.ProxyBootstrapTemplatePath); err != nil {
-		return fmt.Errorf("unable to write Istio bootstrap template: %v", err)
+	if err := writeProxyBootstrapTemplate(cfg.ProxyBootstrapTemplatePath); err != nil {
+		return fmt.Errorf("unable to write Istio proxy bootstrap template: %w", err)
 	}
 	if _, err := bootstrap.New(bootstrap.Config{
-		Node:           istioNode(e.Config),
-		DNSRefreshRate: "60s",
-		Proxy:          &cfg,
-		LocalEnv:       os.Environ(),
-		NodeIPs:        e.Config.IPAddresses,
+		Node:     istioNode(e.Config),
+		Proxy:    &cfg,
+		LocalEnv: os.Environ(),
+		NodeIPs:  e.Config.IPAddresses,
 	}).CreateFileForEpoch(1); err != nil {
 		return fmt.Errorf("unable to write Istio bootstrap: %v", err)
 	}
@@ -142,4 +149,15 @@ func istioNode(cfg *envoy.Config) string {
 		DNSDomain:   "unset",
 	}
 	return p.ServiceNode()
+}
+
+// TODO: (maybe?) Refactor the Istio write.Bootstrap upstream so we can pass it a byte slice instead
+func writeProxyBootstrapTemplate(proxyBootstrapTemplatePath string) error {
+	if err := os.MkdirAll(filepath.Dir(proxyBootstrapTemplatePath), os.ModePerm); err != nil {
+		return err
+	}
+	if err := ioutil.WriteFile(proxyBootstrapTemplatePath, envoyBootstrapTemplate, 0600); err != nil {
+		return err
+	}
+	return nil
 }

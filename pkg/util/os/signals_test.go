@@ -24,6 +24,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Signal response can be slow in CI, so use a period larger than what makes sense locally
+const waitFor = 100 * time.Millisecond
+
 func TestShutdownSignals(t *testing.T) {
 	// This is a base-case, just verifying the default values
 	require.Equal(t, []os.Signal{syscall.SIGINT, syscall.SIGTERM}, shutdownSignals)
@@ -80,7 +83,7 @@ func requireSignal(t *testing.T, expected os.Signal, ch <-chan os.Signal) {
 		default:
 			return false
 		}
-	}, 50*time.Millisecond, 10*time.Millisecond)
+	}, waitFor, 10*time.Millisecond)
 }
 
 func requireChannelClosed(t *testing.T, ch <-chan os.Signal) {
@@ -101,7 +104,7 @@ func requireNoSignal(t *testing.T, ch <-chan os.Signal) {
 		default:
 			return false
 		}
-	}, 100*time.Millisecond, 10*time.Millisecond)
+	}, waitFor, 10*time.Millisecond)
 }
 
 // overrideTerminateWithBool returns a boolean made true on terminate. The function returned reverts the original.
@@ -141,7 +144,7 @@ func TestSetupSignalHandlerTerminatesOnSecondRelevantSignal(t *testing.T) {
 	// Second relevant signal terminates the process
 	require.Eventually(t, func() bool {
 		return *terminated
-	}, 50*time.Millisecond, 10*time.Millisecond)
+	}, waitFor, 10*time.Millisecond)
 }
 
 func TestSetupSignalHandlerDoesntTerminateWhenContextCanceledBeforeSecondRelevantSignal(t *testing.T) {
@@ -171,5 +174,5 @@ func TestSetupSignalHandlerDoesntTerminateWhenContextCanceledBeforeSecondRelevan
 	// Second relevant signal doesn't terminate the process
 	require.Never(t, func() bool {
 		return *terminated
-	}, 50*time.Millisecond, 10*time.Millisecond)
+	}, waitFor, 10*time.Millisecond)
 }

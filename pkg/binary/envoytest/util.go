@@ -15,13 +15,17 @@
 package envoytest
 
 import (
-	"context"
 	"fmt"
+	"math/rand"
+	"os"
 	"path/filepath"
+	"sync"
 	"syscall"
+	"testing"
 	"time"
 
-	"github.com/mholt/archiver"
+	"github.com/mholt/archiver/v3"
+	"github.com/stretchr/testify/require"
 	"github.com/tetratelabs/log"
 
 	"github.com/tetratelabs/getenvoy/pkg/binary"
@@ -29,65 +33,126 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
 
-// Reference indicates the default Envoy version to be used for testing
-var Reference = "standard:1.11.0"
+// Reference indicates the default Envoy version to be used for testing.
+// 1.12.7 is the last version to match the Istio version we are using (see go.mod)
+var Reference = "standard:1.12.7"
 
-// Fetch retrieves the Envoy indicated by Reference
-func Fetch() error {
-	key, _ := manifest.NewKey(Reference)
-	r, _ := envoy.NewRuntime()
+var once sync.Once
+var errorFetchingEnvoy error
+
+// FetchEnvoyAndRun retrieves the Envoy indicated by Reference only once. This is intended to be used with TestMain.
+// In CI, you can execute this to obviate latency during test runs: "go run cmd/getenvoy/main.go fetch standard:1.12.7"
+func FetchEnvoyAndRun(m *testing.M) {
+	once.Do(func() {
+		errorFetchingEnvoy = fetchEnvoy()
+	})
+
+	if errorFetchingEnvoy != nil {
+		fmt.Println(errorFetchingEnvoy)
+		os.Exit(1)
+	}
+
+	os.Exit(m.Run())
+}
+
+func fetchEnvoy() error {
+	key, err := manifest.NewKey(Reference)
+	if err != nil {
+		return fmt.Errorf("unable to make manifest key %v: %w", Reference, err)
+	}
+
+	r, err := envoy.NewRuntime()
+	if err != nil {
+		return fmt.Errorf("unable to make new envoy runtime: %w", err)
+	}
+
 	if !r.AlreadyDownloaded(key) {
 		location, err := manifest.Locate(key)
 		if err != nil {
-			return fmt.Errorf("unable to retrieve manifest from %v: %v", manifest.GetURL(), err)
+			return fmt.Errorf("unable to retrieve manifest from %v: %w", manifest.GetURL(), err)
 		}
-		if err := r.Fetch(key, location); err != nil {
-			return fmt.Errorf("unable to retrieve binary from %v: %v", location, err)
+
+		err = r.Fetch(key, location)
+		if err != nil {
+			return fmt.Errorf("unable to retrieve binary from %v: %w", location, err)
 		}
 	}
 	return nil
 }
 
-// Run executes envoy and waits for it to be ready
-// It is blocking and will only return once ready (nil) or context timeout is exceeded (error)
-func Run(ctx context.Context, r binary.Runner, bootstrap string) error {
+// RunKillOptions allows customization of Envoy lifecycle.
+type RunKillOptions struct {
+	Bootstrap        string
+	ExpectedStatus   int
+	RetainDebugStore bool
+	SleepBeforeKill  time.Duration
+}
+
+// RequireRunKill executes envoy, waits for ready, sends sigint, waits for termination, then unarchives the debug directory.
+// It should be used when you just want to cycle through an Envoy lifecycle.
+func RequireRunKill(t *testing.T, r binary.Runner, options RunKillOptions) {
 	key, _ := manifest.NewKey(Reference)
 	var args []string
-	if bootstrap != "" {
-		args = append(args, "-c", bootstrap)
+	if options.Bootstrap != "" {
+		args = append(args, "-c", options.Bootstrap)
 	}
+
+	args = append(args,
+		// Use ephemeral admin port to avoid test conflicts. Enable admin access logging to help debug test failures.
+		"--config-yaml", "admin: {access_log_path: '/dev/stdout', address: {socket_address: {address: '127.0.0.1', port_value: 0}}}",
+		// Generate base id to allow concurrent envoys in tests. When envoy is v1.15+, switch to --use-dynamic-base-id
+		// This prevents "unable to bind domain socket with id=0" on Linux hosts.
+		"--base-id", fmt.Sprintf("%d", rand.Int31()), // nolint it isn't important to use a secure random here
+	)
+	// Allows us the status checker to read the resolved admin port after envoy starts
+	envoy.EnableAdminAddressDetection(r.(*envoy.Runtime))
+
+	// This ensures on any panic the envoy process is terminated, which can prevent test hangs.
+	deferredTerminate := func() {
+		// envoy.waitForTerminationSignals() registers SIGINT and SIGTERM
+		r.SendSignal(syscall.SIGTERM)
+	}
+
+	defer func() {
+		if deferredTerminate != nil {
+			deferredTerminate()
+		}
+	}()
+
+	// Ensure we don't leave tar.gz files around after the test completes
+	defer os.RemoveAll(r.DebugStore() + ".tar.gz") // nolint
+
 	go func() {
 		if err := r.Run(key, args); err != nil {
 			log.Errorf("unable to run key %s: %v", key, err)
 		}
 	}()
-	r.WaitWithContext(ctx, binary.StatusReady)
-	return ctx.Err()
-}
 
-// Kill sends sigint to a running enboy, waits for termination, then unarchives the debug directory.
-// It is blocking and will only return once terminated (nil) or context timeout is exceeded (error)
-func Kill(ctx context.Context, r binary.Runner) error {
+	// Look for terminated or ready, so that we fail faster than polling for status ready
+	expectedStatus := binary.StatusReady
+	if options.ExpectedStatus > 0 {
+		expectedStatus = options.ExpectedStatus
+	}
+	require.Eventually(t, func() bool {
+		return r.Status() == expectedStatus || r.Status() == binary.StatusTerminated
+	}, 30*time.Second, 100*time.Millisecond, "never achieved status(%d) or StatusTerminated", expectedStatus)
+	require.Equal(t, expectedStatus, r.Status(), "never achieved status(%d)", expectedStatus)
+
+	time.Sleep(options.SleepBeforeKill)
+
+	require.NotEqual(t, binary.StatusTerminated, r.Status(), "already StatusTerminated")
+
 	r.SendSignal(syscall.SIGINT)
-	r.WaitWithContext(ctx, binary.StatusTerminated)
-	if err := archiver.Unarchive(r.DebugStore()+".tar.gz", filepath.Dir(r.DebugStore())); err != nil {
-		return fmt.Errorf("error killing runner: %w", err)
-	}
-	return ctx.Err()
-}
+	require.Eventually(t, func() bool {
+		return r.Status() == binary.StatusTerminated
+	}, 10*time.Second, 50*time.Millisecond, "never achieved StatusTerminated")
 
-// RunKill executes envoy, waits for ready, sends sigint, waits for termination, then unarchives the debug directory.
-// It should be used when you just want to cycle through an Envoy lifecycle
-// It is blocking and will only return once completed (nil) or context timeout is exceeded (error)
-// If timeout passed is 0, it defaults to 3 seconds
-func RunKill(r binary.Runner, bootstrap string, timeout time.Duration) error {
-	if timeout == 0 {
-		timeout = time.Second * 3
+	deferredTerminate = nil // We succeeded, so no longer need to kill the envoy process
+
+	// RunPath deletes the debug store directory after making a tar.gz with the same name.
+	// Restore it so assertions can read the contents later.
+	if options.RetainDebugStore {
+		err := archiver.Unarchive(r.DebugStore()+".tar.gz", filepath.Dir(r.DebugStore()))
+		require.NoError(t, err, "error extracting DebugStore")
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	if err := Run(ctx, r, bootstrap); err != nil {
-		return err
-	}
-	return Kill(ctx, r)
 }

@@ -28,13 +28,14 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
 )
 
-func TestGetOpenFileStats(t *testing.T) {
+func TestEnableOpenFilesDataCollection(t *testing.T) {
 	r, err := envoy.NewRuntime(EnableOpenFilesDataCollection)
 	require.NoError(t, err, "error getting envoy runtime")
 	defer os.RemoveAll(r.DebugStore())
 
-	err = envoytest.RunKill(r, filepath.Join("testdata", "null.yaml"), 0)
-	require.NoError(t, err, "error from envoytest.RunKill")
+	envoytest.RequireRunKill(t, r, envoytest.RunKillOptions{
+		RetainDebugStore: true, // Assertions below inspect files in the debug store
+	})
 
 	file := "lsof/lsof.json"
 	path := filepath.Join(r.DebugStore(), file)
