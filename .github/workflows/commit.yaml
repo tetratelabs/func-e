@@ -35,13 +35,6 @@ jobs:
         with:
           go-version: '1.16.2'
 
-      - name: "Install 'Docker for Mac' (Latest)"
-        uses: docker-practice/actions-setup-docker@v1  # needed while TestGetEnvoyExtensionPush uses a real registry
-        if: runner.os == 'macOS'
-        with:
-          docker_buildx: false  # Install is flakey. When it, we can install it via docker/setup-buildx-action@v1
-        timeout-minutes: 20  # fail fast if MacOS install takes too long
-
       - name: "Verify clean check-in"
         run: make check
 
