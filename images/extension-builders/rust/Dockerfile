@@ -15,7 +15,9 @@
 #
 # Builder image for Envoy Wasm extensions written in Rust.
 #
-FROM rust:1.44.1
+# ghcr.io allows building without using docker.io as it is rate-limited
+# .github/workflows/internal-images.yml publishes this
+FROM ghcr.io/tetratelabs/getenvoy-internal:rust
 
 RUN rustup target add wasm32-unknown-unknown
 

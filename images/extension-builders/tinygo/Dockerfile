@@ -15,8 +15,9 @@
 #
 # Builder image for Envoy Wasm extensions written in Go.
 #
-
-FROM tinygo/tinygo:0.17.0
+# ghcr.io allows building without using docker.io as it is rate-limited
+# .github/workflows/internal-images.yml publishes this
+FROM ghcr.io/tetratelabs/getenvoy-internal:tinygo
 
 ENV GOCACHE=/source/build/.gocache
 ENV GOMODCACHE=/source/build/.gomodcache

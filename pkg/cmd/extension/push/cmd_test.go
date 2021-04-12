@@ -15,8 +15,14 @@
 package push_test
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -29,15 +35,17 @@ import (
 // relativeWorkspaceDir points to a usable pre-initialized workspace
 const relativeWorkspaceDir = "testdata/workspace"
 
-// localRegistryWasmImageRef corresponds to a Docker container running the image "registry:2"
-// As this is not intended to be an end-to-end test, this could be improved to use a mock/fake HTTP registry instead.
-const localRegistryWasmImageRef = "localhost:5000/getenvoy/sample"
-
 // When unspecified, we default the tag to Docker's default "latest". Note: recent tools enforce qualifying this!
 const defaultTag = "latest"
 
 // TestGetEnvoyExtensionPush shows current directory is usable, provided it is a valid workspace.
 func TestGetEnvoyExtensionPush(t *testing.T) {
+	mock := mockRegistryServer(t)
+	defer mock.Close()
+
+	// localhost:5000/getenvoy/sample, not http://localhost:5000/getenvoy/sample
+	localRegistryWasmImageRef := fmt.Sprintf(`%s/getenvoy/sample`, mock.Listener.Addr())
+
 	_, revertWd := RequireChDir(t, relativeWorkspaceDir)
 	defer revertWd()
 
@@ -51,7 +59,6 @@ func TestGetEnvoyExtensionPush(t *testing.T) {
 
 	// Verify stdout shows the latest tag and the correct image ref
 	require.NoError(t, err, `expected no error running [%v]`, c)
-
 	require.Contains(t, stdout.String(), fmt.Sprintf(`Using default tag: %s
 Pushed %s
 digest: sha256`, defaultTag, imageRef), `unexpected stderr after running [%v]`, c)
@@ -59,6 +66,12 @@ digest: sha256`, defaultTag, imageRef), `unexpected stderr after running [%v]`, 
 }
 
 func TestGetEnvoyExtensionPushFailsOutsideWorkspaceDirectory(t *testing.T) {
+	mock := mockRegistryServer(t)
+	defer mock.Close()
+
+	// localhost:5000/getenvoy/sample, not http://localhost:5000/getenvoy/sample
+	localRegistryWasmImageRef := fmt.Sprintf(`%s/getenvoy/sample`, mock.Listener.Addr())
+
 	// Change to a non-workspace dir
 	dir, revertWd := RequireChDir(t, relativeWorkspaceDir+"/..")
 	defer revertWd()
@@ -78,6 +91,12 @@ func TestGetEnvoyExtensionPushFailsOutsideWorkspaceDirectory(t *testing.T) {
 
 // TestGetEnvoyExtensionPushWithExplicitFileOption shows we don't need to be in a workspace directory to push a wasm.
 func TestGetEnvoyExtensionPushWithExplicitFileOption(t *testing.T) {
+	mock := mockRegistryServer(t)
+	defer mock.Close()
+
+	// localhost:5000/getenvoy/sample, not http://localhost:5000/getenvoy/sample
+	localRegistryWasmImageRef := fmt.Sprintf(`%s/getenvoy/sample`, mock.Listener.Addr())
+
 	// Change to a non-workspace dir
 	dir, revertWd := RequireChDir(t, relativeWorkspaceDir+"/..")
 	defer revertWd()
@@ -96,4 +115,47 @@ func TestGetEnvoyExtensionPushWithExplicitFileOption(t *testing.T) {
 Pushed %s:latest
 digest: sha256`, localRegistryWasmImageRef))
 	require.Empty(t, stderr, `expected no stderr running [%v]`, c)
+}
+
+// The tests above are unit tests, not end-to-end (e2e) tests. Hence, we use a mock registry instead of a real one.
+func mockRegistryServer(t *testing.T) *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		statusCode := 500
+
+		body, err := ioutil.ReadAll(r.Body) // fully read the request
+		require.NoError(t, err, "Error reading body of %s %s", r.Method, r.URL.Path)
+
+		switch r.Method {
+		case "HEAD":
+			if strings.Index(r.URL.Path, "/v2/getenvoy/sample/blobs") == 0 {
+				statusCode = 404 // pretend it hasn't been uploaded, yet
+			} else if r.URL.Path == "/v2/getenvoy/sample/manifests/latest" {
+				statusCode = 404 // pretend there's no manifest either
+			}
+		case "POST":
+			if r.URL.Path == "/v2/getenvoy/sample/blobs/uploads/" {
+				statusCode = 202 // pretend we processed the data
+				w.Header().Add("Location", "/upload")
+			}
+		case "PUT":
+			if r.URL.Path == "/upload" {
+				err := r.ParseForm()
+				require.NoError(t, err, "Error parsing PUT %s", r.URL.Path)
+				require.NotEmpty(t, r.Form.Get("digest"), `Expected PUT %s to have a query parameter "digest"`, r.URL.Path)
+
+				w.Header().Add("Docker-Content-Digest", r.Form.Get("digest"))
+				statusCode = 200 // Pretend we accepted the blob
+			} else if r.URL.Path == "/v2/getenvoy/sample/manifests/latest" {
+				w.Header().Add("Docker-Content-Digest", "sha256:"+hash(body))
+				statusCode = 200 // Pretend we accepted the manifest
+			}
+		}
+		w.WriteHeader(statusCode)
+	}))
+}
+
+func hash(b []byte) string {
+	h := sha256.New()
+	h.Write(b)
+	return hex.EncodeToString(h.Sum(nil))
 }

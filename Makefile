@@ -88,7 +88,6 @@ release.dryrun:
 
 .PHONY: test
 test:
-	docker-compose up -d
 	go test $(GO_TEST_OPTS) $(GO_TEST_EXTRA_OPTS) $(TEST_PKG_LIST)
 
 .PHONY: e2e
