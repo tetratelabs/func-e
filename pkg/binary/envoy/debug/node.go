@@ -81,7 +81,7 @@ func printProcessTable(ctx context.Context, out io.Writer, processes []*process.
 			continue
 		}
 		status := ""
-		if proc.status != nil && len(proc.status) > 0 {
+		if len(proc.status) > 0 {
 			status = proc.status[0]
 		}
 		fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\t%v\t%v\t%.2f\t%.2f\t%v\n", proc.pid, proc.username, status, proc.rss, proc.vms, proc.minflt,
