@@ -122,18 +122,9 @@ jobs:
 
       - name: "Install 'Docker for Mac' (Latest)"
         uses: docker-practice/actions-setup-docker@v1
-        if: runner.os == 'macOS' && matrix.args.extension-language == 'tinygo'
+        if: runner.os == 'macOS'
         with:
           docker_buildx: false  # Install is flakey. When it, we can install it via docker/setup-buildx-action@v1
-        timeout-minutes: 20  # fail fast if MacOS install takes too long
-
-      - name: "Install 'Docker for Mac' (2.0.0.3 2019-02-15)"  # Avoid >1hr tests on macOS+rust. See issue #145
-        if: runner.os == 'macOS' && matrix.args.extension-language == 'rust'
-        # don't use `DOCKER_BUILDKIT=1`, `--build-arg BUILDKIT_INLINE_CACHE=1` and `--cache-from`
-        # options when using this version of `Docker for Mac`
-        run: |
-          ./ci/e2e/darwin/install_docker.sh
-          echo "USE_DOCKER_BUILDKIT_CACHE=no" >> $GITHUB_ENV
         timeout-minutes: 20  # fail fast if MacOS install takes too long
 
       - name: "Pull extension builder images"
