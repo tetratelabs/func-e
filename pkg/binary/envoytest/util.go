@@ -91,7 +91,8 @@ type RunKillOptions struct {
 // RequireRunKill executes envoy, waits for ready, sends sigint, waits for termination, then unarchives the debug directory.
 // It should be used when you just want to cycle through an Envoy lifecycle.
 func RequireRunKill(t *testing.T, r binary.Runner, options RunKillOptions) {
-	key, _ := manifest.NewKey(Reference)
+	key, err := manifest.NewKey(Reference)
+	require.NoError(t, err)
 	var args []string
 	if options.Bootstrap != "" {
 		args = append(args, "-c", options.Bootstrap)
