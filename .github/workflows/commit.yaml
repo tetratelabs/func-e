@@ -131,7 +131,7 @@ jobs:
 
       - name: "Build language-specific Docker build images"
         run: make builders
-        timeout-minutes: 10  # fail fast if MacOS runner becomes too slow
+        timeout-minutes: 20  # NOTE: the rust image is very large and can alone take 7 minutes to download and build
 
       - name: "Run e2e tests using the `getenvoy` binary built by the upstream job"
         # chmod to restore permissions lost in actions/download-artifact@v2

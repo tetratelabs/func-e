@@ -40,7 +40,7 @@ const defaultTag = "latest"
 
 // TestGetEnvoyExtensionPush shows current directory is usable, provided it is a valid workspace.
 func TestGetEnvoyExtensionPush(t *testing.T) {
-	mock := mockRegistryServer()
+	mock := mockRegistryServer(t)
 	defer mock.Close()
 
 	// localhost:5000/getenvoy/sample, not http://localhost:5000/getenvoy/sample
@@ -66,7 +66,7 @@ digest: sha256`, defaultTag, imageRef), `unexpected stderr after running [%v]`, 
 }
 
 func TestGetEnvoyExtensionPushFailsOutsideWorkspaceDirectory(t *testing.T) {
-	mock := mockRegistryServer()
+	mock := mockRegistryServer(t)
 	defer mock.Close()
 
 	// localhost:5000/getenvoy/sample, not http://localhost:5000/getenvoy/sample
@@ -91,7 +91,7 @@ func TestGetEnvoyExtensionPushFailsOutsideWorkspaceDirectory(t *testing.T) {
 
 // TestGetEnvoyExtensionPushWithExplicitFileOption shows we don't need to be in a workspace directory to push a wasm.
 func TestGetEnvoyExtensionPushWithExplicitFileOption(t *testing.T) {
-	mock := mockRegistryServer()
+	mock := mockRegistryServer(t)
 	defer mock.Close()
 
 	// localhost:5000/getenvoy/sample, not http://localhost:5000/getenvoy/sample
@@ -118,9 +118,13 @@ digest: sha256`, localRegistryWasmImageRef))
 }
 
 // The tests above are unit tests, not end-to-end (e2e) tests. Hence, we use a mock registry instead of a real one.
-func mockRegistryServer() *httptest.Server {
+func mockRegistryServer(t *testing.T) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		statusCode := 500
+
+		body, err := ioutil.ReadAll(r.Body) // fully read the request
+		require.NoError(t, err, "Error reading body of %s %s", r.Method, r.URL.Path)
+
 		switch r.Method {
 		case "HEAD":
 			if strings.Index(r.URL.Path, "/v2/getenvoy/sample/blobs") == 0 {
@@ -135,17 +139,17 @@ func mockRegistryServer() *httptest.Server {
 			}
 		case "PUT":
 			if r.URL.Path == "/upload" {
-				statusCode = 200 // Pretend we accepted the blob
-				_ = r.ParseForm()
+				err := r.ParseForm()
+				require.NoError(t, err, "Error parsing PUT %s", r.URL.Path)
+				require.NotEmpty(t, r.Form.Get("digest"), `Expected PUT %s to have a query parameter "digest"`, r.URL.Path)
+
 				w.Header().Add("Docker-Content-Digest", r.Form.Get("digest"))
+				statusCode = 200 // Pretend we accepted the blob
 			} else if r.URL.Path == "/v2/getenvoy/sample/manifests/latest" {
+				w.Header().Add("Docker-Content-Digest", "sha256:"+hash(body))
 				statusCode = 200 // Pretend we accepted the manifest
-				if raw, err := ioutil.ReadAll(r.Body); err == nil {
-					w.Header().Add("Docker-Content-Digest", "sha256:"+hash(raw))
-				}
 			}
 		}
-		ioutil.ReadAll(r.Body) // fully read the request
 		w.WriteHeader(statusCode)
 	}))
 }
