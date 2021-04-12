@@ -52,13 +52,13 @@ func retrieveAdminAPIData(r binary.Runner) error {
 	if !ok {
 		return errors.New("binary.Runner is not an Envoy runtime")
 	}
-	if e.Config.GetAdminAddress() == "" {
+	if e.GetAdminAddress() == "" {
 		log.Warnf("unable to capture Envoy configuration and metrics since Envoy Admin listener is not enabled")
 		return nil
 	}
 	var multiErr *multierror.Error
 	for path, file := range adminAPIPaths {
-		resp, err := http.Get(fmt.Sprintf("http://%s/%v", e.Config.GetAdminAddress(), path))
+		resp, err := http.Get(fmt.Sprintf("http://%s/%v", e.GetAdminAddress(), path))
 		if err != nil {
 			multiErr = multierror.Append(multiErr, err)
 			continue

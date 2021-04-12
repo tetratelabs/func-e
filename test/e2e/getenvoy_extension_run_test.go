@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mholt/archiver"
+	"github.com/mholt/archiver/v3"
 	"github.com/stretchr/testify/require"
 	"github.com/tetratelabs/log"
 

@@ -45,7 +45,6 @@ func (r *Runtime) handleTermination() {
 	// Forward on the SIGINT to Envoy
 	log.Infof("Sending Envoy process (PID=%d) SIGINT", r.cmd.Process.Pid)
 	r.cmd.Process.Signal(syscall.SIGINT) //nolint
-
 }
 
 // RegisterPreTermination registers the passed functions to be run after Envoy has started

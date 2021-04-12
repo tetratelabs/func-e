@@ -21,7 +21,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -29,13 +28,14 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
 )
 
-func TestDebugCreatesNonEmptyFiles(t *testing.T) {
+func TestEnableNodeCollection(t *testing.T) {
 	r, err := envoy.NewRuntime(EnableNodeCollection)
 	require.NoError(t, err, "error creating envoy runtime")
 	defer os.RemoveAll(r.DebugStore())
 
-	err = envoytest.RunKill(r, filepath.Join("testdata", "null.yaml"), time.Second*10)
-	require.NoError(t, err, "error running envoy")
+	envoytest.RequireRunKill(t, r, envoytest.RunKillOptions{
+		RetainDebugStore: true, // Assertions below inspect files in the debug store
+	})
 
 	files := [...]string{"node/ps.txt", "node/network_interface.json", "node/connections.json"}
 	for _, file := range files {

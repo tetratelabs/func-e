@@ -14,21 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This script is used to simulate a process that never terminates unless it receives SIGINT, SIGTERM or SIGKILL
-terminate()  {
-	echo "received $(($? - 128))"
-	exit 0
-}
-
-error() {
-	exit 1
-}
-
-trap terminate SIGINT SIGTERM SIGKILL
+# This script is used to simulate a process that never terminates unless it receives SIGINT or SIGTERM
+trap 'echo >&2 "SIGTERM caught!"; exit 0' TERM
+trap 'echo >&2 "SIGINT caught!"; exit 0' INT
 
 while true; do
-	sleep 0.1
-	if "$1" == "error"; then
-		error
+	sleep 1
+	if [ "$1" == "error" ]; then
+		exit 1
 	fi
 done

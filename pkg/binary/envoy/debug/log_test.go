@@ -25,21 +25,17 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
 )
 
-func TestMain(m *testing.M) {
-	envoytest.FetchEnvoyAndRun(m)
-}
-
-func TestEnableEnvoyAdminDataCollection(t *testing.T) {
-	r, err := envoy.NewRuntime(EnableEnvoyAdminDataCollection)
+func TestEnableEnvoyLogCollection(t *testing.T) {
+	r, err := envoy.NewRuntime(EnableEnvoyLogCollection)
 	require.NoError(t, err, "error getting envoy runtime")
 	defer os.RemoveAll(r.DebugStore())
 
 	envoytest.RequireRunKill(t, r, envoytest.RunKillOptions{
-		Bootstrap:        "testdata/admin.yaml", // we need services defined in order to check adminAPIPaths
-		RetainDebugStore: true,                  // Assertions below inspect files in the debug store
+		RetainDebugStore: false, // We don't need to unarchive the tar.gz because access logs hold the DebugStore open.
 	})
 
-	for _, filename := range adminAPIPaths {
+	// We expect to see logs because when envoy starts up, the status checker will make HTTP requests to /ready
+	for _, filename := range []string{"logs/access.log", "logs/error.log"} {
 		path := filepath.Join(r.DebugStore(), filename)
 		f, err := os.Stat(path)
 		require.NoError(t, err, "error stating %v", path)

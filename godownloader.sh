@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# See https://github.com/tetratelabs/getenvoy.io/issues/157 about moving this!
+#
 # Copyright 2019 Tetrate
 #
 # Licensed under the Apache License, Version 2.0 (the "License");

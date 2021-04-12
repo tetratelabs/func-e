@@ -24,8 +24,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/mholt/archiver"
-	"github.com/schollz/progressbar/v2"
+	"github.com/mholt/archiver/v3"
+	"github.com/schollz/progressbar/v3"
 	"github.com/tetratelabs/log"
 
 	"github.com/tetratelabs/getenvoy/pkg/manifest"

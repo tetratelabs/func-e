@@ -19,24 +19,24 @@ metadata:
   namespace: istio-system
 spec:
   hosts:
-  - istio-ingressgateway.istio-system.svc.cluster.local
+    - istio-ingressgateway.istio-system.svc.cluster.local
   addresses:
-  - 1.1.1.1
+    - 1.1.1.1
   ports:
-  - number: 8080
-    name: http
-    protocol: HTTP
-  - number: 8443
-    name: https
-    protocol: HTTPS
+    - number: 8080
+      name: http
+      protocol: HTTP
+    - number: 8443
+      name: https
+      protocol: HTTPS
   location: MESH_INTERNAL
   resolution: STATIC
   exportTo:
-  - '*'
+    - '*'
   endpoints:
-  - address: 1.1.1.1
-    labels:
-      istio: ingressgateway
+    - address: 1.1.1.1
+      labels:
+        istio: ingressgateway
 ---
 # Ingress gateway spec
 apiVersion: networking.istio.io/v1alpha3
@@ -48,30 +48,30 @@ spec:
   selector:
     istio: ingressgateway
   servers:
-  - port:
-      number: 8080
-      name: http
-      protocol: HTTP
-    hosts:
-    - "*.bookinfo.com"
-    tls:
-      httpsRedirect: true # sends 302 redirect for http requests
-  - port:
-      number: 8443
-      name: https-passthru
-      protocol: HTTPS
-    hosts:
-    - https.secure.com
-    tls:
-      mode: PASSTHROUGH
-  - port:
-      number: 8443
-      name: tls-passthru
-      protocol: TLS
-    hosts:
-    - tls.secure.com
-    tls:
-      mode: PASSTHROUGH
+    - port:
+        number: 8080
+        name: http
+        protocol: HTTP
+      hosts:
+        - "*.bookinfo.com"
+      tls:
+        httpsRedirect: true # sends 302 redirect for http requests
+    - port:
+        number: 8443
+        name: https-passthru
+        protocol: HTTPS
+      hosts:
+        - https.secure.com
+      tls:
+        mode: PASSTHROUGH
+    - port:
+        number: 8443
+        name: tls-passthru
+        protocol: TLS
+      hosts:
+        - tls.secure.com
+      tls:
+        mode: PASSTHROUGH
 ---
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
@@ -80,15 +80,15 @@ metadata:
   namespace: istio-system
 spec:
   hosts:
-  - "*.bookinfo.com"
+    - "*.bookinfo.com"
   gateways:
-  - istio-system/istio-ingressgateway
+    - istio-system/istio-ingressgateway
   http:
-  - route:
-    - destination:
-        host: www.bookinfo.com
-        port:
-          number: 8080
+    - route:
+        - destination:
+            host: www.bookinfo.com
+            port:
+              number: 8080
 ---
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
@@ -97,18 +97,18 @@ metadata:
   namespace: istio-system
 spec:
   hosts:
-  - https.secure.com
+    - https.secure.com
   gateways:
-  - istio-system/istio-ingressgateway
+    - istio-system/istio-ingressgateway
   tls:
-  - match:
-    - sniHosts:
-      - https.secure.com
-    route:
-    - destination:
-        host: https.secure.com
-        port:
-          number: 8443
+    - match:
+        - sniHosts:
+            - https.secure.com
+      route:
+        - destination:
+            host: https.secure.com
+            port:
+              number: 8443
 ---
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
@@ -117,15 +117,15 @@ metadata:
   namespace: istio-system
 spec:
   hosts:
-  - tls.secure.com
+    - tls.secure.com
   gateways:
-  - istio-system/istio-ingressgateway
+    - istio-system/istio-ingressgateway
   tls:
-  - match:
-    - sniHosts:
-      - tls.secure.com
-    route:
-    - destination:
-        host: https.secure.com
-        port:
-          number: 8443
+    - match:
+        - sniHosts:
+            - tls.secure.com
+      route:
+        - destination:
+            host: https.secure.com
+            port:
+              number: 8443

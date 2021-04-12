@@ -14,15 +14,15 @@
             }
           }
         },
-        "1.11.0": {
-          "name": "1.11.0",
+        "1.12.7": {
+          "name": "1.12.7",
           "builds": {
             "LINUX_GLIBC": {
-              "downloadLocationUrl": "standard:1.11.0/linux-glibc",
+              "downloadLocationUrl": "standard:1.12.7/linux-glibc",
               "platform": "LINUX_GLIBC"
             },
             "DARWIN": {
-              "downloadLocationUrl": "standard:1.11.0/darwin",
+              "downloadLocationUrl": "standard:1.12.7/darwin",
               "platform": "DARWIN"
             }
           }

@@ -22,9 +22,10 @@ jobs:
     runs-on: ${{ matrix.runner.os }}
     timeout-minutes: 90  # instead of 360 by default
     strategy:
+      fail-fast: false  # don't fail fast as sometimes failures are operating system specific
       matrix:
         runner:
-          # - os: macos-latest  ## revisit once all tests are off ginkgo
+          - os: macos-latest
           - os: ubuntu-latest
     steps:
       - name: "Checkout"
@@ -33,16 +34,16 @@ jobs:
       - name: "Install Go"
         uses: actions/setup-go@v2
         with:
-          go-version: '1.16.2'
+          go-version: '1.16.3'
 
       - name: "Verify clean check-in"
         run: make check
 
       - name: "Run unit tests"
-        # prefetch implicit version needed by pkg/binary/envoy/controlplane/istio_test.go until #136. This avoids:
-        # Unable to start Envoy process: fork/exec /home/circleci/.getenvoy/builds/standard/1.11.0/linux_glibc/bin/envoy: text file busy
+        # Prefetch envoy to avoid latency during "go test" which contributes to timeouts.
+        # This version must align with pkg/binary/envoytest/util.go
         run: |
-          go run cmd/getenvoy/main.go fetch standard:1.11.0
+          go run cmd/getenvoy/main.go fetch standard:1.12.7
           make test
 
       - name: "Generate test coverage report"
@@ -67,7 +68,7 @@ jobs:
       - name: "Install Go"
         uses: actions/setup-go@v2
         with:
-          go-version: '1.16.2'
+          go-version: '1.16.3'
 
       - name: "Build the `getenvoy` binary"
         run: make bin
@@ -85,6 +86,7 @@ jobs:
     runs-on: ${{ matrix.runner.os }}
     timeout-minutes: 90  # instead of 360 by default
     strategy:
+      fail-fast: false  # don't fail fast as sometimes failures are operating system specific
       matrix:
         runner:
           - os: macos-latest
@@ -105,7 +107,7 @@ jobs:
       - name: "Install Go"
         uses: actions/setup-go@v2
         with:
-          go-version: '1.16.2'
+          go-version: '1.16.3'
 
       - name: "Re-use the `getenvoy` binary pre-built by the upstream job"
         uses: actions/download-artifact@v2

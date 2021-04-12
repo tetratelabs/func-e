@@ -127,16 +127,16 @@ func goodManifest() *api.Manifest {
 				Name:          "standard",
 				FilterProfile: "standard",
 				Versions: map[string]*api.Version{
-					"1.11.0": {
-						Name: "1.11.0",
+					"1.12.7": {
+						Name: "1.12.7",
 						Builds: map[string]*api.Build{
 							api.Build_LINUX_GLIBC.String(): {
 								Platform:            api.Build_LINUX_GLIBC,
-								DownloadLocationUrl: "standard:1.11.0/linux-glibc",
+								DownloadLocationUrl: "standard:1.12.7/linux-glibc",
 							},
 							api.Build_DARWIN.String(): {
 								Platform:            api.Build_DARWIN,
-								DownloadLocationUrl: "standard:1.11.0/darwin",
+								DownloadLocationUrl: "standard:1.12.7/darwin",
 							},
 						},
 					},

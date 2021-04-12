@@ -15,13 +15,14 @@
 package debug
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"syscall"
 
-	"github.com/shirou/gopsutil/process"
+	"github.com/shirou/gopsutil/v3/process"
 	"github.com/tetratelabs/log"
 
 	"github.com/tetratelabs/getenvoy/pkg/binary"
@@ -55,33 +56,46 @@ func EnableOpenFilesDataCollection(r *envoy.Runtime) {
 }
 
 // retrieveOpenFilesData writes statistics of open files associated with envoy instance(s) to a json file
-// if succeeded, return nil, else return an error instance
+// Errors from platform-specific libraries log to debug instead of raising an error or logging in an error category.
+// This avoids filling logs for unresolvable reasons.
 func retrieveOpenFilesData(r binary.Runner) error {
-	// get pid of envoy instance
-	pid, err := r.GetPid()
-	if err != nil {
-		return fmt.Errorf("error in getting pid of envoy instance: %v", err)
-	}
-	envoyProcess, err := process.NewProcess(int32(pid))
-	if err != nil {
-		return fmt.Errorf("error in creating an envoy instance: %v", err)
-	}
-
 	f, err := os.Create(filepath.Join(r.DebugStore(), "lsof/lsof.json"))
 	if err != nil {
-		return fmt.Errorf("error in creating a file to write open file statistics to: %v", err)
+		return fmt.Errorf("error in creating a file to write open file statistics to: %w", err)
 	}
 	defer f.Close() //nolint
+
+	// get pid of envoy instance
+	p, err := r.GetPid()
+	if err != nil {
+		return fmt.Errorf("error in getting pid of envoy instance: %w", err)
+	}
+	pid := int32(p)
+
+	ctx, cancel := context.WithTimeout(context.Background(), processTimeout)
+	defer cancel()
+
+	envoyProcess, err := process.NewProcessWithContext(ctx, pid)
+	if logDebugOnError(ctx, err, "process", pid) {
+		return nil
+	}
 
 	result := make([]OpenFileStat, 0)
 	// print open file stats for all envoy instances
 	// relevant fields of the process
-	username, _ := envoyProcess.Username()
-	name, _ := envoyProcess.Name()
+	username, err := envoyProcess.UsernameWithContext(ctx)
+	if logDebugOnError(ctx, err, "username", pid) {
+		return nil
+	}
 
-	openFiles, err := envoyProcess.OpenFiles()
-	if err != nil {
-		return fmt.Errorf("error in getting open file statistics: %w", err)
+	name, err := envoyProcess.NameWithContext(ctx)
+	if logDebugOnError(ctx, err, "name", pid) {
+		return nil
+	}
+
+	openFiles, err := envoyProcess.OpenFilesWithContext(ctx)
+	if logDebugOnError(ctx, err, "open files", pid) {
+		return nil
 	}
 
 	for _, stat := range openFiles {
@@ -105,12 +119,8 @@ func retrieveOpenFilesData(r binary.Runner) error {
 		result = append(result, ofStat)
 	}
 
-	out, err := json.Marshal(result)
-	if err != nil {
-		return fmt.Errorf("unable to convert to json representation: %v", err)
+	if err = json.NewEncoder(f).Encode(result); err != nil {
+		return fmt.Errorf("error writing JSON to file %v: %w", f, err)
 	}
-
-	fmt.Fprintln(f, string(out))
-
 	return nil
 }
