@@ -15,7 +15,6 @@
 package registry
 
 import (
-	"net/http"
 	"path"
 
 	exampleTemplates "github.com/tetratelabs/getenvoy/data/example/init"
@@ -26,9 +25,9 @@ var templatesFs = exampleTemplates.GetTemplates()
 
 func newDefaultRegistry() registry {
 	return &fsRegistry{
-		fs: http.FS(templatesFs),
+		fs: templatesFs,
 		namingScheme: func(category extension.Category, example string) string {
-			return "/" + path.Join(category.String(), example)
+			return path.Join(category.String(), example)
 		},
 	}
 }

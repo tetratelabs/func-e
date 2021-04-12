@@ -3,7 +3,7 @@
 #
 kind: Extension
 
-name: me.filters.http.my_http_filter
+name: mycompany.filters.http.custom_metrics
 
 category: envoy.filters.http
 language: tinygo

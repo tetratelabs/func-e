@@ -30,7 +30,7 @@ func TestEnableEnvoyLogCollection(t *testing.T) {
 	require.NoError(t, err, "error getting envoy runtime")
 	defer os.RemoveAll(r.DebugStore())
 
-	envoytest.RequireRunKill(t, r, envoytest.RunKillOptions{
+	envoytest.RequireRunTerminate(t, r, envoytest.RunKillOptions{
 		RetainDebugStore: false, // We don't need to unarchive the tar.gz because access logs hold the DebugStore open.
 	})
 

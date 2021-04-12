@@ -23,7 +23,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/Masterminds/semver"
+	"github.com/Masterminds/semver/v3"
 	"github.com/otiai10/copy"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"

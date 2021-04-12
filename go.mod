@@ -5,7 +5,7 @@ go 1.16
 
 require (
 	bitbucket.org/creachadair/shell v0.0.6
-	github.com/Masterminds/semver v1.5.0
+	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/Microsoft/go-winio v0.4.17-0.20210211115548-6eac466e5fa3 // indirect
 	github.com/StackExchange/wmi v0.0.0-20210224194228-fe8f1750fd46 // indirect
 	github.com/andybalholm/brotli v1.0.1 // indirect
@@ -19,15 +19,13 @@ require (
 	github.com/docker/go-metrics v0.0.1 // indirect
 	github.com/envoyproxy/go-control-plane v0.9.9-0.20201210154907-fd9021fe5dad
 	github.com/envoyproxy/protoc-gen-validate v0.5.1 // indirect
-	github.com/fsnotify/fsnotify v1.4.9 // indirect
-	github.com/ghodss/yaml v1.0.0
 	github.com/go-ole/go-ole v1.2.5 // indirect
-	github.com/gogo/protobuf v1.3.2
+	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
+	// TODO: https://github.com/tetratelabs/getenvoy-package/issues/102
 	github.com/golang/protobuf v1.5.2
 	github.com/golang/snappy v0.0.3 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
-	github.com/googleapis/gnostic v0.4.0 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/imdario/mergo v0.3.11 // indirect
@@ -47,6 +45,7 @@ require (
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/onsi/gomega v1.10.2 // indirect
 	github.com/opencontainers/image-spec v1.0.1
+	github.com/openshift/api v3.9.1-0.20191008181517-e4fd21196097+incompatible // indirect
 	github.com/otiai10/copy v1.5.1
 	github.com/pierrec/lz4/v4 v4.1.4 // indirect
 	github.com/pkg/errors v0.9.1
@@ -55,7 +54,6 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/schollz/progressbar/v3 v3.7.6
 	github.com/shirou/gopsutil/v3 v3.21.3
-	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749
 	github.com/spf13/cobra v1.1.3
 	github.com/stretchr/testify v1.7.0
 	github.com/tetratelabs/getenvoy-package v0.4.0
@@ -76,50 +74,35 @@ require (
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 	honnef.co/go/tools v0.0.1-2020.1.5 // indirect
-	istio.io/api v0.0.0-20201113182140-d4b7e3fc2b44
-	istio.io/istio v0.0.0-20201120194348-3ddc57b6d1e1
-	k8s.io/api v0.20.1 // indirect
-	k8s.io/apiextensions-apiserver v0.19.3 // indirect
-	k8s.io/apimachinery v0.20.1 // indirect
-	k8s.io/client-go v0.20.1 // indirect
+	istio.io/api v0.0.0-20210128181506-0c4b8e54850f
+	istio.io/istio v1.7.8
+	k8s.io/apiextensions-apiserver v0.18.17 // indirect
 	k8s.io/klog/v2 v2.4.0 // indirect
 	k8s.io/utils v0.0.0-20201110183641-67b214c5f920 // indirect
 	rsc.io/letsencrypt v0.0.3 // indirect
 	sigs.k8s.io/service-apis v0.1.0-rc2.0.20201112213625-c0375b7fa81f // indirect
+	sigs.k8s.io/yaml v1.2.0
 )
 
-// Resolve import problems caused by using istio, currently istio/istio@1.6.14
-// See See https://github.com/istio/istio/blob/1.6.14/go.mod and go.sum
+// Resolve import problems caused by using istio, currently istio/istio@1.7.8
+// See https://github.com/istio/istio/blob/1.7.8/go.mod and go.sum
 replace (
-	// Needed for import github.com/envoyproxy/go-control-plane/envoy/config/wasm/v2alpha
-	github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.5
+	// istio 1.7.8 deps
+	github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.7-0.20200730005029-803dd64f0468
+	google.golang.org/grpc => google.golang.org/grpc v1.29.1
+	istio.io/api => istio.io/api v0.0.0-20210128181506-0c4b8e54850f
+	istio.io/istio => istio.io/istio v0.0.0-20210223230603-30e54dcb8a1c
 
-	// Istio 1.6 used gogo, which conflicted with a lot of other libraries
-	github.com/golang/protobuf => github.com/golang/protobuf v1.3.5
-	github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.4.0
-	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20191223191004-3caeed10a8bf
-	google.golang.org/grpc => google.golang.org/grpc v1.28.1
-
-	// istio/istio@1.6.14
-	istio.io/istio => istio.io/istio v0.0.0-20201120194348-3ddc57b6d1e1
-
-	// Latests patch of k8s version included in istio 1.6
+	// Latest patch of k8s version included in istio 1.7.8
 	k8s.io/api => k8s.io/api v0.18.17
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.18.17
 	k8s.io/apimachinery => k8s.io/apimachinery v0.18.17
 	k8s.io/client-go => k8s.io/client-go v0.18.17
-
-	// Set to the last commit before kube-openapi switched imports from gnostic/OpenAPIv2 -> openapi
-	// See https://github.com/kubernetes/kube-openapi/issues/209
-	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20200204173128-addea2498afe
-
-	// Needed for import sigs.k8s.io/service-apis/api/v1alpha1
-	sigs.k8s.io/service-apis => sigs.k8s.io/service-apis v0.0.0-20200227172328-b9010cfacdbe
+	sigs.k8s.io/service-apis => sigs.k8s.io/service-apis v0.0.0-20200708220836-10c7cb28ed93
 )
 
 // Handle ambiguous import due istio imports
 exclude (
 	github.com/Azure/go-autorest v10.8.1+incompatible
-	github.com/census-instrumentation/opencensus-proto v0.3.0
 	github.com/hashicorp/consul v1.3.1
 )

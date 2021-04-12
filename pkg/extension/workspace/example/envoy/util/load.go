@@ -18,10 +18,10 @@ import (
 	"bytes"
 
 	envoymatcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
-	"github.com/ghodss/yaml"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	"sigs.k8s.io/yaml"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
 )

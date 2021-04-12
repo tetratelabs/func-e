@@ -15,12 +15,14 @@
 package config
 
 import (
-	"github.com/ghodss/yaml"
+	"sigs.k8s.io/yaml"
 )
 
 var (
 	// Marshal converts an object into its YAML representation.
 	Marshal func(interface{}) ([]byte, error) = yaml.Marshal
 	// Unmarshal converts YAML into an object.
-	Unmarshal func([]byte, interface{}) error = yaml.Unmarshal
+	Unmarshal func([]byte, interface{}) error = func(bytes []byte, i interface{}) error {
+		return yaml.Unmarshal(bytes, i) // no opts
+	}
 )

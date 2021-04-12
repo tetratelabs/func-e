@@ -19,9 +19,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"time"
 
-	"github.com/golang/protobuf/ptypes"
 	durationpb "github.com/golang/protobuf/ptypes/duration"
 )
 
@@ -54,9 +52,8 @@ func ParseMode(s string) Mode {
 func NewConfig(options ...func(*Config)) *Config {
 	cfg := &Config{
 		AdminPort:      15000,
-		StatNameLength: 189,
-		DrainDuration:  ptypes.DurationProto(30 * time.Second),
-		ConnectTimeout: ptypes.DurationProto(5 * time.Second),
+		DrainDuration:  &durationpb.Duration{Seconds: 30},
+		ConnectTimeout: &durationpb.Duration{Seconds: 5},
 	}
 	for _, o := range options {
 		o(cfg)
@@ -74,7 +71,6 @@ type Config struct {
 	ConnectTimeout *durationpb.Duration
 	AdminAddress   string
 	AdminPort      int32
-	StatNameLength int32
 }
 
 // GetAdminAddress returns a host:port formatted address of the Envoy admin listener.

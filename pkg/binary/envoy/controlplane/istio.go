@@ -22,11 +22,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"time"
 
-	"github.com/golang/protobuf/ptypes"
-	durationpb "github.com/golang/protobuf/ptypes/duration"
-	"github.com/tetratelabs/log"
 	meshconfig "istio.io/api/mesh/v1alpha1"
 	"istio.io/istio/pilot/pkg/model"
 	"istio.io/istio/pkg/bootstrap"
@@ -41,11 +37,11 @@ const (
 	initialEpochBootstrap = "envoy-rev1.json"
 )
 
-// envoyBootstrapTemplate is the "envoy_bootstrap_v2.json" from the Istio release tag or distribution
-//go:embed istio-1.6.14/tools/packaging/common/envoy_bootstrap_v2.json
+// envoyBootstrapTemplate is the "envoy_bootstrap.json" from the Istio release tag or distribution
+//go:embed istio-1.7.8/tools/packaging/common/envoy_bootstrap.json
 var envoyBootstrapTemplate []byte
 
-//  ^^ ex source: https://raw.githubusercontent.com/istio/istio/1.6.14/tools/packaging/common/envoy_bootstrap_v2.json
+//  ^^ ex source: https://raw.githubusercontent.com/istio/istio/1.7.8/tools/packaging/common/envoy_bootstrap.json
 
 // Istio tells GetEnvoy that it's using Istio for xDS and should bootstrap accordingly
 func Istio(r *envoy.Runtime) {
@@ -71,22 +67,10 @@ func appendArgs(r binary.Runner) error {
 	}
 	args := []string{
 		"--config-path", filepath.Join(e.DebugStore(), initialEpochBootstrap),
-		"--drain-time-s", fmt.Sprint(int(convertDuration(e.Config.DrainDuration) / time.Second)),
-		"--max-obj-name-len", fmt.Sprint(e.Config.StatNameLength),
+		"--drain-time-s", fmt.Sprint(e.Config.DrainDuration.Seconds),
 	}
 	r.AppendArgs(args)
 	return nil
-}
-
-func convertDuration(d *durationpb.Duration) time.Duration {
-	if d == nil {
-		return 0
-	}
-	dur, err := ptypes.Duration(d)
-	if err != nil {
-		log.Warnf("unable to convert proto duration %v to time.Duration", d)
-	}
-	return dur
 }
 
 func writeBootstrap(r binary.Runner) error {
@@ -117,7 +101,8 @@ func generateIstioConfig(e *envoy.Runtime) meshconfig.ProxyConfig {
 	cfg.ProxyAdminPort = e.Config.AdminPort
 	cfg.ProxyBootstrapTemplatePath = filepath.Join(e.TmplDir, "istio_bootstrap_tmpl.json")
 	cfg.EnvoyAccessLogService = &meshconfig.RemoteService{Address: e.Config.ALSAddresss}
-	// cfg.ControlPlaneAuthPolicy = v1alpha1.AuthenticationPolicy_MUTUAL_TLS // TODO: turn on!
+	// Required: Defaults to MUTUAL_TLS, but we don't configure auth, yet, so it has to be set to NONE
+	cfg.ControlPlaneAuthPolicy = meshconfig.AuthenticationPolicy_NONE
 	return cfg
 }
 

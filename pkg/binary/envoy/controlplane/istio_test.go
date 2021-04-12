@@ -23,11 +23,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gogo/protobuf/types"
 	"github.com/stretchr/testify/require"
 	"istio.io/istio/pilot/pkg/bootstrap"
 	"istio.io/istio/pilot/pkg/networking/plugin"
-	"istio.io/istio/pkg/config/mesh"
 	"istio.io/istio/pkg/keepalive"
 
 	"github.com/tetratelabs/getenvoy/pkg/binary"
@@ -57,11 +55,11 @@ func TestConnectsToMockPilotAsAGateway(t *testing.T) {
 	require.NoError(t, err, "error creating envoy runtime")
 	defer os.RemoveAll(runtime.DebugStore())
 
-	envoytest.RequireRunKill(t, runtime, envoytest.RunKillOptions{
+	envoytest.RequireRunTerminate(t, runtime, envoytest.RunKillOptions{
 		// Envoy won't achieve ready status because endpoints in testdata/configs.yaml are unreachable
 		ExpectedStatus: binary.StatusInitializing,
 		// We sleep to allow the configuration to populate, so that we can read it back.
-		SleepBeforeKill: 5 * time.Second,
+		SleepBeforeTerminate: 5 * time.Second,
 		// Assertions below inspect files in the debug store
 		RetainDebugStore: true,
 	})
@@ -98,26 +96,18 @@ func requireMockPilot(t *testing.T, configFileDir string) (string, func()) {
 	_, revertChDir := morerequire.RequireChDir(t, workDir)
 	cleanups = append(cleanups, revertChDir)
 
-	meshConfig := mesh.DefaultMeshConfig()
-	meshConfig.EnableTracing = false
 	// TODO: figure out how to set telemetry enabled = false as this reduces the amount of listeners
-	meshConfig.EnablePrometheusMerge = &types.BoolValue{Value: false}
-	meshConfig.DnsRefreshRate = types.DurationProto(time.Minute)
-	meshConfig.DisableMixerHttpReports = true
-	// Create a test pilot discovery service configured to watch the tempDir.
 	args := bootstrap.PilotArgs{
 		Namespace: "testing",
-		Config:    bootstrap.ConfigArgs{FileDir: configFileDir},
-		DiscoveryOptions: bootstrap.DiscoveryServiceOptions{
+		ServerOptions: bootstrap.DiscoveryServerOptions{
 			HTTPAddr: "127.0.0.1:", // instead of listening on all addresses
-			GrpcAddr: "127.0.0.1:",
+			GRPCAddr: "127.0.0.1:",
 		},
-		MeshConfig:       &meshConfig,
 		MCPOptions:       bootstrap.MCPOptions{MaxMessageSize: 1024 * 1024 * 4},
 		KeepaliveOptions: keepalive.DefaultOption(),
-		ForceStop:        true,
-		Plugins:          []string{plugin.Health}, // only health, no mixer or authorization
-		Service:          bootstrap.ServiceArgs{}, // no service registries
+		ShutdownDuration: 1 * time.Second,
+		Plugins:          []string{plugin.Health},                           // only health, no mixer or authorization
+		RegistryOptions:  bootstrap.RegistryOptions{FileDir: configFileDir}, // no service registries
 	}
 
 	s, err := bootstrap.NewServer(&args)

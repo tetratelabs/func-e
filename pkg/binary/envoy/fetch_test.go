@@ -29,7 +29,7 @@ import (
 )
 
 func TestRuntime_Fetch(t *testing.T) {
-	defaultDarwinKey := &manifest.Key{Flavor: "standard", Version: "1.12.7", Platform: "darwin"}
+	defaultDarwinKey := &manifest.Key{Flavor: "standard", Version: "1.15.3", Platform: "darwin"}
 	tests := []struct {
 		name             string
 		key              *manifest.Key
@@ -48,8 +48,8 @@ func TestRuntime_Fetch(t *testing.T) {
 			tarballStructure: "envoy",
 			tarExtension:     ".tar.gz",
 			responseStatus:   http.StatusOK,
-			envoyLocation:    "builds/standard/1.12.7/darwin/bin/envoy",
-			libLocation:      "builds/standard/1.12.7/darwin/lib/somelib",
+			envoyLocation:    "builds/standard/1.15.3/darwin/bin/envoy",
+			libLocation:      "builds/standard/1.15.3/darwin/lib/somelib",
 			wantServerCalled: true,
 		},
 		{
@@ -58,15 +58,15 @@ func TestRuntime_Fetch(t *testing.T) {
 			tarballStructure: "envoy",
 			tarExtension:     ".tar.xz",
 			responseStatus:   http.StatusOK,
-			envoyLocation:    "builds/standard/1.12.7/darwin/bin/envoy",
-			libLocation:      "builds/standard/1.12.7/darwin/lib/somelib",
+			envoyLocation:    "builds/standard/1.15.3/darwin/bin/envoy",
+			libLocation:      "builds/standard/1.15.3/darwin/lib/somelib",
 			wantServerCalled: true,
 		},
 		{
 			name:             "Does nothing if it already has a local copy",
 			key:              defaultDarwinKey,
-			envoyLocation:    "builds/standard/1.12.7/darwin/bin/envoy",
-			libLocation:      "builds/standard/1.12.7/darwin/lib/somelib",
+			envoyLocation:    "builds/standard/1.15.3/darwin/bin/envoy",
+			libLocation:      "builds/standard/1.15.3/darwin/lib/somelib",
 			alreadyLocal:     true,
 			wantServerCalled: false,
 		},

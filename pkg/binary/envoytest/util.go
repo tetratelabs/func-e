@@ -16,7 +16,6 @@ package envoytest
 
 import (
 	"fmt"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"sync"
@@ -33,15 +32,19 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
 
-// Reference indicates the default Envoy version to be used for testing.
-// 1.12.7 is the last version to match the Istio version we are using (see go.mod)
-var Reference = "standard:1.12.7"
+// reference indicates the default Envoy version to be used for testing.
+// 1.15.3 is the last version to match the Istio version we are using in go.mod:
+//   https://github.com/istio/istio/blob/1.7.8/istio.deps ->
+//   https://github.com/istio/proxy/blob/d68172a37cb87c52d683a906bd2fba90060f8d82/WORKSPACE ->
+//   https://github.com/istio/envoy/commit/4abbbc0394b247d4ea37fd8f9137732c3d0a2b91 ->
+//   https://github.com/istio/envoy/pull/290 -> ~ 1.15
+var reference = "standard:1.15.3"
 
 var once sync.Once
 var errorFetchingEnvoy error
 
-// FetchEnvoyAndRun retrieves the Envoy indicated by Reference only once. This is intended to be used with TestMain.
-// In CI, you can execute this to obviate latency during test runs: "go run cmd/getenvoy/main.go fetch standard:1.12.7"
+// FetchEnvoyAndRun retrieves the Envoy indicated by reference only once. This is intended to be used with TestMain.
+// In CI, you can execute this to obviate latency during test runs: "go run cmd/getenvoy/main.go fetch standard:1.15.3"
 func FetchEnvoyAndRun(m *testing.M) {
 	once.Do(func() {
 		errorFetchingEnvoy = fetchEnvoy()
@@ -56,9 +59,9 @@ func FetchEnvoyAndRun(m *testing.M) {
 }
 
 func fetchEnvoy() error {
-	key, err := manifest.NewKey(Reference)
+	key, err := manifest.NewKey(reference)
 	if err != nil {
-		return fmt.Errorf("unable to make manifest key %v: %w", Reference, err)
+		return fmt.Errorf("unable to make manifest key %v: %w", reference, err)
 	}
 
 	r, err := envoy.NewRuntime()
@@ -82,16 +85,16 @@ func fetchEnvoy() error {
 
 // RunKillOptions allows customization of Envoy lifecycle.
 type RunKillOptions struct {
-	Bootstrap        string
-	ExpectedStatus   int
-	RetainDebugStore bool
-	SleepBeforeKill  time.Duration
+	Bootstrap            string
+	ExpectedStatus       int
+	RetainDebugStore     bool
+	SleepBeforeTerminate time.Duration
 }
 
-// RequireRunKill executes envoy, waits for ready, sends sigint, waits for termination, then unarchives the debug directory.
+// RequireRunTerminate executes envoy, waits for ready, sends sigint, waits for termination, then unarchives the debug directory.
 // It should be used when you just want to cycle through an Envoy lifecycle.
-func RequireRunKill(t *testing.T, r binary.Runner, options RunKillOptions) {
-	key, err := manifest.NewKey(Reference)
+func RequireRunTerminate(t *testing.T, r binary.Runner, options RunKillOptions) {
+	key, err := manifest.NewKey(reference)
 	require.NoError(t, err)
 	var args []string
 	if options.Bootstrap != "" {
@@ -99,11 +102,11 @@ func RequireRunKill(t *testing.T, r binary.Runner, options RunKillOptions) {
 	}
 
 	args = append(args,
-		// Use ephemeral admin port to avoid test conflicts. Enable admin access logging to help debug test failures.
+		// Use ephemeral admin port to avoid test conflicts.
+		// Enable admin access logging to help debug test failures. (minimum Envoy 1.12 for macOS support)
 		"--config-yaml", "admin: {access_log_path: '/dev/stdout', address: {socket_address: {address: '127.0.0.1', port_value: 0}}}",
-		// Generate base id to allow concurrent envoys in tests. When envoy is v1.15+, switch to --use-dynamic-base-id
-		// This prevents "unable to bind domain socket with id=0" on Linux hosts.
-		"--base-id", fmt.Sprintf("%d", rand.Int31()), // nolint it isn't important to use a secure random here
+		// Generate base id to allow concurrent envoys in tests. (minimum Envoy 1.15)
+		"--use-dynamic-base-id",
 	)
 	// Allows us the status checker to read the resolved admin port after envoy starts
 	envoy.EnableAdminAddressDetection(r.(*envoy.Runtime))
@@ -139,11 +142,11 @@ func RequireRunKill(t *testing.T, r binary.Runner, options RunKillOptions) {
 	}, 30*time.Second, 100*time.Millisecond, "never achieved status(%d) or StatusTerminated", expectedStatus)
 	require.Equal(t, expectedStatus, r.Status(), "never achieved status(%d)", expectedStatus)
 
-	time.Sleep(options.SleepBeforeKill)
+	time.Sleep(options.SleepBeforeTerminate)
 
 	require.NotEqual(t, binary.StatusTerminated, r.Status(), "already StatusTerminated")
 
-	r.SendSignal(syscall.SIGINT)
+	r.SendSignal(syscall.SIGTERM)
 	require.Eventually(t, func() bool {
 		return r.Status() == binary.StatusTerminated
 	}, 10*time.Second, 50*time.Millisecond, "never achieved StatusTerminated")
