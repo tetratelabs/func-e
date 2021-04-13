@@ -18,14 +18,12 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
 	"text/template"
 
-	"github.com/pkg/errors"
 	"github.com/tetratelabs/multierror"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
@@ -124,7 +122,7 @@ func (s *scaffolder) visit(sourceDirName, destinationDirName string, sourceFileI
 			errs = multierror.Append(errs, e)
 		}
 	}()
-	content, err := ioutil.ReadAll(sourceFile)
+	content, err := io.ReadAll(sourceFile)
 	if err != nil {
 		return err
 	}
@@ -135,7 +133,7 @@ func (s *scaffolder) visit(sourceDirName, destinationDirName string, sourceFileI
 		}
 		content = data
 	}
-	if err := ioutil.WriteFile(outputFileName, content, sourceFileInfo.Mode()); err != nil {
+	if err := os.WriteFile(outputFileName, content, sourceFileInfo.Mode()); err != nil {
 		return err
 	}
 	s.opts.ProgressSink.OnFile(relOutputFileName)
@@ -159,7 +157,7 @@ func interpolate(descriptor *extension.Descriptor) func(string, []byte) ([]byte,
 		var out bytes.Buffer
 		err = tmpl.Execute(&out, data)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to render %q", file)
+			return nil, fmt.Errorf("failed to render %q: %w", file, err)
 		}
 		return out.Bytes(), nil
 	}

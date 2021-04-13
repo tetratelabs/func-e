@@ -133,7 +133,7 @@ func (s *server) GetArtifact(uri string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ioutil.ReadFile(filepath.Clean(tarFile))
+	return os.ReadFile(filepath.Clean(tarFile))
 }
 
 func (s *server) rewriteManifestURLs(manifest *api.Manifest) {

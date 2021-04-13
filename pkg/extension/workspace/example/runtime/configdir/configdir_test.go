@@ -16,7 +16,6 @@ package configdir_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -102,9 +101,9 @@ func TestNewConfigDir(t *testing.T) {
 
 			// verify contents of the config dir
 			for _, fileName := range ctx.Opts.Example.GetFiles().GetNames() {
-				expected, err := ioutil.ReadFile(filepath.Join(test.workspaceDir, "expected/getenvoy_extension_run", fileName))
+				expected, err := os.ReadFile(filepath.Join(test.workspaceDir, "expected/getenvoy_extension_run", fileName))
 				require.NoError(t, err)
-				actual, err := ioutil.ReadFile(filepath.Join(configDir.GetDir(), fileName))
+				actual, err := os.ReadFile(filepath.Join(configDir.GetDir(), fileName))
 				require.NoError(t, err)
 
 				switch {

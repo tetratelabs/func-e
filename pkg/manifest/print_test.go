@@ -16,9 +16,9 @@ package manifest
 
 import (
 	"bytes"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -60,7 +60,7 @@ func TestPrint(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
-			want, _ := ioutil.ReadFile(filepath.Join("testdata", tc.wantOutputFile))
+			want, _ := os.ReadFile(filepath.Join("testdata", tc.wantOutputFile))
 			require.Equal(t, string(want), got.String())
 		})
 	}
@@ -114,7 +114,7 @@ func mockServer(responseStatusCode int, responseManifestFile string) *httptest.S
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(responseStatusCode)
 		if responseStatusCode == http.StatusOK {
-			b, _ := ioutil.ReadFile(filepath.Join("testdata", responseManifestFile))
+			b, _ := os.ReadFile(filepath.Join("testdata", responseManifestFile))
 			w.Write(b)
 		}
 	}))

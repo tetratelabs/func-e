@@ -16,8 +16,8 @@ package registry
 
 import (
 	"fmt"
+	"io"
 	"io/fs"
-	"io/ioutil"
 	"path"
 	"path/filepath"
 	"strings"
@@ -95,7 +95,7 @@ func (r *fsRegistry) addFile(fileSet model.FileSet, dirName, fileName string, la
 		return fmt.Errorf(`failed to open %q: %w`, dirName, err)
 	}
 	defer file.Close() //nolint:errcheck
-	data, err := ioutil.ReadAll(file)
+	data, err := io.ReadAll(file)
 	if err != nil {
 		return fmt.Errorf(`failed to read %q: %w`, fileName, err)
 	}

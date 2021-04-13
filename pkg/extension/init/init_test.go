@@ -16,7 +16,7 @@ package init
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -111,7 +111,7 @@ func TestScaffold(t *testing.T) {
 			err := Scaffold(opts)
 			require.NoError(t, err)
 
-			actual, err := ioutil.ReadFile(filepath.Join(outputDir, test.file))
+			actual, err := os.ReadFile(filepath.Join(outputDir, test.file))
 			require.NoError(t, err)
 			require.Contains(t, string(actual), test.expected)
 		})

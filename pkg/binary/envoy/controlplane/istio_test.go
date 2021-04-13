@@ -16,7 +16,6 @@ package controlplane
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -65,7 +64,7 @@ func TestConnectsToMockPilotAsAGateway(t *testing.T) {
 	})
 
 	// Verify configuration from istio testdata/configs.yaml ended up in envoy
-	gotClusters, err := ioutil.ReadFile(filepath.Join(runtime.DebugStore(), "clusters.txt"))
+	gotClusters, err := os.ReadFile(filepath.Join(runtime.DebugStore(), "clusters.txt"))
 	require.NoError(t, err, "error getting envoy clusters")
 	require.Contains(t, string(gotClusters), "istio-ingressgateway.istio-system.svc.cluster.local::1.1.1.1:8443")
 }

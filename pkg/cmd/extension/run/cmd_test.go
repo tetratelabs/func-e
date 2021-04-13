@@ -16,7 +16,6 @@ package run_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -25,7 +24,6 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/otiai10/copy"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
@@ -51,7 +49,7 @@ func TestGetEnvoyExtensionRunValidateFlag(t *testing.T) {
 
 	// Create a fake envoy script so that we can verify execute bit is required.
 	notExecutable := filepath.Join(tempDir, "envoy")
-	err := ioutil.WriteFile(notExecutable, []byte(`#!/bin/sh`), 0600)
+	err := os.WriteFile(notExecutable, []byte(`#!/bin/sh`), 0600)
 	require.NoError(t, err, `couldn't create fake envoy script'`)
 
 	tests := []testCase{
@@ -78,7 +76,7 @@ func TestGetEnvoyExtensionRunValidateFlag(t *testing.T) {
 		{
 			name:        "--envoy-version with invalid value",
 			args:        []string{"--envoy-version", "???"},
-			expectedErr: `Envoy version is not valid: "???" is not a valid GetEnvoy reference. Expected format: <flavor>:<version>[/<platform>]`,
+			expectedErr: `envoy version is not valid: "???" is not a valid GetEnvoy reference. Expected format: <flavor>:<version>[/<platform>]`,
 		},
 		{
 			name:        "--envoy-version and --envoy-path flags at the same time",
@@ -181,7 +179,7 @@ envoy args: -c %s/envoy.tmpl.yaml`,
 	// Verify the placeholders envoy would have ran substituted, notably including the generated extension.wasm
 	expectedYaml := fmt.Sprintf(`'extension.name': "mycompany.filters.http.custom_metrics"
 'extension.code': {"local":{"filename":"%s/target/getenvoy/extension.wasm"}}
-'extension.config': {"@type":"type.googleapis.com/google.protobuf.StringValue","value":"{\"key\":\"value\"}"}
+'extension.config': {"@type":"type.googleapis.com/google.protobuf.StringValue", "value":"{\"key\":\"value\"}"}
 `, config.workspaceDir)
 	yaml := requirePlaceholdersYaml(t, config.envoyHome)
 	require.Equal(t, expectedYaml, yaml, `unexpected placeholders yaml after running [%v]`, c)
@@ -295,7 +293,7 @@ func TestGetEnvoyExtensionRunWithWasm(t *testing.T) {
 
 	// As all scripts invoked are fakes, we only need to touch a file as it isn't read
 	wasmFile := filepath.Join(config.tempDir, "extension.wasm")
-	err := ioutil.WriteFile(wasmFile, []byte{}, 0600)
+	err := os.WriteFile(wasmFile, []byte{}, 0600)
 	require.NoError(t, err, `expected no error creating extension.wasm: %s`, wasmFile)
 
 	// Run "getenvoy extension run --extension-file /path/to/extension.wasm"
@@ -332,7 +330,7 @@ func TestGetEnvoyExtensionRunWithConfig(t *testing.T) {
 
 	// As all scripts invoked are fakes, we only need to touch a file as it isn't read
 	configFile := filepath.Join(config.tempDir, "config.json")
-	err := ioutil.WriteFile(configFile, []byte(`{"key2":"value2"}`), 0600)
+	err := os.WriteFile(configFile, []byte(`{"key2":"value2"}`), 0600)
 	require.NoError(t, err, `expected no error creating extension.wasm: %s`, configFile)
 
 	// Run "getenvoy extension run --extension-config-file /path/to/config.json"
@@ -344,7 +342,7 @@ func TestGetEnvoyExtensionRunWithConfig(t *testing.T) {
 	require.NoError(t, err, `expected no error running [%v]`, c)
 
 	// Verify the placeholders envoy would have ran substituted, notably including the escaped config
-	yamlExtensionConfig := `'extension.config': {"@type":"type.googleapis.com/google.protobuf.StringValue","value":"{\"key2\":\"value2\"}"}`
+	yamlExtensionConfig := `'extension.config': {"@type":"type.googleapis.com/google.protobuf.StringValue", "value":"{\"key2\":\"value2\"}"}`
 	yaml := requirePlaceholdersYaml(t, config.envoyHome)
 	require.Contains(t, yaml, yamlExtensionConfig, `unexpected placeholders yaml after running [%v]`, c)
 }
@@ -460,7 +458,7 @@ func setupTest(t *testing.T, relativeWorkspaceTemplate string) (*testEnvoyExtens
 
 func requirePlaceholdersYaml(t *testing.T, envoyHome string) string {
 	placeholders := filepath.Join(envoyHome, "capture", "placeholders.tmpl.yaml")
-	b, err := ioutil.ReadFile(placeholders)
+	b, err := os.ReadFile(placeholders)
 	require.NoError(t, err, `expected no error reading placeholders: %s`, placeholders)
 	return string(b)
 }
@@ -495,7 +493,7 @@ func requireManifestTestServer(t *testing.T, envoySubstituteArchiveDir string) f
 					return envoySubstituteArchiveDir, nil
 				}
 			}
-			return "", errors.Errorf("unexpected version of Envoy %q", uri)
+			return "", fmt.Errorf("unexpected version of Envoy %q", uri)
 		},
 		OnError: func(err error) {
 			require.NoError(t, err, `unexpected error from test manifest server`)

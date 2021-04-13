@@ -15,6 +15,7 @@
 package envoy
 
 import (
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -110,7 +111,7 @@ func TestRuntime_Fetch(t *testing.T) {
 				require.Nil(t, err)
 				for _, location := range []string{libLocation, envoyLocation} {
 					f, _ := os.Open(location)
-					bytes, _ := ioutil.ReadAll(f)
+					bytes, _ := io.ReadAll(f)
 					require.Contains(t, string(bytes), "some c++")
 				}
 			}
@@ -135,7 +136,7 @@ func mockServer(responseStatusCode int, tarballStructure, tarExtension, tmpDir s
 		if responseStatusCode == http.StatusOK {
 			tarball := filepath.Join(tmpDir, tarballStructure+tarExtension)
 			archiver.Archive([]string{filepath.Join("testdata", tarballStructure)}, tarball)
-			bytes, _ := ioutil.ReadFile(tarball)
+			bytes, _ := os.ReadFile(tarball)
 			w.Write(bytes)
 		}
 	})), &called

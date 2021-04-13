@@ -16,7 +16,7 @@ package builtin
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -34,7 +34,7 @@ func TestDefaultConfigForValidate(t *testing.T) {
 
 	tests := make([]testCase, len(extension.Languages))
 	for i, lang := range extension.Languages {
-		expected, err := ioutil.ReadFile(fmt.Sprintf("testdata/default_config/%s.toolchain.yaml", lang))
+		expected, err := os.ReadFile(fmt.Sprintf("testdata/default_config/%s.toolchain.yaml", lang))
 		if err != nil {
 			panic(fmt.Errorf("missing default config for language %s: %w", lang, err))
 		}

@@ -16,7 +16,6 @@ package debug
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -45,7 +44,7 @@ func TestEnableNodeCollection(t *testing.T) {
 		require.NotEmpty(t, f.Size(), "file %v was empty", path)
 
 		if strings.HasSuffix(file, ".json") {
-			raw, err := ioutil.ReadFile(path)
+			raw, err := os.ReadFile(path)
 			require.NoError(t, err, "error to read the file %v", path)
 			var is []interface{}
 

@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -104,7 +103,7 @@ echo >&2 envoy stderr
 
 	// Write $envoyHome/bin/envoy and ensure it is executable
 	fakeEnvoyPath := filepath.Join(envoyBin, "envoy")
-	err := ioutil.WriteFile(fakeEnvoyPath, []byte(fakeEnvoyScript), 0700) // nolint:gosec
+	err := os.WriteFile(fakeEnvoyPath, []byte(fakeEnvoyScript), 0700) // nolint:gosec
 	require.NoError(t, err, `couldn't create fake envoy script: %s`, fakeEnvoyPath)
 	return fakeEnvoyPath
 }

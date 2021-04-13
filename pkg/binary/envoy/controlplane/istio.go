@@ -18,7 +18,6 @@ import (
 	_ "embed" //nolint
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -141,7 +140,7 @@ func writeProxyBootstrapTemplate(proxyBootstrapTemplatePath string) error {
 	if err := os.MkdirAll(filepath.Dir(proxyBootstrapTemplatePath), os.ModePerm); err != nil {
 		return err
 	}
-	if err := ioutil.WriteFile(proxyBootstrapTemplatePath, envoyBootstrapTemplate, 0600); err != nil {
+	if err := os.WriteFile(proxyBootstrapTemplatePath, envoyBootstrapTemplate, 0600); err != nil {
 		return err
 	}
 	return nil

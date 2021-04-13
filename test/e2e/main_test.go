@@ -16,7 +16,6 @@ package e2e_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -198,7 +197,7 @@ func requireExtensionBuild(t *testing.T, language extension.Language, workDir st
 	extensionWasmFile := filepath.Join(workDir, extensionWasmPath(language))
 	require.FileExists(t, extensionWasmFile, `extension wasm file %s missing after running [%v]`, extensionWasmFile, c)
 
-	wasmBytes, err := ioutil.ReadFile(extensionWasmFile)
+	wasmBytes, err := os.ReadFile(extensionWasmFile)
 	require.NoError(t, err, `error reading %s after running [%v]: %s`, extensionWasmFile, c)
 	require.NotEmpty(t, wasmBytes, `%s empty after running [%v]`, extensionWasmFile, c)
 	return wasmBytes

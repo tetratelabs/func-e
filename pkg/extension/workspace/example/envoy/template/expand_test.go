@@ -68,7 +68,7 @@ func TestExpand(t *testing.T) {
 		{
 			name:     "extension: config",
 			input:    `{{ .GetEnvoy.Extension.Config }}`,
-			expected: `{"@type":"type.googleapis.com/google.protobuf.StringValue","value":"{\"key\":\"value\"}"}`,
+			expected: `{"@type":"type.googleapis.com/google.protobuf.StringValue", "value":"{\"key\":\"value\"}"}`,
 		},
 		{
 			name:     "access to proto message",

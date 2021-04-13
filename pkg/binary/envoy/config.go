@@ -16,7 +16,6 @@ package envoy
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -93,7 +92,7 @@ func (r *Runtime) SaveConfig(name, config string) (string, error) {
 		return "", fmt.Errorf("Unable to create directory %q: %v", configDir, err)
 	}
 	filename := name + ".yaml"
-	err := ioutil.WriteFile(filepath.Join(configDir, filename), []byte(config), 0600)
+	err := os.WriteFile(filepath.Join(configDir, filename), []byte(config), 0600)
 	if err != nil {
 		return "", fmt.Errorf("Cannot save config file %s: %s", filepath.Join(configDir, filename), err)
 	}

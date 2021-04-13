@@ -16,8 +16,8 @@ package envoy
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net"
+	"os"
 	"path/filepath"
 
 	"github.com/tetratelabs/log"
@@ -46,7 +46,7 @@ func appendArg(r binary.Runner) error {
 
 func readAdminAddressFile(r *Runtime) string {
 	adminAddressFile := filepath.Join(r.DebugStore(), "admin-address.txt")
-	adminAddress, err := ioutil.ReadFile(adminAddressFile) //nolint:gosec
+	adminAddress, err := os.ReadFile(adminAddressFile) //nolint:gosec
 	if err != nil {
 		log.Debugf("unable to read %s: %v", adminAddressFile, err)
 		return ""

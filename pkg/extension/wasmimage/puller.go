@@ -18,8 +18,8 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"os"
 
 	"github.com/containerd/containerd/remotes"
 	"github.com/deislabs/oras/pkg/auth/docker"
@@ -77,7 +77,7 @@ func (p *Puller) Pull(imageRef, imagePath string) (ocispec.Descriptor, error) {
 	}
 	manifest, image, _ := store.Get(layers[0])
 
-	if err := ioutil.WriteFile(imagePath, image, 0600); err != nil {
+	if err := os.WriteFile(imagePath, image, 0600); err != nil {
 		return manifest, fmt.Errorf("failed to write image: %w", err)
 	}
 
