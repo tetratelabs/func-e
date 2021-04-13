@@ -15,7 +15,7 @@
 package manifest
 
 import (
-	"github.com/tetratelabs/getenvoy-package/api"
+	"github.com/tetratelabs/getenvoy/api"
 	"github.com/tetratelabs/getenvoy/pkg/types"
 )
 

@@ -16,7 +16,6 @@ package debug
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -33,7 +32,7 @@ func TestEnableNodeCollection(t *testing.T) {
 	require.NoError(t, err, "error creating envoy runtime")
 	defer os.RemoveAll(r.DebugStore())
 
-	envoytest.RequireRunKill(t, r, envoytest.RunKillOptions{
+	envoytest.RequireRunTerminate(t, r, envoytest.RunKillOptions{
 		RetainDebugStore: true, // Assertions below inspect files in the debug store
 	})
 
@@ -45,7 +44,7 @@ func TestEnableNodeCollection(t *testing.T) {
 		require.NotEmpty(t, f.Size(), "file %v was empty", path)
 
 		if strings.HasSuffix(file, ".json") {
-			raw, err := ioutil.ReadFile(path)
+			raw, err := os.ReadFile(path)
 			require.NoError(t, err, "error to read the file %v", path)
 			var is []interface{}
 

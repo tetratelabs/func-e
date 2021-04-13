@@ -17,9 +17,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
-	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config"
 	extensionconfig "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 	builtinconfig "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/toolchain/builtin"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
@@ -125,7 +125,7 @@ func TestBuiltinToolchainLoadConfig(t *testing.T) {
 			require.NoError(t, err)
 
 			// verify defaults get applied to the toolchain config
-			actual, err := config.Marshal(builder.GetConfig())
+			actual, err := yaml.Marshal(builder.GetConfig())
 			require.NoError(t, err)
 			require.YAMLEq(t, test.expected, string(actual))
 

@@ -18,7 +18,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -122,7 +122,7 @@ func mockRegistryServer(t *testing.T) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		statusCode := 500
 
-		body, err := ioutil.ReadAll(r.Body) // fully read the request
+		body, err := io.ReadAll(r.Body) // fully read the request
 		require.NoError(t, err, "Error reading body of %s %s", r.Method, r.URL.Path)
 
 		switch r.Method {

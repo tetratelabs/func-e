@@ -15,9 +15,10 @@
 package run
 
 import (
-	"io/ioutil"
+	"errors"
+	"fmt"
+	"os"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/build"
@@ -66,14 +67,14 @@ func (opts *runOpts) validateExtension() error {
 	// pre-built *.wasm file
 	if opts.Extension.WasmFile != "" {
 		if err := osutil.IsRegularFile(opts.Extension.WasmFile); err != nil {
-			return errors.Wrapf(err, "unable to find a pre-built *.wasm file at %q", opts.Extension.WasmFile)
+			return fmt.Errorf("unable to find a pre-built *.wasm file at %q: %w", opts.Extension.WasmFile, err)
 		}
 	}
 	// custom extension config
 	if opts.Extension.Config.Source != "" {
-		data, err := ioutil.ReadFile(opts.Extension.Config.Source)
+		data, err := os.ReadFile(opts.Extension.Config.Source)
 		if err != nil {
-			return errors.Wrapf(err, "failed to read custom extension config from file %q", opts.Extension.Config.Source)
+			return fmt.Errorf("failed to read custom extension config from file %q: %w", opts.Extension.Config.Source, err)
 		}
 		opts.Extension.Config.Content = data
 	}
@@ -88,13 +89,13 @@ func (opts *runOpts) validateEnvoy() error {
 	// Envoy version
 	if opts.Envoy.Version != "" {
 		if _, err := commontypes.ParseReference(opts.Envoy.Version); err != nil {
-			return errors.Wrap(err, "Envoy version is not valid")
+			return fmt.Errorf("envoy version is not valid: %w", err)
 		}
 	}
 	// Envoy path
 	if opts.Envoy.Path != "" {
 		if err := osutil.IsExecutable(opts.Envoy.Path); err != nil {
-			return errors.Wrapf(err, "unable to find custom Envoy binary at %q", opts.Envoy.Path)
+			return fmt.Errorf("unable to find custom Envoy binary at %q: %w", opts.Envoy.Path, err)
 		}
 	}
 	// Envoy args
@@ -212,7 +213,7 @@ Run Envoy extension in the example setup.`,
 				IO:   cmdutil.StreamsOf(cmd),
 			})
 			if err != nil {
-				return errors.Wrapf(err, "failed to run %q example", opts.Run.Example.Name)
+				return fmt.Errorf("failed to run %q example: %w", opts.Run.Example.Name, err)
 			}
 			return nil
 		},

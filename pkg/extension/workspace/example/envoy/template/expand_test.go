@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package template_test
+package template
 
 import (
 	"testing"
@@ -21,7 +21,6 @@ import (
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/manager"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
-	. "github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/envoy/template"
 )
 
 func TestExpand(t *testing.T) {
@@ -68,12 +67,12 @@ func TestExpand(t *testing.T) {
 		{
 			name:     "extension: config",
 			input:    `{{ .GetEnvoy.Extension.Config }}`,
-			expected: `{"@type":"type.googleapis.com/google.protobuf.StringValue","value":"{\"key\":\"value\"}"}`,
+			expected: defaultExtensionConfigJSON(t, `{"key":"value"}`),
 		},
 		{
 			name:     "access to proto message",
-			input:    `{{ (.GetEnvoy.Extension.Code).Message.GetLocal.GetFilename }}`,
-			expected: `/path/to/extension.wasm`,
+			input:    `"{{ (.GetEnvoy.Extension.Code).Message.GetLocal.GetFilename }}"`,
+			expected: `"/path/to/extension.wasm"`,
 		},
 	}
 
@@ -95,7 +94,7 @@ func TestExpand(t *testing.T) {
 
 			actual, err := Expand([]byte(test.input), ctx)
 			require.NoError(t, err)
-			require.Equal(t, test.expected, string(actual))
+			require.JSONEq(t, test.expected, string(actual))
 		})
 	}
 }

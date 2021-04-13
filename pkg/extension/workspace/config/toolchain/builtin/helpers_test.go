@@ -18,8 +18,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 
-	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config"
 	. "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/toolchain/builtin"
 )
 
@@ -98,7 +98,7 @@ func TestToolchainConfigValidate(t *testing.T) {
 
 		t.Run(test.name, func(t *testing.T) {
 			var toolchainConfig ToolchainConfig
-			err := config.Unmarshal([]byte(test.input), &toolchainConfig)
+			err := yaml.Unmarshal([]byte(test.input), &toolchainConfig)
 			require.NoError(t, err)
 
 			err = toolchainConfig.Validate()
@@ -245,7 +245,7 @@ func TestToolchainConfigValidateError(t *testing.T) {
 
 		t.Run(test.name, func(t *testing.T) {
 			var toolchainConfig ToolchainConfig
-			err := config.Unmarshal([]byte(test.input), &toolchainConfig)
+			err := yaml.Unmarshal([]byte(test.input), &toolchainConfig)
 			require.NoError(t, err)
 
 			err = toolchainConfig.Validate()
@@ -321,7 +321,7 @@ func TestToolchainConfigGetBuildOutputWasmFile(t *testing.T) {
 
 		t.Run(test.name, func(t *testing.T) {
 			var toolchainConfig ToolchainConfig
-			err := config.Unmarshal([]byte(test.input), &toolchainConfig)
+			err := yaml.Unmarshal([]byte(test.input), &toolchainConfig)
 			require.NoError(t, err)
 
 			actual := toolchainConfig.GetBuildOutputWasmFile()

@@ -16,13 +16,10 @@ package envoy
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
-	"time"
 
-	"github.com/golang/protobuf/ptypes"
-	durationpb "github.com/golang/protobuf/ptypes/duration"
+	durationpb "google.golang.org/protobuf/types/known/durationpb"
 )
 
 // Mode is the mode Envoy should run in
@@ -54,9 +51,8 @@ func ParseMode(s string) Mode {
 func NewConfig(options ...func(*Config)) *Config {
 	cfg := &Config{
 		AdminPort:      15000,
-		StatNameLength: 189,
-		DrainDuration:  ptypes.DurationProto(30 * time.Second),
-		ConnectTimeout: ptypes.DurationProto(5 * time.Second),
+		DrainDuration:  &durationpb.Duration{Seconds: 30},
+		ConnectTimeout: &durationpb.Duration{Seconds: 5},
 	}
 	for _, o := range options {
 		o(cfg)
@@ -74,7 +70,6 @@ type Config struct {
 	ConnectTimeout *durationpb.Duration
 	AdminAddress   string
 	AdminPort      int32
-	StatNameLength int32
 }
 
 // GetAdminAddress returns a host:port formatted address of the Envoy admin listener.
@@ -97,7 +92,7 @@ func (r *Runtime) SaveConfig(name, config string) (string, error) {
 		return "", fmt.Errorf("Unable to create directory %q: %v", configDir, err)
 	}
 	filename := name + ".yaml"
-	err := ioutil.WriteFile(filepath.Join(configDir, filename), []byte(config), 0600)
+	err := os.WriteFile(filepath.Join(configDir, filename), []byte(config), 0600)
 	if err != nil {
 		return "", fmt.Errorf("Cannot save config file %s: %s", filepath.Join(configDir, filename), err)
 	}

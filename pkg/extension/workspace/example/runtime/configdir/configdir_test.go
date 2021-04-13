@@ -16,12 +16,11 @@ package configdir_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
-	envoybootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
 	"github.com/stretchr/testify/require"
 
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
@@ -32,50 +31,34 @@ import (
 
 func TestNewConfigDir(t *testing.T) {
 	tests := []struct {
-		name             string
-		workspaceDir     string
-		isEnvoyTemplate  func(string) bool
-		requireBootstrap func(t *testing.T, bootstrap *envoybootstrap.Bootstrap)
+		name                 string
+		workspaceDir         string
+		expectValidBootstrap bool
 	}{
 		{
-			name:         "envoy.tmpl.yaml",
-			workspaceDir: "testdata/workspace1",
-			isEnvoyTemplate: func(name string) bool {
-				return name == "envoy.tmpl.yaml" //nolint:goconst
-			},
-			requireBootstrap: expectValidBootstrap,
+			name:                 "envoy.tmpl.yaml",
+			workspaceDir:         "testdata/workspace1",
+			expectValidBootstrap: true,
 		},
 		{
-			name:         "envoy.tmpl.yaml + lds.tmpl.yaml + cds.yaml",
-			workspaceDir: "testdata/workspace2",
-			isEnvoyTemplate: func(name string) bool {
-				return name == "envoy.tmpl.yaml" || name == "lds.tmpl.yaml" || name == "cds.yaml"
-			},
-			requireBootstrap: expectValidBootstrap,
+			name:                 "envoy.tmpl.yaml + lds.tmpl.yaml + cds.yaml",
+			workspaceDir:         "testdata/workspace2",
+			expectValidBootstrap: true,
 		},
 		{
-			name:         "envoy.tmpl.yaml: not a valid YAML",
-			workspaceDir: "testdata/workspace3",
-			isEnvoyTemplate: func(name string) bool {
-				return false
-			},
-			requireBootstrap: expectInvalidBootstrap,
+			name:                 "envoy.tmpl.yaml: not a valid YAML",
+			workspaceDir:         "testdata/workspace3",
+			expectValidBootstrap: false,
 		},
 		{
-			name:         "envoy.tmpl.yaml: invalid paths to `lds` and `cds` files",
-			workspaceDir: "testdata/workspace4",
-			isEnvoyTemplate: func(name string) bool {
-				return name == "envoy.tmpl.yaml"
-			},
-			requireBootstrap: expectValidBootstrap,
+			name:                 "envoy.tmpl.yaml: invalid paths to `lds` and `cds` files",
+			workspaceDir:         "testdata/workspace4",
+			expectValidBootstrap: true,
 		},
 		{
-			name:         "envoy.tmpl.yaml: .txt configuration",
-			workspaceDir: "testdata/workspace8",
-			isEnvoyTemplate: func(name string) bool {
-				return name == "envoy.tmpl.yaml"
-			},
-			requireBootstrap: expectValidBootstrap,
+			name:                 "envoy.tmpl.yaml: .txt configuration",
+			workspaceDir:         "testdata/workspace8",
+			expectValidBootstrap: true,
 		},
 	}
 
@@ -104,19 +87,33 @@ func TestNewConfigDir(t *testing.T) {
 				require.True(t, os.IsNotExist(err))
 			}()
 
-			// verify the config dir
+			// verify the bootstrap file
 			require.FileExists(t, configDir.GetBootstrapFile())
-			test.requireBootstrap(t, configDir.GetBootstrap())
+			bootstrap := configDir.GetBootstrap()
+
+			if !test.expectValidBootstrap {
+				require.Nil(t, bootstrap)
+				return // don't check for evaluation of template inputs when the bootstrap was invalid
+			}
+
+			require.NotNil(t, bootstrap)
+			require.Equal(t, "/dev/null", bootstrap.GetAdmin().GetAccessLogPath())
+			require.Equal(t, "127.0.0.1", bootstrap.GetAdmin().GetAddress().GetSocketAddress().GetAddress())
+			require.Equal(t, uint32(9901), bootstrap.GetAdmin().GetAddress().GetSocketAddress().GetPortValue())
 
 			// verify contents of the config dir
 			for _, fileName := range ctx.Opts.Example.GetFiles().GetNames() {
-				expected, err := ioutil.ReadFile(filepath.Join(test.workspaceDir, "expected/getenvoy_extension_run", fileName))
+				expected, err := os.ReadFile(filepath.Join(test.workspaceDir, "expected/getenvoy_extension_run", fileName))
 				require.NoError(t, err)
-				actual, err := ioutil.ReadFile(filepath.Join(configDir.GetDir(), fileName))
+				actual, err := os.ReadFile(filepath.Join(configDir.GetDir(), fileName))
 				require.NoError(t, err)
-				if test.isEnvoyTemplate(fileName) {
-					require.YAMLEq(t, string(expected), string(actual))
-				} else {
+
+				switch {
+				case strings.HasSuffix(fileName, ".yaml") && fileName != "envoy.tmpl.yaml":
+					require.YAMLEq(t, string(expected), string(actual), `%s is not valid yaml`, fileName)
+				case strings.HasSuffix(fileName, ".json"):
+					require.JSONEq(t, string(expected), string(actual), `%s is not valid json`, fileName)
+				case fileName != "envoy.tmpl.yaml": // we don't need to check our input template
 					require.Equal(t, string(expected), string(actual))
 				}
 			}
@@ -139,17 +136,6 @@ func runContext(workspace model.Workspace, example model.Example) *runtime.RunCo
 			},
 		},
 	}
-}
-
-func expectValidBootstrap(t *testing.T, bootstrap *envoybootstrap.Bootstrap) {
-	require.NotNil(t, bootstrap)
-	require.Equal(t, "/dev/null", bootstrap.GetAdmin().GetAccessLogPath())
-	require.Equal(t, "127.0.0.1", bootstrap.GetAdmin().GetAddress().GetSocketAddress().GetAddress())
-	require.Equal(t, uint32(9901), bootstrap.GetAdmin().GetAddress().GetSocketAddress().GetPortValue())
-}
-
-func expectInvalidBootstrap(t *testing.T, bootstrap *envoybootstrap.Bootstrap) {
-	require.Nil(t, bootstrap)
 }
 
 func TestNewConfigDirValidates(t *testing.T) {

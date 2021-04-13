@@ -15,11 +15,10 @@
 package manifest
 
 import (
+	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
-
-	"github.com/tetratelabs/getenvoy-package/api"
+	"github.com/tetratelabs/getenvoy/api"
 )
 
 // Platform represents a platform.
@@ -44,7 +43,7 @@ func (p Platform) BuildPlatform() api.Build_Platform {
 	case PlatformDarwin:
 		return api.Build_DARWIN
 	default:
-		panic(errors.Errorf("unknown platform %q", p))
+		panic(fmt.Errorf("unknown platform %q", p))
 	}
 }
 
@@ -80,7 +79,7 @@ var (
 func ParsePlatform(text string) (Platform, error) {
 	p, ok := supportedPlatformsIndex[text]
 	if !ok {
-		return "", errors.Errorf("unknown platform %q", text)
+		return "", fmt.Errorf("unknown platform %q", text)
 	}
 	return p, nil
 }

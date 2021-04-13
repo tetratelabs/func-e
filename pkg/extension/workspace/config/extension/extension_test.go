@@ -19,8 +19,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 
-	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config"
 	. "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 )
 
@@ -41,7 +41,7 @@ runtime:
     version: standard:1.17.0
 `
 	var descriptor Descriptor
-	err := config.Unmarshal([]byte(input), &descriptor)
+	err := yaml.Unmarshal([]byte(input), &descriptor)
 	require.NoError(t, err)
 
 	err = descriptor.Validate()
@@ -57,10 +57,10 @@ func TestDescriptorValidateError(t *testing.T) {
 		{
 			name:        "empty",
 			input:       ``,
-			expectedErr: `4 errors occurred: extension name cannot be empty; extension category cannot be empty; programming language cannot be empty; runtime description is not valid: Envoy version cannot be empty`,
+			expectedErr: `4 errors occurred: extension name cannot be empty; extension category cannot be empty; programming language cannot be empty; runtime description is not valid: envoy version cannot be empty`,
 		},
 		{
-			name: "invalid Envoy version",
+			name: "invalid envoy version",
 			input: `#
 # Envoy Wasm extension created with getenvoy toolkit.
 #
@@ -76,7 +76,7 @@ runtime:
   envoy:
     version: invalid value
 `,
-			expectedErr: `runtime description is not valid: Envoy version is not valid: "invalid value" is not a valid GetEnvoy reference. Expected format: <flavor>:<version>[/<platform>]`,
+			expectedErr: `runtime description is not valid: envoy version is not valid: "invalid value" is not a valid GetEnvoy reference. Expected format: <flavor>:<version>[/<platform>]`,
 		},
 		{
 			name: "missing extension name",
@@ -120,7 +120,7 @@ runtime:
 
 		t.Run(test.name, func(t *testing.T) {
 			var descriptor Descriptor
-			err := config.Unmarshal([]byte(test.input), &descriptor)
+			err := yaml.Unmarshal([]byte(test.input), &descriptor)
 			require.NoError(t, err)
 
 			err = descriptor.Validate()

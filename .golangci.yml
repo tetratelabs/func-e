@@ -47,7 +47,7 @@ linters:
   disable:
     - "gochecknoinits"
     - "gochecknoglobals"
-    - "gomoddirectives"  # Istio 1.6 dependency conflicts prevent enabling this
+    - "gomoddirectives"  # Istio 1.7 dependency conflicts prevent enabling this
 
 # all available settings of specific linters
 linters-settings:

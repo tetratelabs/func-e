@@ -15,7 +15,9 @@
 package toolchain
 
 import (
-	"github.com/pkg/errors"
+	"fmt"
+
+	"gopkg.in/yaml.v3"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
@@ -34,10 +36,10 @@ func LoadToolchain(name string, workspace model.Workspace) (types.ToolchainBuild
 	switch name {
 	case Default:
 		if err := ensureDefaultToolchainExists(workspace); err != nil {
-			return nil, errors.Wrap(err, "failed to ensure the default toolchain exists")
+			return nil, fmt.Errorf("failed to ensure the default toolchain exists: %w", err)
 		}
 	default:
-		return nil, errors.Errorf("unknown toolchain %q. At the moment, only %q toolchain is supported", name, Default)
+		return nil, fmt.Errorf("unknown toolchain %q. At the moment, only %q toolchain is supported", name, Default)
 	}
 	return loadToolchain(name, workspace)
 }
@@ -45,7 +47,7 @@ func LoadToolchain(name string, workspace model.Workspace) (types.ToolchainBuild
 func ensureDefaultToolchainExists(workspace model.Workspace) error {
 	exists, err := workspace.HasToolchain(Default)
 	if err != nil {
-		return errors.Wrapf(err, "failed to determine whether toolchain %q already exists", Default)
+		return fmt.Errorf("failed to determine whether toolchain %q already exists: %w", Default, err)
 	}
 	if exists {
 		return nil
@@ -58,26 +60,26 @@ func ensureDefaultToolchainExists(workspace model.Workspace) error {
 func loadToolchain(name string, workspace model.Workspace) (types.ToolchainBuilder, error) {
 	exists, err := workspace.HasToolchain(name)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to determine whether toolchain %q exists", name)
+		return nil, fmt.Errorf("failed to determine whether toolchain %q exists: %w", name, err)
 	}
 	if !exists {
-		return nil, errors.Errorf("unknown toolchain %q", name)
+		return nil, fmt.Errorf("unknown toolchain %q", name)
 	}
 	file, err := workspace.GetToolchainConfig(name)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to load configuration for toolchain %q", name)
+		return nil, fmt.Errorf("failed to load configuration for toolchain %q: %w", name, err)
 	}
 	configErr := func(err error) error {
-		return errors.Wrapf(err, "toolchain %q has invalid configuration coming from %q", name, file.Source)
+		return fmt.Errorf("toolchain %q has invalid configuration coming from %q: %w", name, file.Source, err)
 	}
 	meta := new(config.Meta)
-	err = config.Unmarshal(file.Content, meta)
+	err = yaml.Unmarshal(file.Content, meta)
 	if err != nil {
 		return nil, configErr(err)
 	}
 	factory, exists := registry.Get(meta.Kind)
 	if !exists {
-		return nil, configErr(errors.Errorf("unknown toolchain kind %q", meta.Kind))
+		return nil, configErr(fmt.Errorf("unknown toolchain kind %q", meta.Kind))
 	}
 	builder, err := factory.LoadConfig(registry.LoadConfigArgs{
 		Workspace: workspace,
@@ -102,7 +104,7 @@ type validatingBuilder struct {
 
 func (b *validatingBuilder) Build() (types.Toolchain, error) {
 	if err := b.GetConfig().Validate(); err != nil {
-		return nil, errors.Wrapf(err, "toolchain %q has invalid configuration", b.name)
+		return nil, fmt.Errorf("toolchain %q has invalid configuration: %w", b.name, err)
 	}
 	return b.ToolchainBuilder.Build()
 }

@@ -15,12 +15,9 @@
 package util
 
 import (
-	"reflect"
-	"strings"
 	"testing"
 
 	envoylistener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
@@ -55,7 +52,7 @@ func TestLoadValidatesYAML(t *testing.T) {
 	require.EqualError(t, err, expectedErr)
 }
 
-func TestNewFakeAnyResolver(t *testing.T) {
+func TestFakeAnyResolver(t *testing.T) {
 	tests := []struct {
 		name    string
 		typeURL string
@@ -68,28 +65,11 @@ func TestNewFakeAnyResolver(t *testing.T) {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.name, func(t *testing.T) {
-			resolver := newFakeAnyResolver()
+			resolver := fakeAnyResolver{}
 
-			actual, err := resolver.Resolve(test.typeURL)
+			actual, err := resolver.FindMessageByURL(test.typeURL)
 			require.NoError(t, err)
-
-			props := proto.GetProperties(reflect.ValueOf(actual).Elem().Type())
-			fields := MessageFields(props.Prop).Filter(func(field *proto.Properties) bool {
-				return !strings.HasPrefix(field.Name, "XXX_")
-			})
-			require.Empty(t, fields)
+			require.NotNil(t, actual)
 		})
 	}
-}
-
-type MessageFields []*proto.Properties
-
-func (fields MessageFields) Filter(test func(*proto.Properties) bool) MessageFields {
-	result := make(MessageFields, 0)
-	for _, field := range fields {
-		if test(field) {
-			result = append(result, field)
-		}
-	}
-	return result
 }

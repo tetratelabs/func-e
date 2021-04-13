@@ -43,7 +43,7 @@ jobs:
         # Prefetch envoy to avoid latency during "go test" which contributes to timeouts.
         # This version must align with pkg/binary/envoytest/util.go
         run: |
-          go run cmd/getenvoy/main.go fetch standard:1.12.7
+          go run cmd/getenvoy/main.go fetch standard:1.15.3
           make test
 
       - name: "Generate test coverage report"

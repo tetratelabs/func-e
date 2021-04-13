@@ -15,14 +15,14 @@
 package manifest
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
 
-	"github.com/pkg/errors"
 	"github.com/tetratelabs/log"
 
-	"github.com/tetratelabs/getenvoy-package/api"
+	"github.com/tetratelabs/getenvoy/api"
 	"github.com/tetratelabs/getenvoy/pkg/types"
 )
 
@@ -48,7 +48,7 @@ func GetURL() string {
 func SetURL(rawurl string) error {
 	otherURL, err := url.Parse(rawurl)
 	if err != nil || otherURL.Host == "" || otherURL.Scheme == "" {
-		return errors.Errorf("%q is not a valid manifest URL", rawurl)
+		return fmt.Errorf("%q is not a valid manifest URL", rawurl)
 	}
 	manifestURL = otherURL
 	return nil

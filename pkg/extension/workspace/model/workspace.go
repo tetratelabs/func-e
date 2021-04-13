@@ -15,11 +15,11 @@
 package model
 
 import (
+	"fmt"
 	"path/filepath"
 
-	"github.com/pkg/errors"
+	"gopkg.in/yaml.v3"
 
-	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/fs"
 )
@@ -50,17 +50,17 @@ func getExtensionDescriptor(dir fs.WorkspaceDir) (*extension.Descriptor, error) 
 	path := DescriptorFile
 	data, err := dir.ReadFile(path)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read extension descriptor: %s", dir.Abs(path))
+		return nil, fmt.Errorf("failed to read extension descriptor %s: %w", dir.Abs(path), err)
 	}
 	descriptor := extension.NewExtensionDescriptor()
-	err = config.Unmarshal(data, descriptor)
+	err = yaml.Unmarshal(data, descriptor)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to unmarshal extension descriptor: %s", dir.Abs(path))
+		return nil, fmt.Errorf("failed to unmarshal extension descriptor %s: %w", dir.Abs(path), err)
 	}
 	descriptor.Default()
 	err = descriptor.Validate()
 	if err != nil {
-		return nil, errors.Wrapf(err, "extension descriptor is not valid: %s", dir.Abs(path))
+		return nil, fmt.Errorf("extension descriptor is not valid %s: %w", dir.Abs(path), err)
 	}
 	return descriptor, nil
 }
@@ -160,7 +160,7 @@ func (w workspace) RemoveExample(exampleName string, opts ...RemoveOption) error
 func (w workspace) readFile(path string) (*File, error) {
 	data, err := w.dir.ReadFile(path)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read: %s", w.dir.Abs(path))
+		return nil, fmt.Errorf("failed to read %s: %w", w.dir.Abs(path), err)
 	}
 	return &File{Source: w.dir.Abs(path), Content: data}, nil
 }
@@ -168,7 +168,7 @@ func (w workspace) readFile(path string) (*File, error) {
 func (w workspace) writeFile(path string, data []byte) error {
 	err := w.dir.WriteFile(path, data)
 	if err != nil {
-		return errors.Wrapf(err, "failed to write: %s", w.dir.Abs(path))
+		return fmt.Errorf("failed to write %s: %w", w.dir.Abs(path), err)
 	}
 	return nil
 }
@@ -176,7 +176,7 @@ func (w workspace) writeFile(path string, data []byte) error {
 func (w workspace) removeAll(path string) error {
 	err := w.dir.RemoveAll(path)
 	if err != nil {
-		return errors.Wrapf(err, "failed to remove: %s", w.dir.Abs(path))
+		return fmt.Errorf("failed to remove %s: %w", w.dir.Abs(path), err)
 	}
 	return nil
 }

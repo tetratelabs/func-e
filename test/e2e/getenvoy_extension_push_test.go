@@ -16,7 +16,7 @@ package e2e_test
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -97,7 +97,7 @@ digest: sha256`, defaultTag, imageRef), `unexpected stderr after running [%v]`, 
 			require.FileExists(t, dstPath, `image not written after running [%v]`, c)
 
 			// Verify the bytes pulled are exactly the same as what we pushed.
-			pulledBytes, err := ioutil.ReadFile(dstPath)
+			pulledBytes, err := os.ReadFile(dstPath)
 			require.NoError(t, err, `error reading file wasm %s after running [%v]`, dstPath, c)
 			require.NotEmpty(t, wasmBytes, `%s empty after running [%v]`, dstPath, c)
 			require.Equal(t, wasmBytes, pulledBytes, `pulled bytes don't match source after running [%v]`, c)

@@ -20,7 +20,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLocate(t *testing.T) {
@@ -34,22 +34,22 @@ func TestLocate(t *testing.T) {
 		wantErr            bool
 	}{
 		{
-			name:               "standard 1.12.7 linux-glibc matches",
-			reference:          "standard:1.12.7/linux-glibc",
-			want:               "standard:1.12.7/linux-glibc",
+			name:               "standard 1.15.3 linux-glibc matches",
+			reference:          "standard:1.15.3/linux-glibc",
+			want:               "standard:1.15.3/linux-glibc",
 			responseStatusCode: http.StatusOK,
 		},
 		{
 			name:               "@ uses env var",
 			reference:          "@",
-			envVar:             "standard:1.12.7/linux-glibc",
-			want:               "standard:1.12.7/linux-glibc",
+			envVar:             "standard:1.15.3/linux-glibc",
+			want:               "standard:1.15.3/linux-glibc",
 			responseStatusCode: http.StatusOK,
 		},
 		{
-			name:               "standard 1.12.7 matches",
-			reference:          "standard:1.12.7",
-			want:               fmt.Sprintf("standard:1.12.7/%v", platform()),
+			name:               "standard 1.15.3 matches",
+			reference:          "standard:1.15.3",
+			want:               fmt.Sprintf("standard:1.15.3/%v", platform()),
 			responseStatusCode: http.StatusOK,
 		},
 		{
@@ -66,7 +66,7 @@ func TestLocate(t *testing.T) {
 		},
 		{
 			name:               "Error if not found",
-			reference:          "notaFlavor:1.12.7/notaPlatform",
+			reference:          "notaFlavor:1.15.3/notaPlatform",
 			responseStatusCode: http.StatusOK,
 			wantErr:            true,
 		},
@@ -77,7 +77,7 @@ func TestLocate(t *testing.T) {
 		},
 		{
 			name:               "Error on failed fetch",
-			reference:          "standard:1.12.7",
+			reference:          "standard:1.15.3",
 			responseStatusCode: http.StatusTeapot,
 			wantErr:            true,
 		},
@@ -93,21 +93,21 @@ func TestLocate(t *testing.T) {
 			}
 			defer func(originalURL string) {
 				err := SetURL(originalURL)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}(GetURL())
 			err := SetURL(location)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			if len(tc.envVar) > 0 {
 				os.Setenv(referenceEnv, tc.envVar)
 				defer os.Unsetenv(referenceEnv)
 			}
 			key, _ := NewKey(tc.reference)
 			if got, err := Locate(key); tc.wantErr {
-				assert.Error(t, err)
-				assert.Equal(t, "", got)
+				require.Error(t, err)
+				require.Equal(t, "", got)
 			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, tc.want, got)
+				require.NoError(t, err)
+				require.Equal(t, tc.want, got)
 			}
 		})
 	}
@@ -134,11 +134,11 @@ func TestNewKey(t *testing.T) {
 		t.Run(tc.reference, func(t *testing.T) {
 			got, err := NewKey(tc.reference)
 			if tc.wantErr {
-				assert.Error(t, err)
-				assert.Nil(t, got)
+				require.Error(t, err)
+				require.Nil(t, got)
 			} else {
-				assert.Nil(t, err)
-				assert.Equal(t, tc.want, got)
+				require.Nil(t, err)
+				require.Equal(t, tc.want, got)
 			}
 		})
 	}

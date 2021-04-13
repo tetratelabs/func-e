@@ -15,15 +15,12 @@
 package registry
 
 import (
-	"io/ioutil"
-	"net/http"
-	"os"
+	"fmt"
+	"io"
+	"io/fs"
 	"path"
 	"path/filepath"
 	"strings"
-
-	"github.com/pkg/errors"
-	"github.com/shurcooL/httpfs/vfsutil"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
@@ -38,7 +35,7 @@ type registry interface {
 // fsRegistry represents a registry of example templates backed by
 // an in-memory file system.
 type fsRegistry struct {
-	fs           http.FileSystem
+	fs           fs.FS
 	namingScheme func(category extension.Category, example string) string
 }
 
@@ -46,15 +43,15 @@ func (r *fsRegistry) Get(descriptor *extension.Descriptor, example string) (*Ent
 	dirName := r.namingScheme(descriptor.Category, example)
 	dir, err := r.fs.Open(dirName)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to open: %s", dirName)
+		return nil, fmt.Errorf(`failed to open %q: %w`, dirName, err)
 	}
 	defer dir.Close() //nolint:errcheck
 	info, err := dir.Stat()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to stat: %s", dirName)
+		return nil, fmt.Errorf(`failed to stat %q: %w`, dirName, err)
 	}
 	if !info.IsDir() {
-		return nil, errors.Errorf("%q is not a directory", dirName)
+		return nil, fmt.Errorf(`%q is not a directory: %w`, dirName, err)
 	}
 
 	return &Entry{
@@ -66,7 +63,7 @@ func (r *fsRegistry) Get(descriptor *extension.Descriptor, example string) (*Ent
 			// Add language independent files
 			fileNames, err := listFiles(r.fs, dirName)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to list files in a directory: %s", dirName)
+				return nil, fmt.Errorf(`failed to list files in a directory %q: %w`, dirName, err)
 			}
 			for _, fileName := range fileNames {
 				err = r.addFile(fileSet, dirName, fileName, descriptor.Language)
@@ -76,10 +73,10 @@ func (r *fsRegistry) Get(descriptor *extension.Descriptor, example string) (*Ent
 			}
 
 			// Add language specific files
-			languageDir := path.Join("/language-specific", descriptor.Language.String())
+			languageDir := path.Join("language-specific", descriptor.Language.String())
 			fileNames, err = listFiles(r.fs, languageDir)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to list files in a directory: %s", dirName)
+				return nil, fmt.Errorf(`failed to list files in a directory %q: %w`, dirName, err)
 			}
 			for _, fileName := range fileNames {
 				err = r.addFile(fileSet, languageDir, fileName, descriptor.Language)
@@ -95,12 +92,12 @@ func (r *fsRegistry) Get(descriptor *extension.Descriptor, example string) (*Ent
 func (r *fsRegistry) addFile(fileSet model.FileSet, dirName, fileName string, language extension.Language) error {
 	file, err := r.fs.Open(fileName)
 	if err != nil {
-		return errors.Wrapf(err, "failed to open: %s", fileName)
+		return fmt.Errorf(`failed to open %q: %w`, dirName, err)
 	}
 	defer file.Close() //nolint:errcheck
-	data, err := ioutil.ReadAll(file)
+	data, err := io.ReadAll(file)
 	if err != nil {
-		return errors.Wrapf(err, "failed to read: %s", fileName)
+		return fmt.Errorf(`failed to read %q: %w`, fileName, err)
 	}
 	relPath, err := filepath.Rel(dirName, fileName)
 	if err != nil {
@@ -125,13 +122,13 @@ func (r *fsRegistry) addFile(fileSet model.FileSet, dirName, fileName string, la
 	return nil
 }
 
-func listFiles(fs http.FileSystem, root string) ([]string, error) {
+func listFiles(f fs.FS, root string) ([]string, error) {
 	fileNames := make([]string, 0)
-	err := vfsutil.Walk(fs, root, func(path string, info os.FileInfo, err error) error {
+	err := fs.WalkDir(f, root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if info.IsDir() {
+		if d.IsDir() {
 			return nil
 		}
 		fileNames = append(fileNames, path)

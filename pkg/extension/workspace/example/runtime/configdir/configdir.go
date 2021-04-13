@@ -15,13 +15,13 @@
 package configdir
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	envoybootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
-	"github.com/pkg/errors"
 	"github.com/tetratelabs/multierror"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/manager"
@@ -155,7 +155,7 @@ func (d *configDir) process() error {
 func (d *configDir) newExpandContext() (*template.ExpandContext, error) {
 	wasmFile, err := filepath.Abs(d.ctx.Opts.Extension.WasmFile)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to resolve absolute path of a *.wasm file %q", d.ctx.Opts.Extension.WasmFile)
+		return nil, fmt.Errorf("failed to resolve absolute path of a *.wasm file %q: %w", d.ctx.Opts.Extension.WasmFile, err)
 	}
 	configuration := string(d.ctx.Opts.GetExtensionConfig().Content)
 
@@ -180,11 +180,11 @@ func (d *configDir) processEnvoyXdsFile(fileName string, expandContext *template
 	return d.writeFile(fileName, content)
 }
 
-// processEnvoyTemplate resolves placehoders in an Envoy config file.
+// processEnvoyTemplate resolves placeholders in an Envoy config file.
 func (d *configDir) processEnvoyTemplate(configFile *model.File, expandContext *template.ExpandContext) ([]byte, error) {
 	config, err := template.Expand(configFile.Content, expandContext)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to process Envoy config template coming from %q", configFile.Source)
+		return nil, fmt.Errorf("failed to process Envoy config template coming from %q: %w", configFile.Source, err)
 	}
 	return config, nil
 }
@@ -194,8 +194,8 @@ func (d *configDir) writeFile(fileName string, data []byte) error {
 	if err := osutil.EnsureDirExists(filepath.Dir(outputFile)); err != nil {
 		return err
 	}
-	if err := ioutil.WriteFile(outputFile, data, 0600); err != nil {
-		return errors.Wrapf(err, "failed to write config file to %q", outputFile)
+	if err := os.WriteFile(outputFile, data, 0600); err != nil {
+		return fmt.Errorf("failed to write config file to %q: %w", outputFile, err)
 	}
 	return nil
 }

@@ -21,9 +21,9 @@ import (
 	"sort"
 	"text/tabwriter"
 
-	"github.com/golang/protobuf/jsonpb"
+	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/tetratelabs/getenvoy-package/api"
+	"github.com/tetratelabs/getenvoy/api"
 	"github.com/tetratelabs/getenvoy/pkg/transport"
 	"github.com/tetratelabs/getenvoy/pkg/types"
 )
@@ -54,19 +54,25 @@ func fetch(url string) (*api.Manifest, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close() //nolint
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("received %v response code from %v", resp.StatusCode, url)
 	}
-	defer resp.Body.Close() //nolint
+	body, err := io.ReadAll(resp.Body) // fully read the response
+	if err != nil {
+		return nil, fmt.Errorf("error reading %s: %w", url, err)
+	}
+
 	result := api.Manifest{}
-	if err := jsonpb.Unmarshal(resp.Body, &result); err != nil {
-		return nil, fmt.Errorf("error unmarshalling manifest: %v", err)
+	if err := protojson.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("error unmarshalling manifest: %w", err)
 	}
 	return &result, nil
 }
 
 func deterministicFlavors(flavors map[string]*api.Flavor) []*api.Flavor {
-	flavorList := []*api.Flavor{}
+	flavorList := make([]*api.Flavor, 0, len(flavors))
 	for _, flavor := range flavors {
 		flavorList = append(flavorList, flavor)
 	}
@@ -77,11 +83,10 @@ func deterministicFlavors(flavors map[string]*api.Flavor) []*api.Flavor {
 }
 
 func deterministicVersions(versions map[string]*api.Version) []*api.Version {
-	versionList := []*api.Version{}
+	versionList := make([]*api.Version, 0, len(versions))
 	for _, version := range versions {
 		versionList = append(versionList, version)
 	}
-
 	sort.Slice(versionList, func(i, j int) bool {
 		// Note: version is reverse alphabetical so that newer versions are first
 		return versionList[i].Name > versionList[j].Name
@@ -90,9 +95,9 @@ func deterministicVersions(versions map[string]*api.Version) []*api.Version {
 }
 
 func deterministicBuilds(builds map[string]*api.Build) []*api.Build {
-	buildList := []*api.Build{}
-	for _, flavor := range builds {
-		buildList = append(buildList, flavor)
+	buildList := make([]*api.Build, 0, len(builds))
+	for _, build := range builds {
+		buildList = append(buildList, build)
 	}
 	sort.Slice(buildList, func(i, j int) bool {
 		// Note: build is reverse alphabetical so that Linux versions are before Darwin

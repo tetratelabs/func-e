@@ -16,7 +16,7 @@ package example_test
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -170,7 +170,7 @@ Done!
 
 			// Check README substitution: ${EXTENSION_CONFIG_FILE_NAME} must be replaced with "extension.json".
 			readmePath := filepath.Join(exampleDir, `README.md`)
-			data, err := ioutil.ReadFile(readmePath)
+			data, err := os.ReadFile(readmePath)
 			require.NoError(t, err, `expected no error reading README.md file: %s`, readmePath)
 
 			// Check one variable, noting that EXTENSION_CONFIG_FILE_NAME is language specific.

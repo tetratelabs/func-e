@@ -16,15 +16,15 @@ package manifest
 
 import (
 	"bytes"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy-package/api"
+	"github.com/tetratelabs/getenvoy/api"
 )
 
 func TestPrint(t *testing.T) {
@@ -51,17 +51,17 @@ func TestPrint(t *testing.T) {
 			}
 			defer func(originalURL string) {
 				err := SetURL(originalURL)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}(GetURL())
 			err := SetURL(location)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			if err := Print(got); tc.wantErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
-			want, _ := ioutil.ReadFile(filepath.Join("testdata", tc.wantOutputFile))
-			assert.Equal(t, string(want), got.String())
+			want, _ := os.ReadFile(filepath.Join("testdata", tc.wantOutputFile))
+			require.Equal(t, string(want), got.String())
 		})
 	}
 }
@@ -99,11 +99,12 @@ func TestFetch(t *testing.T) {
 			mock := mockServer(tc.responseStatusCode, tc.responseManifestFile)
 			defer mock.Close()
 			got, err := fetch(mock.URL)
-			assert.Equal(t, tc.want, got)
+			// Use prototext comparison to avoid comparing internal state
+			require.Equal(t, tc.want.String(), got.String())
 			if tc.wantErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -113,7 +114,7 @@ func mockServer(responseStatusCode int, responseManifestFile string) *httptest.S
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(responseStatusCode)
 		if responseStatusCode == http.StatusOK {
-			b, _ := ioutil.ReadFile(filepath.Join("testdata", responseManifestFile))
+			b, _ := os.ReadFile(filepath.Join("testdata", responseManifestFile))
 			w.Write(b)
 		}
 	}))
@@ -127,16 +128,16 @@ func goodManifest() *api.Manifest {
 				Name:          "standard",
 				FilterProfile: "standard",
 				Versions: map[string]*api.Version{
-					"1.12.7": {
-						Name: "1.12.7",
+					"1.15.3": {
+						Name: "1.15.3",
 						Builds: map[string]*api.Build{
 							api.Build_LINUX_GLIBC.String(): {
 								Platform:            api.Build_LINUX_GLIBC,
-								DownloadLocationUrl: "standard:1.12.7/linux-glibc",
+								DownloadLocationUrl: "standard:1.15.3/linux-glibc",
 							},
 							api.Build_DARWIN.String(): {
 								Platform:            api.Build_DARWIN,
-								DownloadLocationUrl: "standard:1.12.7/darwin",
+								DownloadLocationUrl: "standard:1.15.3/darwin",
 							},
 						},
 					},

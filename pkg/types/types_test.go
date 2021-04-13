@@ -29,19 +29,19 @@ func TestParseReference(t *testing.T) {
 		expected Reference
 	}{
 		{
-			name:     "standard:1.12.7",
-			input:    `standard:1.12.7`,
-			expected: Reference{Flavor: "standard", Version: "1.12.7", Platform: ""},
+			name:     "standard:1.15.3",
+			input:    `standard:1.15.3`,
+			expected: Reference{Flavor: "standard", Version: "1.15.3", Platform: ""},
 		},
 		{
-			name:     "standard:1.12.7/darwin",
-			input:    `standard:1.12.7/darwin`,
-			expected: Reference{Flavor: "standard", Version: "1.12.7", Platform: "darwin"},
+			name:     "standard:1.15.3/darwin",
+			input:    `standard:1.15.3/darwin`,
+			expected: Reference{Flavor: "standard", Version: "1.15.3", Platform: "darwin"},
 		},
 		{
-			name:     "standard:1.12.7/linux-glibc",
-			input:    `standard:1.12.7/linux-glibc`,
-			expected: Reference{Flavor: "standard", Version: "1.12.7", Platform: "linux-glibc"},
+			name:     "standard:1.15.3/linux-glibc",
+			input:    `standard:1.15.3/linux-glibc`,
+			expected: Reference{Flavor: "standard", Version: "1.15.3", Platform: "linux-glibc"},
 		},
 		{
 			name:     "wasm:1.15",
@@ -65,8 +65,8 @@ func TestParseReference(t *testing.T) {
 		},
 		{
 			name:     "trailing slash",
-			input:    `standard:1.12.7/`,
-			expected: Reference{Flavor: "standard", Version: "1.12.7", Platform: ""},
+			input:    `standard:1.15.3/`,
+			expected: Reference{Flavor: "standard", Version: "1.15.3", Platform: ""},
 		},
 		{
 			name:     "special characters",
@@ -104,8 +104,8 @@ func TestParseReferenceValidatesInput(t *testing.T) {
 		},
 		{
 			name:        "no flavor",
-			input:       `:1.12.7/darwin`,
-			expectedErr: `":1.12.7/darwin" is not a valid GetEnvoy reference. Expected format: <flavor>:<version>[/<platform>]`,
+			input:       `:1.15.3/darwin`,
+			expectedErr: `":1.15.3/darwin" is not a valid GetEnvoy reference. Expected format: <flavor>:<version>[/<platform>]`,
 		},
 		{
 			name:        "no version",
@@ -114,8 +114,8 @@ func TestParseReferenceValidatesInput(t *testing.T) {
 		},
 		{
 			name:        "invalid character in flavor",
-			input:       `stan dard:1.12.7/darwin`,
-			expectedErr: `"stan dard:1.12.7/darwin" is not a valid GetEnvoy reference. Expected format: <flavor>:<version>[/<platform>]`,
+			input:       `stan dard:1.15.3/darwin`,
+			expectedErr: `"stan dard:1.15.3/darwin" is not a valid GetEnvoy reference. Expected format: <flavor>:<version>[/<platform>]`,
 		},
 	}
 
@@ -136,16 +136,16 @@ func TestParseReferenceNormalizesStringForm(t *testing.T) {
 		expected string
 	}{
 		{
-			input:    `standard:1.12.7`,
-			expected: `standard:1.12.7`,
+			input:    `standard:1.15.3`,
+			expected: `standard:1.15.3`,
 		},
 		{
-			input:    `standard:1.12.7/darwin`,
-			expected: `standard:1.12.7/darwin`,
+			input:    `standard:1.15.3/darwin`,
+			expected: `standard:1.15.3/darwin`,
 		},
 		{
-			input:    `standard:1.12.7/`,
-			expected: `standard:1.12.7`,
+			input:    `standard:1.15.3/`,
+			expected: `standard:1.15.3`,
 		},
 	}
 

@@ -15,11 +15,9 @@
 package fs
 
 import (
-	"io/ioutil"
+	"fmt"
 	"os"
 	"path/filepath"
-
-	"github.com/pkg/errors"
 
 	osutil "github.com/tetratelabs/getenvoy/pkg/util/os"
 )
@@ -49,7 +47,7 @@ func (d workspaceDir) HasFile(path string) (bool, error) {
 
 func (d workspaceDir) ReadFile(path string) ([]byte, error) {
 	path = d.Abs(path)
-	return ioutil.ReadFile(filepath.Clean(path))
+	return os.ReadFile(filepath.Clean(path))
 }
 
 func (d workspaceDir) WriteFile(path string, data []byte) error {
@@ -57,7 +55,7 @@ func (d workspaceDir) WriteFile(path string, data []byte) error {
 	if err := osutil.EnsureDirExists(filepath.Dir(path)); err != nil {
 		return err
 	}
-	return ioutil.WriteFile(path, data, 0600)
+	return os.WriteFile(path, data, 0600)
 }
 
 func (d workspaceDir) HasDir(path string) (bool, error) {
@@ -66,7 +64,7 @@ func (d workspaceDir) HasDir(path string) (bool, error) {
 
 func (d workspaceDir) ListDirs(path string) ([]string, error) {
 	path = d.Abs(path)
-	infos, err := ioutil.ReadDir(path)
+	infos, err := os.ReadDir(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
@@ -127,14 +125,14 @@ func (d workspaceDir) hasFile(path string, test func(string, os.FileInfo) error)
 
 func isRegularFile(path string, info os.FileInfo) error {
 	if !info.Mode().IsRegular() {
-		return errors.Errorf("unexpected file type: expected a regular file at a given path: %s", path)
+		return fmt.Errorf("unexpected file type: expected a regular file at a given path: %s", path)
 	}
 	return nil
 }
 
 func isDir(path string, info os.FileInfo) error {
 	if !info.Mode().IsDir() {
-		return errors.Errorf("unexpected file type: expected a directory at a given path: %s", path)
+		return fmt.Errorf("unexpected file type: expected a directory at a given path: %s", path)
 	}
 	return nil
 }

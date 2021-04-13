@@ -17,7 +17,6 @@ package wasmimage
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -51,7 +50,7 @@ func newWasmImage(ref, path string) (*wasmImage, error) {
 
 	name := filepath.Base(path)
 
-	contents, err := ioutil.ReadFile(filepath.Clean(path))
+	contents, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read %#v: %w", path, err)
 	}

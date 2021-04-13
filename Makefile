@@ -18,7 +18,7 @@
 # bingo manages go binaries needed for building the project
 include .bingo/Variables.mk
 
-ENVOY = standard:1.11.1
+ENVOY = standard:1.15.3
 HUB ?= docker.io/getenvoy
 GETENVOY_TAG ?= dev
 BUILDERS_LANGS := rust tinygo
@@ -164,6 +164,15 @@ $(foreach lang,$(BUILDERS_LANGS),$(eval $(call GEN_PULL_EXTENSION_BUILDER_IMAGE_
 .PHONY: builders.pull
 builders.pull: $(foreach lang,$(BUILDERS_LANGS), pull/builder/$(lang))
 
+.PHONY: api
+api: api/manifest.proto $(BUF) $(PROTOC_GEN_GO)
+	@echo "--- api ---"
+	@rm api/*.go
+	@$(BUF) protoc \
+		--plugin=protoc-gen-go=$(PROTOC_GEN_GO) \
+		--go_out=paths=source_relative:. \
+		api/manifest.proto
+
 ##@ Code quality and integrity
 
 LINT_OPTS ?= --timeout 5m
@@ -190,7 +199,6 @@ format: $(GOIMPORTS) $(SHFMT) ## Format all Go code
 	    $(GOIMPORTS) -w -local github.com/tetratelabs/getenvoy $$f; \
 	done
 
-
 # Enforce go version matches what's in go.mod when running `make check` assuming the following:
 # * 'go version' returns output like "go version go1.16 darwin/amd64"
 # * go.mod contains a line like "go 1.16"
@@ -204,6 +212,7 @@ check:  ## CI blocks merge until this passes. If this fails, run "make check" lo
 		echo "Expected 'go version' to start with $(EXPECTED_GO_VERSION_PREFIX), but it didn't: $(GO_VERSION)"; \
 		exit 1; \
 	esac
+	@$(MAKE) api
 	@$(MAKE) lint
 	@$(MAKE) format
 	@go mod tidy

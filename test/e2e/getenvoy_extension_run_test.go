@@ -15,7 +15,6 @@
 package e2e_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -106,7 +105,7 @@ func TestGetEnvoyExtensionRun(t *testing.T) {
 			}
 
 			// verify the debug dump of Envoy state has been taken
-			files, err := ioutil.ReadDir(debugDir)
+			files, err := os.ReadDir(debugDir)
 			require.NoError(t, err, `error reading %s after stopping [%v]`, debugDir, c)
 			require.Equal(t, 1, len(files), `expected 1 file in %s after stopping [%v]`, debugDir, c)
 			defer func() {

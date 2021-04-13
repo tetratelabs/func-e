@@ -23,12 +23,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
 	"github.com/mholt/archiver/v3"
-	"github.com/pkg/errors"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 
-	"github.com/tetratelabs/getenvoy-package/api"
+	"github.com/tetratelabs/getenvoy/api"
 )
 
 const (
@@ -108,16 +107,16 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) GetManifest() ([]byte, error) {
-	data, err := new(jsonpb.Marshaler).MarshalToString(s.manifest)
+	data, err := protojson.Marshal(s.manifest)
 	if err != nil {
 		return nil, err
 	}
-	return []byte(data), nil
+	return data, nil
 }
 
 func (s *server) GetArtifact(uri string) ([]byte, error) {
 	if !strings.HasSuffix(uri, archiveFormat) {
-		return nil, errors.Errorf("unexpected uri %q: expected archive suffix %q", uri, archiveFormat)
+		return nil, fmt.Errorf("unexpected uri %q: expected archive suffix %q", uri, archiveFormat)
 	}
 	uri = uri[:len(uri)-len(archiveFormat)]
 	dir, err := s.opts.GetArtifactDir(uri)
@@ -134,7 +133,7 @@ func (s *server) GetArtifact(uri string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ioutil.ReadFile(filepath.Clean(tarFile))
+	return os.ReadFile(filepath.Clean(tarFile))
 }
 
 func (s *server) rewriteManifestURLs(manifest *api.Manifest) {

@@ -16,12 +16,12 @@ package builtin
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 
-	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 )
 
@@ -34,7 +34,7 @@ func TestDefaultConfigForValidate(t *testing.T) {
 
 	tests := make([]testCase, len(extension.Languages))
 	for i, lang := range extension.Languages {
-		expected, err := ioutil.ReadFile(fmt.Sprintf("testdata/default_config/%s.toolchain.yaml", lang))
+		expected, err := os.ReadFile(fmt.Sprintf("testdata/default_config/%s.toolchain.yaml", lang))
 		if err != nil {
 			panic(fmt.Errorf("missing default config for language %s: %w", lang, err))
 		}
@@ -50,7 +50,7 @@ func TestDefaultConfigForValidate(t *testing.T) {
 			err := cfg.Validate()
 			require.NoError(t, err)
 
-			actual, err := config.Marshal(cfg)
+			actual, err := yaml.Marshal(cfg)
 			require.NoError(t, err)
 			require.YAMLEq(t, test.expected, string(actual))
 		})

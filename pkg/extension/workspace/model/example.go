@@ -15,9 +15,10 @@
 package model
 
 import (
-	"github.com/pkg/errors"
+	"fmt"
 
-	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config"
+	"gopkg.in/yaml.v3"
+
 	exampleconfig "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/example"
 )
 
@@ -31,7 +32,7 @@ var (
 // NewExample returns a new Example that consists of a given set of files.
 func NewExample(files ImmutableFileSet) (Example, error) {
 	if !files.Has(exampleDescriptorFile) {
-		return nil, errors.Errorf("extension descriptor file %q is missing", exampleDescriptorFile)
+		return nil, fmt.Errorf("extension descriptor file %q is missing", exampleDescriptorFile)
 	}
 	descriptor, err := parseExampleDescriptor(files.Get(exampleDescriptorFile))
 	if err != nil {
@@ -42,24 +43,24 @@ func NewExample(files ImmutableFileSet) (Example, error) {
 		descriptor: descriptor,
 	}
 	if _, file := exampl.GetEnvoyConfig(); file == nil {
-		return nil, errors.Errorf("Envoy bootstrap config file is missing: every example must include one of %v", exampleEnvoyBootstrapFileAltNames)
+		return nil, fmt.Errorf("Envoy bootstrap config file is missing: every example must include one of %v", exampleEnvoyBootstrapFileAltNames)
 	}
 	if _, file := exampl.GetExtensionConfig(); file == nil {
-		return nil, errors.Errorf("extension config file is missing: every example must include one of %v", exampleExtensionConfigFileAltNames)
+		return nil, fmt.Errorf("extension config file is missing: every example must include one of %v", exampleExtensionConfigFileAltNames)
 	}
 	return exampl, nil
 }
 
 func parseExampleDescriptor(file *File) (*exampleconfig.Descriptor, error) {
 	descriptor := exampleconfig.NewExampleDescriptor()
-	err := config.Unmarshal(file.Content, descriptor)
+	err := yaml.Unmarshal(file.Content, descriptor)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to unmarshal example descriptor: %s", file.Source)
+		return nil, fmt.Errorf("failed to unmarshal example descriptor %s: %w", file.Source, err)
 	}
 	descriptor.Default()
 	err = descriptor.Validate()
 	if err != nil {
-		return nil, errors.Wrapf(err, "example descriptor is not valid: %s", file.Source)
+		return nil, fmt.Errorf("example descriptor is not valid %s: %w", file.Source, err)
 	}
 	return descriptor, nil
 }
