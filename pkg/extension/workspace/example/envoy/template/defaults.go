@@ -15,11 +15,12 @@
 package template
 
 import (
+	"fmt"
+
 	envoybootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
 	envoycore "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes/wrappers"
-	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // List of properties supported by the {{ .GetEnvoy.DefaultValue "<property>" }} placeholder.
@@ -56,21 +57,21 @@ func (e *getEnvoy) DefaultValue(property string) (getEnvoyValue, error) {
 		case propAdmin:
 			return defaultAdmin(), nil
 		case propAdminAccessLogPath:
-			return &wrappers.StringValue{
+			return &wrapperspb.StringValue{
 				Value: defaultAdmin().GetAccessLogPath(),
 			}, nil
 		case propAdminAddress:
 			return defaultAdmin().GetAddress(), nil
 		case propAdminAddressSocketAddress:
-			return &wrappers.StringValue{
+			return &wrapperspb.StringValue{
 				Value: defaultAdmin().GetAddress().GetSocketAddress().GetAddress(),
 			}, nil
 		case propAdminAddressSocketPort:
-			return &wrappers.UInt32Value{
+			return &wrapperspb.UInt32Value{
 				Value: defaultAdmin().GetAddress().GetSocketAddress().GetPortValue(),
 			}, nil
 		default:
-			return nil, errors.Errorf("unknown property %q", property)
+			return nil, fmt.Errorf("unknown property %q", property)
 		}
 	}
 	value, err := eval(property)

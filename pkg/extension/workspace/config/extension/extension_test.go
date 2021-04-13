@@ -57,10 +57,10 @@ func TestDescriptorValidateError(t *testing.T) {
 		{
 			name:        "empty",
 			input:       ``,
-			expectedErr: `4 errors occurred: extension name cannot be empty; extension category cannot be empty; programming language cannot be empty; runtime description is not valid: Envoy version cannot be empty`,
+			expectedErr: `4 errors occurred: extension name cannot be empty; extension category cannot be empty; programming language cannot be empty; runtime description is not valid: envoy version cannot be empty`,
 		},
 		{
-			name: "invalid Envoy version",
+			name: "invalid envoy version",
 			input: `#
 # Envoy Wasm extension created with getenvoy toolkit.
 #
@@ -76,7 +76,7 @@ runtime:
   envoy:
     version: invalid value
 `,
-			expectedErr: `runtime description is not valid: Envoy version is not valid: "invalid value" is not a valid GetEnvoy reference. Expected format: <flavor>:<version>[/<platform>]`,
+			expectedErr: `runtime description is not valid: envoy version is not valid: "invalid value" is not a valid GetEnvoy reference. Expected format: <flavor>:<version>[/<platform>]`,
 		},
 		{
 			name: "missing extension name",

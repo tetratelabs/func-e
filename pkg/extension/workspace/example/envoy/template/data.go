@@ -15,12 +15,13 @@
 package template
 
 import (
+	"fmt"
+
 	envoycore "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/wrappers"
-	"github.com/pkg/errors"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // newExpandData creates a template data object for the Expand operation.
@@ -64,9 +65,9 @@ func (e *getEnvoy) Extension() *getEnvoyExtension {
 // Code handles {{ .GetEnvoy.Extension.Name }} pipeline.
 func (e *getEnvoyExtension) Name(modules ...string) (getEnvoyValue, error) {
 	if len(modules) > 0 {
-		return nil, errors.Errorf("unable to resolve Wasm module %v: not supported yet", modules)
+		return nil, fmt.Errorf("unable to resolve Wasm module %s: not supported yet", modules)
 	}
-	return wrap(&wrappers.StringValue{
+	return wrap(&wrapperspb.StringValue{
 		Value: e.ctx.DefaultExtension.GetDescriptor().Name,
 	})
 }
@@ -74,7 +75,7 @@ func (e *getEnvoyExtension) Name(modules ...string) (getEnvoyValue, error) {
 // Code handles {{ .GetEnvoy.Extension.Code }} pipeline.
 func (e *getEnvoyExtension) Code(modules ...string) (getEnvoyValue, error) {
 	if len(modules) > 0 {
-		return nil, errors.Errorf("unable to resolve Wasm module %v: not supported yet", modules)
+		return nil, fmt.Errorf("unable to resolve Wasm module %s: not supported yet", modules)
 	}
 	return wrap(&envoycore.AsyncDataSource{
 		Specifier: &envoycore.AsyncDataSource_Local{
@@ -90,9 +91,9 @@ func (e *getEnvoyExtension) Code(modules ...string) (getEnvoyValue, error) {
 // Config handles {{ .GetEnvoy.Extension.Config }} pipeline.
 func (e *getEnvoyExtension) Config(names ...string) (getEnvoyValue, error) {
 	if len(names) > 0 {
-		return nil, errors.Errorf("unable to resolve a named config %v: not supported yet", names)
+		return nil, fmt.Errorf("unable to resolve a named config %s: not supported yet", names)
 	}
-	any, err := ptypes.MarshalAny(&wrappers.StringValue{
+	any, err := anypb.New(&wrapperspb.StringValue{
 		Value: e.ctx.DefaultExtensionConfig,
 	})
 	if err != nil {
@@ -111,11 +112,11 @@ type getEnvoyValue interface {
 }
 
 func wrap(message proto.Message) (getEnvoyValue, error) {
-	json, err := new(jsonpb.Marshaler).MarshalToString(message)
+	json, err := protojson.Marshal(message)
 	if err != nil {
 		return nil, err
 	}
-	return &wrapper{message: message, json: json}, nil
+	return &wrapper{message: message, json: string(json)}, nil
 }
 
 // wrapper implements getEnvoyValue abstraction.

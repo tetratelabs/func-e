@@ -48,7 +48,6 @@ linters:
     - "gochecknoinits"
     - "gochecknoglobals"
     - "gomoddirectives"  # Istio 1.7 dependency conflicts prevent enabling this
-    - "staticcheck" # deprecated protobuf https://github.com/tetratelabs/getenvoy-package/issues/102
 
 # all available settings of specific linters
 linters-settings:

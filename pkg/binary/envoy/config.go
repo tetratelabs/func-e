@@ -20,7 +20,7 @@ import (
 	"os"
 	"path/filepath"
 
-	durationpb "github.com/golang/protobuf/ptypes/duration"
+	durationpb "google.golang.org/protobuf/types/known/durationpb"
 )
 
 // Mode is the mode Envoy should run in

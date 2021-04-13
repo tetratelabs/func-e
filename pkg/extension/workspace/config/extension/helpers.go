@@ -16,10 +16,11 @@ package extension
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/tetratelabs/multierror"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config"
@@ -56,7 +57,7 @@ var (
 func ParseCategory(text string) (Category, error) {
 	category, valid := categoryIndex[text]
 	if !valid {
-		return "", errors.Errorf("%q is not a valid extension category", text)
+		return "", fmt.Errorf("%q is not a valid extension category", text)
 	}
 	return category, nil
 }
@@ -96,7 +97,7 @@ var (
 func ParseLanguage(text string) (Language, error) {
 	language, valid := languageIndex[text]
 	if !valid {
-		return "", errors.Errorf("%q is not a valid programming language", text)
+		return "", fmt.Errorf("%q is not a valid programming language", text)
 	}
 	return language, nil
 }
@@ -124,7 +125,7 @@ var (
 // extension name.
 func ValidateExtensionName(text string) error {
 	if !referenceNameFormat.MatchString(text) {
-		return errors.Errorf("%q is not a valid extension name. Extension name must match the format %q."+
+		return fmt.Errorf("%q is not a valid extension name. Extension name must match the format %q."+
 			" E.g., 'mycompany.filters.http.custom_metrics'", text, referenceNameFormat)
 	}
 	return nil
@@ -170,7 +171,7 @@ func (d *Descriptor) Validate() (errs error) {
 		errs = multierror.Append(errs, errors.New("programming language cannot be empty"))
 	}
 	if err := d.Runtime.Validate(); err != nil {
-		errs = multierror.Append(errs, errors.Wrap(err, "runtime description is not valid"))
+		errs = multierror.Append(errs, fmt.Errorf("runtime description is not valid: %w", err))
 	}
 	return
 }
@@ -178,11 +179,11 @@ func (d *Descriptor) Validate() (errs error) {
 // Validate returns an error if Runtime is not valid.
 func (r *Runtime) Validate() (errs error) {
 	if r.Envoy.Version == "" {
-		errs = multierror.Append(errs, errors.New("Envoy version cannot be empty"))
+		errs = multierror.Append(errs, errors.New("envoy version cannot be empty"))
 	}
 	if r.Envoy.Version != "" {
 		if _, err := types.ParseReference(r.Envoy.Version); err != nil {
-			errs = multierror.Append(errs, errors.Wrap(err, "Envoy version is not valid"))
+			errs = multierror.Append(errs, fmt.Errorf("envoy version is not valid: %w", err))
 		}
 	}
 	return

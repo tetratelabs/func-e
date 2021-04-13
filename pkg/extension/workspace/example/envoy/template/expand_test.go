@@ -72,8 +72,8 @@ func TestExpand(t *testing.T) {
 		},
 		{
 			name:     "access to proto message",
-			input:    `{{ (.GetEnvoy.Extension.Code).Message.GetLocal.GetFilename }}`,
-			expected: `/path/to/extension.wasm`,
+			input:    `"{{ (.GetEnvoy.Extension.Code).Message.GetLocal.GetFilename }}"`,
+			expected: `"/path/to/extension.wasm"`,
 		},
 	}
 
@@ -95,7 +95,7 @@ func TestExpand(t *testing.T) {
 
 			actual, err := Expand([]byte(test.input), ctx)
 			require.NoError(t, err)
-			require.Equal(t, test.expected, string(actual))
+			require.JSONEq(t, test.expected, string(actual))
 		})
 	}
 }

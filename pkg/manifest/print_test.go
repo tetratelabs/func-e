@@ -22,9 +22,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy-package/api"
+	"github.com/tetratelabs/getenvoy/api"
 )
 
 func TestPrint(t *testing.T) {
@@ -51,17 +51,17 @@ func TestPrint(t *testing.T) {
 			}
 			defer func(originalURL string) {
 				err := SetURL(originalURL)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}(GetURL())
 			err := SetURL(location)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			if err := Print(got); tc.wantErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 			want, _ := ioutil.ReadFile(filepath.Join("testdata", tc.wantOutputFile))
-			assert.Equal(t, string(want), got.String())
+			require.Equal(t, string(want), got.String())
 		})
 	}
 }
@@ -99,11 +99,12 @@ func TestFetch(t *testing.T) {
 			mock := mockServer(tc.responseStatusCode, tc.responseManifestFile)
 			defer mock.Close()
 			got, err := fetch(mock.URL)
-			assert.Equal(t, tc.want, got)
+			// Use prototext comparison to avoid comparing internal state
+			require.Equal(t, tc.want.String(), got.String())
 			if tc.wantErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}

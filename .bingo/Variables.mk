@@ -13,10 +13,16 @@ GO     ?= $(shell which go)
 #
 #include .bingo/Variables.mk # Assuming -dir was set to .bingo .
 #
-#command: $(GOIMPORTS)
-#	@echo "Running goimports"
-#	@$(GOIMPORTS) <flags/args..>
+#command: $(BUF)
+#	@echo "Running buf"
+#	@$(BUF) <flags/args..>
 #
+BUF := $(GOBIN)/buf-v0.41.0
+$(BUF): $(BINGO_DIR)/buf.mod
+	@# Install binary/ries using Go 1.14+ build command. This is using bwplotka/bingo-controlled, separate go module with pinned dependencies.
+	@echo "(re)installing $(GOBIN)/buf-v0.41.0"
+	@cd $(BINGO_DIR) && $(GO) build -mod=mod -modfile=buf.mod -o=$(GOBIN)/buf-v0.41.0 "github.com/bufbuild/buf/cmd/buf"
+
 GOIMPORTS := $(GOBIN)/goimports-v0.1.0
 $(GOIMPORTS): $(BINGO_DIR)/goimports.mod
 	@# Install binary/ries using Go 1.14+ build command. This is using bwplotka/bingo-controlled, separate go module with pinned dependencies.
@@ -34,6 +40,12 @@ $(LICENSER): $(BINGO_DIR)/licenser.mod
 	@# Install binary/ries using Go 1.14+ build command. This is using bwplotka/bingo-controlled, separate go module with pinned dependencies.
 	@echo "(re)installing $(GOBIN)/licenser-v0.6.0"
 	@cd $(BINGO_DIR) && $(GO) build -mod=mod -modfile=licenser.mod -o=$(GOBIN)/licenser-v0.6.0 "github.com/liamawhite/licenser"
+
+PROTOC_GEN_GO := $(GOBIN)/protoc-gen-go-v1.26.0
+$(PROTOC_GEN_GO): $(BINGO_DIR)/protoc-gen-go.mod
+	@# Install binary/ries using Go 1.14+ build command. This is using bwplotka/bingo-controlled, separate go module with pinned dependencies.
+	@echo "(re)installing $(GOBIN)/protoc-gen-go-v1.26.0"
+	@cd $(BINGO_DIR) && $(GO) build -mod=mod -modfile=protoc-gen-go.mod -o=$(GOBIN)/protoc-gen-go-v1.26.0 "google.golang.org/protobuf/cmd/protoc-gen-go"
 
 SHFMT := $(GOBIN)/shfmt-v3.2.4
 $(SHFMT): $(BINGO_DIR)/shfmt.mod

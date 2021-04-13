@@ -963,8 +963,6 @@ github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5Cc
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/subosito/gotenv v1.2.0/go.mod h1:N0PQaV/YGNqwC0u51sEeR/aUtSLEXKX9iv69rRypqCw=
 github.com/syndtr/gocapability v0.0.0-20170704070218-db04d3cc01c8/go.mod h1:hkRG7XYTFWNJGYcbNJQlaLq0fg1yr4J4t/NcTQtrfww=
-github.com/tetratelabs/getenvoy-package v0.4.0 h1:MgIFtGj6SnLA405x+5i/FmWv3/E20lT5wKLkwtnt/U0=
-github.com/tetratelabs/getenvoy-package v0.4.0/go.mod h1:IrGJ2YZz3+qia1dEU9GFg3QieuMUUwiJf5tjG8uhogg=
 github.com/tetratelabs/log v0.0.0-20210323000454-90a3a3e141b5 h1:0EB6NF2qf74IIEc5P7KfOXUBZ0F8jMTb4+Z5e09z1G0=
 github.com/tetratelabs/log v0.0.0-20210323000454-90a3a3e141b5/go.mod h1:f/tP3FhNTKy6gn0QjYCXViykWjTHceFedy5O4xklKCE=
 github.com/tetratelabs/multierror v1.1.0 h1:cKmV/Pbf42K5wp8glxa2YIausbxIraPN8fzru9Pn1Cg=

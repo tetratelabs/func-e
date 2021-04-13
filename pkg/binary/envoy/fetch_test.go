@@ -23,7 +23,7 @@ import (
 	"testing"
 
 	"github.com/mholt/archiver/v3"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
@@ -105,16 +105,16 @@ func TestRuntime_Fetch(t *testing.T) {
 			r := &Runtime{fetcher: fetcher{tmpDir}}
 			err := r.Fetch(tc.key, mock.URL+"/"+tc.tarballStructure+tc.tarExtension)
 			if tc.wantErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
-				assert.Nil(t, err)
+				require.Nil(t, err)
 				for _, location := range []string{libLocation, envoyLocation} {
 					f, _ := os.Open(location)
 					bytes, _ := ioutil.ReadAll(f)
-					assert.Contains(t, string(bytes), "some c++")
+					require.Contains(t, string(bytes), "some c++")
 				}
 			}
-			assert.Equal(t, tc.wantServerCalled, *gotCalled, "mismatch of expectations for calling of remote server")
+			require.Equal(t, tc.wantServerCalled, *gotCalled, "mismatch of expectations for calling of remote server")
 		})
 	}
 }

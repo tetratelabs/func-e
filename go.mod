@@ -22,8 +22,6 @@ require (
 	github.com/go-ole/go-ole v1.2.5 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
-	// TODO: https://github.com/tetratelabs/getenvoy-package/issues/102
-	github.com/golang/protobuf v1.5.2
 	github.com/golang/snappy v0.0.3 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
@@ -56,7 +54,6 @@ require (
 	github.com/shirou/gopsutil/v3 v3.21.3
 	github.com/spf13/cobra v1.1.3
 	github.com/stretchr/testify v1.7.0
-	github.com/tetratelabs/getenvoy-package v0.4.0
 	github.com/tetratelabs/log v0.0.0-20210323000454-90a3a3e141b5
 	github.com/tetratelabs/multierror v1.1.0
 	// Match data/extension/init/templates/tinygo/*/default/go.mod_ See RATIONALE.md for why
@@ -70,6 +67,7 @@ require (
 	golang.org/x/sys v0.0.0-20210403161142-5e06dd20ab57 // indirect
 	golang.org/x/term v0.0.0-20210406210042-72f3dc4e9b72 // indirect
 	google.golang.org/genproto v0.0.0-20210406143921-e86de6bf7a46 // indirect
+	google.golang.org/protobuf v1.26.0
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
@@ -89,6 +87,7 @@ require (
 replace (
 	// istio 1.7.8 deps
 	github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.7-0.20200730005029-803dd64f0468
+
 	google.golang.org/grpc => google.golang.org/grpc v1.29.1
 	istio.io/api => istio.io/api v0.0.0-20210128181506-0c4b8e54850f
 	istio.io/istio => istio.io/istio v0.0.0-20210223230603-30e54dcb8a1c
