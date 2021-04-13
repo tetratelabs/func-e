@@ -62,7 +62,7 @@ func (e *getEnvoy) Extension() *getEnvoyExtension {
 	return &e.getEnvoyExtension
 }
 
-// Code handles {{ .GetEnvoy.Extension.Name }} pipeline.
+// Name handles {{ .GetEnvoy.Extension.Name }} pipeline.
 func (e *getEnvoyExtension) Name(modules ...string) (getEnvoyValue, error) {
 	if len(modules) > 0 {
 		return nil, fmt.Errorf("unable to resolve Wasm module %s: not supported yet", modules)

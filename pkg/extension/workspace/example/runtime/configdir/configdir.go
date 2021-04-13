@@ -180,7 +180,7 @@ func (d *configDir) processEnvoyXdsFile(fileName string, expandContext *template
 	return d.writeFile(fileName, content)
 }
 
-// processEnvoyTemplate resolves placehoders in an Envoy config file.
+// processEnvoyTemplate resolves placeholders in an Envoy config file.
 func (d *configDir) processEnvoyTemplate(configFile *model.File, expandContext *template.ExpandContext) ([]byte, error) {
 	config, err := template.Expand(configFile.Content, expandContext)
 	if err != nil {

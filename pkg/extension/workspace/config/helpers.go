@@ -20,9 +20,9 @@ import (
 
 var (
 	// Marshal converts an object into its YAML representation.
-	Marshal func(interface{}) ([]byte, error) = yaml.Marshal
+	Marshal = yaml.Marshal
 	// Unmarshal converts YAML into an object.
-	Unmarshal func([]byte, interface{}) error = func(bytes []byte, i interface{}) error {
+	Unmarshal = func(bytes []byte, i interface{}) error {
 		return yaml.Unmarshal(bytes, i) // no opts
 	}
 )

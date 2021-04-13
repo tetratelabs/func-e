@@ -176,13 +176,13 @@ envoy args: -c %s/envoy.tmpl.yaml`,
 	require.Equal(t, expectedStdout+"\n", stdout.String(), `expected stdout running [%v]`, c)
 	require.Equal(t, "docker stderr\nenvoy stderr\n", stderr.String(), `expected stderr running [%v]`, c)
 
-	// Verify the placeholders envoy would have ran substituted, notably including the generated extension.wasm
-	expectedYaml := fmt.Sprintf(`'extension.name': "mycompany.filters.http.custom_metrics"
-'extension.code': {"local":{"filename":"%s/target/getenvoy/extension.wasm"}}
-'extension.config': {"@type":"type.googleapis.com/google.protobuf.StringValue", "value":"{\"key\":\"value\"}"}
-`, config.workspaceDir)
+	// Verify the placeholders envoy would have ran substituted, including generated extension.wasm and escaped config.
+	withoutSpace := expectedYAML(config.workspaceDir, false, `{"key":"value"}`)
+	withSpace := expectedYAML(config.workspaceDir, true, `{"key":"value"}`)
 	yaml := requirePlaceholdersYaml(t, config.envoyHome)
-	require.Equal(t, expectedYaml, yaml, `unexpected placeholders yaml after running [%v]`, c)
+	if withoutSpace != yaml {
+		require.Equal(t, yaml, withSpace, `unexpected placeholders yaml after running [%v]`, c)
+	}
 }
 
 // TestGetEnvoyExtensionRunDockerFail ensures docker failures show useful information in stderr
@@ -341,10 +341,29 @@ func TestGetEnvoyExtensionRunWithConfig(t *testing.T) {
 	// Verify the command invoked, passing the correct default commandline
 	require.NoError(t, err, `expected no error running [%v]`, c)
 
-	// Verify the placeholders envoy would have ran substituted, notably including the escaped config
-	yamlExtensionConfig := `'extension.config': {"@type":"type.googleapis.com/google.protobuf.StringValue", "value":"{\"key2\":\"value2\"}"}`
+	// Verify the placeholders envoy would have ran substituted, including generated extension.wasm and escaped config.
+	withoutSpace := expectedYAML(config.workspaceDir, false, `{"key2":"value2"}`)
+	withSpace := expectedYAML(config.workspaceDir, true, `{"key2":"value2"}`)
 	yaml := requirePlaceholdersYaml(t, config.envoyHome)
-	require.Contains(t, yaml, yamlExtensionConfig, `unexpected placeholders yaml after running [%v]`, c)
+	if withoutSpace != yaml {
+		require.Equal(t, yaml, withSpace, `unexpected placeholders yaml after running [%v]`, c)
+	}
+}
+
+// Google made json formatting (json.prepareNext) intentionally unstable, technically by adding a space randomly.
+// https://github.com/golang/protobuf/issues/920 requested an option for stability, but it was closed and locked.
+// https://github.com/golang/protobuf/issues/1121 remains open, but unlikely to change.
+// Hence, we have to check two possible formats via the shouldSpace parameter.
+func expectedYAML(workspaceDir string, shouldSpace bool, extensionConfigValue string) string {
+	space := ""
+	if shouldSpace {
+		space = " "
+	}
+	// Verify the placeholders envoy would have ran substituted, notably including the generated extension.wasm
+	return fmt.Sprintf(`'extension.name': "mycompany.filters.http.custom_metrics"
+'extension.code': {"local":{"filename":"%s/target/getenvoy/extension.wasm"}}
+'extension.config': {"@type":"type.googleapis.com/google.protobuf.StringValue",%s"value":%q}
+`, workspaceDir, space, extensionConfigValue)
 }
 
 func TestGetEnvoyExtensionRunCreatesExampleWhenMissing(t *testing.T) {
