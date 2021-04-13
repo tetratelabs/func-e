@@ -60,7 +60,7 @@ func fetch(url string) (*api.Manifest, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("received %v response code from %v", resp.StatusCode, url)
 	}
-	body, err := ioutil.ReadAll(resp.Body) // fully read the request
+	body, err := ioutil.ReadAll(resp.Body) // fully read the response
 	if err != nil {
 		return nil, fmt.Errorf("error reading %s: %w", url, err)
 	}
