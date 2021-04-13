@@ -15,7 +15,8 @@
 package builtin
 
 import (
-	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config"
+	"gopkg.in/yaml.v3"
+
 	builtinconfig "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/toolchain/builtin"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain/registry"
@@ -27,7 +28,7 @@ func init() {
 		Kind: builtinconfig.Kind,
 		LoadConfig: func(args registry.LoadConfigArgs) (types.ToolchainBuilder, error) {
 			cfg := builtinconfig.NewToolchainConfig()
-			if err := config.Unmarshal(args.Toolchain.Config.Content, cfg); err != nil {
+			if err := yaml.Unmarshal(args.Toolchain.Config.Content, cfg); err != nil {
 				return nil, err
 			}
 			extension := args.Workspace.GetExtensionDescriptor()

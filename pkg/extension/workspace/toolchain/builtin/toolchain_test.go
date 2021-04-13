@@ -24,9 +24,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
-	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config"
 	builtinconfig "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/toolchain/builtin"
 	. "github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain/builtin"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain/types"
@@ -277,7 +277,7 @@ func TestBuiltinToolchain(t *testing.T) {
 
 		t.Run(test.name, func(t *testing.T) {
 			var cfg builtinconfig.ToolchainConfig
-			err = config.Unmarshal([]byte(test.config), &cfg)
+			err = yaml.Unmarshal([]byte(test.config), &cfg)
 			require.NoError(t, err)
 
 			err = cfg.Validate()

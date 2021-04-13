@@ -25,47 +25,47 @@ const (
 
 // ToolchainConfig represents configuration of the built-in toolchain.
 type ToolchainConfig struct {
-	config.Meta `json:",inline"`
+	config.Meta `yaml:",inline"`
 	// Configuration of the default Docker build container.
-	Container *ContainerConfig `json:"container,omitempty"`
+	Container *ContainerConfig `yaml:"container,omitempty"`
 	// Configuration of `build` tool.
-	Build *BuildConfig `json:"build,omitempty"`
+	Build *BuildConfig `yaml:"build,omitempty"`
 	// Configuration of `test` tool.
-	Test *TestConfig `json:"test,omitempty"`
+	Test *TestConfig `yaml:"test,omitempty"`
 	// Configuration of `clean` tool.
-	Clean *CleanConfig `json:"clean,omitempty"`
+	Clean *CleanConfig `yaml:"clean,omitempty"`
 }
 
 // BuildConfig represents configuration of `build` tool.
 type BuildConfig struct {
 	// Configuration of a Docker build container.
-	Container *ContainerConfig `json:"container,omitempty"`
+	Container *ContainerConfig `yaml:"container,omitempty"`
 	// Build artifacts.
-	Output *BuildOutput `json:"output,omitempty"`
+	Output *BuildOutput `yaml:"output,omitempty"`
 }
 
 // BuildOutput represents configuration of build artifacts.
 type BuildOutput struct {
 	// Path to the *.wasm file (relative to the workspace root).
-	WasmFile string `json:"wasmFile,omitempty"`
+	WasmFile string `yaml:"wasmFile,omitempty"`
 }
 
 // TestConfig represents configuration of `test` tool.
 type TestConfig struct {
 	// Configuration of a Docker build container.
-	Container *ContainerConfig `json:"container,omitempty"`
+	Container *ContainerConfig `yaml:"container,omitempty"`
 }
 
 // CleanConfig represents configuration of `clean` tool.
 type CleanConfig struct {
 	// Configuration of a Docker build container.
-	Container *ContainerConfig `json:"container,omitempty"`
+	Container *ContainerConfig `yaml:"container,omitempty"`
 }
 
 // ContainerConfig represents configuration of a Docker build container.
 type ContainerConfig struct {
 	// Builder image.
-	Image string `json:"image,omitempty"`
+	Image string `yaml:"image,omitempty"`
 	// Docker cli options.
-	Options []string `json:"options,omitempty"`
+	Options []string `yaml:"options,omitempty"`
 }

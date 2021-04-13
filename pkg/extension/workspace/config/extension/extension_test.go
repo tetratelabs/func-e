@@ -19,8 +19,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 
-	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config"
 	. "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 )
 
@@ -41,7 +41,7 @@ runtime:
     version: standard:1.17.0
 `
 	var descriptor Descriptor
-	err := config.Unmarshal([]byte(input), &descriptor)
+	err := yaml.Unmarshal([]byte(input), &descriptor)
 	require.NoError(t, err)
 
 	err = descriptor.Validate()
@@ -120,7 +120,7 @@ runtime:
 
 		t.Run(test.name, func(t *testing.T) {
 			var descriptor Descriptor
-			err := config.Unmarshal([]byte(test.input), &descriptor)
+			err := yaml.Unmarshal([]byte(test.input), &descriptor)
 			require.NoError(t, err)
 
 			err = descriptor.Validate()

@@ -20,8 +20,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 
-	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 )
 
@@ -50,7 +50,7 @@ func TestDefaultConfigForValidate(t *testing.T) {
 			err := cfg.Validate()
 			require.NoError(t, err)
 
-			actual, err := config.Marshal(cfg)
+			actual, err := yaml.Marshal(cfg)
 			require.NoError(t, err)
 			require.YAMLEq(t, test.expected, string(actual))
 		})
