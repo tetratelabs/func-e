@@ -52,6 +52,6 @@ static_resources:
               - endpoint:
                   address:
                     socket_address:
-                      address: service1
+                      address: 1.1.1.1  # avoid DNS lookup failure
                       port_value: 80
 

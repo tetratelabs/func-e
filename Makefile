@@ -18,7 +18,7 @@
 # bingo manages go binaries needed for building the project
 include .bingo/Variables.mk
 
-ENVOY = standard:1.15.3
+ENVOY = standard:1.17.1
 HUB ?= docker.io/getenvoy
 GETENVOY_TAG ?= dev
 BUILDERS_LANGS := rust tinygo
