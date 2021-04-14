@@ -63,7 +63,6 @@ func TestConnectsToMockPilotAsAGateway(t *testing.T) {
 	)
 	require.NoError(t, err, "error creating envoy runtime")
 	defer os.RemoveAll(runtime.DebugStore())
-	time.Sleep(5 * time.Second)
 
 	envoytest.RequireRunTerminate(t, runtime, envoytest.RunKillOptions{
 		DisableAutoAdminPort: true,
