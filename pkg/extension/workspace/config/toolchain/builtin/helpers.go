@@ -15,10 +15,11 @@
 package builtin
 
 import (
+	"errors"
+	"fmt"
 	"path"
 
-	"github.com/docker/distribution/reference"
-	"github.com/pkg/errors"
+	"github.com/containerd/containerd/reference/docker"
 	"github.com/tetratelabs/multierror"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config"
@@ -121,16 +122,16 @@ func (c *ToolchainConfig) Validate() (errs error) {
 		errs = multierror.Append(errs, errors.New("configuration of the default build container cannot be empty"))
 	}
 	if err := c.Container.Validate(); err != nil {
-		errs = multierror.Append(errs, errors.Wrap(err, "configuration of the default build container is not valid"))
+		errs = multierror.Append(errs, fmt.Errorf("configuration of the default build container is not valid: %w", err))
 	}
 	if err := c.Build.Validate(); err != nil {
-		errs = multierror.Append(errs, errors.Wrap(err, "'build' tool config is not valid"))
+		errs = multierror.Append(errs, fmt.Errorf("'build' tool config is not valid: %w", err))
 	}
 	if err := c.Test.Validate(); err != nil {
-		errs = multierror.Append(errs, errors.Wrap(err, "'test' tool config is not valid"))
+		errs = multierror.Append(errs, fmt.Errorf("'test' tool config is not valid: %w", err))
 	}
 	if err := c.Clean.Validate(); err != nil {
-		errs = multierror.Append(errs, errors.Wrap(err, "'clean' tool config is not valid"))
+		errs = multierror.Append(errs, fmt.Errorf("'clean' tool config is not valid: %w", err))
 	}
 	return
 }
@@ -141,10 +142,10 @@ func (c *BuildConfig) Validate() (errs error) {
 		return
 	}
 	if err := c.Container.Validate(); err != nil {
-		errs = multierror.Append(errs, errors.Wrap(err, "container configuration is not valid"))
+		errs = multierror.Append(errs, fmt.Errorf("container configuration is not valid: %w", err))
 	}
 	if err := c.Output.Validate(); err != nil {
-		errs = multierror.Append(errs, errors.Wrap(err, "output configuration is not valid"))
+		errs = multierror.Append(errs, fmt.Errorf("output configuration is not valid: %w", err))
 	}
 	return
 }
@@ -169,7 +170,7 @@ func (c *TestConfig) Validate() (errs error) {
 		return
 	}
 	if err := c.Container.Validate(); err != nil {
-		errs = multierror.Append(errs, errors.Wrap(err, "container configuration is not valid"))
+		errs = multierror.Append(errs, fmt.Errorf("container configuration is not valid: %w", err))
 	}
 	return
 }
@@ -180,7 +181,7 @@ func (c *CleanConfig) Validate() (errs error) {
 		return
 	}
 	if err := c.Container.Validate(); err != nil {
-		errs = multierror.Append(errs, errors.Wrap(err, "container configuration is not valid"))
+		errs = multierror.Append(errs, fmt.Errorf("container configuration is not valid: %w", err))
 	}
 	return
 }
@@ -194,8 +195,8 @@ func (c *ContainerConfig) Validate() (errs error) {
 		errs = multierror.Append(errs, errors.New("image name cannot be empty"))
 	}
 	if c.Image != "" {
-		if _, err := reference.Parse(c.Image); err != nil {
-			errs = multierror.Append(errs, errors.Wrapf(err, "%q is not a valid image name", c.Image))
+		if _, err := docker.Parse(c.Image); err != nil {
+			errs = multierror.Append(errs, fmt.Errorf("%q is not a valid image name: %w", c.Image, err))
 		}
 	}
 	return

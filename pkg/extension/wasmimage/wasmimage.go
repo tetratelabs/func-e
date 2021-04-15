@@ -16,10 +16,13 @@ package wasmimage
 
 import (
 	"bytes"
+	"crypto/tls"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 
+	"github.com/containerd/containerd/remotes/docker"
 	orascnt "github.com/deislabs/oras/pkg/content"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 )
@@ -84,4 +87,31 @@ func isWasmBinary(path string) bool {
 		return false
 	}
 	return bytes.Equal(buffer, magic)
+}
+
+func registryHosts(insecure, plainHTTP bool) docker.RegistryHosts {
+	client := http.DefaultClient
+
+	if insecure {
+		client.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				// this option is only enabled when the user specify the insecure flag.
+				InsecureSkipVerify: true, // nolint:gosec
+			},
+		}
+	}
+
+	return func(host string) ([]docker.RegistryHost, error) {
+		config := docker.RegistryHost{
+			Client:       client,
+			Host:         host,
+			Scheme:       "https",
+			Path:         "/v2",
+			Capabilities: docker.HostCapabilityPull | docker.HostCapabilityResolve | docker.HostCapabilityPush,
+		}
+		if plainHTTP {
+			config.Scheme = "http"
+		}
+		return []docker.RegistryHost{config}, nil
+	}
 }

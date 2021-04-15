@@ -15,13 +15,10 @@
 package wasmimage
 
 import (
-	"context"
-	"crypto/tls"
 	"fmt"
-	"net/http"
 
 	"github.com/containerd/containerd/remotes"
-	"github.com/deislabs/oras/pkg/auth/docker"
+	"github.com/containerd/containerd/remotes/docker"
 	orasctx "github.com/deislabs/oras/pkg/context"
 	"github.com/deislabs/oras/pkg/oras"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
@@ -33,27 +30,10 @@ type Pusher struct {
 }
 
 // NewPusher returns a new Pusher instance.
-func NewPusher(insecure, useHTTP bool) (*Pusher, error) {
-	client := http.DefaultClient
-
-	if insecure {
-		client.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{
-				// this option is only enabled when the user specify the insecure flag.
-				InsecureSkipVerify: true, // nolint:gosec
-			},
-		}
-	}
-
-	// TODO(musaprg): separate these instructions into another functions
-	auth, err := docker.NewClient()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Pusher: %w", err)
-	}
-	resolver, err := auth.Resolver(context.Background(), client, useHTTP)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Pusher: %w", err)
-	}
+func NewPusher(insecure, plainHTTP bool) (*Pusher, error) {
+	resolver := docker.NewResolver(docker.ResolverOptions{
+		Hosts: registryHosts(insecure, plainHTTP),
+	})
 	return &Pusher{resolver: resolver}, nil
 }
 

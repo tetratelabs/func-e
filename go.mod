@@ -14,8 +14,6 @@ require (
 	github.com/containerd/containerd v1.4.4
 	github.com/containerd/continuity v0.0.0-20210208174643-50096c924a4e // indirect
 	github.com/deislabs/oras v0.11.1
-	github.com/docker/distribution v2.7.1+incompatible
-	github.com/docker/docker v20.10.5+incompatible // indirect
 	github.com/docker/go-metrics v0.0.1 // indirect
 	github.com/envoyproxy/go-control-plane v0.9.8-0.20201019204000-12785f608982
 	github.com/envoyproxy/protoc-gen-validate v0.5.1 // indirect
