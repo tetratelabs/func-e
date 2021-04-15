@@ -43,8 +43,8 @@ var envoyBootstrapTemplate []byte
 
 //  ^^ ex source: https://raw.githubusercontent.com/istio/istio/1.8.4/tools/packaging/common/envoy_bootstrap.json
 
-// Istio tells GetEnvoy that it's using Istio for xDS and should bootstrap accordingly
-func Istio(r *envoy.Runtime) {
+// EnableIstioBootstrap tells GetEnvoy that it's using Istio for xDS and should bootstrap accordingly
+func EnableIstioBootstrap(r *envoy.Runtime) {
 	if r.Config.XDSAddress == "" {
 		r.Config.XDSAddress = defaultControlplane
 	}
@@ -94,6 +94,11 @@ func writeBootstrap(r binary.Runner) error {
 	return nil
 }
 
+// Until Istio 1.10, Envoy bootstrap hard-codes tracing configuration. This parameter allows tests to override defaults.
+// If set to nil, Envoy's /ready admin endpoint won't stick at PRE_INITIALIZING due to an unavailable Zipkin host.
+// See https://github.com/istio/istio/issues/31553#issuecomment-802427832
+var tracingConfig = mesh.DefaultProxyConfig().Tracing
+
 func generateIstioConfig(e *envoy.Runtime) meshconfig.ProxyConfig {
 	cfg := mesh.DefaultProxyConfig()
 	cfg.ConfigPath = e.DebugStore()
@@ -103,7 +108,7 @@ func generateIstioConfig(e *envoy.Runtime) meshconfig.ProxyConfig {
 	cfg.EnvoyAccessLogService = &meshconfig.RemoteService{Address: e.Config.ALSAddresss}
 	// Required: Defaults to MUTUAL_TLS, but we don't configure auth, yet, so it has to be set to NONE
 	cfg.ControlPlaneAuthPolicy = meshconfig.AuthenticationPolicy_NONE
-	cfg.Tracing = nil // Prevent server from hanging on unavailable Zipkin cluster
+	cfg.Tracing = tracingConfig
 	return cfg
 }
 
