@@ -30,7 +30,7 @@ func TestEnableEnvoyLogCollection(t *testing.T) {
 	require.NoError(t, err, "error getting envoy runtime")
 	defer os.RemoveAll(r.DebugStore())
 
-	envoytest.RequireRunTerminate(t, r, envoytest.RunKillOptions{})
+	envoytest.RequireRunTerminate(t, r, "")
 
 	// We expect to see logs because when envoy starts up, the status checker will make HTTP requests to /ready
 	for _, filename := range []string{"logs/access.log", "logs/error.log"} {

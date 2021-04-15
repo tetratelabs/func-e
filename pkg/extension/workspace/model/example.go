@@ -43,7 +43,7 @@ func NewExample(files ImmutableFileSet) (Example, error) {
 		descriptor: descriptor,
 	}
 	if _, file := exampl.GetEnvoyConfig(); file == nil {
-		return nil, fmt.Errorf("Envoy bootstrap config file is missing: every example must include one of %v", exampleEnvoyBootstrapFileAltNames)
+		return nil, fmt.Errorf("envoy bootstrap config file is missing: every example must include one of %v", exampleEnvoyBootstrapFileAltNames)
 	}
 	if _, file := exampl.GetExtensionConfig(); file == nil {
 		return nil, fmt.Errorf("extension config file is missing: every example must include one of %v", exampleExtensionConfigFileAltNames)

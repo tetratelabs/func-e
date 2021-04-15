@@ -15,14 +15,13 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
-	"strings"
+	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/controlplane"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/debug"
 	"github.com/tetratelabs/getenvoy/pkg/flavors"
 	_ "github.com/tetratelabs/getenvoy/pkg/flavors/postgres" //nolint
@@ -31,11 +30,7 @@ import (
 )
 
 var (
-	controlplaneAddress    string
-	accessLogServerAddress string
-	mode                   string
-	bootstrap              string
-	templateArgs           map[string]string
+	templateArgs map[string]string
 )
 
 // NewRunCmd create a command responsible for starting an Envoy process
@@ -49,9 +44,6 @@ Envoy state and machine state into the ` + "`~/.getenvoy/debug`" + ` directory.`
 		Example: `# Run using a manifest reference.
 getenvoy run standard:1.11.1 -- --config-path ./bootstrap.yaml
 
-# Run as a gateway using an Istio controlplane bootstrap.
-getenvoy run standard:1.11.1 --mode loadbalancer --bootstrap istio --controlplaneAddress istio-pilot.istio-system:15010
-
 # Run using a filepath.
 getenvoy run ./envoy -- --config-path ./bootstrap.yaml
 
@@ -61,26 +53,12 @@ getenvoy run standard:1.11.1 -- --help
 # Run with Postgres specific configuration bootstrapped
 getenvoy run postgres:nightly --templateArg endpoints=127.0.0.1:5432,192.168.0.101:5432 --templateArg inport=5555
 `,
-		Args: func(cmd *cobra.Command, args []string) error {
-			return validateCmdArgs(args)
-
-		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg := envoy.NewConfig(
-				func(c *envoy.Config) {
-					c.XDSAddress = controlplaneAddress
-					c.Mode = envoy.ParseMode(mode)
-					c.ALSAddresss = accessLogServerAddress
-				},
-			)
-
 			runtime, err := envoy.NewRuntime(envoy.RuntimeOption(
 				func(r *envoy.Runtime) {
-					r.Config = cfg
 					r.IO = cmdutil.StreamsOf(cmd)
 				}).
-				AndAll(debug.EnableAll()).
-				And(controlplaneFunc())...,
+				AndAll(debug.EnableAll())...,
 			)
 			if err != nil {
 				return err
@@ -102,76 +80,9 @@ getenvoy run postgres:nightly --templateArg endpoints=127.0.0.1:5432,192.168.0.1
 			return runtime.FetchAndRun(args[0], args[1:])
 		},
 	}
-	cmd.Flags().StringVarP(&bootstrap, "bootstrap", "b", "",
-		fmt.Sprintf("(experimental) controlplane bootstrap to generate and use <%v>", strings.Join(supported, "|")))
-	cmd.Flags().StringVar(&controlplaneAddress, "controlplaneAddress", "",
-		"(experimental) location of Envoy's dynamic configuration server <host|ip:port> (requires bootstrap flag)")
-	cmd.Flags().StringVar(&accessLogServerAddress, "accessLogServerAddress", "",
-		"(experimental) location of Envoy's access log server <host|ip:port> (requires bootstrap flag)")
-	cmd.Flags().StringVar(&mode, "mode", "",
-		fmt.Sprintf("(experimental) mode to run Envoy in <%v> (requires bootstrap flag)", strings.Join(envoy.SupportedModes, "|")))
 	cmd.Flags().StringToStringVar(&templateArgs, "templateArg", map[string]string{},
 		"arguments passed to a config template for substitution")
 	return cmd
-}
-
-var (
-	istio = "istio"
-
-	supported         = []string{istio}
-	requiresBootstrap = []*string{&controlplaneAddress, &accessLogServerAddress, &mode}
-)
-
-func validateBootstrap() error {
-	for _, bs := range append(supported, "") {
-		if bs == bootstrap {
-			return nil
-		}
-	}
-	return fmt.Errorf("unsupported bootstrap %v, must be one of (%v)", bootstrap, strings.Join(supported, "|"))
-}
-
-func validateMode() error {
-	for _, m := range append(envoy.SupportedModes, "") {
-		if m == mode {
-			return nil
-		}
-	}
-	return fmt.Errorf("unsupported mode %v, must be one of (%v)", mode, strings.Join(envoy.SupportedModes, "|"))
-}
-
-func validateRequiresBootstrap() error {
-	if bootstrap == "" {
-		for i := range requiresBootstrap {
-			if *requiresBootstrap[i] != "" {
-				return fmt.Errorf("--%v requires --bootstrap to be set", *requiresBootstrap[i])
-			}
-		}
-	}
-	return nil
-}
-
-func validateCmdArgs(args []string) error {
-	if len(args) == 0 {
-		return errors.New("missing binary parameter")
-	}
-	if err := validateMode(); err != nil {
-		return err
-	}
-	if err := validateBootstrap(); err != nil {
-		return err
-	}
-	return validateRequiresBootstrap()
-}
-
-func controlplaneFunc() func(r *envoy.Runtime) {
-	switch bootstrap {
-	case istio:
-		return controlplane.EnableIstioBootstrap
-	default:
-		// do nothing...
-		return func(r *envoy.Runtime) {}
-	}
 }
 
 // Function creates config file based on template args passed by a user.
@@ -182,9 +93,22 @@ func processTemplateArgs(flavor string, templateArgs map[string]string, runtime 
 		return "", err
 	}
 	// Save config in getenvoy directory
-	path, err := runtime.SaveConfig(flavor, config)
+	path, err := saveConfig(flavor, config, filepath.Join(runtime.RootDir, "configs"))
 	if err != nil {
 		return "", err
 	}
 	return "--config-path " + path, nil
+}
+
+// SaveConfig saves configuration string in getenvoy directory.
+func saveConfig(name, config, configDir string) (string, error) {
+	if err := os.MkdirAll(configDir, 0750); err != nil {
+		return "", fmt.Errorf("unable to create directory %q: %w", configDir, err)
+	}
+	filename := name + ".yaml"
+	err := os.WriteFile(filepath.Join(configDir, filename), []byte(config), 0600)
+	if err != nil {
+		return "", fmt.Errorf("cannot save config file %s: %w", filepath.Join(configDir, filename), err)
+	}
+	return filepath.Join(configDir, filename), nil
 }

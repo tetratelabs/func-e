@@ -60,7 +60,6 @@ func (o RuntimeOptions) AndAll(opts RuntimeOptions) RuntimeOptions {
 func NewRuntime(options ...RuntimeOption) (binary.FetchRunner, error) {
 	local := common.HomeDir
 	runtime := &Runtime{
-		Config:          NewConfig(),
 		RootDir:         local,
 		fetcher:         fetcher{local},
 		TmplDir:         filepath.Join(local, "templates"),
@@ -94,7 +93,6 @@ type Runtime struct {
 
 	WorkingDir string
 	IO         ioutil.StdStreams
-	Config     *Config // TODO: only used by istio until #178 deletes it
 
 	cmd                            *exec.Cmd
 	adminAddress, adminAddressPath string

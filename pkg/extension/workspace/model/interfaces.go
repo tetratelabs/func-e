@@ -45,7 +45,7 @@ type Workspace interface {
 	GetExample(exampleName string) (Example, error)
 	// SaveExample persists a given example.
 	SaveExample(exampleName string, example Example, opts ...SaveOption) error
-	// Remove removes a given example.
+	// RemoveExample removes a given example.
 	RemoveExample(exampleName string, opts ...RemoveOption) error
 }
 

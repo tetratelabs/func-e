@@ -10,7 +10,3 @@ go.sum
 .bingo
 .dockerignore
 .idea
-
-# imported file from istio
-envoy_bootstrap.json
-configs.yaml

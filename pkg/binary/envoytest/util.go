@@ -33,12 +33,7 @@ import (
 )
 
 // reference indicates the default Envoy version to be used for testing.
-// 1.16 is the last version to match the Istio version we are using in go.mod:
-//   https://github.com/istio/istio/blob/1.8.4/istio.deps ->
-//   https://github.com/istio/proxy/blob/4cc266a75a84435b26613da6df6c32b4a2df4f3e/WORKSPACE ->
-//   https://github.com/istio/envoy/commit/5b0c5f7b21f84b6ab86e5f416bdaf6bb0fbc2a32 -> ~ 1.16
-// However, 1.16 fails to complete startup when XDS is configured (it blocks on 503/PRE_INITIALIZING).
-// Hence, we make an exception and use the latest patch of Envoy 1.17 instead.
+// This currently latest, but we may support a range at some point.
 var reference = "standard:1.17.1"
 
 var once sync.Once
@@ -85,31 +80,27 @@ func fetchEnvoy() error {
 }
 
 // RunKillOptions allows customization of Envoy lifecycle.
-type RunKillOptions struct {
-	Bootstrap            string
-	DisableAutoAdminPort bool
-}
+type RunKillOptions struct{ Bootstrap string }
 
 // RequireRunTerminate executes envoy, waits for ready, sends sigint, waits for termination, then unarchives the debug
 // directory. It should be used when you just want to cycle through an Envoy lifecycle.
-func RequireRunTerminate(t *testing.T, r binary.Runner, options RunKillOptions) {
+//
+// When the configPath parameter is non-empty, it becomes the "--config-path" argument to envoy.
+func RequireRunTerminate(t *testing.T, r binary.Runner, configPath string) {
 	key, err := manifest.NewKey(reference)
 	require.NoError(t, err)
 	var args []string
-	if options.Bootstrap != "" {
-		args = append(args, "-c", options.Bootstrap)
+	if configPath != "" {
+		args = append(args, "--config-path", configPath)
 	}
 
-	// Generate base id to allow concurrent envoys in tests. (minimum Envoy 1.15)
-	args = append(args, "--use-dynamic-base-id")
-
-	if !options.DisableAutoAdminPort {
+	args = append(args,
+		// Generate base id to allow concurrent envoys in tests. (minimum Envoy 1.15)
+		"--use-dynamic-base-id",
 		// Use ephemeral admin port to avoid test conflicts.
 		// Enable admin access logging to help debug test failures. (minimum Envoy 1.12 for macOS support)
-		args = append(args,
-			"--config-yaml", "admin: {access_log_path: '/dev/stdout', address: {socket_address: {address: '127.0.0.1', port_value: 0}}}",
-		)
-	}
+		"--config-yaml", "admin: {access_log_path: '/dev/stdout', address: {socket_address: {address: '127.0.0.1', port_value: 0}}}",
+	)
 
 	// This ensures on any panic the envoy process is terminated, which can prevent test hangs.
 	deferredInterrupt := func() {

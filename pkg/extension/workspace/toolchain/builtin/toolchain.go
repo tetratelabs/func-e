@@ -34,10 +34,8 @@ const (
 	commandClean = "clean"
 )
 
-// overridable by unit tests
-var (
-	GetCurrentUser = user.Current
-)
+// GetCurrentUser is overridable for unit tests
+var GetCurrentUser = user.Current
 
 // NewToolchain returns a builtin toolchain with a given configuration.
 func NewToolchain(name string, cfg *config.ToolchainConfig, workspace model.Workspace) *builtin { //nolint
