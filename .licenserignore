@@ -13,3 +13,4 @@ go.sum
 
 # imported file from istio
 envoy_bootstrap.json
+configs.yaml

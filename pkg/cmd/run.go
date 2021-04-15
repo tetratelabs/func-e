@@ -167,7 +167,7 @@ func validateCmdArgs(args []string) error {
 func controlplaneFunc() func(r *envoy.Runtime) {
 	switch bootstrap {
 	case istio:
-		return controlplane.Istio
+		return controlplane.EnableIstioBootstrap
 	default:
 		// do nothing...
 		return func(r *envoy.Runtime) {}

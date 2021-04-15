@@ -34,22 +34,22 @@ func TestLocate(t *testing.T) {
 		wantErr            bool
 	}{
 		{
-			name:               "standard 1.15.3 linux-glibc matches",
-			reference:          "standard:1.15.3/linux-glibc",
-			want:               "standard:1.15.3/linux-glibc",
+			name:               "standard 1.17.1 linux-glibc matches",
+			reference:          "standard:1.17.1/linux-glibc",
+			want:               "standard:1.17.1/linux-glibc",
 			responseStatusCode: http.StatusOK,
 		},
 		{
 			name:               "@ uses env var",
 			reference:          "@",
-			envVar:             "standard:1.15.3/linux-glibc",
-			want:               "standard:1.15.3/linux-glibc",
+			envVar:             "standard:1.17.1/linux-glibc",
+			want:               "standard:1.17.1/linux-glibc",
 			responseStatusCode: http.StatusOK,
 		},
 		{
-			name:               "standard 1.15.3 matches",
-			reference:          "standard:1.15.3",
-			want:               fmt.Sprintf("standard:1.15.3/%v", platform()),
+			name:               "standard 1.17.1 matches",
+			reference:          "standard:1.17.1",
+			want:               fmt.Sprintf("standard:1.17.1/%v", platform()),
 			responseStatusCode: http.StatusOK,
 		},
 		{
@@ -66,7 +66,7 @@ func TestLocate(t *testing.T) {
 		},
 		{
 			name:               "Error if not found",
-			reference:          "notaFlavor:1.15.3/notaPlatform",
+			reference:          "notaFlavor:1.17.1/notaPlatform",
 			responseStatusCode: http.StatusOK,
 			wantErr:            true,
 		},
@@ -77,7 +77,7 @@ func TestLocate(t *testing.T) {
 		},
 		{
 			name:               "Error on failed fetch",
-			reference:          "standard:1.15.3",
+			reference:          "standard:1.17.1",
 			responseStatusCode: http.StatusTeapot,
 			wantErr:            true,
 		},

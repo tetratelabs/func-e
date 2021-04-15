@@ -1,131 +1,49 @@
-# Copyright 2019 Tetrate
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# In order to test XDS, we need a configuration that doesn't block startup. Egress is such an example:
+# https://github.com/istio/istio/blob/1.8.4/samples/bookinfo/networking/egress-rule-google-apis.yaml
+---
 apiVersion: networking.istio.io/v1alpha3
 kind: ServiceEntry
 metadata:
-  name: istio-ingressgateway
-  namespace: istio-system
+  name: googleapis
 spec:
   hosts:
-    - istio-ingressgateway.istio-system.svc.cluster.local
-  addresses:
-    - 1.1.1.1
+    - www.googleapis.com
   ports:
-    - number: 8080
+    - number: 80
       name: http
       protocol: HTTP
-    - number: 8443
+    - number: 443
       name: https
       protocol: HTTPS
-  location: MESH_INTERNAL
-  resolution: STATIC
-  exportTo:
-    - '*'
-  endpoints:
-    - address: 1.1.1.1
-      labels:
-        istio: ingressgateway
----
-# Ingress gateway spec
-apiVersion: networking.istio.io/v1alpha3
-kind: Gateway
-metadata:
-  name: istio-ingressgateway
-  namespace: istio-system
-spec:
-  selector:
-    istio: ingressgateway
-  servers:
-    - port:
-        number: 8080
-        name: http
-        protocol: HTTP
-      hosts:
-        - "*.bookinfo.com"
-      tls:
-        httpsRedirect: true # sends 302 redirect for http requests
-    - port:
-        number: 8443
-        name: https-passthru
-        protocol: HTTPS
-      hosts:
-        - https.secure.com
-      tls:
-        mode: PASSTHROUGH
-    - port:
-        number: 8443
-        name: tls-passthru
-        protocol: TLS
-      hosts:
-        - tls.secure.com
-      tls:
-        mode: PASSTHROUGH
+  resolution: DNS
 ---
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
 metadata:
-  name: bookinfo
-  namespace: istio-system
+  name: rewrite-port-for-googleapis
 spec:
   hosts:
-    - "*.bookinfo.com"
-  gateways:
-    - istio-system/istio-ingressgateway
+    - www.googleapis.com
   http:
-    - route:
-        - destination:
-            host: www.bookinfo.com
-            port:
-              number: 8080
----
-apiVersion: networking.istio.io/v1alpha3
-kind: VirtualService
-metadata:
-  name: https
-  namespace: istio-system
-spec:
-  hosts:
-    - https.secure.com
-  gateways:
-    - istio-system/istio-ingressgateway
-  tls:
     - match:
-        - sniHosts:
-            - https.secure.com
+        - port: 80
       route:
         - destination:
-            host: https.secure.com
+            host: www.googleapis.com
             port:
-              number: 8443
+              number: 443
 ---
 apiVersion: networking.istio.io/v1alpha3
-kind: VirtualService
+kind: DestinationRule
 metadata:
-  name: tls
-  namespace: istio-system
+  name: originate-tls-for-googleapis
 spec:
-  hosts:
-    - tls.secure.com
-  gateways:
-    - istio-system/istio-ingressgateway
-  tls:
-    - match:
-        - sniHosts:
-            - tls.secure.com
-      route:
-        - destination:
-            host: https.secure.com
-            port:
-              number: 8443
+  host: www.googleapis.com
+  trafficPolicy:
+    loadBalancer:
+      simple: ROUND_ROBIN
+    portLevelSettings:
+      - port:
+          number: 443
+        tls:
+          mode: SIMPLE # initiates HTTPS when accessing www.googleapis.com

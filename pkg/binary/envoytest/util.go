@@ -33,18 +33,19 @@ import (
 )
 
 // reference indicates the default Envoy version to be used for testing.
-// 1.15.3 is the last version to match the Istio version we are using in go.mod:
-//   https://github.com/istio/istio/blob/1.7.8/istio.deps ->
-//   https://github.com/istio/proxy/blob/d68172a37cb87c52d683a906bd2fba90060f8d82/WORKSPACE ->
-//   https://github.com/istio/envoy/commit/4abbbc0394b247d4ea37fd8f9137732c3d0a2b91 ->
-//   https://github.com/istio/envoy/pull/290 -> ~ 1.15
-var reference = "standard:1.15.3"
+// 1.16 is the last version to match the Istio version we are using in go.mod:
+//   https://github.com/istio/istio/blob/1.8.4/istio.deps ->
+//   https://github.com/istio/proxy/blob/4cc266a75a84435b26613da6df6c32b4a2df4f3e/WORKSPACE ->
+//   https://github.com/istio/envoy/commit/5b0c5f7b21f84b6ab86e5f416bdaf6bb0fbc2a32 -> ~ 1.16
+// However, 1.16 fails to complete startup when XDS is configured (it blocks on 503/PRE_INITIALIZING).
+// Hence, we make an exception and use the latest patch of Envoy 1.17 instead.
+var reference = "standard:1.17.1"
 
 var once sync.Once
 var errorFetchingEnvoy error
 
 // FetchEnvoyAndRun retrieves the Envoy indicated by reference only once. This is intended to be used with TestMain.
-// In CI, you can execute this to obviate latency during test runs: "go run cmd/getenvoy/main.go fetch standard:1.15.3"
+// In CI, you can execute this to obviate latency during test runs: "go run cmd/getenvoy/main.go fetch standard:1.17.1"
 func FetchEnvoyAndRun(m *testing.M) {
 	once.Do(func() {
 		errorFetchingEnvoy = fetchEnvoy()
@@ -86,9 +87,8 @@ func fetchEnvoy() error {
 // RunKillOptions allows customization of Envoy lifecycle.
 type RunKillOptions struct {
 	Bootstrap            string
-	ExpectedStatus       int
+	DisableAutoAdminPort bool
 	RetainDebugStore     bool
-	SleepBeforeTerminate time.Duration
 }
 
 // RequireRunTerminate executes envoy, waits for ready, sends sigint, waits for termination, then unarchives the debug directory.
@@ -101,15 +101,18 @@ func RequireRunTerminate(t *testing.T, r binary.Runner, options RunKillOptions) 
 		args = append(args, "-c", options.Bootstrap)
 	}
 
-	args = append(args,
+	// Generate base id to allow concurrent envoys in tests. (minimum Envoy 1.15)
+	args = append(args, "--use-dynamic-base-id")
+
+	if !options.DisableAutoAdminPort {
 		// Use ephemeral admin port to avoid test conflicts.
 		// Enable admin access logging to help debug test failures. (minimum Envoy 1.12 for macOS support)
-		"--config-yaml", "admin: {access_log_path: '/dev/stdout', address: {socket_address: {address: '127.0.0.1', port_value: 0}}}",
-		// Generate base id to allow concurrent envoys in tests. (minimum Envoy 1.15)
-		"--use-dynamic-base-id",
-	)
-	// Allows us the status checker to read the resolved admin port after envoy starts
-	envoy.EnableAdminAddressDetection(r.(*envoy.Runtime))
+		args = append(args,
+			"--config-yaml", "admin: {access_log_path: '/dev/stdout', address: {socket_address: {address: '127.0.0.1', port_value: 0}}}",
+		)
+		// Allows us the status checker to read the resolved admin port after envoy starts
+		envoy.EnableAdminAddressDetection(r.(*envoy.Runtime))
+	}
 
 	// This ensures on any panic the envoy process is terminated, which can prevent test hangs.
 	deferredTerminate := func() {
@@ -134,18 +137,12 @@ func RequireRunTerminate(t *testing.T, r binary.Runner, options RunKillOptions) 
 
 	// Look for terminated or ready, so that we fail faster than polling for status ready
 	expectedStatus := binary.StatusReady
-	if options.ExpectedStatus > 0 {
-		expectedStatus = options.ExpectedStatus
-	}
 	require.Eventually(t, func() bool {
 		return r.Status() == expectedStatus || r.Status() == binary.StatusTerminated
 	}, 30*time.Second, 100*time.Millisecond, "never achieved status(%d) or StatusTerminated", expectedStatus)
 	require.Equal(t, expectedStatus, r.Status(), "never achieved status(%d)", expectedStatus)
 
-	time.Sleep(options.SleepBeforeTerminate)
-
-	require.NotEqual(t, binary.StatusTerminated, r.Status(), "already StatusTerminated")
-
+	// Now, terminate the server.
 	r.SendSignal(syscall.SIGTERM)
 	require.Eventually(t, func() bool {
 		return r.Status() == binary.StatusTerminated
@@ -156,7 +153,7 @@ func RequireRunTerminate(t *testing.T, r binary.Runner, options RunKillOptions) 
 	// RunPath deletes the debug store directory after making a tar.gz with the same name.
 	// Restore it so assertions can read the contents later.
 	if options.RetainDebugStore {
-		err := archiver.Unarchive(r.DebugStore()+".tar.gz", filepath.Dir(r.DebugStore()))
-		require.NoError(t, err, "error extracting DebugStore")
+		e := archiver.Unarchive(r.DebugStore()+".tar.gz", filepath.Dir(r.DebugStore()))
+		require.NoError(t, e, "error extracting DebugStore")
 	}
 }
