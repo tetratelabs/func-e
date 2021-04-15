@@ -51,7 +51,7 @@ func TestGetEnvoyExtensionPush(t *testing.T) {
 
 	// Run "getenvoy extension push localhost:5000/getenvoy/sample"
 	c, stdout, stderr := cmd.NewRootCommand()
-	c.SetArgs([]string{"extension", "push", localRegistryWasmImageRef})
+	c.SetArgs([]string{"extension", "push", localRegistryWasmImageRef, "--use-http", "true"})
 	err := cmdutil.Execute(c)
 
 	// A fully qualified image ref includes the tag
@@ -106,7 +106,7 @@ func TestGetEnvoyExtensionPushWithExplicitFileOption(t *testing.T) {
 
 	// Run "getenvoy extension push localhost:5000/getenvoy/sample --extension-file testdata/workspace/extension.wasm"
 	c, stdout, stderr := cmd.NewRootCommand()
-	c.SetArgs([]string{"extension", "push", localRegistryWasmImageRef, "--extension-file", wasm})
+	c.SetArgs([]string{"extension", "push", localRegistryWasmImageRef, "--extension-file", wasm, "--use-http", "true"})
 	err := cmdutil.Execute(c)
 
 	// Verify the pushed a latest tag to the correct registry

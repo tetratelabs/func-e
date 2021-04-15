@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -39,6 +40,8 @@ func TestGetEnvoyExtensionPush(t *testing.T) {
 	const extensionName = "getenvoy_extension_push"
 	// localRegistryWasmImageRef corresponds to a Docker container running the image "registry:2"
 	const localRegistryWasmImageRef = "localhost:5000/getenvoy/" + extensionName
+	// The above registry is HTTP not HTTPS
+	const useHTTP = true
 	// When unspecified, we default the tag to Docker's default "latest". Note: recent tools enforce qualifying this!
 	const defaultTag = "latest"
 
@@ -70,7 +73,7 @@ func TestGetEnvoyExtensionPush(t *testing.T) {
 			wasmBytes := requireExtensionBuild(t, test.Language, workDir)
 
 			// After pushing, stderr should include the registry URL and the image tag.
-			c := getEnvoy("extension push").Arg(localRegistryWasmImageRef)
+			c := getEnvoy("extension push").Arg(localRegistryWasmImageRef).Arg("--use-http").Arg(strconv.FormatBool(useHTTP))
 			stderr := requireExecNoStdout(t, c)
 
 			// Assemble a fully-qualified image ref as we'll pull this later
@@ -82,7 +85,7 @@ Pushed %s
 digest: sha256`, defaultTag, imageRef), `unexpected stderr after running [%v]`, c)
 
 			// Get a puller we can use to pull what we just pushed.
-			puller, err := wasmimage.NewPuller(false, false)
+			puller, err := wasmimage.NewPuller(false, useHTTP)
 			require.NoError(t, err, `error getting puller instance after running [%v]`, c)
 			require.NotNil(t, puller, `nil puller instance after running [%v]`, c)
 

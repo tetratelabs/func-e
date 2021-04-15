@@ -92,13 +92,8 @@ func isWasmBinary(path string) bool {
 func registryHosts(insecure, plainHTTP bool) docker.RegistryHosts {
 	client := http.DefaultClient
 
-	if insecure {
-		client.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{
-				// this option is only enabled when the user specify the insecure flag.
-				InsecureSkipVerify: true, // nolint:gosec
-			},
-		}
+	if insecure && !plainHTTP {
+		client.Transport = &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}} // nolint:gosec
 	}
 
 	return func(host string) ([]docker.RegistryHost, error) {
@@ -106,7 +101,7 @@ func registryHosts(insecure, plainHTTP bool) docker.RegistryHosts {
 			Client:       client,
 			Host:         host,
 			Scheme:       "https",
-			Path:         "/v2",
+			Path:         "/v2", // For Docker registry:2 https://docs.docker.com/registry/spec/api/#overview
 			Capabilities: docker.HostCapabilityPull | docker.HostCapabilityResolve | docker.HostCapabilityPush,
 		}
 		if plainHTTP {
