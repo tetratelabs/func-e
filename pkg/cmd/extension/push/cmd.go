@@ -18,7 +18,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/docker/distribution/reference"
+	"github.com/containerd/containerd/reference/docker"
 	"github.com/spf13/cobra"
 
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/common"
@@ -36,7 +36,7 @@ type cmdOpts struct {
 	extension runtime.ExtensionOpts
 
 	allowInsecure bool
-	useHTTP       bool
+	plainHTTP     bool
 }
 
 func newCmdOpts() *cmdOpts {
@@ -46,7 +46,7 @@ func newCmdOpts() *cmdOpts {
 		},
 		extension:     runtime.ExtensionOpts{},
 		allowInsecure: false,
-		useHTTP:       false,
+		plainHTTP:     false,
 	}
 }
 
@@ -96,15 +96,15 @@ Push the built WASM extension to the OCI-compliant registry. This command requir
 				imagePath = tc.GetBuildOutputWasmFile()
 			}
 			imageRef := args[0]
-			ref, err := reference.ParseNormalizedNamed(imageRef)
+			ref, err := docker.ParseNormalizedNamed(imageRef)
 			if err != nil {
 				return fmt.Errorf("invalid image-reference: %w", err)
 			}
-			ref = reference.TagNameOnly(ref)
-			if tagged, ok := ref.(reference.Tagged); ok {
+			ref = docker.TagNameOnly(ref)
+			if tagged, ok := ref.(docker.Tagged); ok {
 				cmd.Printf("Using default tag: %s\n", tagged.Tag())
 			}
-			pusher, err := wasmimage.NewPusher(opts.allowInsecure, opts.useHTTP)
+			pusher, err := wasmimage.NewPusher(opts.allowInsecure, opts.plainHTTP)
 			if err != nil {
 				return fmt.Errorf("failed to push the wasm image: %w", err)
 			}
@@ -122,7 +122,7 @@ Push the built WASM extension to the OCI-compliant registry. This command requir
 	cmd.PersistentFlags().StringVar(&opts.toolchain.Name, "toolchain", opts.toolchain.Name,
 		`Name of the toolchain to use, e.g. "default" toolchain that is backed by a Docker build container`)
 	cmd.PersistentFlags().BoolVar(&opts.allowInsecure, "allow-insecure", opts.allowInsecure, `allow insecure TLS communication with registry`)
-	cmd.PersistentFlags().BoolVar(&opts.useHTTP, "use-http", opts.useHTTP, `Use HTTP for communication with registry`)
+	cmd.PersistentFlags().BoolVar(&opts.plainHTTP, "use-http", opts.plainHTTP, `Use HTTP for communication with registry`)
 	cmd.PersistentFlags().StringVar(&opts.extension.WasmFile, "extension-file", opts.extension.WasmFile,
 		`Use a pre-built *.wasm file`)
 	return cmd

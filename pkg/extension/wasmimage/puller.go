@@ -15,14 +15,11 @@
 package wasmimage
 
 import (
-	"context"
-	"crypto/tls"
 	"fmt"
-	"net/http"
 	"os"
 
 	"github.com/containerd/containerd/remotes"
-	"github.com/deislabs/oras/pkg/auth/docker"
+	"github.com/containerd/containerd/remotes/docker"
 	orascnt "github.com/deislabs/oras/pkg/content"
 	orasctx "github.com/deislabs/oras/pkg/context"
 	"github.com/deislabs/oras/pkg/oras"
@@ -35,25 +32,10 @@ type Puller struct {
 }
 
 // NewPuller returns a new Puller instance.
-func NewPuller(insecure, useHTTP bool) (*Puller, error) {
-	client := http.DefaultClient
-
-	client.Transport = &http.Transport{
-		TLSClientConfig: &tls.Config{
-			// this option is only enabled when the user specify the insecure flag.
-			InsecureSkipVerify: insecure, // nolint:gosec
-		},
-	}
-
-	// TODO(musaprg): separate these instructions into another functions
-	auth, err := docker.NewClient()
-	if err != nil {
-		return nil, err
-	}
-	resolver, err := auth.Resolver(context.Background(), client, useHTTP)
-	if err != nil {
-		return nil, err
-	}
+func NewPuller(insecure, plainHTTP bool) (*Puller, error) {
+	resolver := docker.NewResolver(docker.ResolverOptions{
+		Hosts: registryHosts(insecure, plainHTTP),
+	})
 	return &Puller{resolver: resolver}, nil
 }
 

@@ -15,8 +15,10 @@
 package common
 
 import (
-	"github.com/docker/distribution/reference"
-	"github.com/pkg/errors"
+	"errors"
+	"fmt"
+
+	"github.com/containerd/containerd/reference/docker"
 	"github.com/spf13/cobra"
 
 	builtinconfig "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/toolchain/builtin"
@@ -50,7 +52,7 @@ type BuiltinToolchainOpts struct {
 // Validate returns an error if ToolchainOpts is not valid.
 func (o *ToolchainOpts) Validate() error {
 	if o.Name == "" {
-		return errors.Errorf("toolchain name cannot be empty")
+		return errors.New("toolchain name cannot be empty")
 	}
 	return o.Builtin.Validate()
 }
@@ -58,8 +60,8 @@ func (o *ToolchainOpts) Validate() error {
 // Validate returns an error if BuiltinToolchainOpts is not valid.
 func (o *BuiltinToolchainOpts) Validate() error {
 	if o.ContainerImage != "" {
-		if _, err := reference.Parse(o.ContainerImage); err != nil {
-			return errors.Wrapf(err, "%q is not a valid image name", o.ContainerImage)
+		if _, err := docker.Parse(o.ContainerImage); err != nil {
+			return fmt.Errorf("%q is not a valid image name: %w", o.ContainerImage, err)
 		}
 	}
 	if len(o.ContainerOptions) > 0 {
