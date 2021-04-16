@@ -144,6 +144,7 @@ func RequireRunTerminate(t *testing.T, r binary.Runner, options RunKillOptions) 
 
 	// Now, terminate the server.
 	r.FakeInterrupt()
+	deferredInterrupt = nil
 
 	select { // Await run completion
 	case <-time.After(10 * time.Second):
