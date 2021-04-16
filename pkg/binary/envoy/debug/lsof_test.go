@@ -32,9 +32,7 @@ func TestEnableOpenFilesDataCollection(t *testing.T) {
 	require.NoError(t, err, "error getting envoy runtime")
 	defer os.RemoveAll(r.DebugStore())
 
-	envoytest.RequireRunTerminate(t, r, envoytest.RunKillOptions{
-		RetainDebugStore: true, // Assertions below inspect files in the debug store
-	})
+	envoytest.RequireRunTerminate(t, r, envoytest.RunKillOptions{})
 
 	file := "lsof/lsof.json"
 	path := filepath.Join(r.DebugStore(), file)

@@ -19,7 +19,6 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"syscall"
 	"testing"
 	"time"
 
@@ -88,11 +87,10 @@ func fetchEnvoy() error {
 type RunKillOptions struct {
 	Bootstrap            string
 	DisableAutoAdminPort bool
-	RetainDebugStore     bool
 }
 
-// RequireRunTerminate executes envoy, waits for ready, sends sigint, waits for termination, then unarchives the debug directory.
-// It should be used when you just want to cycle through an Envoy lifecycle.
+// RequireRunTerminate executes envoy, waits for ready, sends sigint, waits for termination, then unarchives the debug
+// directory. It should be used when you just want to cycle through an Envoy lifecycle.
 func RequireRunTerminate(t *testing.T, r binary.Runner, options RunKillOptions) {
 	key, err := manifest.NewKey(reference)
 	require.NoError(t, err)
@@ -115,14 +113,13 @@ func RequireRunTerminate(t *testing.T, r binary.Runner, options RunKillOptions) 
 	}
 
 	// This ensures on any panic the envoy process is terminated, which can prevent test hangs.
-	deferredTerminate := func() {
-		// envoy.waitForTerminationSignals() registers SIGINT and SIGTERM
-		r.SendSignal(syscall.SIGTERM)
+	deferredInterrupt := func() {
+		r.FakeInterrupt()
 	}
 
 	defer func() {
-		if deferredTerminate != nil {
-			deferredTerminate()
+		if deferredInterrupt != nil {
+			deferredInterrupt()
 		}
 	}()
 
@@ -143,17 +140,15 @@ func RequireRunTerminate(t *testing.T, r binary.Runner, options RunKillOptions) 
 	require.Equal(t, expectedStatus, r.Status(), "never achieved status(%d)", expectedStatus)
 
 	// Now, terminate the server.
-	r.SendSignal(syscall.SIGTERM)
+	r.FakeInterrupt()
 	require.Eventually(t, func() bool {
 		return r.Status() == binary.StatusTerminated
 	}, 10*time.Second, 50*time.Millisecond, "never achieved StatusTerminated")
 
-	deferredTerminate = nil // We succeeded, so no longer need to kill the envoy process
+	deferredInterrupt = nil // We succeeded, so no longer need to kill the envoy process
 
 	// RunPath deletes the debug store directory after making a tar.gz with the same name.
 	// Restore it so assertions can read the contents later.
-	if options.RetainDebugStore {
-		e := archiver.Unarchive(r.DebugStore()+".tar.gz", filepath.Dir(r.DebugStore()))
-		require.NoError(t, e, "error extracting DebugStore")
-	}
+	e := archiver.Unarchive(r.DebugStore()+".tar.gz", filepath.Dir(r.DebugStore()))
+	require.NoError(t, e, "error extracting DebugStore")
 }

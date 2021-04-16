@@ -15,7 +15,6 @@
 package envoy
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -31,26 +30,25 @@ import (
 
 func TestRuntime_RunPath(t *testing.T) {
 	tests := []struct {
-		name        string
-		args        []string
-		killerFunc  func(*Runtime)
-		wantPreTerm bool
+		name                      string
+		args                      []string
+		killerFunc                func(*Runtime)
+		wantPreTerm, wantPostTerm bool
 	}{
 		{
-			name:        "GetEnvoy shot first",
-			killerFunc:  func(r *Runtime) { r.SendSignal(syscall.SIGINT) },
-			wantPreTerm: true,
+			name:         "GetEnvoy shot first",
+			killerFunc:   func(r *Runtime) { r.FakeInterrupt() },
+			wantPreTerm:  true,
+			wantPostTerm: true,
 		},
 		{
-			name:        "Envoy shot first",
-			killerFunc:  func(r *Runtime) { r.cmd.Process.Signal(syscall.SIGINT) },
-			wantPreTerm: false,
+			name:       "Envoy shot first",
+			killerFunc: func(r *Runtime) { r.cmd.Process.Signal(syscall.SIGINT) },
 		},
 		{
-			name:        "Envoy simulate error",
-			killerFunc:  func(r *Runtime) { time.Sleep(time.Millisecond * 100) },
-			args:        []string{"error"},
-			wantPreTerm: false,
+			name:       "Envoy simulate error",
+			killerFunc: func(r *Runtime) { time.Sleep(time.Millisecond * 100) },
+			args:       []string{"error"},
 		},
 	}
 
@@ -58,7 +56,7 @@ func TestRuntime_RunPath(t *testing.T) {
 		tc := tt
 		t.Run(tc.name, func(t *testing.T) {
 			// This ensures functions are called in the correct order
-			r, preStartCalled, preTerminationCalled := newRuntimeWithMockFunctions(t)
+			r, preStartCalled, preTerminationCalled, postTerminationCalled := newRuntimeWithMockFunctions(t)
 			tempDir, revertTempDir := morerequire.RequireNewTempDir(t)
 			defer revertTempDir()
 			r.store = tempDir
@@ -84,13 +82,14 @@ func TestRuntime_RunPath(t *testing.T) {
 
 			// Assert appropriate functions are called
 			require.True(t, *preStartCalled, "preStart was not called")
-			require.Equal(t, tc.wantPreTerm, *preTerminationCalled, fmt.Sprintf("expected preTermination execution to be %v", tc.wantPreTerm))
+			require.Equal(t, tc.wantPreTerm, *preTerminationCalled, "expected preTermination execution to be %v", tc.wantPreTerm)
+			require.Equal(t, tc.wantPostTerm, *postTerminationCalled, "expected postTermination execution to be %v", tc.wantPostTerm)
 		})
 	}
 }
 
 // This ensures functions are called in the correct order
-func newRuntimeWithMockFunctions(t *testing.T) (*Runtime, *bool, *bool) {
+func newRuntimeWithMockFunctions(t *testing.T) (*Runtime, *bool, *bool, *bool) {
 	preStartCalled := false
 	preStart := func(r *Runtime) {
 		r.RegisterPreStart(func(r binary.Runner) error {
@@ -117,7 +116,14 @@ func newRuntimeWithMockFunctions(t *testing.T) (*Runtime, *bool, *bool) {
 			return nil
 		})
 	}
-	runtime, _ := NewRuntime(preStart, preTermination)
+	postTerminationCalled := false
+	postTermination := func(r *Runtime) {
+		r.RegisterPreTermination(func(r binary.Runner) error {
+			postTerminationCalled = true
+			return nil
+		})
+	}
+	runtime, _ := NewRuntime(preStart, preTermination, postTermination)
 
-	return runtime.(*Runtime), &preStartCalled, &preTerminationCalled
+	return runtime.(*Runtime), &preStartCalled, &preTerminationCalled, &postTerminationCalled
 }

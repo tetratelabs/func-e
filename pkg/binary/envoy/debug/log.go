@@ -19,7 +19,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/tetratelabs/log"
 
@@ -29,8 +28,10 @@ import (
 
 // EnableEnvoyLogCollection is a preset option that registers collection of Envoy access logs and stderr
 func EnableEnvoyLogCollection(r *envoy.Runtime) {
-	if err := os.MkdirAll(filepath.Join(r.DebugStore(), "logs"), os.ModePerm); err != nil {
-		log.Errorf("unable to create directory to write logs to, no logs will be captured: %v", err)
+	logsDir := filepath.Join(r.DebugStore(), "logs")
+	err := os.MkdirAll(logsDir, os.ModePerm)
+	if err != nil {
+		log.Errorf("unable to create logs directory %q, so no logs will be captured: %v", logsDir, err)
 		return
 	}
 	r.RegisterPreStart(captureStdout)
@@ -42,13 +43,15 @@ func captureStdout(r binary.Runner) error {
 	if err != nil {
 		return err
 	}
+	r.RegisterPostTermination(func(runner binary.Runner) error {
+		return f.Close()
+	})
 	r.SetStdout(func(w io.Writer) io.Writer {
 		if w == nil {
 			return f
 		}
 		return io.MultiWriter(w, f)
 	})
-	go capture(r, f)
 	return nil
 }
 
@@ -57,13 +60,15 @@ func captureStderr(r binary.Runner) error {
 	if err != nil {
 		return err
 	}
+	r.RegisterPostTermination(func(runner binary.Runner) error {
+		return f.Close()
+	})
 	r.SetStderr(func(w io.Writer) io.Writer {
 		if w == nil {
 			return f
 		}
 		return io.MultiWriter(w, f)
 	})
-	go capture(r, f)
 	return nil
 }
 
@@ -74,23 +79,4 @@ func createLogFile(path string) (*os.File, error) {
 		return nil, fmt.Errorf("unable to open file to write logs to %v: %v", path, err)
 	}
 	return f, nil
-}
-
-func capture(r binary.Runner, file io.Closer) {
-	r.RegisterWait(1)
-	wait(r, binary.StatusTerminated)
-	if err := file.Close(); err != nil {
-		log.Errorf("error closing access log file: %v", err)
-	}
-	r.RegisterDone()
-}
-
-// wait blocks until the child process reaches the state passed
-// Note: It does not guarantee that it is in the specified state just that it has reached it
-func wait(r binary.Runner, state int) {
-	for r.Status() < state {
-		// This is a call to a function to allow the goroutine to be preempted for garbage collection
-		// The sleep duration is somewhat arbitrary
-		func() { time.Sleep(time.Millisecond * 100) }()
-	}
 }

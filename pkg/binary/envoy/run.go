@@ -26,7 +26,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/mholt/archiver/v3"
 	"github.com/tetratelabs/log"
 
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
@@ -46,32 +45,50 @@ func (r *Runtime) RunPath(path string, args []string) error {
 		return fmt.Errorf("unable to stat %q: %v", path, err)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	r.ctx = ctx
-
-	// #nosec -> users can run whatever binary they like!
-	r.cmd = exec.Command(path, args...)
-	r.cmd.Dir = r.WorkingDir
-	r.cmd.Stdout = r.IO.Out
-	r.cmd.Stderr = r.IO.Err
-	r.cmd.SysProcAttr = sysProcAttr()
+	// We can't use CommandContext even if that seems correct here. The reason is that we need to invoke preTerminate
+	// handlers, and they expect the process to still be running. For example, this allows admin API hooks.
+	cmd := exec.Command(path, args...) // #nosec -> users can run whatever binary they like!
+	cmd.Dir = r.WorkingDir
+	cmd.Stdout = r.IO.Out
+	cmd.Stderr = r.IO.Err
+	cmd.SysProcAttr = sysProcAttr()
+	r.cmd = cmd
 
 	r.handlePreStart()
 
-	go r.runEnvoy(cancel)
-
-	r.waitForTerminationSignals()
-	r.handleTermination()
-	cancel() // this should never actually do anything but lets avoid any future context leaks
-
-	// Block until the Envoy process and termination handler are finished cleaning up
-	r.wg.Wait()
-
-	// Tar up the debug data and clean up
-	if err := archiver.Archive([]string{r.DebugStore()}, r.DebugStore()+".tar.gz"); err != nil {
-		return fmt.Errorf("unable to archive debug store directory %v: %v", r.DebugStore(), err)
+	if cmd.Stdout == nil {
+		cmd.Stdout = os.Stdout
 	}
-	return os.RemoveAll(r.DebugStore())
+	if cmd.Stderr == nil {
+		cmd.Stderr = os.Stderr
+	}
+
+	log.Infof("Envoy command: %v", cmd.Args)
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("unable to start Envoy process: %w", err)
+	}
+
+	waitCtx, waitCancel := context.WithCancel(context.Background())
+	sigCtx, sigCancel := signal.NotifyContext(waitCtx, syscall.SIGINT, syscall.SIGTERM)
+	defer waitCancel()
+	r.fakeInterrupt = sigCancel
+
+	go waitForExit(cmd, waitCancel) // waits in a goroutine. We may need to kill the process if a signal occurs first.
+
+	// Block until we receive SIGINT or are canceled because Envoy has died
+	<-sigCtx.Done()
+
+	if cmd.ProcessState != nil {
+		log.Infof("Envoy process (PID=%d) terminated prematurely", cmd.Process.Pid)
+		return r.handlePostTermination()
+	}
+
+	r.handleTermination()
+
+	// Block until the process is complete. This ensures file descriptors are closed.
+	<-waitCtx.Done()
+
+	return r.handlePostTermination()
 }
 
 // DebugStore returns the location at which the runtime instance persists debug data for this given instance
@@ -90,60 +107,18 @@ func (r *Runtime) SetStderr(fn func(io.Writer) io.Writer) {
 	r.cmd.Stderr = fn(r.cmd.Stderr)
 }
 
-// RegisterWait informs the runtime it needs to wait for you to complete
-// It is a wrapper around sync.WaitGroup.Add()
-func (r *Runtime) RegisterWait(delta int) {
-	r.wg.Add(delta)
-}
-
-// RegisterDone informs the runtime that you have completed
-// It is a wrapper around sync.WaitGroup.Done()
-func (r *Runtime) RegisterDone() {
-	r.wg.Done()
-}
-
 // AppendArgs appends the passed args to the child process' args
 func (r *Runtime) AppendArgs(args []string) {
 	r.cmd.Args = append(r.cmd.Args, args...)
 }
 
-func (r *Runtime) waitForTerminationSignals() {
-	signal.Notify(r.signals, syscall.SIGINT, syscall.SIGTERM)
-
-	// Block until we receive SIGINT or are canceled because Envoy has died
-	select {
-	case <-r.ctx.Done():
-		log.Infof("No Envoy processes remaining, terminating GetEnvoy process (PID=%d)", os.Getpid())
-		return
-	case <-r.signals:
-		log.Infof("GetEnvoy process (PID=%d) received SIGINT", os.Getpid())
-		return
-	}
-}
-
-func (r *Runtime) runEnvoy(cancel context.CancelFunc) {
-	if r.cmd.Stdout == nil {
-		r.cmd.Stdout = os.Stdout
-	}
-	if r.cmd.Stderr == nil {
-		r.cmd.Stderr = os.Stderr
-	}
-
-	r.wg.Add(1)
-	defer r.wg.Done()
+func waitForExit(cmd *exec.Cmd, cancel context.CancelFunc) {
 	defer cancel()
-
-	log.Infof("Envoy command: %v", r.cmd.Args)
-	if err := r.cmd.Start(); err != nil {
-		log.Errorf("Unable to start Envoy process: %v", err)
-		return
-	}
-
-	if err := r.cmd.Wait(); err != nil {
-		if r.cmd.ProcessState.ExitCode() == -1 {
-			log.Infof("Envoy process (PID=%d) terminated via %v", r.cmd.Process.Pid, err)
+	if err := cmd.Wait(); err != nil {
+		if cmd.ProcessState.ExitCode() == -1 {
+			log.Infof("Envoy process (PID=%d) terminated via %v", cmd.Process.Pid, err)
 		} else {
-			log.Infof("Envoy process (PID=%d) terminated with an error: %v", r.cmd.Process.Pid, err)
+			log.Infof("Envoy process (PID=%d) terminated with an error: %v", cmd.Process.Pid, err)
 		}
 	}
 }
