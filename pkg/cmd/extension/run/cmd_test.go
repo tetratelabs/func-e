@@ -80,7 +80,7 @@ func TestGetEnvoyExtensionRunValidateFlag(t *testing.T) {
 		},
 		{
 			name:        "--envoy-version and --envoy-path flags at the same time",
-			args:        []string{"--envoy-version", "standard:1.17.0", "--envoy-path", "envoy"},
+			args:        []string{"--envoy-version", "standard:1.17.1", "--envoy-path", "envoy"},
 			expectedErr: `only one of flags '--envoy-version' and '--envoy-path' can be used at a time`,
 		},
 		{
@@ -163,7 +163,7 @@ func TestGetEnvoyExtensionRun(t *testing.T) {
 	// Verify the command invoked, passing the correct default commandline
 	require.NoError(t, err, `expected no error running [%v]`, c)
 
-	envoyBin := filepath.Join(config.envoyHome, "builds/standard/1.17.0", config.platform, "/bin/envoy")
+	envoyBin := filepath.Join(config.envoyHome, "builds/standard/1.17.1", config.platform, "/bin/envoy")
 	// The working directory of envoy isn't the same as docker or the workspace
 	envoyWd := cmd.ParseEnvoyWorkDirectory(stdout)
 
@@ -304,7 +304,7 @@ func TestGetEnvoyExtensionRunWithWasm(t *testing.T) {
 	// Verify the command invoked, passing the correct default commandline
 	require.NoError(t, err, `expected no error running [%v]`, c)
 
-	envoyBin := filepath.Join(config.envoyHome, "builds/standard/1.17.0", config.platform, "/bin/envoy")
+	envoyBin := filepath.Join(config.envoyHome, "builds/standard/1.17.1", config.platform, "/bin/envoy")
 
 	// The working directory of envoy is a temp directory not controlled by this test, so we have to parse it.
 	envoyWd := cmd.ParseEnvoyWorkDirectory(stdout)
@@ -484,7 +484,7 @@ func requirePlaceholdersYaml(t *testing.T, envoyHome string) string {
 
 // requireManifestPlatform returns the current platform as used in manifests.
 func requireManifestPlatform(t *testing.T) string {
-	key, err := manifest.NewKey("standard:1.17.0")
+	key, err := manifest.NewKey("standard:1.17.1")
 	require.NoError(t, err, `error resolving manifest for key: %s`, key)
 	return key.Platform
 }
@@ -492,7 +492,7 @@ func requireManifestPlatform(t *testing.T) string {
 // requireManifestTestServer calls manifest.SetURL to a test new tests server.
 // The function returned stops that server and calls manifest.SetURL with the original URL.
 func requireManifestTestServer(t *testing.T, envoySubstituteArchiveDir string) func() {
-	testManifest, err := manifesttest.NewSimpleManifest("standard:1.17.0", "wasm:1.15", "wasm:stable")
+	testManifest, err := manifesttest.NewSimpleManifest("standard:1.17.1", "wasm:1.15", "wasm:stable")
 
 	require.NoError(t, err, `error creating test manifest`)
 

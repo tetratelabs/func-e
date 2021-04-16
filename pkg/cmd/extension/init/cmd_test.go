@@ -101,7 +101,7 @@ func TestGetEnvoyExtensionInitValidateFlag(t *testing.T) {
 
 func TestGetEnvoyExtensionInit(t *testing.T) {
 	const extensionName = "getenvoy_extension_init"
-	const envoyVersion = "standard:1.17.0"
+	const envoyVersion = "standard:1.17.1"
 
 	type testCase struct {
 		name string
