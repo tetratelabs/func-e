@@ -49,7 +49,7 @@ func interrupt(p *os.Process) {
 func (r *Runtime) handlePostTermination() error {
 	for _, f := range r.postTermination {
 		if err := f(r); err != nil {
-			log.Error(err.Error())
+			log.Errorf("failed to handle post termination: %v",  err)
 		}
 	}
 
