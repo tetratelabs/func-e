@@ -18,10 +18,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"os"
 	"os/exec"
 	"path/filepath"
-	"sync"
 
 	"github.com/tetratelabs/getenvoy/pkg/binary"
 	"github.com/tetratelabs/getenvoy/pkg/common"
@@ -58,14 +56,13 @@ func (o RuntimeOptions) AndAll(opts RuntimeOptions) RuntimeOptions {
 func NewRuntime(options ...RuntimeOption) (binary.FetchRunner, error) {
 	local := common.HomeDir
 	runtime := &Runtime{
-		Config:         NewConfig(),
-		RootDir:        local,
-		fetcher:        fetcher{local},
-		TmplDir:        filepath.Join(local, "templates"),
-		wg:             &sync.WaitGroup{},
-		signals:        make(chan os.Signal),
-		preStart:       make([]func(binary.Runner) error, 0),
-		preTermination: make([]func(binary.Runner) error, 0),
+		Config:          NewConfig(),
+		RootDir:         local,
+		fetcher:         fetcher{local},
+		TmplDir:         filepath.Join(local, "templates"),
+		preStart:        make([]func(binary.Runner) error, 0),
+		preTermination:  make([]func(binary.Runner) error, 0),
+		postTermination: make([]func(binary.Runner) error, 0),
 	}
 
 	if debugErr := runtime.initializeDebugStore(); debugErr != nil {
@@ -95,14 +92,12 @@ type Runtime struct {
 	WorkingDir string
 	IO         ioutil.StdStreams
 
-	cmd *exec.Cmd
-	ctx context.Context
-	wg  *sync.WaitGroup
+	cmd           *exec.Cmd
+	fakeInterrupt context.CancelFunc
 
-	signals chan os.Signal
-
-	preStart       []func(binary.Runner) error
-	preTermination []func(binary.Runner) error
+	preStart        []func(binary.Runner) error
+	preTermination  []func(binary.Runner) error
+	postTermination []func(binary.Runner) error
 
 	getAdminAddress func(r *Runtime) string
 	isReady         bool
@@ -171,7 +166,11 @@ func (r *Runtime) envoyReady() (int, error) {
 	}
 }
 
-// SendSignal sends a signal to the parent process
-func (r *Runtime) SendSignal(s os.Signal) {
-	r.signals <- s
+// FakeInterrupt is exposed for unit tests to pretend "getenvoy run" received an interrupt or a ctrl-c. End-to-end
+// tests should kill the getenvoy process to achieve the same.
+func (r *Runtime) FakeInterrupt() {
+	fakeInterrupt := r.fakeInterrupt
+	if fakeInterrupt != nil {
+		fakeInterrupt()
+	}
 }

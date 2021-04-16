@@ -15,11 +15,11 @@
 package envoytest
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
-	"syscall"
 	"testing"
 	"time"
 
@@ -88,11 +88,10 @@ func fetchEnvoy() error {
 type RunKillOptions struct {
 	Bootstrap            string
 	DisableAutoAdminPort bool
-	RetainDebugStore     bool
 }
 
-// RequireRunTerminate executes envoy, waits for ready, sends sigint, waits for termination, then unarchives the debug directory.
-// It should be used when you just want to cycle through an Envoy lifecycle.
+// RequireRunTerminate executes envoy, waits for ready, sends sigint, waits for termination, then unarchives the debug
+// directory. It should be used when you just want to cycle through an Envoy lifecycle.
 func RequireRunTerminate(t *testing.T, r binary.Runner, options RunKillOptions) {
 	key, err := manifest.NewKey(reference)
 	require.NoError(t, err)
@@ -115,24 +114,25 @@ func RequireRunTerminate(t *testing.T, r binary.Runner, options RunKillOptions) 
 	}
 
 	// This ensures on any panic the envoy process is terminated, which can prevent test hangs.
-	deferredTerminate := func() {
-		// envoy.waitForTerminationSignals() registers SIGINT and SIGTERM
-		r.SendSignal(syscall.SIGTERM)
+	deferredInterrupt := func() {
+		r.FakeInterrupt()
 	}
 
 	defer func() {
-		if deferredTerminate != nil {
-			deferredTerminate()
+		if deferredInterrupt != nil {
+			deferredInterrupt()
 		}
 	}()
 
 	// Ensure we don't leave tar.gz files around after the test completes
 	defer os.RemoveAll(r.DebugStore() + ".tar.gz") // nolint
 
+	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		if err := r.Run(key, args); err != nil {
 			log.Errorf("unable to run key %s: %v", key, err)
 		}
+		cancel()
 	}()
 
 	// Look for terminated or ready, so that we fail faster than polling for status ready
@@ -143,17 +143,17 @@ func RequireRunTerminate(t *testing.T, r binary.Runner, options RunKillOptions) 
 	require.Equal(t, expectedStatus, r.Status(), "never achieved status(%d)", expectedStatus)
 
 	// Now, terminate the server.
-	r.SendSignal(syscall.SIGTERM)
-	require.Eventually(t, func() bool {
-		return r.Status() == binary.StatusTerminated
-	}, 10*time.Second, 50*time.Millisecond, "never achieved StatusTerminated")
+	r.FakeInterrupt()
+	deferredInterrupt = nil
 
-	deferredTerminate = nil // We succeeded, so no longer need to kill the envoy process
+	select { // Await run completion
+	case <-time.After(10 * time.Second):
+		t.Fatal("Run never completed")
+	case <-ctx.Done():
+	}
 
 	// RunPath deletes the debug store directory after making a tar.gz with the same name.
 	// Restore it so assertions can read the contents later.
-	if options.RetainDebugStore {
-		e := archiver.Unarchive(r.DebugStore()+".tar.gz", filepath.Dir(r.DebugStore()))
-		require.NoError(t, e, "error extracting DebugStore")
-	}
+	e := archiver.Unarchive(r.DebugStore()+".tar.gz", filepath.Dir(r.DebugStore()))
+	require.NoError(t, e, "error extracting DebugStore")
 }

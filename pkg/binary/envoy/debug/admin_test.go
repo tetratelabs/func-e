@@ -35,8 +35,7 @@ func TestEnableEnvoyAdminDataCollection(t *testing.T) {
 	defer os.RemoveAll(r.DebugStore())
 
 	envoytest.RequireRunTerminate(t, r, envoytest.RunKillOptions{
-		Bootstrap:        "testdata/admin.yaml", // we need services defined in order to check adminAPIPaths
-		RetainDebugStore: true,                  // Assertions below inspect files in the debug store
+		Bootstrap: "testdata/admin.yaml", // we need services defined in order to check adminAPIPaths
 	})
 
 	for _, filename := range adminAPIPaths {

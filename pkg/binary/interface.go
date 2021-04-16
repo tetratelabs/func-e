@@ -16,7 +16,6 @@ package binary
 
 import (
 	"io"
-	"os"
 
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
@@ -27,9 +26,8 @@ type Runner interface {
 	RunPath(path string, args []string) error
 	RegisterPreStart(f ...func(Runner) error)
 	RegisterPreTermination(f ...func(Runner) error)
-	RegisterWait(int)
-	RegisterDone()
-	SendSignal(signal os.Signal)
+	RegisterPostTermination(f ...func(Runner) error)
+	FakeInterrupt()
 	Status() int
 	GetPid() (int, error)
 	AppendArgs([]string)
