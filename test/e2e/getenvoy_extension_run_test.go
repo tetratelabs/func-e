@@ -57,7 +57,7 @@ func TestGetEnvoyExtensionRun(t *testing.T) {
 			defer requireExtensionClean(t, workDir)
 
 			// "getenvoy extension run" only returns stdout because `docker run -t` redirects stderr to stdout.
-			c := getEnvoy("extension run --envoy-options '-l trace'").Args(getToolchainContainerOptions()...)
+			c := getEnvoy("extension run").Args(getToolchainContainerOptions()...)
 			_, stderr, terminate := c.Start(t, terminateTimeout)
 
 			// The underlying call is conditional to ensure errors that raise before we stop the server, stop it.
@@ -134,7 +134,7 @@ func TestGetEnvoyExtensionRun(t *testing.T) {
 // data there. The function returned reverts this directory.
 //
 // Typically, this will run in the default ~/.getenvoy directory, as a means to avoid re-downloads of files such as
-// .getenvoy/builds/standard/1.17.0/darwin/bin/envoy (~100MB)
+// .getenvoy/builds/standard/1.17.1/darwin/bin/envoy (~100MB)
 //
 // While CI usually overrides the `HOME` variable with E2E_TOOLCHAIN_CONTAINER_OPTIONS, a developer may be
 // running this on their laptop. To avoid clobbering their old debug data, backup the

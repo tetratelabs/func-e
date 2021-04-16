@@ -84,7 +84,7 @@ language: rust
 # Runtime the extension is being developed against.
 runtime:
   envoy:
-    version: standard:1.17.0
+    version: standard:1.17.1
 `))
 	require.NoError(t, err)
 
