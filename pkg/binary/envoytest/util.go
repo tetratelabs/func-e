@@ -15,6 +15,7 @@
 package envoytest
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -126,10 +127,12 @@ func RequireRunTerminate(t *testing.T, r binary.Runner, options RunKillOptions) 
 	// Ensure we don't leave tar.gz files around after the test completes
 	defer os.RemoveAll(r.DebugStore() + ".tar.gz") // nolint
 
+	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		if err := r.Run(key, args); err != nil {
 			log.Errorf("unable to run key %s: %v", key, err)
 		}
+		cancel()
 	}()
 
 	// Look for terminated or ready, so that we fail faster than polling for status ready
@@ -141,11 +144,12 @@ func RequireRunTerminate(t *testing.T, r binary.Runner, options RunKillOptions) 
 
 	// Now, terminate the server.
 	r.FakeInterrupt()
-	require.Eventually(t, func() bool {
-		return r.Status() == binary.StatusTerminated
-	}, 10*time.Second, 50*time.Millisecond, "never achieved StatusTerminated")
 
-	deferredInterrupt = nil // We succeeded, so no longer need to kill the envoy process
+	select { // Await run completion
+	case <-time.After(10 * time.Second):
+		t.Fatal("Run never completed")
+	case <-ctx.Done():
+	}
 
 	// RunPath deletes the debug store directory after making a tar.gz with the same name.
 	// Restore it so assertions can read the contents later.
