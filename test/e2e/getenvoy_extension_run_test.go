@@ -58,7 +58,7 @@ func TestGetEnvoyExtensionRun(t *testing.T) {
 
 			// "getenvoy extension run" only returns stdout because `docker run -t` redirects stderr to stdout.
 			c := getEnvoy("extension run").Args(getToolchainContainerOptions()...)
-			_, stderr, terminate := c.Start(t, terminateTimeout)
+			stdout, stderr, terminate := c.Start(t, terminateTimeout)
 
 			// The underlying call is conditional to ensure errors that raise before we stop the server, stop it.
 			deferredTerminate := terminate
@@ -66,12 +66,13 @@ func TestGetEnvoyExtensionRun(t *testing.T) {
 				deferredTerminate()
 			}()
 
+			stdoutLines := e2e.StreamLines(stdout).Named("stdout")
 			stderrLines := e2e.StreamLines(stderr).Named("stderr")
 
 			log.Infof(`waiting for Envoy Admin address to get logged after running [%v]`, c)
-			adminAddressPattern := regexp.MustCompile(`admin address: ([^:]+:[0-9]+)`)
-			line, err := stderrLines.FirstMatch(adminAddressPattern).Wait(10 * time.Minute) // give time to compile the extension
-			require.NoError(t, err, `error parsing admin address from stderr of [%v]`, c)
+			adminAddressPattern := regexp.MustCompile(`discovered admin address: ([^:]+:[0-9]+)`)
+			line, err := stdoutLines.FirstMatch(adminAddressPattern).Wait(10 * time.Minute) // give time to compile the extension
+			require.NoError(t, err, `error parsing admin address from stdout of [%v]`, c)
 			adminAddress := adminAddressPattern.FindStringSubmatch(line)[1]
 
 			log.Infof(`waiting for Envoy start-up to complete after running [%v]`, c)

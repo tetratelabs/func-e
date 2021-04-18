@@ -78,6 +78,13 @@ func (r *Runtime) RunPath(path string, args []string) error {
 
 	go waitForExit(cmd, waitCancel) // waits in a goroutine. We may need to kill the process if a signal occurs first.
 
+	// Wait up to 2 seconds to log the admin address
+	for i := 0; i < 10 && sigCtx.Err() == nil && r.GetAdminAddress() == ""; i++ {
+		time.Sleep(200 * time.Millisecond)
+	}
+
+	log.Infof("discovered admin address: %v", r.GetAdminAddress())
+
 	// Block until we receive SIGINT or are canceled because Envoy has died
 	<-sigCtx.Done()
 
