@@ -228,7 +228,7 @@ admin:
   address:
     socket_address:
       address: 0.0.0.0
-      port_value: 15000
+      port_value: 0
 
 static_resources:
   listeners:
