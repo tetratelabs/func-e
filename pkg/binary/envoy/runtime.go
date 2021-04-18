@@ -17,9 +17,13 @@ package envoy
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
+	"os"
 	"os/exec"
 	"path/filepath"
+
+	"github.com/tetratelabs/log"
 
 	"github.com/tetratelabs/getenvoy/pkg/binary"
 	"github.com/tetratelabs/getenvoy/pkg/common"
@@ -87,28 +91,37 @@ type Runtime struct {
 	RootDir  string
 	debugDir string
 	TmplDir  string
-	Config   *Config
 
 	WorkingDir string
 	IO         ioutil.StdStreams
+	Config     *Config // TODO: only used by istio until #178 deletes it
 
-	cmd           *exec.Cmd
-	fakeInterrupt context.CancelFunc
+	cmd                            *exec.Cmd
+	adminAddress, adminAddressPath string
+	fakeInterrupt                  context.CancelFunc
 
-	preStart        []func(binary.Runner) error
-	preTermination  []func(binary.Runner) error
-	postTermination []func(binary.Runner) error
+	preStart, preTermination, postTermination []func(binary.Runner) error
 
-	getAdminAddress func(r *Runtime) string
-	isReady         bool
+	isReady bool
 }
 
 // GetAdminAddress returns the current admin address in host:port format, or empty if not yet available.
+// Exported for debug.EnableEnvoyAdminDataCollection, which is always on due to debug.EnableAll.
 func (r *Runtime) GetAdminAddress() string {
-	if r.getAdminAddress == nil {
-		return r.Config.GetAdminAddress()
+	if r.adminAddress != "" { // We don't expect the admin address to change once written, so cache it.
+		return r.adminAddress
 	}
-	return r.getAdminAddress(r)
+	adminAddress, err := os.ReadFile(r.adminAddressPath) //nolint:gosec
+	if err != nil {
+		log.Debugf("unable to read %s: %v", r.adminAddressPath, err)
+		return ""
+	}
+	if _, _, err := net.SplitHostPort(string(adminAddress)); err != nil {
+		log.Debugf("invalid admin address in %s: %v", r.adminAddressPath, err)
+		return ""
+	}
+	r.adminAddress = string(adminAddress)
+	return r.adminAddress
 }
 
 // Status indicates the state of the child process

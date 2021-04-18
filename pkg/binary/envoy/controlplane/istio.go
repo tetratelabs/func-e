@@ -103,7 +103,9 @@ func generateIstioConfig(e *envoy.Runtime) meshconfig.ProxyConfig {
 	cfg := mesh.DefaultProxyConfig()
 	cfg.ConfigPath = e.DebugStore()
 	cfg.DiscoveryAddress = e.Config.XDSAddress
-	cfg.ProxyAdminPort = e.Config.AdminPort
+	// Choosing a random port doesn't help because envoy_bootstrap.json hard-codes 15020 15021 and 15090
+	// See https://github.com/istio/istio/issues/31138
+	cfg.ProxyAdminPort = 15000
 	cfg.ProxyBootstrapTemplatePath = filepath.Join(e.TmplDir, "istio_bootstrap_tmpl.json")
 	cfg.EnvoyAccessLogService = &meshconfig.RemoteService{Address: e.Config.ALSAddresss}
 	// Required: Defaults to MUTUAL_TLS, but we don't configure auth, yet, so it has to be set to NONE

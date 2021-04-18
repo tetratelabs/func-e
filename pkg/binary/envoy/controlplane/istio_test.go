@@ -59,9 +59,6 @@ func TestEnableIstioBootstrap(t *testing.T) {
 	runtime, err := envoy.NewRuntime(
 		func(r *envoy.Runtime) {
 			r.Config.Mode = envoy.ParseMode("loadbalancer")
-			// Choosing a random port doesn't help because envoy_bootstrap.json hard-codes 15020 15021 and 15090
-			// See https://github.com/istio/istio/issues/31138
-			r.Config.AdminPort = 15000
 			r.Config.XDSAddress = pilotGrpc
 			r.Config.IPAddresses = []string{"127.0.0.1"} // prevent calling controlplane.retrieveIPs() on CI hosts
 		},

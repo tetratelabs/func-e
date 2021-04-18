@@ -41,7 +41,7 @@ var (
 					SocketAddress: &envoycore.SocketAddress{
 						Address: "127.0.0.1",
 						PortSpecifier: &envoycore.SocketAddress_PortValue{
-							PortValue: 9901,
+							PortValue: 0, // dynamic port
 						},
 					},
 				},

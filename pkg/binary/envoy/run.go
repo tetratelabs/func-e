@@ -54,7 +54,10 @@ func (r *Runtime) RunPath(path string, args []string) error {
 	cmd.SysProcAttr = sysProcAttr()
 	r.cmd = cmd
 
-	r.handlePreStart()
+	err := r.handlePreStart()
+	if err != nil {
+		return err
+	}
 
 	if cmd.Stdout == nil {
 		cmd.Stdout = os.Stdout

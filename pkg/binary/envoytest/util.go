@@ -109,8 +109,6 @@ func RequireRunTerminate(t *testing.T, r binary.Runner, options RunKillOptions) 
 		args = append(args,
 			"--config-yaml", "admin: {access_log_path: '/dev/stdout', address: {socket_address: {address: '127.0.0.1', port_value: 0}}}",
 		)
-		// Allows us the status checker to read the resolved admin port after envoy starts
-		envoy.EnableAdminAddressDetection(r.(*envoy.Runtime))
 	}
 
 	// This ensures on any panic the envoy process is terminated, which can prevent test hangs.

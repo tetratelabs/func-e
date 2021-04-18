@@ -15,21 +15,48 @@
 package envoy
 
 import (
-	"github.com/tetratelabs/log"
+	"fmt"
+	"path/filepath"
 
 	"github.com/tetratelabs/getenvoy/pkg/binary"
 )
 
-func (r *Runtime) handlePreStart() {
+func (r *Runtime) handlePreStart() error {
 	// Execute all registered preStart functions
 	for _, f := range r.preStart {
 		if err := f(r); err != nil {
-			log.Error(err.Error())
+			return err
 		}
 	}
+	// Add admin path after we know the debug store location and other functions apply.
+	// NOTE: getenvoy isn't supported as a library, so we don't really need to worry about preStart hooks conflicting.
+	// If we are able to know the debug path sooner, we could refactor this later to be more direct.
+	return r.ensureAdminAddressPath()
 }
 
 // RegisterPreStart registers the passed functions to be run before Envoy has started
 func (r *Runtime) RegisterPreStart(f ...func(binary.Runner) error) {
 	r.preStart = append(r.preStart, f...)
+}
+
+// ensureAdminAddressPath sets the "--admin-address-path" flag so that it can be used in /ready checks. If a value
+// already exists, it will be returned. Otherwise, the flag will be set to the file "admin-address.txt" in the
+// debug directory. We don't use the working directory as sometimes that is a source directory.
+//
+// Notably, this allows ephemeral admin ports via bootstrap configuration admin/port_value=0 (minimum Envoy 1.12 for macOS support)
+func (r *Runtime) ensureAdminAddressPath() error {
+	args := r.cmd.Args
+	flag := `--admin-address-path`
+	for i, a := range args {
+		if a == flag {
+			if i+1 == len(args) || args[i+1] == "" {
+				return fmt.Errorf(`missing value to argument %q`, flag)
+			}
+			r.adminAddressPath = args[i+1]
+			return nil
+		}
+	}
+	r.adminAddressPath = filepath.Join(r.DebugStore(), "admin-address.txt")
+	r.cmd.Args = append(r.cmd.Args, flag, r.adminAddressPath)
+	return nil
 }

@@ -157,21 +157,24 @@ func TestGetEnvoyExtensionRun(t *testing.T) {
 
 	// Run "getenvoy extension run"
 	c, stdout, stderr := cmd.NewRootCommand()
-	c.SetArgs([]string{"extension", "run", "--home-dir", config.envoyHome})
+	c.SetArgs([]string{"extension", "run", "--home-dir", config.envoyHome,
+		// prevents generated admin-address-path which makes assertions difficult
+		"--envoy-options", "--admin-address-path /admin-address.txt",
+	})
 	err := cmdutil.Execute(c)
 
 	// Verify the command invoked, passing the correct default commandline
 	require.NoError(t, err, `expected no error running [%v]`, c)
 
-	envoyBin := filepath.Join(config.envoyHome, "builds/standard/1.17.1", config.platform, "/bin/envoy")
 	// The working directory of envoy isn't the same as docker or the workspace
-	envoyWd := cmd.ParseEnvoyWorkDirectory(stdout)
+	envoyWd := cmd.ParseEnvoyWorkDirectory(t, stdout.String(), `couldn't find envoy wd running [%v]`, c)
 
+	envoyBin := filepath.Join(config.envoyHome, "builds/standard/1.17.1", config.platform, "/bin/envoy")
 	// We expect docker to build from the correct path, as the current user and mount a volume for the correct workspace.
 	expectedStdout := fmt.Sprintf(`%s/docker run -u %s --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init getenvoy/extension-rust-builder:latest build --output-file target/getenvoy/extension.wasm
 envoy pwd: %s
 envoy bin: %s
-envoy args: -c %s/envoy.tmpl.yaml`,
+envoy args: -c %s/envoy.tmpl.yaml --admin-address-path /admin-address.txt`,
 		config.dockerDir, config.expectedUidGid, runtime.GOOS, config.workspaceDir, envoyWd, envoyBin, envoyWd)
 	require.Equal(t, expectedStdout+"\n", stdout.String(), `expected stdout running [%v]`, c)
 	require.Equal(t, "docker stderr\nenvoy stderr\n", stderr.String(), `expected stderr running [%v]`, c)
@@ -280,7 +283,7 @@ func TestGetEnvoyExtensionRunWithOptions(t *testing.T) {
 	require.NoError(t, err, `expected no error running [%v]`, c)
 
 	// The working directory of envoy is a temp directory not controlled by this test, so we have to parse it.
-	envoyWd := cmd.ParseEnvoyWorkDirectory(stdout)
+	envoyWd := cmd.ParseEnvoyWorkDirectory(t, stdout.String(), `couldn't find envoy wd running [%v]`, c)
 
 	envoyArgs := fmt.Sprintf(`-c %s/envoy.tmpl.yaml --concurrency 2 --component-log-level wasm:debug,config:trace`, envoyWd)
 	require.Contains(t, stdout.String(), "envoy args: "+envoyArgs, `expected stdout running [%v]`, c)
@@ -298,7 +301,10 @@ func TestGetEnvoyExtensionRunWithWasm(t *testing.T) {
 
 	// Run "getenvoy extension run --extension-file /path/to/extension.wasm"
 	c, stdout, stderr := cmd.NewRootCommand()
-	c.SetArgs([]string{"extension", "run", "--home-dir", config.envoyHome, "--extension-file", wasmFile})
+	c.SetArgs([]string{"extension", "run", "--home-dir", config.envoyHome, "--extension-file", wasmFile,
+		// prevents generated admin-address-path which makes assertions difficult
+		"--envoy-options", "--admin-address-path /admin-address.txt",
+	})
 	err = cmdutil.Execute(c)
 
 	// Verify the command invoked, passing the correct default commandline
@@ -307,12 +313,12 @@ func TestGetEnvoyExtensionRunWithWasm(t *testing.T) {
 	envoyBin := filepath.Join(config.envoyHome, "builds/standard/1.17.1", config.platform, "/bin/envoy")
 
 	// The working directory of envoy is a temp directory not controlled by this test, so we have to parse it.
-	envoyWd := cmd.ParseEnvoyWorkDirectory(stdout)
+	envoyWd := cmd.ParseEnvoyWorkDirectory(t, stdout.String(), `couldn't find envoy wd running [%v]`, c)
 
 	// We expect docker to not have ran, since we supplied a pre-existing wasm. However, envoy should have.
 	expectedStdout := fmt.Sprintf(`envoy pwd: %s
 envoy bin: %s
-envoy args: -c %s/envoy.tmpl.yaml`,
+envoy args: -c %s/envoy.tmpl.yaml --admin-address-path /admin-address.txt`,
 		envoyWd, envoyBin, envoyWd)
 	require.Equal(t, expectedStdout+"\n", stdout.String(), `expected stdout running [%v]`, c)
 	require.Equal(t, "envoy stderr\n", stderr.String(), `expected stderr running [%v]`, c)

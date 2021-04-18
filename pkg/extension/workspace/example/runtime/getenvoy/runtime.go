@@ -48,11 +48,6 @@ func (r *runtime) Run(ctx *types.RunContext) (errs error) {
 		func(r *envoy.Runtime) {
 			r.WorkingDir = configDir.GetDir()
 			r.IO = ctx.IO
-
-			// configure Admin listener (0 value will be interpreted as "turned off")
-			address := configDir.GetBootstrap().GetAdmin().GetAddress().GetSocketAddress()
-			r.Config.AdminAddress = address.GetAddress()
-			r.Config.AdminPort = int32(address.GetPortValue())
 		}).
 		AndAll(debug.EnableAll())...,
 	)

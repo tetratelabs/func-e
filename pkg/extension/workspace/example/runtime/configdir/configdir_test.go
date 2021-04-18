@@ -99,7 +99,7 @@ func TestNewConfigDir(t *testing.T) {
 			require.NotNil(t, bootstrap)
 			require.Equal(t, "/dev/null", bootstrap.GetAdmin().GetAccessLogPath())
 			require.Equal(t, "127.0.0.1", bootstrap.GetAdmin().GetAddress().GetSocketAddress().GetAddress())
-			require.Equal(t, uint32(9901), bootstrap.GetAdmin().GetAddress().GetSocketAddress().GetPortValue())
+			require.Equal(t, uint32(0), bootstrap.GetAdmin().GetAddress().GetSocketAddress().GetPortValue())
 
 			// verify contents of the config dir
 			for _, fileName := range ctx.Opts.Example.GetFiles().GetNames() {
