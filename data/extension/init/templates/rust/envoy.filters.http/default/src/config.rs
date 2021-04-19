@@ -1,11 +1,11 @@
 use std::convert::TryFrom;
 
-use serde::Deserialize;
+use nanoserde::DeJson;
 
 use envoy::extension;
 
 /// Configuration for a Sample HTTP Filter.
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, DeJson)]
 pub struct SampleHttpFilterConfig {}
 
 impl TryFrom<&[u8]> for SampleHttpFilterConfig {
@@ -13,6 +13,7 @@ impl TryFrom<&[u8]> for SampleHttpFilterConfig {
 
     /// Parses filter configuration from JSON.
     fn try_from(value: &[u8]) -> extension::Result<Self> {
-        serde_json::from_slice(value).map_err(Self::Error::from)
+        let json = String::from_utf8(value.to_vec())?;
+        DeJson::deserialize_json(&json).map_err(extension::Error::from)
     }
 }
