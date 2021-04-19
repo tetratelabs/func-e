@@ -51,7 +51,7 @@ impl<'a> HttpFilter for SampleHttpFilter<'a> {
         info!(
             "#{} new http exchange starts at {:?} with config: {:?}",
             self.instance_id,
-            self.clock.now(),
+            self.clock.now()?,
             self.config,
         );
 

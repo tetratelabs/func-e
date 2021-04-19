@@ -44,7 +44,7 @@ impl<'a> NetworkFilter for SampleNetworkFilter<'a> {
         info!(
             "#{} new TCP connection starts at {:?} with config: {:?}",
             self.instance_id,
-            self.clock.now(),
+            self.clock.now()?,
             self.config,
         );
 
