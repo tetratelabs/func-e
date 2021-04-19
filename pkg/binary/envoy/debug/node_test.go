@@ -39,7 +39,12 @@ func TestEnableNodeCollection(t *testing.T) {
 		path := filepath.Join(r.DebugStore(), file)
 		f, err := os.Stat(path)
 		require.NoError(t, err, "error stating %v", path)
-		require.NotEmpty(t, f.Size(), "file %v was empty", path)
+
+		// While usually not, ps can be empty due to deadline timeout getting a ps listing. Instead of flakey tests, we
+		// don't enforce this.
+		if file != "node/ps.txt" {
+			require.NotEmpty(t, f.Size(), "file %v was empty", path)
+		}
 
 		if strings.HasSuffix(file, ".json") {
 			raw, err := os.ReadFile(path)

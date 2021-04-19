@@ -54,7 +54,10 @@ func (r *Runtime) RunPath(path string, args []string) error {
 	cmd.SysProcAttr = sysProcAttr()
 	r.cmd = cmd
 
-	r.handlePreStart()
+	err := r.handlePreStart()
+	if err != nil {
+		return err
+	}
 
 	if cmd.Stdout == nil {
 		cmd.Stdout = os.Stdout
@@ -75,6 +78,8 @@ func (r *Runtime) RunPath(path string, args []string) error {
 
 	go waitForExit(cmd, waitCancel) // waits in a goroutine. We may need to kill the process if a signal occurs first.
 
+	awaitAdminAddress(sigCtx, r)
+
 	// Block until we receive SIGINT or are canceled because Envoy has died
 	<-sigCtx.Done()
 
@@ -89,6 +94,19 @@ func (r *Runtime) RunPath(path string, args []string) error {
 	<-waitCtx.Done()
 
 	return r.handlePostTermination()
+}
+
+// awaitAdminAddress waits up to 2 seconds for the admin address to be available and logs it.
+// See https://github.com/envoyproxy/envoy/issues/16050 for moving this logging upstream.
+func awaitAdminAddress(sigCtx context.Context, r *Runtime) {
+	for i := 0; i < 10 && sigCtx.Err() == nil; i++ {
+		adminAddress, adminErr := r.GetAdminAddress()
+		if adminErr == nil {
+			log.Infof("discovered admin address: %v", adminAddress)
+			return
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
 }
 
 // DebugStore returns the location at which the runtime instance persists debug data for this given instance

@@ -15,20 +15,13 @@
 package e2e_test
 
 import (
-	"os"
-	"path/filepath"
-	"regexp"
 	"testing"
 	"time"
 
-	"github.com/mholt/archiver/v3"
 	"github.com/stretchr/testify/require"
 	"github.com/tetratelabs/log"
 
-	"github.com/tetratelabs/getenvoy/pkg/common"
 	. "github.com/tetratelabs/getenvoy/pkg/test/morerequire"
-	e2e "github.com/tetratelabs/getenvoy/test/e2e/util"
-	utilenvoy "github.com/tetratelabs/getenvoy/test/e2e/util/envoy"
 )
 
 const extensionName = "getenvoy_extension_run"
@@ -56,35 +49,18 @@ func TestGetEnvoyExtensionRun(t *testing.T) {
 			requireExtensionInit(t, workDir, test.Category, test.Language, extensionName)
 			defer requireExtensionClean(t, workDir)
 
-			// "getenvoy extension run" only returns stdout because `docker run -t` redirects stderr to stdout.
 			c := getEnvoy("extension run").Args(getToolchainContainerOptions()...)
-			_, stderr, terminate := c.Start(t, terminateTimeout)
+			stdout, stderr, terminate := c.Start(t, terminateTimeout)
 
 			// The underlying call is conditional to ensure errors that raise before we stop the server, stop it.
 			deferredTerminate := terminate
 			defer func() {
-				deferredTerminate()
+				if deferredTerminate != nil {
+					deferredTerminate()
+				}
 			}()
 
-			stderrLines := e2e.StreamLines(stderr).Named("stderr")
-
-			log.Infof(`waiting for Envoy Admin address to get logged after running [%v]`, c)
-			adminAddressPattern := regexp.MustCompile(`admin address: ([^:]+:[0-9]+)`)
-			line, err := stderrLines.FirstMatch(adminAddressPattern).Wait(10 * time.Minute) // give time to compile the extension
-			require.NoError(t, err, `error parsing admin address from stderr of [%v]`, c)
-			adminAddress := adminAddressPattern.FindStringSubmatch(line)[1]
-
-			log.Infof(`waiting for Envoy start-up to complete after running [%v]`, c)
-			_, err = stderrLines.FirstMatch(regexp.MustCompile(`starting main dispatch loop`)).Wait(1 * time.Minute)
-			require.NoError(t, err, `error parsing startup from stderr of [%v]`, c)
-
-			log.Infof(`waiting for Envoy client to connect after running [%v]`, c)
-			envoyClient, err := utilenvoy.NewClient(adminAddress)
-			require.NoError(t, err, `error from envoy client %s after running [%v]`, adminAddress, c)
-			require.Eventually(t, func() bool {
-				ready, e := envoyClient.IsReady()
-				return e == nil && ready
-			}, 1*time.Minute, 100*time.Millisecond, `envoy client %s never ready after running [%v]`, adminAddress, c)
+			envoyClient := requireEnvoyReady(t, stdout, stderr, c)
 
 			log.Infof(`waiting for Wasm extensions after running [%v]`, c)
 			require.Eventually(t, func() bool {
@@ -96,65 +72,13 @@ func TestGetEnvoyExtensionRun(t *testing.T) {
 				concurrency := stats.GetMetric("server.concurrency")
 				activeWasmVms := stats.GetMetric("wasm.envoy.wasm.runtime.v8.active")
 				return concurrency != nil && activeWasmVms != nil && activeWasmVms.Value == concurrency.Value+2
-			}, 1*time.Minute, 100*time.Millisecond, `wasm stats never found after running [%v]`, adminAddress, c)
+			}, 1*time.Minute, 100*time.Millisecond, `wasm stats never found after running [%v]`, c)
 
 			log.Infof(`stopping Envoy after running [%v]`, c)
 			terminate()
-			deferredTerminate = func() {
-				// no-op as we already terminated
-			}
+			deferredTerminate = nil
 
-			// verify the debug dump of Envoy state has been taken
-			files, err := os.ReadDir(debugDir)
-			require.NoError(t, err, `error reading %s after stopping [%v]`, debugDir, c)
-			require.Equal(t, 1, len(files), `expected 1 file in %s after stopping [%v]`, debugDir, c)
-			defer func() {
-				e := os.RemoveAll(debugDir)
-				require.NoError(t, e, `error removing debug dir %s after stopping [%v]`, debugDir, c)
-			}()
-
-			// get a listing of the debug archive
-			debugArchive := filepath.Join(debugDir, files[0].Name())
-			var dumpFiles []string
-			err = archiver.Walk(filepath.Join(debugDir, files[0].Name()), func(f archiver.File) error {
-				dumpFiles = append(dumpFiles, f.Name())
-				return nil
-			})
-			require.NoError(t, err, `error reading debug archive %s after stopping [%v]`, debugArchive, c)
-
-			// ensure the minimum contents exist
-			for _, file := range []string{"config_dump.json", "stats.json"} {
-				require.Contains(t, dumpFiles, file, `debug archive %s doesn't contain %s after stopping [%v]`, debugArchive, file, c)
-			}
+			verifyDebugDump(t, debugDir, c)
 		})
-	}
-}
-
-// backupDebugDir backs up ${GETENVOY_HOME}/debug in case the test hasn't overridden it and the developer has existing
-// data there. The function returned reverts this directory.
-//
-// Typically, this will run in the default ~/.getenvoy directory, as a means to avoid re-downloads of files such as
-// .getenvoy/builds/standard/1.17.1/darwin/bin/envoy (~100MB)
-//
-// While CI usually overrides the `HOME` variable with E2E_TOOLCHAIN_CONTAINER_OPTIONS, a developer may be
-// running this on their laptop. To avoid clobbering their old debug data, backup the
-func backupDebugDir(t *testing.T) (string, func()) {
-	debugDir := filepath.Join(common.HomeDir, "debug")
-
-	if _, err := os.Lstat(debugDir); err != nil && os.IsNotExist(err) {
-		return debugDir, func() {} // do nothing on remove, if there was no debug backup
-	}
-
-	// get a name of a new temp directory, which we'll rename the existing debug to
-	backupDir, _ := RequireNewTempDir(t)
-	err := os.RemoveAll(backupDir)
-	require.NoError(t, err, `error removing temp directory: %s`, backupDir)
-
-	err = os.Rename(debugDir, backupDir)
-	require.NoError(t, err, `error renaming debug dir %s to %s`, debugDir, backupDir)
-
-	return debugDir, func() {
-		err = os.Rename(backupDir, debugDir)
-		require.NoError(t, err, `error renaming backup dir %s to %s`, debugDir, backupDir)
 	}
 }

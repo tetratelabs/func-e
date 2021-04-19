@@ -52,12 +52,12 @@ func TestRuntimeRun(t *testing.T) {
 	require.NoError(t, err, `expected no error running running [%v]`, ctx)
 
 	// The working directory of envoy is a temp directory not controlled by this test, so we have to parse it.
-	envoyWd := cmd.ParseEnvoyWorkDirectory(stdout)
+	envoyWd := cmd.ParseEnvoyWorkDirectory(t, stdout.String(), `couldn't find envoy wd running [%v]`, ctx)
 
 	// Verify we executed the indicated envoy binary, and it captured the arguments we expected
 	expectedStdout := fmt.Sprintf(`envoy pwd: %s
 envoy bin: %s
-envoy args: -c %s/envoy.tmpl.yaml
+envoy args: -c %s/envoy.tmpl.yaml --admin-address-path /admin-address.txt
 `, envoyWd, ctx.Opts.Envoy.Path, envoyWd)
 	require.Equal(t, expectedStdout, stdout.String(), `expected stdout running [%v]`, ctx)
 
@@ -109,6 +109,8 @@ func runContext(workspace model.Workspace, example model.Example, envoyPath stri
 			},
 			Envoy: runtime.EnvoyOpts{
 				Path: envoyPath,
+				// prevents generated admin-address-path which makes assertions difficult
+				Args: []string{"--admin-address-path", "/admin-address.txt"},
 			},
 		},
 		IO: ioutil.StdStreams{

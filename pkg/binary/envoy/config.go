@@ -50,7 +50,6 @@ func ParseMode(s string) Mode {
 // NewConfig creates and mutates a config object based on passed params
 func NewConfig(options ...func(*Config)) *Config {
 	cfg := &Config{
-		AdminPort:      15000,
 		DrainDuration:  &durationpb.Duration{Seconds: 30},
 		ConnectTimeout: &durationpb.Duration{Seconds: 5},
 	}
@@ -61,6 +60,7 @@ func NewConfig(options ...func(*Config)) *Config {
 }
 
 // Config store Envoy config information for use by bootstrap and arg mutators
+// TODO: only used by istio until #178 deletes it
 type Config struct {
 	XDSAddress     string
 	Mode           Mode
@@ -68,20 +68,6 @@ type Config struct {
 	ALSAddresss    string
 	DrainDuration  *durationpb.Duration
 	ConnectTimeout *durationpb.Duration
-	AdminAddress   string
-	AdminPort      int32
-}
-
-// GetAdminAddress returns a host:port formatted address of the Envoy admin listener.
-func (c *Config) GetAdminAddress() string {
-	if c.AdminPort == 0 {
-		return ""
-	}
-	address := c.AdminAddress
-	if address == "" {
-		address = "localhost"
-	}
-	return fmt.Sprintf("%s:%d", address, c.AdminPort)
 }
 
 // SaveConfig saves configuration string in getenvoy

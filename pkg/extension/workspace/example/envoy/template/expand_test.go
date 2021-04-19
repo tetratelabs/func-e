@@ -32,7 +32,7 @@ func TestExpand(t *testing.T) {
 		{
 			name:     "default value: admin",
 			input:    `{{ .GetEnvoy.DefaultValue "admin" }}`,
-			expected: `{"accessLogPath":"/dev/null","address":{"socketAddress":{"address":"127.0.0.1","portValue":9901}}}`,
+			expected: `{"accessLogPath":"/dev/null","address":{"socketAddress":{"address":"127.0.0.1","portValue":0}}}`,
 		},
 		{
 			name:     "default value: admin.access_log_path",
@@ -42,7 +42,7 @@ func TestExpand(t *testing.T) {
 		{
 			name:     "default value: admin.address",
 			input:    `{{ .GetEnvoy.DefaultValue "admin.address" }}`,
-			expected: `{"socketAddress":{"address":"127.0.0.1","portValue":9901}}`,
+			expected: `{"socketAddress":{"address":"127.0.0.1","portValue":0}}`,
 		},
 		{
 			name:     "default value: admin.address.socket.address",
@@ -52,7 +52,7 @@ func TestExpand(t *testing.T) {
 		{
 			name:     "default value: admin.address.socket.port",
 			input:    `{{ .GetEnvoy.DefaultValue "admin.address.socket.port" }}`,
-			expected: `9901`,
+			expected: `0`,
 		},
 		{
 			name:     "extension: name",
