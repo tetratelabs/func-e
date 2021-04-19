@@ -76,7 +76,7 @@ func TestRuntime_RunPath(t *testing.T) {
 			require.Eventually(t, func() bool {
 				return r.Status() == expectedStatus || r.Status() == binary.StatusTerminated
 			}, 10*time.Second, 100*time.Millisecond, "never achieved StatusInitializing or StatusTerminated")
-			require.Equal(t, expectedStatus, r.Status(), "never achieved StatusStarted or StatusTerminated")
+			require.Equal(t, expectedStatus, r.Status(), "never achieved StatusInitializing or StatusTerminated")
 
 			tc.killerFunc(r)
 			wg.Wait()
