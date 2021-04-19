@@ -65,11 +65,9 @@ impl<'a> AccessLogger for SampleAccessLogger<'a> {
         // Update stats
         self.stats.log_entries_total().inc()?;
 
-        let now = clock.now();
-
         log::info!(
             "logging at {:?} with config: {:?}",
-            now,
+            self.clock.now(),
             self.config,
         );
 

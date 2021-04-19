@@ -41,12 +41,10 @@ impl<'a> SampleNetworkFilter<'a> {
 impl<'a> NetworkFilter for SampleNetworkFilter<'a> {
     /// Called when a new TCP connection is opened.
     fn on_new_connection(&mut self) -> Result<network::FilterStatus> {
-        let now = clock.now();
-
         info!(
             "#{} new TCP connection starts at {:?} with config: {:?}",
             self.instance_id,
-            now,
+            self.clock.now(),
             self.config,
         );
 
