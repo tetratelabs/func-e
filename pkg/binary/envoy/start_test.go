@@ -24,7 +24,8 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/binary"
 )
 
-const debugDir = "~/.getenvoy/debug/1"
+// fakeDebugDir is not actually written to as the commands tested are never invoked.
+const fakeDebugDir = "~/.getenvoy/debug/1"
 
 func TestHandlePreStartReturnsOnFirstError(t *testing.T) {
 	r, _ := NewRuntime()
@@ -117,7 +118,7 @@ func TestEnsureAdminAddressPath(t *testing.T) {
 			r, _ := NewRuntime()
 			e := r.(*Runtime)
 			e.cmd = exec.Command(tt.args[0], tt.args[1:]...)
-			e.debugDir = debugDir
+			e.debugDir = fakeDebugDir
 
 			err := e.ensureAdminAddressPath()
 			require.NoError(t, err)
@@ -151,7 +152,7 @@ func TestEnsureAdminAddressPathValidateExisting(t *testing.T) {
 			r, _ := NewRuntime()
 			e := r.(*Runtime)
 			e.cmd = exec.Command(tt.args[0], tt.args[1:]...)
-			e.debugDir = debugDir
+			e.debugDir = fakeDebugDir
 
 			err := e.ensureAdminAddressPath()
 			require.Equal(t, tt.args, e.cmd.Args)

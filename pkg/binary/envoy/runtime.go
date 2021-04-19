@@ -107,21 +107,19 @@ type Runtime struct {
 
 // GetAdminAddress returns the current admin address in host:port format, or empty if not yet available.
 // Exported for debug.EnableEnvoyAdminDataCollection, which is always on due to debug.EnableAll.
-func (r *Runtime) GetAdminAddress() string {
+func (r *Runtime) GetAdminAddress() (string, error) {
 	if r.adminAddress != "" { // We don't expect the admin address to change once written, so cache it.
-		return r.adminAddress
+		return r.adminAddress, nil
 	}
 	adminAddress, err := os.ReadFile(r.adminAddressPath) //nolint:gosec
 	if err != nil {
-		log.Debugf("unable to read %s: %v", r.adminAddressPath, err)
-		return ""
+		return "", fmt.Errorf("unable to read %s: %w", r.adminAddressPath, err)
 	}
 	if _, _, err := net.SplitHostPort(string(adminAddress)); err != nil {
-		log.Debugf("invalid admin address in %s: %v", r.adminAddressPath, err)
-		return ""
+		return "", fmt.Errorf("invalid admin address in %s: %w", r.adminAddressPath, err)
 	}
 	r.adminAddress = string(adminAddress)
-	return r.adminAddress
+	return r.adminAddress, nil
 }
 
 // Status indicates the state of the child process
@@ -152,8 +150,9 @@ func (r *Runtime) GetPid() (int, error) {
 // envoyReady reads the HTTP status from the /ready endpoint and returns binary.StatusReady on 200 or
 // binary.StatusInitializing on 503.
 func (r *Runtime) envoyReady() (int, error) {
-	adminAddress := r.GetAdminAddress()
-	if adminAddress == "" { // don't yet have an admin address
+	adminAddress, err := r.GetAdminAddress()
+	if err != nil { // don't yet have an admin address
+		log.Debugf("%v", err) // don't fill logs
 		return binary.StatusInitializing, nil
 	}
 

@@ -27,7 +27,6 @@ type Runner interface {
 	RegisterPreStart(f ...func(Runner) error)
 	RegisterPreTermination(f ...func(Runner) error)
 	RegisterPostTermination(f ...func(Runner) error)
-	FakeInterrupt()
 	Status() int
 	GetPid() (int, error)
 	AppendArgs([]string)
