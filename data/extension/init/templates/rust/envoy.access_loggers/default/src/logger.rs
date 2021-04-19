@@ -67,7 +67,7 @@ impl<'a> AccessLogger for SampleAccessLogger<'a> {
 
         log::info!(
             "logging at {:?} with config: {:?}",
-            self.clock.now(),
+            self.clock.now()?,
             self.config,
         );
 
