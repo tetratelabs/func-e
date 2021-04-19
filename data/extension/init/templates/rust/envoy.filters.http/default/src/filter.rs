@@ -48,10 +48,12 @@ impl<'a> HttpFilter for SampleHttpFilter<'a> {
         _end_of_stream: bool,
         filter_ops: &dyn http::RequestHeadersOps,
     ) -> Result<http::FilterHeadersStatus> {
+        let now = clock.now();
 
         info!(
-            "#{} new http exchange with config: {:?}",
+            "#{} new http exchange starts at {:?} with config: {:?}",
             self.instance_id,
+            now,
             self.config,
         );
 

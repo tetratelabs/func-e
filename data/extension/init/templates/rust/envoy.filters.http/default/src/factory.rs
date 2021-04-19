@@ -2,7 +2,7 @@ use std::convert::TryFrom;
 use std::rc::Rc;
 
 use envoy::extension::{factory, ConfigStatus, ExtensionFactory, InstanceId, Result};
-use envoy::host::{ByteString, Stats};
+use envoy::host::{ByteString, Clock, Stats};
 
 use super::config::SampleHttpFilterConfig;
 use super::filter::SampleHttpFilter;
@@ -17,23 +17,27 @@ pub struct SampleHttpFilterFactory<'a> {
     // This example shows how multiple filter instances could share
     // metrics.
     stats: Rc<SampleHttpFilterStats>,
+    // This example shows how to use Time API, HTTP Client API and
+    // Metrics API provided by Envoy host.
+    clock: &'a dyn Clock,
 }
 
 impl<'a> SampleHttpFilterFactory<'a> {
     /// Creates a new factory.
-    pub fn new(stats: &dyn Stats) -> Result<Self> {
+    pub fn new(clock: &'a dyn Clock, stats: &dyn Stats) -> Result<Self> {
         let stats =
             SampleHttpFilterStats::new(stats.counter("examples.http_filter.requests_total")?);
         // Inject dependencies on Envoy host APIs
         Ok(SampleHttpFilterFactory {
             config: Rc::new(SampleHttpFilterConfig::default()),
             stats: Rc::new(stats),
+            clock,
         })
     }
 
     /// Creates a new factory bound to the actual Envoy ABI.
     pub fn default() -> Result<Self> {
-        Self::new(Stats::default())
+        Self::new(Clock::default(), Stats::default())
     }
 }
 

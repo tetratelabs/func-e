@@ -2,7 +2,7 @@ use std::convert::TryFrom;
 use std::rc::Rc;
 
 use envoy::extension::{factory, ConfigStatus, ExtensionFactory, InstanceId, Result};
-use envoy::host::{ByteString, Stats};
+use envoy::host::{ByteString, Clock, Stats};
 
 use super::config::SampleNetworkFilterConfig;
 use super::filter::SampleNetworkFilter;
@@ -17,6 +17,8 @@ pub struct SampleNetworkFilterFactory<'a> {
     // This example shows how multiple filter instances could share
     // metrics.
     stats: Rc<SampleNetworkFilterStats>,
+    // This example shows how to use Time API provided by Envoy host.
+    clock: &'a dyn Clock,
 }
 
 impl<'a> SampleNetworkFilterFactory<'a> {
@@ -29,12 +31,13 @@ impl<'a> SampleNetworkFilterFactory<'a> {
         Ok(SampleNetworkFilterFactory {
             config: Rc::new(SampleNetworkFilterConfig::default()),
             stats: Rc::new(stats),
+            clock,
         })
     }
 
     /// Creates a new factory bound to the actual Envoy ABI.
     pub fn default() -> Result<Self> {
-        Self::new(Stats::default())
+        Self::new(Clock::default(), Stats::default())
     }
 }
 
