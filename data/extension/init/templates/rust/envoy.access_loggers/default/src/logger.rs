@@ -1,7 +1,5 @@
 use std::convert::TryFrom;
 
-use chrono::{offset::Local, DateTime};
-
 use envoy::extension::{access_logger, AccessLogger, ConfigStatus, Result};
 use envoy::host::{log, ByteString, Clock, Stats};
 
@@ -67,11 +65,9 @@ impl<'a> AccessLogger for SampleAccessLogger<'a> {
         // Update stats
         self.stats.log_entries_total().inc()?;
 
-        let now: DateTime<Local> = self.clock.now()?.into();
-
         log::info!(
-            "logging at {} with config: {:?}",
-            now.format("%+"),
+            "logging at {:?} with config: {:?}",
+            self.clock.now()?,
             self.config,
         );
 

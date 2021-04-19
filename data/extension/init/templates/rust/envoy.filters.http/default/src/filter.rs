@@ -1,7 +1,5 @@
 use std::rc::Rc;
 
-use chrono::{offset::Local, DateTime};
-
 use envoy::extension::{filter::http, HttpFilter, InstanceId, Result};
 use envoy::host::log::info;
 use envoy::host::Clock;
@@ -50,12 +48,10 @@ impl<'a> HttpFilter for SampleHttpFilter<'a> {
         _end_of_stream: bool,
         filter_ops: &dyn http::RequestHeadersOps,
     ) -> Result<http::FilterHeadersStatus> {
-        let now: DateTime<Local> = self.clock.now()?.into();
-
         info!(
-            "#{} new http exchange starts at {} with config: {:?}",
+            "#{} new http exchange starts at {:?} with config: {:?}",
             self.instance_id,
-            now.format("%+"),
+            self.clock.now()?,
             self.config,
         );
 

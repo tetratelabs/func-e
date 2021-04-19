@@ -1,7 +1,5 @@
 use std::rc::Rc;
 
-use chrono::{offset::Local, DateTime};
-
 use envoy::extension::{filter::network, InstanceId, NetworkFilter, Result};
 use envoy::host::log::info;
 use envoy::host::Clock;
@@ -43,12 +41,10 @@ impl<'a> SampleNetworkFilter<'a> {
 impl<'a> NetworkFilter for SampleNetworkFilter<'a> {
     /// Called when a new TCP connection is opened.
     fn on_new_connection(&mut self) -> Result<network::FilterStatus> {
-        let now: DateTime<Local> = self.clock.now()?.into();
-
         info!(
-            "#{} new TCP connection starts at {} with config: {:?}",
+            "#{} new TCP connection starts at {:?} with config: {:?}",
             self.instance_id,
-            now.format("%+"),
+            self.clock.now()?,
             self.config,
         );
 
