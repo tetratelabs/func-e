@@ -75,7 +75,7 @@ func TestRuntime_RunPath(t *testing.T) {
 			expectedStatus := binary.StatusInitializing // because we won't have an admin URL to check
 			require.Eventually(t, func() bool {
 				return r.Status() == expectedStatus || r.Status() == binary.StatusTerminated
-			}, 10*time.Second, 100*time.Millisecond, "never achieved StatusStarted or StatusTerminated")
+			}, 10*time.Second, 100*time.Millisecond, "never achieved StatusInitializing or StatusTerminated")
 			require.Equal(t, expectedStatus, r.Status(), "never achieved StatusStarted or StatusTerminated")
 
 			tc.killerFunc(r)
