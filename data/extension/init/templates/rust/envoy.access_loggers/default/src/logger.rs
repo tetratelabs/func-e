@@ -1,9 +1,7 @@
 use std::convert::TryFrom;
 
-use chrono::{offset::Local, DateTime};
-
 use envoy::extension::{access_logger, AccessLogger, ConfigStatus, Result};
-use envoy::host::{log, ByteString, Clock, Stats};
+use envoy::host::{log, ByteString, Stats};
 
 use super::config::SampleAccessLoggerConfig;
 use super::stats::SampleAccessLoggerStats;
@@ -12,13 +10,11 @@ use super::stats::SampleAccessLoggerStats;
 pub struct SampleAccessLogger<'a> {
     config: SampleAccessLoggerConfig,
     stats: SampleAccessLoggerStats,
-    // This example shows how to use Time API provided by Envoy host.
-    clock: &'a dyn Clock,
 }
 
 impl<'a> SampleAccessLogger<'a> {
     /// Creates a new instance of Sample Access Logger.
-    pub fn new(clock: &'a dyn Clock, stats: &dyn Stats) -> Result<Self> {
+    pub fn new(stats: &dyn Stats) -> Result<Self> {
         let stats = SampleAccessLoggerStats::new(
             stats.counter("examples.access_logger.log_entries_total")?,
         );
@@ -26,14 +22,13 @@ impl<'a> SampleAccessLogger<'a> {
         Ok(SampleAccessLogger {
             config: SampleAccessLoggerConfig::default(),
             stats,
-            clock,
         })
     }
 
     /// Creates a new instance of Sample Access Logger
     /// bound to the actual Envoy ABI.
     pub fn default() -> Result<Self> {
-        Self::new(Clock::default(), Stats::default())
+        Self::new(Stats::default())
     }
 }
 
@@ -67,11 +62,8 @@ impl<'a> AccessLogger for SampleAccessLogger<'a> {
         // Update stats
         self.stats.log_entries_total().inc()?;
 
-        let now: DateTime<Local> = self.clock.now()?.into();
-
         log::info!(
-            "logging at {} with config: {:?}",
-            now.format("%+"),
+            "logging with config: {:?}",
             self.config,
         );
 

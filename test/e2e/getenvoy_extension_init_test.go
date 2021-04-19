@@ -111,7 +111,7 @@ func TestGetEnvoyExtensionInit(t *testing.T) {
 			switch test.Language {
 			case extension.LanguageRust:
 				languageSpecificPaths = []string{
-					".cargo/config",
+					".cargo/config.toml",
 					"Cargo.toml",
 					"README.md",
 					"src/config.rs",
