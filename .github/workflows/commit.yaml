@@ -18,15 +18,14 @@ on:
 
 jobs:
   test:
-    name: "Run unit tests"
-    runs-on: ${{ matrix.runner.os }}
+    name: "Run unit tests (${{ matrix.os }})"
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 90  # instead of 360 by default
     strategy:
       fail-fast: false  # don't fail fast as sometimes failures are operating system specific
       matrix:
-        runner:
-          - os: macos-latest
-          - os: ubuntu-latest
+        go-version: [1.16.3]
+        os: [ubuntu-latest, macos-latest]
     steps:
       - name: "Checkout"
         uses: actions/checkout@v2
@@ -34,7 +33,17 @@ jobs:
       - name: "Install Go"
         uses: actions/setup-go@v2
         with:
-          go-version: '1.16.3'
+          go-version: ${{ matrix.go-version }}
+
+      - name: "Cache Go modules"
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/go/bin/*-v*
+          # '.bingo/*.sum' files generate inconsistently when building `~/go/bin/*-v*`. We key '.bingo/*.mod' instead.
+          key: test-${{ runner.os }}-${{ matrix.go-version }}-go-${{ hashFiles('go.sum', '.bingo/*.mod') }}
+          restore-keys: test-${{ runner.os }}-${{ matrix.go-version }}-go-
 
       - name: "Verify clean check-in"
         run: make check
@@ -80,17 +89,16 @@ jobs:
           path: build/bin
 
   e2e:
-    name: Run e2e tests (${{ matrix.runner.os }}, ${{ matrix.args.extension-language }})
+    name: Run e2e tests (${{ matrix.os }}, ${{ matrix.args.extension-language }})
     needs:
       - bin
-    runs-on: ${{ matrix.runner.os }}
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 90  # instead of 360 by default
     strategy:
       fail-fast: false  # don't fail fast as sometimes failures are operating system specific
       matrix:
-        runner:
-          - os: macos-latest
-          - os: ubuntu-latest
+        go-version: [1.16.3]
+        os: [ubuntu-latest, macos-latest]
         args:  # Controls arguments used in all extension tests. Managed by test/e2e/main_test.go
           - extension-language: rust
             # Attempt to avoid re-downloading almost 200MB of deps per test that implies "getenvoy extension build"
@@ -107,7 +115,17 @@ jobs:
       - name: "Install Go"
         uses: actions/setup-go@v2
         with:
-          go-version: '1.16.3'
+          go-version: ${{ matrix.go-version }}
+
+      - name: "Cache Go modules"
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/go/bin/*-v*
+          # '.bingo/*.sum' files generate inconsistently when building `~/go/bin/*-v*`. We key '.bingo/*.mod' instead.
+          key: e2e-${{ runner.os }}-${{ matrix.go-version }}-go-${{ hashFiles('go.sum', '.bingo/*.mod') }}
+          restore-keys: e2e-${{ runner.os }}-${{ matrix.go-version }}-go-
 
       - name: "Re-use the `getenvoy` binary pre-built by the upstream job"
         uses: actions/download-artifact@v2
