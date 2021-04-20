@@ -149,9 +149,9 @@ func TestGetEnvoyManifest(t *testing.T) {
 
 	tests := []testCase{ // we don't test default as that depends on the runtime env
 		{
-			name:     "default is https://dl.cloudsmith.io/public/tetrate/getenvoy/raw/files/manifest.json",
+			name:     "default is https://dl.getenvoy.io/public/raw/files/manifest.json",
 			setup:    emptySetup,
-			expected: "https://dl.cloudsmith.io/public/tetrate/getenvoy/raw/files/manifest.json",
+			expected: "https://dl.getenvoy.io/public/raw/files/manifest.json",
 		},
 		{
 			name: "GETENVOY_MANIFEST_URL env",

@@ -34,8 +34,8 @@ var (
 	// manifestURL defines location of the GetEnvoy manifest.
 	manifestURL = &url.URL{
 		Scheme: "https",
-		Host:   "dl.cloudsmith.io",
-		Path:   "/public/tetrate/getistio/raw/files/manifest.json",
+		Host:   "dl.getenvoy.io",
+		Path:   "/public/raw/files/manifest.json",
 	}
 )
 
