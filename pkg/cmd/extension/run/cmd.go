@@ -21,6 +21,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	reference "github.com/tetratelabs/getenvoy/pkg"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/build"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/common"
 	examplecmd "github.com/tetratelabs/getenvoy/pkg/cmd/extension/example"
@@ -140,12 +141,12 @@ func NewCmd() *cobra.Command {
 		Short: "Run Envoy extension in the example setup.",
 		Long: `
 Run Envoy extension in the example setup.`,
-		Example: `
+		Example: fmt.Sprintf(`
   # Run Envoy extension in the "default" example setup
   getenvoy extension run
 
   # Run Envoy extension in the "default" example setup using a particular Envoy release provided by getenvoy.io
-  getenvoy extension run --envoy-version standard:1.17.1
+  getenvoy extension run --envoy-version %s
 
   # Run Envoy extension in the "default" example setup using a custom Envoy binary
   getenvoy extension run --envoy-path /path/to/envoy
@@ -163,9 +164,9 @@ Run Envoy extension in the example setup.`,
   getenvoy extension run --toolchain-container-options '-e VAR=VALUE -v /host/path:/container/path'
 
   # Run Envoy extension in the "default" example setup; build the extension using Docker build container with SSH agent forwarding enabled (Docker for Mac)
-  getenvoy extension run --toolchain-container-options ` +
-			`'--mount type=bind,src=/run/host-services/ssh-auth.sock,target=/run/host-services/ssh-auth.sock ` +
-			`-e SSH_AUTH_SOCK=/run/host-services/ssh-auth.sock'`,
+  getenvoy extension run --toolchain-container-options `+
+			`'--mount type=bind,src=/run/host-services/ssh-auth.sock,target=/run/host-services/ssh-auth.sock `+
+			`-e SSH_AUTH_SOCK=/run/host-services/ssh-auth.sock'`, reference.Latest),
 		Args: func(*cobra.Command, []string) error {
 			if err := opts.Run.Validate(); err != nil {
 				return err

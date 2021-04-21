@@ -15,6 +15,7 @@
 package envoy
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -26,11 +27,16 @@ import (
 	"github.com/mholt/archiver/v3"
 	"github.com/stretchr/testify/require"
 
+	reference "github.com/tetratelabs/getenvoy/pkg"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
 
 func TestRuntime_Fetch(t *testing.T) {
-	defaultDarwinKey := &manifest.Key{Flavor: "standard", Version: "1.17.1", Platform: "darwin"}
+	key, err := manifest.NewKey(reference.Latest)
+	require.NoError(t, err)
+
+	defaultDarwinKey := &manifest.Key{Flavor: key.Flavor, Version: key.Version, Platform: "darwin"}
+	buildsDir := fmt.Sprintf("builds/%s/%s", key.Flavor, key.Version)
 	tests := []struct {
 		name             string
 		key              *manifest.Key
@@ -49,8 +55,8 @@ func TestRuntime_Fetch(t *testing.T) {
 			tarballStructure: "envoy",
 			tarExtension:     ".tar.gz",
 			responseStatus:   http.StatusOK,
-			envoyLocation:    "builds/standard/1.17.1/darwin/bin/envoy",
-			libLocation:      "builds/standard/1.17.1/darwin/lib/somelib",
+			envoyLocation:    buildsDir + "/darwin/bin/envoy",
+			libLocation:      buildsDir + "/darwin/lib/somelib",
 			wantServerCalled: true,
 		},
 		{
@@ -59,15 +65,15 @@ func TestRuntime_Fetch(t *testing.T) {
 			tarballStructure: "envoy",
 			tarExtension:     ".tar.xz",
 			responseStatus:   http.StatusOK,
-			envoyLocation:    "builds/standard/1.17.1/darwin/bin/envoy",
-			libLocation:      "builds/standard/1.17.1/darwin/lib/somelib",
+			envoyLocation:    buildsDir + "/darwin/bin/envoy",
+			libLocation:      buildsDir + "/darwin/lib/somelib",
 			wantServerCalled: true,
 		},
 		{
 			name:             "Does nothing if it already has a local copy",
 			key:              defaultDarwinKey,
-			envoyLocation:    "builds/standard/1.17.1/darwin/bin/envoy",
-			libLocation:      "builds/standard/1.17.1/darwin/lib/somelib",
+			envoyLocation:    buildsDir + "/darwin/bin/envoy",
+			libLocation:      buildsDir + "/darwin/lib/somelib",
 			alreadyLocal:     true,
 			wantServerCalled: false,
 		},

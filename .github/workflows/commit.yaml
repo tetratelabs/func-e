@@ -35,14 +35,17 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
 
-      - name: "Cache Go modules"
+      - name: "Cache dependencies"
         uses: actions/cache@v2
         with:
+          # This combines unrelated caches because actions/cache@v2 doesn't support multiple
+          # instances, rather a combined path. https://github.com/actions/cache/issues/16
           path: |
+            ~/.getenvoy/builds
             ~/go/pkg/mod
             ~/go/bin/*-v*
           # '.bingo/*.sum' files generate inconsistently when building `~/go/bin/*-v*`. We key '.bingo/*.mod' instead.
-          key: test-${{ runner.os }}-${{ matrix.go-version }}-go-${{ hashFiles('go.sum', '.bingo/*.mod') }}
+          key: test-${{ runner.os }}-${{ matrix.go-version }}-go-${{ hashFiles('pkg/reference.txt', 'go.sum', '.bingo/*.mod') }}
           restore-keys: test-${{ runner.os }}-${{ matrix.go-version }}-go-
 
       - name: "Verify clean check-in"
@@ -52,7 +55,7 @@ jobs:
         # Prefetch envoy to avoid latency during "go test" which contributes to timeouts.
         # This version must align with pkg/binary/envoytest/util.go
         run: |
-          go run cmd/getenvoy/main.go fetch standard:1.17.1
+          go run cmd/getenvoy/main.go fetch $(cat pkg/reference.txt)
           make test
 
       - name: "Generate test coverage report"
@@ -117,14 +120,17 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
 
-      - name: "Cache Go modules"
+      - name: "Cache dependencies"
         uses: actions/cache@v2
         with:
+          # This combines unrelated caches because actions/cache@v2 doesn't support multiple
+          # instances, rather a combined path. https://github.com/actions/cache/issues/16
           path: |
+            ~/.getenvoy/builds
             ~/go/pkg/mod
             ~/go/bin/*-v*
           # '.bingo/*.sum' files generate inconsistently when building `~/go/bin/*-v*`. We key '.bingo/*.mod' instead.
-          key: e2e-${{ runner.os }}-${{ matrix.go-version }}-go-${{ hashFiles('go.sum', '.bingo/*.mod') }}
+          key: e2e-${{ runner.os }}-${{ matrix.go-version }}-go-${{ hashFiles('pkg/reference.txt', 'go.sum', '.bingo/*.mod') }}
           restore-keys: e2e-${{ runner.os }}-${{ matrix.go-version }}-go-
 
       - name: "Re-use the `getenvoy` binary pre-built by the upstream job"

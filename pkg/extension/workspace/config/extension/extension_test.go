@@ -21,11 +21,12 @@ import (
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 
+	reference "github.com/tetratelabs/getenvoy/pkg"
 	. "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 )
 
 func TestDescriptorValidate(t *testing.T) {
-	input := `#
+	input := fmt.Sprintf(`#
 # Envoy Wasm extension created with getenvoy toolkit.
 #
 kind: Extension
@@ -38,8 +39,8 @@ language: rust
 # Runtime the extension is being developed against.
 runtime:
   envoy:
-    version: standard:1.17.1
-`
+    version: %[1]s
+`, reference.Latest)
 	var descriptor Descriptor
 	err := yaml.Unmarshal([]byte(input), &descriptor)
 	require.NoError(t, err)
@@ -80,7 +81,7 @@ runtime:
 		},
 		{
 			name: "missing extension name",
-			input: `#
+			input: fmt.Sprintf(`#
 # Envoy Wasm extension created with getenvoy toolkit.
 #
 kind: Extension
@@ -91,17 +92,17 @@ language: rust
 # Runtime the extension is being developed against.
 runtime:
   envoy:
-    version: standard:1.17.1
-`,
+    version: %[1]s
+`, reference.Latest),
 			expectedErr: `extension name cannot be empty`,
 		}, {
 			name: "invalid extension name",
-			input: `#
+			input: fmt.Sprintf(`#
 # Envoy Wasm extension created with getenvoy toolkit.
 #
 kind: Extension
 
-name: ?!@#$%
+name: ?!@#$%%
 
 category: envoy.filters.http
 language: rust
@@ -109,8 +110,8 @@ language: rust
 # Runtime the extension is being developed against.
 runtime:
   envoy:
-    version: standard:1.17.1
-`,
+    version: %[1]s
+`, reference.Latest),
 			expectedErr: `"?!@#$%" is not a valid extension name. Extension name must match the format "^[a-z0-9_]+(\\.[a-z0-9_]+)*$". E.g., 'mycompany.filters.http.custom_metrics'`,
 		},
 	}

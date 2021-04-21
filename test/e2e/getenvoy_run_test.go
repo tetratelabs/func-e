@@ -26,6 +26,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tetratelabs/log"
 
+	reference "github.com/tetratelabs/getenvoy/pkg"
 	"github.com/tetratelabs/getenvoy/pkg/common"
 	. "github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 	e2e "github.com/tetratelabs/getenvoy/test/e2e/util"
@@ -39,9 +40,9 @@ func TestGetEnvoyRun(t *testing.T) {
 	debugDir, revertOriginalDebugDir := backupDebugDir(t)
 	defer revertOriginalDebugDir()
 
-	c := getEnvoy(`run standard:1.17.1`). // TODO #106
-						Args(`--`, `--config-yaml`). // Below is the minimal config needed to run envoy
-						Arg(`admin: {access_log_path: '/dev/stdout', address: {socket_address: {address: '127.0.0.1', port_value: 0}}}`)
+	c := getEnvoy(`run`).Arg(reference.Latest). // TODO #106
+							Args(`--`, `--config-yaml`). // Below is the minimal config needed to run envoy
+							Arg(`admin: {access_log_path: '/dev/stdout', address: {socket_address: {address: '127.0.0.1', port_value: 0}}}`)
 
 	stdout, stderr, terminate := c.Start(t, terminateTimeout)
 
