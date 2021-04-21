@@ -103,7 +103,7 @@ jobs:
           - extension-language: rust
             # Attempt to avoid re-downloading almost 200MB of deps per test that implies "getenvoy extension build"
             # This uses the RUNNER_TEMP variable directly to avoid having to mkdir a sub-path.
-            toolchain-container-options: "-v ${RUNNER_TEMP}:/tmp/cargohome -e CARGO_HOME=/tmp/cargohome"
+            toolchain-container-options: "-v ${RUNNER_TEMP}:/tmp/cargohome:delegated -e CARGO_HOME=/tmp/cargohome"
           - extension-language: tinygo
             toolchain-container-options: ""
     env:
