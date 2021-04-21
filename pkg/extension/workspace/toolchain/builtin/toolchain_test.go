@@ -62,7 +62,7 @@ func TestBuiltinToolchain(t *testing.T) {
                   image: default/image
 `,
 		tool:           build,
-		expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init default/image build --output-file extension.wasm\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+		expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source:delegated -w /source --init default/image build --output-file extension.wasm\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
 	},
 		{
 			name: "test using default container image",
@@ -72,7 +72,7 @@ func TestBuiltinToolchain(t *testing.T) {
                   image: default/image
 `,
 			tool:           test,
-			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init default/image test\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source:delegated -w /source --init default/image test\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
 		},
 		{
 			name: "clean using default container image",
@@ -82,7 +82,7 @@ func TestBuiltinToolchain(t *testing.T) {
                   image: default/image
 `,
 			tool:           clean,
-			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init default/image clean\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source:delegated -w /source --init default/image clean\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
 		},
 		{
 			name: "build using test container image",
@@ -101,7 +101,7 @@ func TestBuiltinToolchain(t *testing.T) {
                     image: test/image
 `,
 			tool:           build,
-			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init build/image build --output-file output/file.wasm\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source:delegated -w /source --init build/image build --output-file output/file.wasm\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
 		},
 		{
 			name: "build using test container image and Docker cli options",
@@ -127,7 +127,7 @@ func TestBuiltinToolchain(t *testing.T) {
                     - /host/path=/container/path
 `,
 			tool:           build,
-			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -e VAR=VALUE build/image build --output-file output/file.wasm\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source:delegated -w /source --init -e VAR=VALUE build/image build --output-file output/file.wasm\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
 		},
 		{
 			name: "build fails with a non-0 exit code",
@@ -145,8 +145,8 @@ func TestBuiltinToolchain(t *testing.T) {
                     wasmFile: output/file.wasm
 `,
 			tool:           build,
-			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 build/image build --output-file output/file.wasm\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
-			expectedErr:    fmt.Sprintf("failed to execute an external command \"%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 build/image build --output-file output/file.wasm\": exit status 3", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source:delegated -w /source --init -e DOCKER_EXIT_CODE=3 build/image build --output-file output/file.wasm\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+			expectedErr:    fmt.Sprintf("failed to execute an external command \"%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source:delegated -w /source --init -e DOCKER_EXIT_CODE=3 build/image build --output-file output/file.wasm\": exit status 3", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
 		},
 		{
 			name: "test using test container image",
@@ -165,7 +165,7 @@ func TestBuiltinToolchain(t *testing.T) {
                     image: test/image
 `,
 			tool:           test,
-			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init test/image test\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source:delegated -w /source --init test/image test\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
 		},
 		{
 			name: "test using test container image and Docker cli options",
@@ -190,7 +190,7 @@ func TestBuiltinToolchain(t *testing.T) {
                     - /host/path=/container/path
 `,
 			tool:           test,
-			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -v /host/path=/container/path test/image test\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source:delegated -w /source --init -v /host/path=/container/path test/image test\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
 		},
 		{
 			name: "test fails with a non-0 exit code",
@@ -206,8 +206,8 @@ func TestBuiltinToolchain(t *testing.T) {
                     - DOCKER_EXIT_CODE=3
 `,
 			tool:           test,
-			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 test/image test\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
-			expectedErr:    fmt.Sprintf("failed to execute an external command \"%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 test/image test\": exit status 3", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source:delegated -w /source --init -e DOCKER_EXIT_CODE=3 test/image test\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+			expectedErr:    fmt.Sprintf("failed to execute an external command \"%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source:delegated -w /source --init -e DOCKER_EXIT_CODE=3 test/image test\": exit status 3", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
 		},
 		{
 			name: "clean using test container image",
@@ -226,7 +226,7 @@ func TestBuiltinToolchain(t *testing.T) {
                     image: clean/image
 `,
 			tool:           clean,
-			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init clean/image clean\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source:delegated -w /source --init clean/image clean\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
 		},
 		{
 			name: "clean using test container image and Docker cli options",
@@ -251,7 +251,7 @@ func TestBuiltinToolchain(t *testing.T) {
                     - /host/path=/container/path
 `,
 			tool:           clean,
-			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -v /host/path=/container/path clean/image clean\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source:delegated -w /source --init -v /host/path=/container/path clean/image clean\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
 		},
 		{
 			name: "clean fails with a non-0 exit code",
@@ -267,8 +267,8 @@ func TestBuiltinToolchain(t *testing.T) {
                     - DOCKER_EXIT_CODE=3
 `,
 			tool:           clean,
-			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 clean/image clean\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
-			expectedErr:    fmt.Sprintf("failed to execute an external command \"%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 clean/image clean\": exit status 3", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source:delegated -w /source --init -e DOCKER_EXIT_CODE=3 clean/image clean\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+			expectedErr:    fmt.Sprintf("failed to execute an external command \"%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source:delegated -w /source --init -e DOCKER_EXIT_CODE=3 clean/image clean\": exit status 3", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
 		},
 	}
 

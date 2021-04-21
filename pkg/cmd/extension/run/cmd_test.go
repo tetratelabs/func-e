@@ -171,7 +171,7 @@ func TestGetEnvoyExtensionRun(t *testing.T) {
 
 	envoyBin := filepath.Join(config.envoyHome, "builds/standard/1.17.1", config.platform, "/bin/envoy")
 	// We expect docker to build from the correct path, as the current user and mount a volume for the correct workspace.
-	expectedStdout := fmt.Sprintf(`%s/docker run -u %s --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init getenvoy/extension-rust-builder:latest build --output-file target/getenvoy/extension.wasm
+	expectedStdout := fmt.Sprintf(`%s/docker run -u %s --rm -e GETENVOY_GOOS=%s -t -v %s:/source:delegated -w /source --init getenvoy/extension-rust-builder:latest build --output-file target/getenvoy/extension.wasm
 envoy pwd: %s
 envoy bin: %s
 envoy args: -c %s/envoy.tmpl.yaml --admin-address-path /admin-address.txt`,
@@ -201,7 +201,7 @@ func TestGetEnvoyExtensionRunDockerFail(t *testing.T) {
 	err := cmdutil.Execute(c)
 
 	// We expect the exit instruction to have gotten to the fake docker script, along with the default options.
-	expectedDockerExec := fmt.Sprintf("%s/docker run -u %s --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init %s getenvoy/extension-rust-builder:latest build --output-file target/getenvoy/extension.wasm",
+	expectedDockerExec := fmt.Sprintf("%s/docker run -u %s --rm -e GETENVOY_GOOS=%s -t -v %s:/source:delegated -w /source --init %s getenvoy/extension-rust-builder:latest build --output-file target/getenvoy/extension.wasm",
 		config.dockerDir, config.expectedUidGid, runtime.GOOS, config.workspaceDir, toolchainOptions)
 
 	// Verify the command failed with the expected error.

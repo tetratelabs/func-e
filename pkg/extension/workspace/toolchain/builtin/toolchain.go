@@ -98,7 +98,7 @@ func (t *builtin) dockerCliArgs(container *config.ContainerConfig) (executil.Arg
 		"--rm",
 		"-e", "GETENVOY_GOOS=" + runtime.GOOS, // Allows builder images to act based on execution env
 		"-t", // to get interactive/colored output out of container
-		"-v", fmt.Sprintf("%s:%s", t.workspace.GetDir().GetRootDir(), "/source"),
+		"-v", fmt.Sprintf("%s:%s", t.workspace.GetDir().GetRootDir(), "/source:delegated"),
 		"-w", "/source",
 		"--init", // to ensure container will be responsive to SIGTERM signal
 	}.Add(container.Options...).Add(container.Image), nil
