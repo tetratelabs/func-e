@@ -40,9 +40,9 @@ func TestGetEnvoyRun(t *testing.T) {
 	debugDir, revertOriginalDebugDir := backupDebugDir(t)
 	defer revertOriginalDebugDir()
 
-	c := getEnvoy(`run`).Arg(reference.Latest). // TODO #106
-							Args(`--`, `--config-yaml`). // Below is the minimal config needed to run envoy
-							Arg(`admin: {access_log_path: '/dev/stdout', address: {socket_address: {address: '127.0.0.1', port_value: 0}}}`)
+	c := getEnvoy(`run`).Arg(reference.Latest) // TODO allow implicit version #106
+	// Below is the minimal config needed to run envoy
+	c.Args(`--`, `--config-yaml`, `admin: {access_log_path: '/dev/stdout', address: {socket_address: {address: '127.0.0.1', port_value: 0}}}`)
 
 	stdout, stderr, terminate := c.Start(t, terminateTimeout)
 
