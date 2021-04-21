@@ -34,9 +34,8 @@ func TestEnableEnvoyAdminDataCollection(t *testing.T) {
 	require.NoError(t, err, "error getting envoy runtime")
 	defer os.RemoveAll(r.DebugStore())
 
-	envoytest.RequireRunTerminate(t, r, envoytest.RunKillOptions{
-		Bootstrap: "testdata/admin.yaml", // we need services defined in order to check adminAPIPaths
-	})
+	// admin.yaml because we need services defined in order to check adminAPIPaths
+	envoytest.RequireRunTerminate(t, r, "testdata/admin.yaml")
 
 	for _, filename := range adminAPIPaths {
 		path := filepath.Join(r.DebugStore(), filename)

@@ -25,8 +25,7 @@ import (
 var logger = l.RegisterScope("pkg/pii", "filters log lines for PII data", 0)
 
 var (
-	defaultFilter, _ = Default()
-	istioFormat      = `[%START_TIME%] "%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%"` +
+	istioFormat = `[%START_TIME%] "%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%"` +
 		` %RESPONSE_CODE% %RESPONSE_FLAGS% "%DYNAMIC_METADATA(istio.mixer:status)%" "%REQ(USER-AGENT)%"`
 	defaultPII = map[string]bool{
 		// keys without variables
@@ -119,12 +118,6 @@ func (f Filter) Process(logs []string) []string {
 		}
 	}
 	return out
-}
-
-// Process process logs with the default filter
-// an empty array of logs and an error instance is returned in the event of an error
-func Process(logs []string) ([]string, error) {
-	return defaultFilter.Process(logs), nil
 }
 
 // defaultHash returns the hashed value of s using sha256 defaultHash function

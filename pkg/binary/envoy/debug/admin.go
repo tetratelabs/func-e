@@ -55,7 +55,7 @@ func retrieveAdminAPIData(r binary.Runner) error {
 	if err != nil {
 		return fmt.Errorf("unable to capture Envoy configuration and metrics: %w", err)
 	}
-	var multiErr *multierror.Error
+	multiErr := &multierror.Error{}
 	for path, file := range adminAPIPaths {
 		resp, err := http.Get(fmt.Sprintf("http://%s/%v", adminAddress, path))
 		if err != nil {

@@ -32,7 +32,7 @@ func TestEnableNodeCollection(t *testing.T) {
 	require.NoError(t, err, "error creating envoy runtime")
 	defer os.RemoveAll(r.DebugStore())
 
-	envoytest.RequireRunTerminate(t, r, envoytest.RunKillOptions{})
+	envoytest.RequireRunTerminate(t, r, "")
 
 	files := [...]string{"node/ps.txt", "node/network_interface.json", "node/connections.json"}
 	for _, file := range files {

@@ -43,11 +43,11 @@ linters:
     - "prealloc"
     - "unconvert"
     - "unparam"
+    - "gomoddirectives"
 
   disable:
-    - "gochecknoinits"
     - "gochecknoglobals"
-    - "gomoddirectives"  # Istio 1.7 dependency conflicts prevent enabling this
+    - "gochecknoinits"
 
 # all available settings of specific linters
 linters-settings:
