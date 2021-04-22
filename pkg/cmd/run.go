@@ -21,6 +21,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	reference "github.com/tetratelabs/getenvoy/pkg"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/debug"
 	"github.com/tetratelabs/getenvoy/pkg/flavors"
@@ -36,23 +37,20 @@ var (
 // NewRunCmd create a command responsible for starting an Envoy process
 func NewRunCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "run <reference|filepath> [flags] [-- <envoy-args>]",
+		Use:   "run <reference> [flags] [-- <envoy-args>]",
 		Short: "Runs an instance of Envoy.",
 		Long: `
 Manages full lifecycle of Envoy including bootstrap generation and automated collection of access logs,
 Envoy state and machine state into the ` + "`~/.getenvoy/debug`" + ` directory.`,
-		Example: `# Run using a manifest reference.
-getenvoy run standard:1.11.1 -- --config-path ./bootstrap.yaml
-
-# Run using a filepath.
-getenvoy run ./envoy -- --config-path ./bootstrap.yaml
+		Example: fmt.Sprintf(`# Run using a manifest reference.
+getenvoy run %[1]s -- --config-path ./bootstrap.yaml
 
 # List available Envoy flags.
-getenvoy run standard:1.11.1 -- --help
+getenvoy run %[1]s -- --help
 
 # Run with Postgres specific configuration bootstrapped
 getenvoy run postgres:nightly --templateArg endpoints=127.0.0.1:5432,192.168.0.101:5432 --templateArg inport=5555
-`,
+`, reference.Latest),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			runtime, err := envoy.NewRuntime(envoy.RuntimeOption(
 				func(r *envoy.Runtime) {

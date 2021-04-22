@@ -11,3 +11,7 @@ keep_padding       = true  # like -kp
 [godownloader.sh]
 # auto-generated file
 ignore = true
+
+[reference.txt]
+insert_final_newline     = false
+trim_trailing_whitespace = true
