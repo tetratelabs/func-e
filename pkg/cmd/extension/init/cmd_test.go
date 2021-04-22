@@ -22,6 +22,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	reference "github.com/tetratelabs/getenvoy/pkg"
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 	toolchains "github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain"
@@ -101,7 +102,6 @@ func TestGetEnvoyExtensionInitValidateFlag(t *testing.T) {
 
 func TestGetEnvoyExtensionInit(t *testing.T) {
 	const extensionName = "getenvoy_extension_init"
-	const envoyVersion = "standard:1.17.1"
 
 	type testCase struct {
 		name string
@@ -170,7 +170,7 @@ func TestGetEnvoyExtensionInit(t *testing.T) {
 			require.Equal(t, extensionName, descriptor.Name, `wrong extension name running [%v]: %s`, c, descriptor)
 			require.Equal(t, test.Category, descriptor.Category, `wrong extension category running [%v]: %s`, c, descriptor)
 			require.Equal(t, test.Language, descriptor.Language, `wrong extension language running [%v]: %s`, c, descriptor)
-			require.Equal(t, envoyVersion, descriptor.Runtime.Envoy.Version, `wrong extension envoy version running [%v]: %s`, c, descriptor)
+			require.Equal(t, reference.Latest, descriptor.Runtime.Envoy.Version, `wrong extension envoy version running [%v]: %s`, c, descriptor)
 
 			// Check the default toolchain is loadable
 			toolchain, err := toolchains.LoadToolchain(toolchains.Default, workspace)

@@ -20,6 +20,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	reference "github.com/tetratelabs/getenvoy/pkg"
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/fs"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
@@ -73,7 +74,7 @@ func TestLoadToolchainCreatesDefaultWhenMissing(t *testing.T) {
 	dir, err := fs.CreateWorkspaceDir(outputDir)
 	require.NoError(t, err)
 
-	err = dir.WriteFile(model.DescriptorFile, []byte(`
+	err = dir.WriteFile(model.DescriptorFile, []byte(fmt.Sprintf(`
 kind: Extension
 
 name: mycompany.filters.http.custom_metrics
@@ -84,8 +85,8 @@ language: rust
 # Runtime the extension is being developed against.
 runtime:
   envoy:
-    version: standard:1.17.1
-`))
+    version: %s
+`, reference.Latest)))
 	require.NoError(t, err)
 
 	workspace, err := workspaces.GetWorkspaceAt(outputDir)

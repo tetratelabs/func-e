@@ -20,6 +20,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	reference "github.com/tetratelabs/getenvoy/pkg"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/globals"
 	scaffold "github.com/tetratelabs/getenvoy/pkg/extension/init"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
@@ -55,7 +56,7 @@ var (
 	// 1. according to command-line options
 	// 2. otherwise, according to the example-specific configuration (.getenvoy/extension/examples/<example>/example.yaml)
 	// 3. otherwise, according to extension descriptor (.getenvoy/extension/extension.yaml)
-	defaultSupportedEnvoyVersion = "standard:1.17.1"
+	defaultSupportedEnvoyVersion = reference.Latest
 )
 
 // NewCmd returns a command that generates the initial set of files

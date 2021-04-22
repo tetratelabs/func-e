@@ -10,3 +10,5 @@ go.sum
 .bingo
 .dockerignore
 .idea
+
+reference.txt

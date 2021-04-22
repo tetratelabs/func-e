@@ -27,20 +27,17 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tetratelabs/log"
 
+	reference "github.com/tetratelabs/getenvoy/pkg"
 	"github.com/tetratelabs/getenvoy/pkg/binary"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
 
-// reference indicates the default Envoy version to be used for testing.
-// This currently latest, but we may support a range at some point.
-var reference = "standard:1.17.1"
-
 var once sync.Once
 var errorFetchingEnvoy error
 
 // FetchEnvoyAndRun retrieves the Envoy indicated by reference only once. This is intended to be used with TestMain.
-// In CI, you can execute this to obviate latency during test runs: "go run cmd/getenvoy/main.go fetch standard:1.17.1"
+// Execute this to obviate latency during test runs: go run cmd/getenvoy/main.go fetch $(cat pkg/reference.txt)
 func FetchEnvoyAndRun(m *testing.M) {
 	once.Do(func() {
 		errorFetchingEnvoy = fetchEnvoy()
@@ -55,9 +52,9 @@ func FetchEnvoyAndRun(m *testing.M) {
 }
 
 func fetchEnvoy() error {
-	key, err := manifest.NewKey(reference)
+	key, err := manifest.NewKey(reference.Latest)
 	if err != nil {
-		return fmt.Errorf("unable to make manifest key %v: %w", reference, err)
+		return fmt.Errorf("unable to make manifest key %v: %w", reference.Latest, err)
 	}
 
 	r, err := envoy.NewRuntime()
@@ -87,7 +84,7 @@ type RunKillOptions struct{ Bootstrap string }
 //
 // When the configPath parameter is non-empty, it becomes the "--config-path" argument to envoy.
 func RequireRunTerminate(t *testing.T, r binary.Runner, configPath string) {
-	key, err := manifest.NewKey(reference)
+	key, err := manifest.NewKey(reference.Latest)
 	require.NoError(t, err)
 	var args []string
 	if configPath != "" {

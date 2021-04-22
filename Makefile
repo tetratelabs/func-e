@@ -18,7 +18,7 @@
 # bingo manages go binaries needed for building the project
 include .bingo/Variables.mk
 
-ENVOY = standard:1.17.1
+ENVOY = $(shell cat pkg/reference.txt)
 HUB ?= docker.io/getenvoy
 GETENVOY_TAG ?= dev
 BUILDERS_LANGS := rust tinygo
@@ -225,5 +225,6 @@ check:  ## CI blocks merge until this passes. If this fails, run "make check" lo
 .PHONY: clean
 clean: $(GOLANGCI_LINT) ## Clean all binaries
 	@echo "--- $@ ---"
+	@rm -rf build
 	@go clean -testcache
 	@$(GOLANGCI_LINT) cache clean
