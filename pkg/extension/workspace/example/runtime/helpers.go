@@ -18,23 +18,8 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
 )
 
-// GetEnvoyReference returns either a path to a custom Envoy binary or
-// a version of Envoy provided by getenvoy.io.
+// GetEnvoyReference returns a version of Envoy provided by getenvoy.io.
 func (o *RunOpts) GetEnvoyReference() string {
-	// custom Envoy binary takes priority over Envoy version
-	if path := o.GetEnvoyPath(); path != "" {
-		return path
-	}
-	return o.GetEnvoyVersion()
-}
-
-// GetEnvoyPath returns a path to a custom Envoy binary, if any.
-func (o *RunOpts) GetEnvoyPath() string {
-	return o.Envoy.Path
-}
-
-// GetEnvoyVersion returns effective version of Envoy.
-func (o *RunOpts) GetEnvoyVersion() string {
 	// Envoy version from command line
 	if o.Envoy.Version != "" {
 		return o.Envoy.Version

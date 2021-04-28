@@ -32,24 +32,19 @@ const terminateTimeout = 2 * time.Minute
 //
 // "getenvoy extension run" uses Docker. See TestMain for general notes on about the test runtime.
 func TestGetEnvoyExtensionRun(t *testing.T) {
-	debugDir, revertOriginalDebugDir := backupDebugDir(t)
-	defer revertOriginalDebugDir()
-
 	for _, test := range getExtensionTestMatrix() {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.String(), func(t *testing.T) {
-			workDir, removeWorkDir := RequireNewTempDir(t)
-			defer removeWorkDir()
-
-			_, revertChDir := RequireChDir(t, workDir)
-			defer revertChDir()
+			extensionDir, removeExtensionDir := RequireNewTempDir(t)
+			defer removeExtensionDir()
 
 			// run requires "get envoy extension init" to have succeeded
-			requireExtensionInit(t, workDir, test.Category, test.Language, extensionName)
-			defer requireExtensionClean(t, workDir)
+			requireExtensionInit(t, extensionDir, test.Category, test.Language, extensionName)
+			defer requireExtensionClean(t, extensionDir)
 
-			c := getEnvoy("extension run").Args(getToolchainContainerOptions()...)
+			c := getEnvoy("extension run").Args(getToolchainContainerOptions()...).WorkingDir(extensionDir)
+
 			stdout, stderr, terminate := c.Start(t, terminateTimeout)
 
 			// The underlying call is conditional to ensure errors that raise before we stop the server, stop it.
@@ -60,6 +55,7 @@ func TestGetEnvoyExtensionRun(t *testing.T) {
 				}
 			}()
 
+			envoyWorkingDir := requireEnvoyWorkingDir(t, stdout, c)
 			envoyClient := requireEnvoyReady(t, stdout, stderr, c)
 
 			log.Infof(`waiting for Wasm extensions after running [%v]`, c)
@@ -78,7 +74,7 @@ func TestGetEnvoyExtensionRun(t *testing.T) {
 			terminate()
 			deferredTerminate = nil
 
-			verifyDebugDump(t, debugDir, c)
+			verifyDebugDump(t, envoyWorkingDir, c)
 		})
 	}
 }

@@ -16,18 +16,20 @@ package example
 
 import (
 	"github.com/spf13/cobra"
+
+	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/globals"
 )
 
 // NewCmd returns a command that manages example setups.
-func NewCmd() *cobra.Command {
+func NewCmd(o *globals.GlobalOpts) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "examples",
 		Short: "Manage example setups.",
 		Long: `
 Manage example setups that demo the extension in action.`,
 	}
-	cmd.AddCommand(NewListCmd())
-	cmd.AddCommand(NewAddCmd())
-	cmd.AddCommand(NewRemoveCmd())
+	cmd.AddCommand(NewListCmd(o))
+	cmd.AddCommand(NewAddCmd(o))
+	cmd.AddCommand(NewRemoveCmd(o))
 	return cmd
 }

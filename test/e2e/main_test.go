@@ -79,12 +79,12 @@ func getExtensionTestMatrix() []extensionTestCase {
 // CI may override this to set HOME or CARGO_HOME (rust) used by "getenvoy" and effect its execution.
 func TestMain(m *testing.M) {
 	// As this is an e2e test, we execute all tests with a binary compiled earlier.
-	path, err := getEnvoyBinary()
+	path, err := getEnvoyPath()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, `failed to start e2e tests due to an invalid "getenvoy" binary: %v`, err)
 		os.Exit(1)
 	}
-	e2e.GetEnvoyBinaryPath = path
+	e2e.GetEnvoyPatharyPath = path
 	extensionLanguages, err = getExtensionLanguages()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, `failed to start e2e tests due to an invalid extension language": %v`, err)
@@ -110,9 +110,9 @@ func getExtensionLanguages() ([]extension.Language, error) {
 	return []extension.Language{parsed}, nil
 }
 
-// getEnvoyBinary reads E2E_GETENVOY_BINARY or defaults to "$PWD/build/bin/$GOOS/$GOARCH/getenvoy"
+// getEnvoyPath reads E2E_GETENVOY_BINARY or defaults to "$PWD/build/bin/$GOOS/$GOARCH/getenvoy"
 // An error is returned if the value isn't an executable file.
-func getEnvoyBinary() (string, error) {
+func getEnvoyPath() (string, error) {
 	path := os.Getenv(E2E_GETENVOY_BINARY)
 	if path == "" {
 		// Assemble the default created by "make bin"
@@ -177,9 +177,9 @@ func requireExec(t *testing.T, c Command) (string, string) {
 }
 
 // requireExtensionInit is useful for tests that depend on "getenvoy extension init" as a prerequisite.
-func requireExtensionInit(t *testing.T, workDir string, category extension.Category, language extension.Language, name string) {
+func requireExtensionInit(t *testing.T, extensionDir string, category extension.Category, language extension.Language, name string) {
 	c := getEnvoy("extension init").
-		Arg(workDir).
+		Arg(extensionDir).
 		Arg("--category").Arg(string(category)).
 		Arg("--language").Arg(string(language)).
 		Arg("--name").Arg(name)
@@ -189,12 +189,12 @@ func requireExtensionInit(t *testing.T, workDir string, category extension.Categ
 
 // requireExtensionInit is useful for tests that depend on "getenvoy extension build" as a prerequisite.
 // The result of calling this is the bytes representing the built wasm
-func requireExtensionBuild(t *testing.T, language extension.Language, workDir string) []byte {
-	c := getEnvoy("extension build").Args(getToolchainContainerOptions()...)
+func requireExtensionBuild(t *testing.T, language extension.Language, workingDir string) []byte {
+	c := getEnvoy("extension build").Args(getToolchainContainerOptions()...).WorkingDir(workingDir)
 	// stderr returned is not tested because doing so is redundant to TestGetEnvoyExtensionInit.
 	_ = requireExecNoStderr(t, c)
 
-	extensionWasmFile := filepath.Join(workDir, extensionWasmPath(language))
+	extensionWasmFile := filepath.Join(workingDir, extensionWasmPath(language))
 	require.FileExists(t, extensionWasmFile, `extension wasm file %s missing after running [%v]`, extensionWasmFile, c)
 
 	wasmBytes, err := os.ReadFile(extensionWasmFile)
@@ -205,11 +205,8 @@ func requireExtensionBuild(t *testing.T, language extension.Language, workDir st
 
 // requireExtensionClean is useful for tests that depend on "getenvoy extension clean" on completion.
 // (stdout, stderr) returned are not tested because they can both be empty.
-func requireExtensionClean(t *testing.T, workDir string) {
-	err := os.Chdir(workDir)
-	require.NoError(t, err, `error changing to directory: %v`, workDir)
-
-	c := getEnvoy("extension clean")
+func requireExtensionClean(t *testing.T, workingDir string) {
+	c := getEnvoy("extension clean").WorkingDir(workingDir)
 	_, _ = requireExec(t, c)
 }
 

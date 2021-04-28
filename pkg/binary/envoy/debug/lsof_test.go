@@ -23,19 +23,18 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
+	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
 func TestEnableOpenFilesDataCollection(t *testing.T) {
-	r, err := envoy.NewRuntime(EnableOpenFilesDataCollection)
-	require.NoError(t, err, "error getting envoy runtime")
-	defer os.RemoveAll(r.DebugStore())
+	debugDir, revertDebugDir := morerequire.RequireNewTempDir(t)
+	defer revertDebugDir()
 
-	envoytest.RequireRunTerminate(t, r, "")
+	workingDir := envoytest.RunAndTerminateWithDebug(t, debugDir, EnableOpenFilesDataCollection)
 
 	file := "lsof/lsof.json"
-	path := filepath.Join(r.DebugStore(), file)
+	path := filepath.Join(workingDir, file)
 	f, err := os.Stat(path)
 	require.NoError(t, err, "error stating %v", path)
 

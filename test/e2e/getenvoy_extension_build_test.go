@@ -34,23 +34,21 @@ func TestGetEnvoyExtensionBuild(t *testing.T) {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.String(), func(t *testing.T) {
-			workDir, removeWorkDir := RequireNewTempDir(t)
-			defer removeWorkDir()
-
-			_, revertChDir := RequireChDir(t, workDir)
-			defer revertChDir()
+			// TODO: uses Docker, but may be possible to run parallel
+			extensionDir, removeExtensionDir := RequireNewTempDir(t)
+			defer removeExtensionDir()
 
 			// test requires "get envoy extension init" to have succeeded
-			requireExtensionInit(t, workDir, test.Category, test.Language, extensionName)
-			defer requireExtensionClean(t, workDir)
+			requireExtensionInit(t, extensionDir, test.Category, test.Language, extensionName)
+			defer requireExtensionClean(t, extensionDir)
 
 			// "getenvoy extension build" only returns stdout because `docker run -t` redirects stderr to stdout.
 			// We don't verify stdout because it is low signal vs looking at files created.
-			c := getEnvoy("extension build").Args(getToolchainContainerOptions()...)
+			c := getEnvoy("extension build").Args(getToolchainContainerOptions()...).WorkingDir(extensionDir)
 			_ = requireExecNoStderr(t, c)
 
 			// Verify the extension built
-			extensionWasmFile := filepath.Join(workDir, extensionWasmPath(test.Language))
+			extensionWasmFile := filepath.Join(extensionDir, extensionWasmPath(test.Language))
 			require.FileExists(t, extensionWasmFile, `extension wasm file %s missing after running [%v]`, extensionWasmFile, c)
 		})
 	}

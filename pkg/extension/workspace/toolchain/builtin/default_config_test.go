@@ -36,7 +36,7 @@ func TestDefaultConfigForValidate(t *testing.T) {
 	for i, lang := range extension.Languages {
 		expected, err := os.ReadFile(fmt.Sprintf("testdata/default_config/%s.toolchain.yaml", lang))
 		if err != nil {
-			panic(fmt.Errorf("missing default config for language %s: %w", lang, err))
+			t.Fatalf("missing default config for language %s: %v", lang, err)
 		}
 		tests[i] = testCase{lang.String(), &extension.Descriptor{Language: lang}, string(expected)}
 	}

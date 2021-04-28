@@ -22,31 +22,33 @@ import (
 
 	"github.com/tetratelabs/log"
 
-	"github.com/tetratelabs/getenvoy/pkg/binary"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 )
 
 // EnableEnvoyLogCollection is a preset option that registers collection of Envoy access logs and stderr
 func EnableEnvoyLogCollection(r *envoy.Runtime) {
-	logsDir := filepath.Join(r.DebugStore(), "logs")
-	err := os.MkdirAll(logsDir, os.ModePerm)
-	if err != nil {
-		log.Errorf("unable to create logs directory %q, so no logs will be captured: %v", logsDir, err)
+	logsDir := filepath.Join(r.GetWorkingDir(), "logs")
+	if err := os.MkdirAll(logsDir, 0750); err != nil {
+		log.Errorf("unable to create directory %q, so no logs will be captured: %v", logsDir, err)
 		return
 	}
-	r.RegisterPreStart(captureStdout)
-	r.RegisterPreStart(captureStderr)
+	e := envoyLogCollection{r, logsDir}
+	r.RegisterPreStart(e.captureStdout)
+	r.RegisterPreStart(e.captureStderr)
 }
 
-func captureStdout(r binary.Runner) error {
-	f, err := createLogFile(filepath.Join(r.DebugStore(), "logs", "access.log"))
+type envoyLogCollection struct {
+	r       *envoy.Runtime
+	logsDir string
+}
+
+func (e *envoyLogCollection) captureStdout() error {
+	f, err := createLogFile(filepath.Join(e.logsDir, "access.log"))
 	if err != nil {
 		return err
 	}
-	r.RegisterPostTermination(func(runner binary.Runner) error {
-		return f.Close()
-	})
-	r.SetStdout(func(w io.Writer) io.Writer {
+	e.r.RegisterPostTermination(f.Close)
+	e.r.SetStdout(func(w io.Writer) io.Writer {
 		if w == nil {
 			return f
 		}
@@ -55,15 +57,13 @@ func captureStdout(r binary.Runner) error {
 	return nil
 }
 
-func captureStderr(r binary.Runner) error {
-	f, err := createLogFile(filepath.Join(r.DebugStore(), "logs", "error.log"))
+func (e *envoyLogCollection) captureStderr() error {
+	f, err := createLogFile(filepath.Join(e.logsDir, "error.log"))
 	if err != nil {
 		return err
 	}
-	r.RegisterPostTermination(func(runner binary.Runner) error {
-		return f.Close()
-	})
-	r.SetStderr(func(w io.Writer) io.Writer {
+	e.r.RegisterPostTermination(f.Close)
+	e.r.SetStderr(func(w io.Writer) io.Writer {
 		if w == nil {
 			return f
 		}

@@ -61,19 +61,18 @@ func TestGetEnvoyExtensionPush(t *testing.T) {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.name, func(t *testing.T) {
-			workDir, removeWorkDir := RequireNewTempDir(t)
-			defer removeWorkDir()
+			t.Parallel() // tinygo is safe to run parallel even with Docker
 
-			_, revertChDir := RequireChDir(t, workDir)
-			defer revertChDir()
+			extensionDir, removeExtensionDir := RequireNewTempDir(t)
+			defer removeExtensionDir()
 
 			// push requires "get envoy extension init" and "get envoy extension build" to have succeeded
-			requireExtensionInit(t, workDir, test.Category, test.Language, extensionName)
-			defer requireExtensionClean(t, workDir)
-			wasmBytes := requireExtensionBuild(t, test.Language, workDir)
+			requireExtensionInit(t, extensionDir, test.Category, test.Language, extensionName)
+			defer requireExtensionClean(t, extensionDir)
+			wasmBytes := requireExtensionBuild(t, test.Language, extensionDir)
 
 			// After pushing, stderr should include the registry URL and the image tag.
-			c := getEnvoy("extension push").Arg(localRegistryWasmImageRef).Arg("--use-http").Arg(strconv.FormatBool(useHTTP))
+			c := getEnvoy("extension push").Arg(localRegistryWasmImageRef).Arg("--use-http").Arg(strconv.FormatBool(useHTTP)).WorkingDir(extensionDir)
 			stderr := requireExecNoStdout(t, c)
 
 			// Assemble a fully-qualified image ref as we'll pull this later
@@ -90,7 +89,7 @@ digest: sha256`, defaultTag, imageRef), `unexpected stderr after running [%v]`, 
 			require.NotNil(t, puller, `nil puller instance after running [%v]`, c)
 
 			// Pull the wasm we just pushed, writing it to a local file.
-			dstPath := filepath.Join(workDir, "pulled_extension.wasm")
+			dstPath := filepath.Join(extensionDir, "pulled_extension.wasm")
 			desc, err := puller.Pull(imageRef, dstPath)
 			require.NoError(t, err, `error pulling wasm after running [%v]: %s`, c)
 

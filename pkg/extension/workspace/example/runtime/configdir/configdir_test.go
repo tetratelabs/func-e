@@ -27,37 +27,38 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/runtime"
 	. "github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/runtime/configdir"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
+	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
 func TestNewConfigDir(t *testing.T) {
 	tests := []struct {
 		name                 string
-		workspaceDir         string
+		extensionDir         string
 		expectValidBootstrap bool
 	}{
 		{
 			name:                 "envoy.tmpl.yaml",
-			workspaceDir:         "testdata/workspace1",
+			extensionDir:         "testdata/workspace1",
 			expectValidBootstrap: true,
 		},
 		{
 			name:                 "envoy.tmpl.yaml + lds.tmpl.yaml + cds.yaml",
-			workspaceDir:         "testdata/workspace2",
+			extensionDir:         "testdata/workspace2",
 			expectValidBootstrap: true,
 		},
 		{
 			name:                 "envoy.tmpl.yaml: not a valid YAML",
-			workspaceDir:         "testdata/workspace3",
+			extensionDir:         "testdata/workspace3",
 			expectValidBootstrap: false,
 		},
 		{
 			name:                 "envoy.tmpl.yaml: invalid paths to `lds` and `cds` files",
-			workspaceDir:         "testdata/workspace4",
+			extensionDir:         "testdata/workspace4",
 			expectValidBootstrap: true,
 		},
 		{
 			name:                 "envoy.tmpl.yaml: .txt configuration",
-			workspaceDir:         "testdata/workspace8",
+			extensionDir:         "testdata/workspace8",
 			expectValidBootstrap: true,
 		},
 	}
@@ -66,29 +67,22 @@ func TestNewConfigDir(t *testing.T) {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.name, func(t *testing.T) {
-			workspace, err := workspaces.GetWorkspaceAt(test.workspaceDir)
+			workspace, err := workspaces.GetWorkspaceAt(test.extensionDir)
 			require.NoError(t, err)
 
 			example, err := workspace.GetExample("default")
 			require.NoError(t, err)
 
-			ctx := runContext(workspace, example)
+			r := runOpts(workspace, example)
 
-			configDir, err := NewConfigDir(ctx)
+			extensionDir, deleteExtensionDir := morerequire.RequireNewTempDir(t)
+			defer deleteExtensionDir()
+
+			configDir, err := NewConfigDir(r, extensionDir)
 			require.NoError(t, err)
 
-			defer func() {
-				err := configDir.Close()
-				require.NoError(t, err)
-
-				// verifying config dir has been removed
-				_, err = os.Stat(configDir.GetDir())
-				require.Error(t, err)
-				require.True(t, os.IsNotExist(err))
-			}()
-
-			// verify the bootstrap file
-			require.FileExists(t, configDir.GetBootstrapFile())
+			// verify the config file
+			require.FileExists(t, filepath.Join(extensionDir, "envoy.yaml"))
 			bootstrap := configDir.GetBootstrap()
 
 			if !test.expectValidBootstrap {
@@ -102,10 +96,10 @@ func TestNewConfigDir(t *testing.T) {
 			require.Equal(t, uint32(0), bootstrap.GetAdmin().GetAddress().GetSocketAddress().GetPortValue())
 
 			// verify contents of the config dir
-			for _, fileName := range ctx.Opts.Example.GetFiles().GetNames() {
-				expected, err := os.ReadFile(filepath.Join(test.workspaceDir, "expected/getenvoy_extension_run", fileName))
+			for _, fileName := range r.Example.GetFiles().GetNames() {
+				expected, err := os.ReadFile(filepath.Join(test.extensionDir, "expected/getenvoy_extension_run", fileName))
 				require.NoError(t, err)
-				actual, err := os.ReadFile(filepath.Join(configDir.GetDir(), fileName))
+				actual, err := os.ReadFile(filepath.Join(extensionDir, fileName))
 				require.NoError(t, err)
 
 				switch {
@@ -121,50 +115,41 @@ func TestNewConfigDir(t *testing.T) {
 	}
 }
 
-func runContext(workspace model.Workspace, example model.Example) *runtime.RunContext {
+func runOpts(workspace model.Workspace, example model.Example) *runtime.RunOpts {
 	_, f := example.GetExtensionConfig()
-	return &runtime.RunContext{
-		Opts: runtime.RunOpts{
-			Workspace: workspace,
-			Example: runtime.ExampleOpts{
-				Name:    "default",
-				Example: example,
-			},
-			Extension: runtime.ExtensionOpts{
-				WasmFile: `/path/to/extension.wasm`,
-				Config:   *f,
-			},
+	return &runtime.RunOpts{
+		Workspace: workspace,
+		Example: runtime.ExampleOpts{
+			Name:    "default",
+			Example: example,
+		},
+		Extension: runtime.ExtensionOpts{
+			WasmFile: `/path/to/extension.wasm`,
+			Config:   *f,
 		},
 	}
 }
 
 func TestNewConfigDirValidates(t *testing.T) {
-	abs := func(path string) string {
-		path, err := filepath.Abs(path)
-		if err != nil {
-			panic(err)
-		}
-		return path
-	}
 	tests := []struct {
 		name         string
-		workspaceDir string
+		extensionDir string
 		expectedErr  string
 	}{
 		{
 			name:         "envoy.tmpl.yaml: invalid placeholder",
-			workspaceDir: "testdata/workspace5",
-			expectedErr:  fmt.Sprintf(`failed to process Envoy config template coming from %q: failed to render Envoy config template: template: :4:19: executing "" at <.GetEnvoy.DefaultValue>: error calling DefaultValue: unknown property "???"`, abs("testdata/workspace5/.getenvoy/extension/examples/default/envoy.tmpl.yaml")),
+			extensionDir: "testdata/workspace5",
+			expectedErr:  fmt.Sprintf(`failed to process Envoy config template coming from %q: failed to render Envoy config template: template: :4:19: executing "" at <.GetEnvoy.DefaultValue>: error calling DefaultValue: unknown property "???"`, morerequire.RequireAbs(t, "testdata/workspace5/.getenvoy/extension/examples/default/envoy.tmpl.yaml")),
 		},
 		{
 			name:         "envoy.tmpl.yaml + lds.tmpl.yaml + cds.yaml: invalid placeholder in lds.tmpl.yaml",
-			workspaceDir: "testdata/workspace6",
-			expectedErr:  fmt.Sprintf(`failed to process Envoy config template coming from %q: failed to render Envoy config template: template: :22:34: executing "" at <.GetEnvoy.Extension.Code>: error calling Code: unable to resolve Wasm module [???]: not supported yet`, abs("testdata/workspace6/.getenvoy/extension/examples/default/lds.tmpl.yaml")),
+			extensionDir: "testdata/workspace6",
+			expectedErr:  fmt.Sprintf(`failed to process Envoy config template coming from %q: failed to render Envoy config template: template: :22:34: executing "" at <.GetEnvoy.Extension.Code>: error calling Code: unable to resolve Wasm module [???]: not supported yet`, morerequire.RequireAbs(t, "testdata/workspace6/.getenvoy/extension/examples/default/lds.tmpl.yaml")),
 		},
 		{
 			name:         "envoy.tmpl.yaml + lds.tmpl.yaml + cds.tmpl.yaml: invalid placeholder in cds.tmpl.yaml",
-			workspaceDir: "testdata/workspace7",
-			expectedErr:  fmt.Sprintf(`failed to process Envoy config template coming from %q: failed to render Envoy config template: template: :1:18: executing "" at <.GetEnvoy.Extension.Config>: error calling Config: unable to resolve a named config [???]: not supported yet`, abs("testdata/workspace7/.getenvoy/extension/examples/default/cds.tmpl.yaml")),
+			extensionDir: "testdata/workspace7",
+			expectedErr:  fmt.Sprintf(`failed to process Envoy config template coming from %q: failed to render Envoy config template: template: :1:18: executing "" at <.GetEnvoy.Extension.Config>: error calling Config: unable to resolve a named config [???]: not supported yet`, morerequire.RequireAbs(t, "testdata/workspace7/.getenvoy/extension/examples/default/cds.tmpl.yaml")),
 		},
 	}
 
@@ -172,15 +157,18 @@ func TestNewConfigDirValidates(t *testing.T) {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.name, func(t *testing.T) {
-			workspace, err := workspaces.GetWorkspaceAt(test.workspaceDir)
+			workspace, err := workspaces.GetWorkspaceAt(test.extensionDir)
 			require.NoError(t, err)
 
 			example, err := workspace.GetExample("default")
 			require.NoError(t, err)
 
-			ctx := runContext(workspace, example)
+			r := runOpts(workspace, example)
 
-			configDir, err := NewConfigDir(ctx)
+			extensionDir, deleteExtensionDir := morerequire.RequireNewTempDir(t)
+			defer deleteExtensionDir()
+
+			configDir, err := NewConfigDir(r, extensionDir)
 			require.Nil(t, configDir)
 			require.EqualError(t, err, test.expectedErr)
 		})

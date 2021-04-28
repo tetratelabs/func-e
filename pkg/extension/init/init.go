@@ -27,7 +27,6 @@ import (
 	"github.com/tetratelabs/multierror"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
-	osutil "github.com/tetratelabs/getenvoy/pkg/util/os"
 	scaffoldutil "github.com/tetratelabs/getenvoy/pkg/util/scaffold"
 )
 
@@ -35,9 +34,7 @@ import (
 type ScaffoldOpts struct {
 	Extension    *extension.Descriptor
 	TemplateName string
-
-	OutputDir string
-
+	ExtensionDir string
 	ProgressSink scaffoldutil.ProgressSink
 }
 
@@ -109,8 +106,9 @@ func (s *scaffolder) visit(sourceDirName, destinationDirName string, sourceFileI
 		destinationDirName = ".cargo"
 	}
 	relOutputFileName := filepath.Join(destinationDirName, baseOutputFileName)
-	outputFileName := filepath.Join(s.opts.OutputDir, relOutputFileName)
-	if err := osutil.EnsureDirExists(filepath.Dir(outputFileName)); err != nil {
+	outputFileName := filepath.Join(s.opts.ExtensionDir, relOutputFileName)
+	// TODO: it might be possible to make all the directories in one pass. For now, do it once per file as before.
+	if err := os.MkdirAll(filepath.Dir(outputFileName), 0750); err != nil {
 		return err
 	}
 	sourceFile, err := s.sourceFS.Open(path.Join(sourceDirName, sourceFileInfo.Name()))
@@ -151,8 +149,7 @@ func interpolate(descriptor *extension.Descriptor) func(string, []byte) ([]byte,
 	return func(file string, content []byte) ([]byte, error) {
 		tmpl, err := template.New(file).Parse(string(content))
 		if err != nil {
-			// must be caught by unit tests
-			panic(err)
+			return nil, err
 		}
 		var out bytes.Buffer
 		err = tmpl.Execute(&out, data)

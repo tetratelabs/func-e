@@ -16,41 +16,21 @@ package configdir
 
 import (
 	"fmt"
-	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	envoybootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
-	"github.com/tetratelabs/multierror"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/manager"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/envoy/template"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/envoy/util"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/runtime"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
-	osutil "github.com/tetratelabs/getenvoy/pkg/util/os"
 )
 
 // NewConfigDir creates a config directory for a single example run.
-func NewConfigDir(ctx *runtime.RunContext) (_ ConfigDir, errs error) {
-	// create a temporary directory
-	tempDir, err := ioutil.TempDir("", "getenvoy_extension_run")
-	if err != nil {
-		return nil, err
-	}
-	tempDir, err = filepath.EvalSymlinks(tempDir)
-	if err != nil {
-		return nil, err
-	}
-	dir := &configDir{tempDir: tempDir, ctx: ctx}
-	defer func() {
-		if errs != nil {
-			if e := dir.Close(); e != nil {
-				errs = multierror.Append(errs, err)
-			}
-		}
-	}()
+func NewConfigDir(opts *runtime.RunOpts, workingDir string) (ConfigDir, error) {
+	dir := &configDir{workingDir: workingDir, opts: opts}
 	if err := dir.init(); err != nil {
 		return nil, err
 	}
@@ -63,38 +43,26 @@ func NewConfigDir(ctx *runtime.RunContext) (_ ConfigDir, errs error) {
 // ConfigDir represents a config directory of a single example run.
 type ConfigDir interface {
 	GetDir() string
-	GetBootstrapFile() string
 	GetBootstrap() *envoybootstrap.Bootstrap
-	io.Closer
 }
 
 // configDir represents a config directory of a single example run.
 type configDir struct {
-	tempDir string
-	ctx     *runtime.RunContext
-
-	bootstrapFileName string
-	bootstrap         *envoybootstrap.Bootstrap
+	workingDir string
+	opts       *runtime.RunOpts
+	bootstrap  *envoybootstrap.Bootstrap
 }
 
 func (d *configDir) GetDir() string {
-	return d.tempDir
-}
-
-func (d *configDir) GetBootstrapFile() string {
-	return filepath.Join(d.tempDir, d.bootstrapFileName)
+	return d.workingDir
 }
 
 func (d *configDir) GetBootstrap() *envoybootstrap.Bootstrap {
 	return d.bootstrap
 }
 
-func (d *configDir) Close() error {
-	return os.RemoveAll(d.tempDir)
-}
-
 func (d *configDir) init() error {
-	files := d.ctx.Opts.Example.GetFiles()
+	files := d.opts.Example.GetFiles()
 	// copy all example files
 	for _, fileName := range files.GetNames() {
 		if err := d.writeFile(fileName, files.Get(fileName).Content); err != nil {
@@ -109,20 +77,16 @@ func (d *configDir) init() error {
 //  2) (optional) placeholders in a LDS file (value of `bootstrap.dynamic_resources.lds_config.path`)
 //  3) (optional) placeholders in a CDS file (value of `bootstrap.dynamic_resources.cds_config.path`)
 func (d *configDir) process() error {
-	expandContext, err := d.newExpandContext()
-	if err != nil {
-		return err
-	}
+	expandContext := d.newExpandContext()
 
 	// resolve placeholders in the bootstrap file
-	bootstrapFileName, bootstrapFile := d.ctx.Opts.Example.GetEnvoyConfig()
+	_, bootstrapFile := d.opts.Example.GetEnvoyConfig()
 	bootstrapContent, err := d.processEnvoyTemplate(bootstrapFile, expandContext)
 	if err != nil {
 		return err
 	}
-	d.bootstrapFileName = bootstrapFileName
-	// overwrite the original file from the Example
-	err = d.writeFile(d.bootstrapFileName, bootstrapContent)
+
+	err = d.writeFile("envoy.yaml", bootstrapContent)
 	if err != nil {
 		return err
 	}
@@ -152,21 +116,18 @@ func (d *configDir) process() error {
 	return nil
 }
 
-func (d *configDir) newExpandContext() (*template.ExpandContext, error) {
-	wasmFile, err := filepath.Abs(d.ctx.Opts.Extension.WasmFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve absolute path of a *.wasm file %q: %w", d.ctx.Opts.Extension.WasmFile, err)
-	}
-	configuration := string(d.ctx.Opts.GetExtensionConfig().Content)
+func (d *configDir) newExpandContext() *template.ExpandContext {
+	wasmFile := d.opts.Extension.WasmFile
+	configuration := string(d.opts.GetExtensionConfig().Content)
 
 	return &template.ExpandContext{
-		DefaultExtension:       manager.NewLocalExtension(d.ctx.Opts.Workspace.GetExtensionDescriptor(), wasmFile),
+		DefaultExtension:       manager.NewLocalExtension(d.opts.Workspace.GetExtensionDescriptor(), wasmFile),
 		DefaultExtensionConfig: configuration,
-	}, nil
+	}
 }
 
 func (d *configDir) processEnvoyXdsFile(fileName string, expandContext *template.ExpandContext) error {
-	files := d.ctx.Opts.Example.GetFiles()
+	files := d.opts.Example.GetFiles()
 	if !files.Has(fileName) {
 		// if configuration is indeed invalid, e.g. non-existing path, let the error message come from Envoy
 		return nil
@@ -190,10 +151,7 @@ func (d *configDir) processEnvoyTemplate(configFile *model.File, expandContext *
 }
 
 func (d *configDir) writeFile(fileName string, data []byte) error {
-	outputFile := filepath.Join(d.tempDir, fileName)
-	if err := osutil.EnsureDirExists(filepath.Dir(outputFile)); err != nil {
-		return err
-	}
+	outputFile := filepath.Join(d.workingDir, fileName)
 	if err := os.WriteFile(outputFile, data, 0600); err != nil {
 		return fmt.Errorf("failed to write config file to %q: %w", outputFile, err)
 	}

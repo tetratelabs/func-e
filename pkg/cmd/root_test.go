@@ -16,40 +16,37 @@ package cmd_test
 
 import (
 	"fmt"
-	"path/filepath"
+	"os"
 	"testing"
 
-	"github.com/mitchellh/go-homedir"
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/pkg/common"
-	"github.com/tetratelabs/getenvoy/pkg/manifest"
+	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/globals"
+	rootcmd "github.com/tetratelabs/getenvoy/pkg/cmd"
 	cmdtest "github.com/tetratelabs/getenvoy/pkg/test/cmd"
-	. "github.com/tetratelabs/getenvoy/pkg/test/morerequire"
-	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 
 func TestGetEnvoyValidateArgs(t *testing.T) {
-	type testCase struct {
+	o := &globals.GlobalOpts{}
+
+	tests := []struct {
 		name        string
 		args        []string
 		expectedErr string
-	}
-
-	tests := []testCase{
+	}{
 		{
 			name:        "--home-dir empty",
-			args:        []string{"--home-dir", ""},
+			args:        []string{"--home-dir", "", "help"},
 			expectedErr: `GetEnvoy home directory cannot be empty`,
 		},
 		{
 			name:        "--manifest empty",
-			args:        []string{"--manifest", ""},
+			args:        []string{"--manifest", "", "help"},
 			expectedErr: `GetEnvoy manifest URL cannot be empty`,
 		},
 		{
 			name:        "--manifest not a URL",
-			args:        []string{"--manifest", "/not/url"},
+			args:        []string{"--manifest", "/not/url", "help"},
 			expectedErr: `"/not/url" is not a valid manifest URL`,
 		},
 	}
@@ -58,12 +55,12 @@ func TestGetEnvoyValidateArgs(t *testing.T) {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.name, func(t *testing.T) {
-			c, stdout, stderr := cmdtest.NewRootCommand()
-			c.SetArgs(append(test.args, "help"))
-			err := cmdutil.Execute(c)
-			require.EqualError(t, err, test.expectedErr, `expected an error running [%v]`, c)
+			c, stdout, stderr := cmdtest.NewRootCommand(o)
+			c.SetArgs(test.args)
+			err := rootcmd.Execute(c)
 
 			// Verify the command failed with the expected error
+			require.EqualError(t, err, test.expectedErr, `expected an error running [%v]`, c)
 			require.Empty(t, stdout.String(), `expected no stdout running [%v]`, c)
 			expectedStderr := fmt.Sprintf("Error: %s\n\nRun 'getenvoy help --help' for usage.\n", test.expectedErr)
 			require.Equal(t, expectedStderr, stderr.String(), `unexpected stderr running [%v]`, c)
@@ -80,33 +77,30 @@ func TestGetEnvoyHomeDir(t *testing.T) {
 		expected string
 	}
 
-	home, err := homedir.Dir()
-	require.NoError(t, err, `error getting current user's home dir'`)
-	defaultHomeDir, err := filepath.Abs(filepath.Join(home, ".getenvoy"))
-	require.NoError(t, err, `error resolving absolute path to default GETENVOY_HOME'`)
-
 	tests := []testCase{ // we don't test default as that depends on the runtime env
 		{
 			name:     "default is ~/.getenvoy",
-			expected: defaultHomeDir,
+			args:     []string{"help"},
+			expected: globals.DefaultHomeDir(),
 		},
 		{
 			name: "GETENVOY_HOME env",
+			args: []string{"help"},
 			setup: func() func() {
-				return RequireSetenv(t, "GETENVOY_HOME", "/from/GETENVOY_HOME/env")
+				return requireSetenv(t, "GETENVOY_HOME", "/from/GETENVOY_HOME/env")
 			},
 			expected: "/from/GETENVOY_HOME/env",
 		},
 		{
 			name:     "--home-dir arg",
-			args:     []string{"--home-dir", "/from/home-dir/arg"},
+			args:     []string{"--home-dir", "/from/home-dir/arg", "help"},
 			expected: "/from/home-dir/arg",
 		},
 		{
 			name: "prioritizes --home-dir arg over GETENVOY_HOME env",
-			args: []string{"--home-dir", "/from/home-dir/arg"},
+			args: []string{"--home-dir", "/from/home-dir/arg", "help"},
 			setup: func() func() {
-				return RequireSetenv(t, "GETENVOY_HOME", "/from/GETENVOY_HOME/env")
+				return requireSetenv(t, "GETENVOY_HOME", "/from/GETENVOY_HOME/env")
 			},
 			expected: "/from/home-dir/arg",
 		},
@@ -120,15 +114,17 @@ func TestGetEnvoyHomeDir(t *testing.T) {
 				tearDown := test.setup()
 				defer tearDown()
 			}
-			c, stdout, stderr := cmdtest.NewRootCommand()
-			c.SetArgs(append(test.args, "help"))
-			err := cmdutil.Execute(c)
+
+			o := &globals.GlobalOpts{}
+			c, stdout, stderr := cmdtest.NewRootCommand(o)
+			c.SetArgs(test.args)
+			err := rootcmd.Execute(c)
 
 			require.NoError(t, err, `expected no error running [%v]`, c)
 			require.NotEmpty(t, stdout.String(), `expected stdout running [%v]`, c)
 			require.Empty(t, stderr.String(), `expected no stderr running [%v]`, c)
 
-			require.Equal(t, test.expected, common.HomeDir)
+			require.Equal(t, test.expected, o.HomeDir)
 		})
 	}
 }
@@ -142,35 +138,28 @@ func TestGetEnvoyManifest(t *testing.T) {
 		expected string
 	}
 
-	emptySetup := func() func() {
-		return func() {
-		}
-	}
-
 	tests := []testCase{ // we don't test default as that depends on the runtime env
 		{
 			name:     "default is https://dl.getenvoy.io/public/raw/files/manifest.json",
-			setup:    emptySetup,
 			expected: "https://dl.getenvoy.io/public/raw/files/manifest.json",
 		},
 		{
 			name: "GETENVOY_MANIFEST_URL env",
 			setup: func() func() {
-				return RequireSetenv(t, "GETENVOY_MANIFEST_URL", "http://GETENVOY_MANIFEST_URL/env")
+				return requireSetenv(t, "GETENVOY_MANIFEST_URL", "http://GETENVOY_MANIFEST_URL/env")
 			},
 			expected: "http://GETENVOY_MANIFEST_URL/env",
 		},
 		{
 			name:     "--manifest arg",
 			args:     []string{"--manifest", "http://manifest/arg"},
-			setup:    emptySetup,
 			expected: "http://manifest/arg",
 		},
 		{
 			name: "prioritizes --manifest arg over GETENVOY_MANIFEST_URL env",
 			args: []string{"--manifest", "http://manifest/arg"},
 			setup: func() func() {
-				return RequireSetenv(t, "GETENVOY_MANIFEST_URL", "http://GETENVOY_MANIFEST_URL/env")
+				return requireSetenv(t, "GETENVOY_MANIFEST_URL", "http://GETENVOY_MANIFEST_URL/env")
 			},
 			expected: "http://manifest/arg",
 		},
@@ -180,17 +169,32 @@ func TestGetEnvoyManifest(t *testing.T) {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.name, func(t *testing.T) {
-			tearDown := test.setup()
-			defer tearDown()
-			c, stdout, stderr := cmdtest.NewRootCommand()
+			if test.setup != nil {
+				tearDown := test.setup()
+				defer tearDown()
+			}
+
+			o := &globals.GlobalOpts{}
+			c, stdout, stderr := cmdtest.NewRootCommand(o)
 			c.SetArgs(append(test.args, "help"))
-			err := cmdutil.Execute(c)
+			err := rootcmd.Execute(c)
 
 			require.NoError(t, err, `expected no error running [%v]`, c)
 			require.NotEmpty(t, stdout.String(), `expected stdout running [%v]`, c)
 			require.Empty(t, stderr.String(), `expected no stderr running [%v]`, c)
 
-			require.Equal(t, test.expected, manifest.GetURL())
+			require.Equal(t, test.expected, o.ManifestURL)
 		})
+	}
+}
+
+// requireSetenv will os.Setenv the given key and value. The function returned reverts to the original.
+func requireSetenv(t *testing.T, key, value string) func() {
+	previous := os.Getenv(key)
+	err := os.Setenv(key, value)
+	require.NoError(t, err, `error setting env variable %s=%s`, key, value)
+	return func() {
+		e := os.Setenv(key, previous)
+		require.NoError(t, e, `error reverting env variable %s=%s`, key, previous)
 	}
 }

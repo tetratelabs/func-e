@@ -21,6 +21,7 @@ import (
 	"github.com/containerd/containerd/reference/docker"
 	"github.com/spf13/cobra"
 
+	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/globals"
 	builtinconfig "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/toolchain/builtin"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
 	toolchains "github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain"
@@ -29,9 +30,10 @@ import (
 )
 
 // NewToolchainOpts returns new ToolchainOpts.
-func NewToolchainOpts() ToolchainOpts {
+func NewToolchainOpts(o *globals.GlobalOpts) ToolchainOpts {
 	return ToolchainOpts{
-		Name: toolchains.Default,
+		Name:    toolchains.Default,
+		Builtin: BuiltinToolchainOpts{DockerPath: o.DockerPath}, // allow overrides in tests
 	}
 }
 
@@ -43,6 +45,8 @@ type ToolchainOpts struct {
 
 // BuiltinToolchainOpts represents command options specific to built-in toolchain.
 type BuiltinToolchainOpts struct {
+	// DockerPath is the exec.Cmd path to "docker". Defaults to "docker" and only overridable for tests.
+	DockerPath string
 	// Builder image.
 	ContainerImage string
 	// Docker cli options.
@@ -59,6 +63,9 @@ func (o *ToolchainOpts) Validate() error {
 
 // Validate returns an error if BuiltinToolchainOpts is not valid.
 func (o *BuiltinToolchainOpts) Validate() error {
+	if o.DockerPath == "" {
+		o.DockerPath = "docker"
+	}
 	if o.ContainerImage != "" {
 		if _, err := docker.Parse(o.ContainerImage); err != nil {
 			return fmt.Errorf("%q is not a valid image name: %w", o.ContainerImage, err)
@@ -76,6 +83,9 @@ func (o *BuiltinToolchainOpts) Validate() error {
 
 // ApplyTo applies container-specific command options to a given built-in toolchain config.
 func (o *BuiltinToolchainOpts) ApplyTo(config *builtinconfig.ContainerConfig) {
+	if o.DockerPath != "" {
+		config.DockerPath = o.DockerPath
+	}
 	if o.ContainerImage != "" {
 		config.Image = o.ContainerImage
 	}

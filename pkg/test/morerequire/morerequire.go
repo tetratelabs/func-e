@@ -17,10 +17,11 @@
 package morerequire
 
 import (
+	// Embedding the capture script is easier than file I/O each time it is used.
+	_ "embed"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/otiai10/copy"
@@ -42,67 +43,39 @@ func RequireNewTempDir(t *testing.T) (string, func()) {
 	}
 }
 
-// RequireSetenv will os.Setenv the given key and value. The function returned reverts to the original.
-func RequireSetenv(t *testing.T, key, value string) func() {
-	previous := os.Getenv(key)
-	err := os.Setenv(key, value)
-	require.NoError(t, err, `error setting env variable %s=%s`, key, value)
-	return func() {
-		e := os.Setenv(key, previous)
-		require.NoError(t, e, `error reverting env variable %s=%s`, key, previous)
-	}
-}
-
-// RequireChDir will os.Chdir into the indicated dir, panicing on any problem.
-// The string returned is the absolute path corresponding to the input. The function returned reverts to the original.
-func RequireChDir(t *testing.T, d string) (string, func()) {
-	dir := RequireAbsDir(t, d)
-
-	// Save previous working directory to that it can be reverted later.
-	previous, err := os.Getwd()
-	require.NoError(t, err, `error determining current directory`)
-
-	// Now, actually change to the directory.
-	err = os.Chdir(d)
-	require.NoError(t, err, `error changing to directory: %v`, d)
-	return dir, func() {
-		e := os.Chdir(previous)
-		require.NoError(t, e, `error changing to directory: %v`, previous)
-	}
-}
-
 // RequireCopyOfDir creates a new directory which is a copy of the template. The function returned cleans it up.
 func RequireCopyOfDir(t *testing.T, templateDir string) (string, func()) {
 	d, cleanup := RequireNewTempDir(t)
 	err := copy.Copy(templateDir, d)
-	require.NoError(t, err, `expected no error copying %s to %s`, templateDir, d)
+	if err != nil {
+		cleanup()
+		t.Fatalf(`expected no error copying %s to %s: %v`, templateDir, d, err)
+	}
 	return d, cleanup
 }
 
-// RequireAbsDir runs filepath.Abs and ensures there are no errors and the input is a directory.
-func RequireAbsDir(t *testing.T, d string) string {
-	dir, err := filepath.Abs(d)
-	require.NoError(t, err, `error determining absolute directory: %v`, d)
-	require.DirExists(t, dir, `directory doesn't exist': %v`, dir)
-	return dir
+var (
+	// captureScript is a test script used for capturing arguments and signals. If it receives an argument "exit=N",
+	// where N is a code number, the script exits with that status. Otherwise it sleeps until a signal interrupts it.
+	//go:embed testdata/capture.sh
+	captureScript []byte
+)
+
+// RequireCaptureScript creates a copy of cmd.CaptureScript with the given basename. The function returned cleans it up.
+func RequireCaptureScript(t *testing.T, name string) (string, func()) {
+	d, cleanup := RequireNewTempDir(t)
+	path := filepath.Join(d, name)
+	err := ioutil.WriteFile(path, captureScript, 0700) //nolint:gosec
+	if err != nil {
+		cleanup()
+		t.Fatalf(`expected no creating capture script %q: %v`, path, err)
+	}
+	return path, cleanup
 }
 
-// RequireOverridePath will prefix os.Setenv with the indicated dir, panicing on any problem.
-// The string returned is the absolute path corresponding to the input. The function returned reverts to the original.
-func RequireOverridePath(t *testing.T, d string) (string, func()) {
-	dir := RequireAbsDir(t, d)
-
-	// Save previous path to that it can be reverted later.
-	previous := os.Getenv("PATH")
-
-	// Place the resolved directory in from of the previous path
-	path := strings.Join([]string{dir, previous}, string(filepath.ListSeparator))
-
-	// Now, actually change the PATH env
-	err := os.Setenv("PATH", path)
-	require.NoError(t, err, `error setting PATH to: %v`, path)
-	return dir, func() {
-		e := os.Setenv("PATH", previous)
-		require.NoError(t, e, `error reverting to PATH: %v`, previous)
-	}
+// RequireAbs runs filepath.Abs and ensures there are no errors.
+func RequireAbs(t *testing.T, f string) string {
+	f, err := filepath.Abs(f)
+	require.NoError(t, err, `error determining absolute path: %v`, f)
+	return f
 }

@@ -16,130 +16,79 @@ package envoytest
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
-	"sync"
 	"testing"
 	"time"
 
 	"github.com/mholt/archiver/v3"
 	"github.com/stretchr/testify/require"
-	"github.com/tetratelabs/log"
 
-	reference "github.com/tetratelabs/getenvoy/pkg"
-	"github.com/tetratelabs/getenvoy/pkg/binary"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
-	"github.com/tetratelabs/getenvoy/pkg/manifest"
+	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/globals"
+	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
-var once sync.Once
-var errorFetchingEnvoy error
+// RunAndTerminateWithDebug is like RequireRunTerminate, except returns a directory populated by the debug plugin.
+func RunAndTerminateWithDebug(t *testing.T, debugDir string, debug func(r *envoy.Runtime), args ...string) string {
+	fakeEnvoy, removeFakeEnvoy := morerequire.RequireCaptureScript(t, "envoy")
+	defer removeFakeEnvoy()
 
-// FetchEnvoyAndRun retrieves the Envoy indicated by reference only once. This is intended to be used with TestMain.
-// Execute this to obviate latency during test runs: go run cmd/getenvoy/main.go fetch $(cat pkg/reference.txt)
-func FetchEnvoyAndRun(m *testing.M) {
-	once.Do(func() {
-		errorFetchingEnvoy = fetchEnvoy()
-	})
+	o := &globals.RunOpts{EnvoyPath: fakeEnvoy, WorkingDir: filepath.Join(debugDir, "1")}
+	// InitializeRunOpts creates this directory in a real command run
+	require.NoError(t, os.MkdirAll(o.WorkingDir, 0750))
 
-	if errorFetchingEnvoy != nil {
-		fmt.Println(errorFetchingEnvoy)
-		os.Exit(1)
-	}
+	r := envoy.NewRuntime(o)
 
-	os.Exit(m.Run())
+	debug(r)
+
+	RequireRunTerminate(t, nil, r, args...)
+	RequireRestoreWorkingDir(t, o.WorkingDir, r)
+	return o.WorkingDir
 }
 
-func fetchEnvoy() error {
-	key, err := manifest.NewKey(reference.Latest)
-	if err != nil {
-		return fmt.Errorf("unable to make manifest key %v: %w", reference.Latest, err)
-	}
-
-	r, err := envoy.NewRuntime()
-	if err != nil {
-		return fmt.Errorf("unable to make new envoy runtime: %w", err)
-	}
-
-	if !r.AlreadyDownloaded(key) {
-		location, err := manifest.Locate(key)
-		if err != nil {
-			return fmt.Errorf("unable to retrieve manifest from %v: %w", manifest.GetURL(), err)
-		}
-
-		err = r.Fetch(key, location)
-		if err != nil {
-			return fmt.Errorf("unable to retrieve binary from %v: %w", location, err)
+// RequireRunTerminate executes Run on the given Runtime and terminates it after starting.
+func RequireRunTerminate(t *testing.T, terminate func(r *envoy.Runtime), r *envoy.Runtime, args ...string) {
+	if terminate == nil {
+		terminate = func(r *envoy.Runtime) {
+			fakeInterrupt := r.FakeInterrupt
+			if fakeInterrupt != nil {
+				fakeInterrupt()
+			}
 		}
 	}
-	return nil
-}
-
-// RunKillOptions allows customization of Envoy lifecycle.
-type RunKillOptions struct{ Bootstrap string }
-
-// RequireRunTerminate executes envoy, waits for ready, sends sigint, waits for termination, then unarchives the debug
-// directory. It should be used when you just want to cycle through an Envoy lifecycle.
-//
-// When the configPath parameter is non-empty, it becomes the "--config-path" argument to envoy.
-func RequireRunTerminate(t *testing.T, r binary.Runner, configPath string) {
-	key, err := manifest.NewKey(reference.Latest)
-	require.NoError(t, err)
-	var args []string
-	if configPath != "" {
-		args = append(args, "--config-path", configPath)
-	}
-
-	args = append(args,
-		// Generate base id to allow concurrent envoys in tests. (minimum Envoy 1.15)
-		"--use-dynamic-base-id",
-		// Use ephemeral admin port to avoid test conflicts.
-		// Enable admin access logging to help debug test failures. (minimum Envoy 1.12 for macOS support)
-		"--config-yaml", "admin: {access_log_path: '/dev/stdout', address: {socket_address: {address: '127.0.0.1', port_value: 0}}}",
-	)
-
-	// This ensures on any panic the envoy process is terminated, which can prevent test hangs.
-	deferredInterrupt := func() {
-		r.(*envoy.Runtime).FakeInterrupt()
-	}
-
-	defer func() {
-		if deferredInterrupt != nil {
-			deferredInterrupt()
-		}
-	}()
-
-	// Ensure we don't leave tar.gz files around after the test completes
-	defer os.RemoveAll(r.DebugStore() + ".tar.gz") // nolint
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
-		if err := r.Run(key, args); err != nil {
-			log.Errorf("unable to run key %s: %v", key, err)
+		if err := r.Run(ctx, args); err != nil {
+			t.Errorf("unable to run %v: %v", r, err)
+			return
 		}
 		cancel()
 	}()
 
-	// Look for terminated or ready, so that we fail faster than polling for status ready
-	expectedStatus := binary.StatusReady
 	require.Eventually(t, func() bool {
-		return r.Status() == expectedStatus || r.Status() == binary.StatusTerminated
-	}, 30*time.Second, 100*time.Millisecond, "never achieved status(%d) or StatusTerminated", expectedStatus)
-	require.Equal(t, expectedStatus, r.Status(), "never achieved status(%d)", expectedStatus)
+		_, err := r.GetPid()
+		return err == nil
+	}, 1*time.Second, 100*time.Millisecond, "never started process")
 
-	// Now, terminate the server.
-	r.(*envoy.Runtime).FakeInterrupt()
-	deferredInterrupt = nil
+	terminate(r)
 
 	select { // Await run completion
 	case <-time.After(10 * time.Second):
 		t.Fatal("Run never completed")
 	case <-ctx.Done():
 	}
+}
 
-	// RunPath deletes the debug store directory after making a tar.gz with the same name.
+// RequireRestoreWorkingDir restores the working directory from the debug archive and returns the archive name.
+func RequireRestoreWorkingDir(t *testing.T, workingDir string, c interface{}) string {
+	// Run deletes the debug store directory after making a tar.gz with the same name.
 	// Restore it so assertions can read the contents later.
-	e := archiver.Unarchive(r.DebugStore()+".tar.gz", filepath.Dir(r.DebugStore()))
-	require.NoError(t, e, "error extracting DebugStore")
+	debugArchive := filepath.Join(workingDir + ".tar.gz")
+	defer os.Remove(debugArchive) //nolint
+
+	e := archiver.Unarchive(debugArchive, filepath.Dir(workingDir)) // Dir strips the RunID directory name
+	require.NoError(t, e, "error restoring %s from %s after stopping [%v]", workingDir, debugArchive, c)
+	return debugArchive
 }

@@ -18,51 +18,52 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-
-	osutil "github.com/tetratelabs/getenvoy/pkg/util/os"
 )
 
-// workspaceDir represents a directory with an extension created by getenvoy toolkit.
-type workspaceDir string
+// extensionDir represents a directory with an extension created by getenvoy toolkit.
+type extensionDir string
 
-func (d workspaceDir) GetRootDir() string {
+func (d extensionDir) GetRootDir() string {
 	return string(d)
 }
 
-func (d workspaceDir) GetMetaDir() string {
+func (d extensionDir) GetMetaDir() string {
 	return filepath.Join(d.GetRootDir(), extensionMetaDir)
 }
 
-func (d workspaceDir) Rel(path string) string {
+func (d extensionDir) Rel(path string) string {
 	return filepath.Join(extensionMetaDir, path)
 }
 
-func (d workspaceDir) Abs(path string) string {
+func (d extensionDir) Abs(path string) string {
 	return filepath.Join(d.GetMetaDir(), path)
 }
 
-func (d workspaceDir) HasFile(path string) (bool, error) {
+func (d extensionDir) HasFile(path string) (bool, error) {
 	return d.hasFile(path, isRegularFile)
 }
 
-func (d workspaceDir) ReadFile(path string) ([]byte, error) {
+func (d extensionDir) ReadFile(path string) ([]byte, error) {
 	path = d.Abs(path)
 	return os.ReadFile(filepath.Clean(path))
 }
 
-func (d workspaceDir) WriteFile(path string, data []byte) error {
+func (d extensionDir) WriteFile(path string, data []byte) error {
 	path = d.Abs(path)
-	if err := osutil.EnsureDirExists(filepath.Dir(path)); err != nil {
-		return err
+	dir := filepath.Dir(path)
+	// This is required until we hunt down the directory structure we ultimately need and create that once instead of
+	// once per file as is happening here. pkg/extension needs simplifying, and doing so may obviate the hunt.
+	if err := os.MkdirAll(dir, 0750); err != nil {
+		return fmt.Errorf("failed to create directory %q: %w", dir, err)
 	}
 	return os.WriteFile(path, data, 0600)
 }
 
-func (d workspaceDir) HasDir(path string) (bool, error) {
+func (d extensionDir) HasDir(path string) (bool, error) {
 	return d.hasFile(path, isDir)
 }
 
-func (d workspaceDir) ListDirs(path string) ([]string, error) {
+func (d extensionDir) ListDirs(path string) ([]string, error) {
 	path = d.Abs(path)
 	infos, err := os.ReadDir(path)
 	if err != nil {
@@ -80,7 +81,7 @@ func (d workspaceDir) ListDirs(path string) ([]string, error) {
 	return dirNames, nil
 }
 
-func (d workspaceDir) ListFiles(path string) ([]string, error) {
+func (d extensionDir) ListFiles(path string) ([]string, error) {
 	root := d.Abs(path)
 	fileNames := make([]string, 0)
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
@@ -103,12 +104,12 @@ func (d workspaceDir) ListFiles(path string) ([]string, error) {
 	return fileNames, nil
 }
 
-func (d workspaceDir) RemoveAll(path string) error {
+func (d extensionDir) RemoveAll(path string) error {
 	path = d.Abs(path)
 	return os.RemoveAll(path)
 }
 
-func (d workspaceDir) hasFile(path string, test func(string, os.FileInfo) error) (bool, error) {
+func (d extensionDir) hasFile(path string, test func(string, os.FileInfo) error) (bool, error) {
 	path = d.Abs(path)
 	info, err := os.Stat(path)
 	if err != nil {

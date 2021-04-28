@@ -15,7 +15,7 @@
 package example
 
 import (
-	"github.com/pkg/errors"
+	"fmt"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/example/init/registry"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
@@ -36,7 +36,7 @@ func ScaffoldIfDefault(opts *ScaffoldOpts) error {
 	}
 	exists, err := opts.Workspace.HasExample(Default)
 	if err != nil {
-		return errors.Wrapf(err, "failed to determine whether example %q already exists", Default)
+		return fmt.Errorf("failed to determine whether example %q already exists: %w", Default, err)
 	}
 	if exists {
 		return nil
@@ -49,12 +49,11 @@ func Scaffold(opts *ScaffoldOpts) error {
 	descriptor := opts.Workspace.GetExtensionDescriptor()
 	factory, err := registry.Get(descriptor, registry.DefaultExample)
 	if err != nil {
-		// must be caught by unit tests
-		panic(errors.Errorf("there is no %q example for extension category %q", registry.DefaultExample, descriptor.Category))
+		return fmt.Errorf("there is no %q example for extension category %q", registry.DefaultExample, descriptor.Category)
 	}
 	example, err := factory.NewExample(descriptor)
 	if err != nil {
-		return errors.Wrapf(err, "failed to generate %q example", opts.Name)
+		return fmt.Errorf("failed to generate %q example: %w", opts.Name, err)
 	}
 	return opts.Workspace.SaveExample(opts.Name, example, model.ProgressSink{ProgressSink: opts.ProgressSink})
 }

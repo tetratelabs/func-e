@@ -64,6 +64,8 @@ type CleanConfig struct {
 
 // ContainerConfig represents configuration of a Docker build container.
 type ContainerConfig struct {
+	// DockerPath is the exec.Cmd path to "docker". Defaults to "docker"
+	DockerPath string `yaml:"dockerPath,omitempty"`
 	// Builder image.
 	Image string `yaml:"image,omitempty"`
 	// Docker cli options.

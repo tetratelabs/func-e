@@ -15,44 +15,22 @@
 package manifest
 
 import (
-	"errors"
 	"fmt"
-	"net/url"
+	"io"
+	"net/http"
 	"os"
 
 	"github.com/tetratelabs/log"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/tetratelabs/getenvoy/api"
+	"github.com/tetratelabs/getenvoy/pkg/transport"
 	"github.com/tetratelabs/getenvoy/pkg/types"
 )
 
 const (
 	referenceEnv = "ENVOY_REFERENCE"
 )
-
-var (
-	// manifestURL defines location of the GetEnvoy manifest.
-	manifestURL = &url.URL{
-		Scheme: "https",
-		Host:   "dl.getenvoy.io",
-		Path:   "/public/raw/files/manifest.json",
-	}
-)
-
-// GetURL returns location of the GetEnvoy manifest.
-func GetURL() string {
-	return manifestURL.String()
-}
-
-// SetURL sets location of the GetEnvoy manifest.
-func SetURL(rawurl string) error {
-	otherURL, err := url.Parse(rawurl)
-	if err != nil || otherURL.Host == "" || otherURL.Scheme == "" {
-		return fmt.Errorf("%q is not a valid manifest URL", rawurl)
-	}
-	manifestURL = otherURL
-	return nil
-}
 
 // NewKey creates a manifest key based on the reference it is given
 func NewKey(reference string) (*Key, error) {
@@ -75,23 +53,33 @@ func NewKey(reference string) (*Key, error) {
 // Key is the primary key used to locate Envoy builds in the manifest
 type Key types.Reference
 
-func (k Key) String() string {
+func (k *Key) String() string {
 	return fmt.Sprintf("%v:%v/%v", k.Flavor, k.Version, k.Platform)
 }
 
-// Locate returns the location of the binary for the passed parameters from the passed manifest
-// The build version is searched for as a prefix of the OperatingSystemVersion.
-// If the OperatingSystemVersion is empty it returns the first build listed for that operating system
-func Locate(key *Key) (string, error) {
-	if key == nil {
-		return "", errors.New("passed key was nil")
-	}
-	log.Debugf("retrieving manifest %s", GetURL())
-	manifest, err := fetch(GetURL())
+// FetchManifest returns a manifest from a remote URL. eg global.manifestURL.
+func FetchManifest(manifestURL string) (*api.Manifest, error) {
+	log.Debugf("retrieving manifest %s", manifestURL)
+	// #nosec => This is by design, users can call out to wherever they like!
+	resp, err := transport.Get(manifestURL)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return LocateBuild(key, manifest)
+	defer resp.Body.Close() //nolint
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("received %v response code from %v", resp.StatusCode, manifestURL)
+	}
+	body, err := io.ReadAll(resp.Body) // fully read the response
+	if err != nil {
+		return nil, fmt.Errorf("error reading %s: %w", manifestURL, err)
+	}
+
+	result := api.Manifest{}
+	if err := protojson.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("error unmarshalling manifest: %w", err)
+	}
+	return &result, nil
 }
 
 // LocateBuild returns the downloadLocationURL of the associated envoy binary in the manifest using the input key

@@ -97,8 +97,7 @@ func (e *getEnvoyExtension) Config(names ...string) (getEnvoyValue, error) {
 		Value: e.ctx.DefaultExtensionConfig,
 	})
 	if err != nil {
-		// must not happen
-		panic(err)
+		return nil, err
 	}
 	return wrap(any)
 }

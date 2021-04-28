@@ -36,7 +36,7 @@ const (
 )
 
 // WorkspaceAt returns a workspace at a given directory.
-func WorkspaceAt(dir fs.WorkspaceDir) (Workspace, error) {
+func WorkspaceAt(dir fs.ExtensionDir) (Workspace, error) {
 	// fail early if extension descriptor is not valid
 	descriptor, err := getExtensionDescriptor(dir)
 	if err != nil {
@@ -45,8 +45,8 @@ func WorkspaceAt(dir fs.WorkspaceDir) (Workspace, error) {
 	return &workspace{dir, descriptor}, nil
 }
 
-// getExtensionDescriptor returns extension descriptor from a given workspace directory.
-func getExtensionDescriptor(dir fs.WorkspaceDir) (*extension.Descriptor, error) {
+// getExtensionDescriptor returns extension descriptor from a given extension directory.
+func getExtensionDescriptor(dir fs.ExtensionDir) (*extension.Descriptor, error) {
 	path := DescriptorFile
 	data, err := dir.ReadFile(path)
 	if err != nil {
@@ -67,11 +67,11 @@ func getExtensionDescriptor(dir fs.WorkspaceDir) (*extension.Descriptor, error) 
 
 // workspace represents a workspace with an extension created by getenvoy toolkit.
 type workspace struct {
-	dir       fs.WorkspaceDir
+	dir       fs.ExtensionDir
 	extension *extension.Descriptor
 }
 
-func (w *workspace) GetDir() fs.WorkspaceDir {
+func (w *workspace) GetDir() fs.ExtensionDir {
 	return w.dir
 }
 

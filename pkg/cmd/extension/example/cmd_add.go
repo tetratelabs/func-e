@@ -15,16 +15,19 @@
 package example
 
 import (
-	"github.com/pkg/errors"
+	"fmt"
+
 	"github.com/spf13/cobra"
 
+	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/globals"
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
 	examples "github.com/tetratelabs/getenvoy/pkg/extension/workspace/example"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
+	uiutil "github.com/tetratelabs/getenvoy/pkg/util/ui"
 )
 
 // NewAddCmd returns a command that generates a new example setup.
-func NewAddCmd() *cobra.Command {
+func NewAddCmd(o *globals.GlobalOpts) *cobra.Command {
 	name := examples.Default
 	cmd := &cobra.Command{
 		Use:   "add",
@@ -42,7 +45,7 @@ Scaffold a new example setup.`,
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// find workspace
-			workspace, err := workspaces.GetCurrentWorkspace()
+			workspace, err := workspaces.GetWorkspaceAt(o.ExtensionDir)
 			if err != nil {
 				return err
 			}
@@ -53,15 +56,15 @@ Scaffold a new example setup.`,
 			}
 			// handle the case where example already exists
 			if exists {
-				return errors.Errorf("example setup %q already exists", name)
+				return fmt.Errorf("example setup %q already exists", name)
 			}
 			// generate new example
-			scaffoldOpts := &examples.ScaffoldOpts{
+			progressSink := NewAddExampleFeedback(uiutil.NewStyleFuncs(o.NoColors), cmd.ErrOrStderr())
+			return examples.Scaffold(&examples.ScaffoldOpts{
 				Workspace:    workspace,
 				Name:         name,
-				ProgressSink: NewAddExampleFeedback(cmd),
-			}
-			return examples.Scaffold(scaffoldOpts)
+				ProgressSink: progressSink,
+			})
 		},
 	}
 	cmd.PersistentFlags().StringVar(&name, "name", name, `Example name, e.g. "default", advanced", "grpc-web", etc`)

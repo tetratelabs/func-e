@@ -43,14 +43,14 @@ func AddFlavor(flavor string, configTemplate FlavorConfigTemplate) {
 func GetFlavor(flavor string) (FlavorConfigTemplate, error) {
 	tmplString, ok := store.templates[flavor]
 	if !ok {
-		return nil, fmt.Errorf("Cannot find template for flavor %s", flavor)
+		return nil, fmt.Errorf("cannot find template for flavor %s", flavor)
 	}
 
 	return tmplString, nil
 }
 
 // CreateConfig function checks flavor specific parameters, get flavor's template and
-// create a config.
+// create a config yaml used as the `--config-yaml` argument to Envoy.
 func CreateConfig(flavor string, params map[string]string) (string, error) {
 	flavorData, err := GetFlavor(flavor)
 

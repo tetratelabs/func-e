@@ -18,18 +18,6 @@ import (
 	"bytes"
 	"fmt"
 	"text/template"
-
-	"github.com/manifoldco/promptui"
-)
-
-var (
-	// StylesEnabled is a knob for turning text styles off in case when
-	// runtime environment is not capabale to present them.
-	StylesEnabled = true
-)
-
-var (
-	styleFuncs = makeStyleFuncs(promptui.FuncMap)
 )
 
 // TextStyle represents a style that can be applied to data to produce
@@ -42,7 +30,7 @@ func (f TextStyle) Apply(data interface{}) string {
 }
 
 // Style creates a new text style according to a given format string.
-func Style(format string) TextStyle {
+func Style(styleFuncs template.FuncMap, format string) TextStyle {
 	tpl, err := template.New("").Funcs(styleFuncs).Parse(format)
 	if err != nil {
 		// must be caught by unit tests
@@ -67,19 +55,18 @@ func (t *textStyle) Apply(data interface{}) string {
 }
 
 // makeStyleFuncs extends a given map of style functions.
-func makeStyleFuncs(source template.FuncMap) template.FuncMap {
-	styles := makeSubstituteFuncMap(source)
-	styles["icon"] = iconStyler(supportedIcons)
+func makeStyleFuncs(source template.FuncMap, noColors bool) template.FuncMap {
+	styles := makeSubstituteFuncMap(source, noColors)
+	styles["icon"] = iconStyler(supportedIcons, noColors)
 	return styles
 }
 
-// makeSubstituteFuncMap returns a substitute func map
-// where all coloring functions can be dynamically disabled.
-func makeSubstituteFuncMap(source template.FuncMap) template.FuncMap {
+// makeSubstituteFuncMap returns a substitute func map where all coloring functions can be dynamically disabled.
+func makeSubstituteFuncMap(source template.FuncMap, noColors bool) template.FuncMap {
 	result := template.FuncMap{}
 	for name, any := range source {
 		if f, ok := any.(func(interface{}) string); ok {
-			result[name] = makeSubstituteFunc(f)
+			result[name] = makeSubstituteFunc(f, noColors)
 		} else {
 			result[name] = noStyle
 		}
@@ -87,14 +74,13 @@ func makeSubstituteFuncMap(source template.FuncMap) template.FuncMap {
 	return result
 }
 
-// makeSubstituteFunc returns a substitute func that turns into no op
-// when text styles are disabled.
-func makeSubstituteFunc(style func(interface{}) string) func(interface{}) string {
+// makeSubstituteFunc returns a substitute func that turns into noop when colors are disabled.
+func makeSubstituteFunc(style func(interface{}) string, noColors bool) func(interface{}) string {
 	return func(v interface{}) string {
-		if StylesEnabled {
-			return style(v)
+		if noColors {
+			return noStyle(v)
 		}
-		return noStyle(v)
+		return style(v)
 	}
 }
 

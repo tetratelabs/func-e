@@ -19,6 +19,7 @@ package exec
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -28,7 +29,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	commonerrors "github.com/tetratelabs/getenvoy/pkg/errors"
+	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 	ioutil "github.com/tetratelabs/getenvoy/pkg/util/io"
 )
 
@@ -36,15 +37,22 @@ func TestRunPipesStdoutAndStderr(t *testing.T) {
 	stdin, stdout, stderr := new(bytes.Buffer), new(bytes.Buffer), new(bytes.Buffer)
 	stdin.WriteString("input to stdin\n")
 
-	cmd := exec.Command("testdata/test_stdio.sh", "0", "stderr")
+	testScript, removeTestScript := morerequire.RequireCaptureScript(t, "test")
+	defer removeTestScript()
+
+	cmd := exec.Command(testScript, "text_exit=0")
 	err := Run(cmd, ioutil.StdStreams{In: stdin, Out: stdout, Err: stderr})
 
 	require.NoError(t, err, `error running [%v]`, cmd)
-	require.Equal(t, `input to stdin`, stdout.String(), `invalid stdout running [%v]`, cmd)
-	require.Equal(t, `stderr`, stderr.String(), `invalid stderr running [%v]`, cmd)
+	expectedStdout := fmt.Sprintf("test wd: %s\ntest bin: %s\ntest args: text_exit=0\n", morerequire.RequireAbs(t, "."), testScript)
+	require.Equal(t, expectedStdout, stdout.String(), `invalid stdout running [%v]`, cmd)
+	require.Equal(t, "test stderr\n", stderr.String(), `invalid stderr running [%v]`, cmd)
 }
 
 func TestRunErrorWrapsCause(t *testing.T) {
+	testScript, removeTestScript := morerequire.RequireCaptureScript(t, "test")
+	defer removeTestScript()
+
 	tests := []struct {
 		name              string
 		path              string
@@ -54,13 +62,13 @@ func TestRunErrorWrapsCause(t *testing.T) {
 		{
 			name:              "invalid path",
 			path:              "/invalid/path",
-			expectedErr:       `failed to execute an external command "/invalid/path 123": fork/exec /invalid/path: no such file or directory`,
+			expectedErr:       `failed to execute an external command "/invalid/path test_exit=123": fork/exec /invalid/path: no such file or directory`,
 			expectedErrTarget: new(os.PathError),
 		},
 		{
 			name:              "exit status",
-			path:              "testdata/test_stdio.sh",
-			expectedErr:       `failed to execute an external command "testdata/test_stdio.sh 123": exit status 123`,
+			path:              testScript,
+			expectedErr:       fmt.Sprintf(`failed to execute an external command "%s test_exit=123": exit status 123`, testScript),
 			expectedErrTarget: new(exec.ExitError),
 		},
 	}
@@ -71,7 +79,7 @@ func TestRunErrorWrapsCause(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			stdin, stdout, stderr := new(bytes.Buffer), new(bytes.Buffer), new(bytes.Buffer)
 
-			cmd := exec.Command(tt.path, "123")
+			cmd := exec.Command(tt.path, "test_exit=123")
 			err := Run(cmd, ioutil.StdStreams{In: stdin, Out: stdout, Err: stderr})
 
 			// Verify the command failed with the expected error.
@@ -79,7 +87,7 @@ func TestRunErrorWrapsCause(t *testing.T) {
 
 			var runErr *RunError
 			require.ErrorAs(t, err, &runErr, `expected a RunError running [%v]`, cmd)
-			require.Equal(t, tt.path+" 123", runErr.Cmd(), `expected RunError.Cmd() to contain path and args`)
+			require.Equal(t, tt.path+" test_exit=123", runErr.Cmd(), `expected RunError.Cmd() to contain path and args`)
 			require.ErrorAs(t, runErr.Cause(), &tt.expectedErrTarget, `expected RunError.Cause() to wrap the original error`)
 		})
 	}
@@ -115,7 +123,7 @@ func TestRunShutdownError(t *testing.T) {
 
 			// Verify the process shutdown and raised an error due to the signal we caught
 			for err := range errCh {
-				require.Equal(t, commonerrors.NewShutdownError(s), err)
+				require.Equal(t, newShutdownError(s), err)
 			}
 		})
 	}
@@ -125,8 +133,9 @@ func TestRunSendsSIGTERMIfProcessStillRunningAfterStopSignal(t *testing.T) {
 	stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
 	stdio := ioutil.StdStreams{In: new(bytes.Buffer), Out: stdout, Err: stderr}
 
-	// Sleep for 2 seconds, which should be enough to know that the SIGTERM was issued
-	cmd := exec.Command("testdata/test_trap_sigterm.sh", "2")
+	sleepScript, removeSleepScript := morerequire.RequireCaptureScript(t, "sleep")
+	defer removeSleepScript()
+	cmd := exec.Command(sleepScript)
 
 	// Fake the actual signal handler. Signals sent to stopCh aren't actually sent to the process.
 	stopCh := make(chan os.Signal, 1)
@@ -144,7 +153,7 @@ func TestRunSendsSIGTERMIfProcessStillRunningAfterStopSignal(t *testing.T) {
 
 	// Wait for shell script to start
 	require.Eventually(t, func() bool {
-		return strings.Contains(stdout.String(), "running")
+		return strings.Contains(stdout.String(), "sleep wd")
 	}, 1*time.Second, 10*time.Millisecond)
 
 	// Send a fake signal to our signal handler which invokes the stop channel
@@ -154,11 +163,11 @@ func TestRunSendsSIGTERMIfProcessStillRunningAfterStopSignal(t *testing.T) {
 
 	// Wait for the err channel which means the process shutdown.
 	for err := range errCh {
-		require.Equal(t, commonerrors.NewShutdownError(fakeSignal), err)
+		require.Equal(t, newShutdownError(fakeSignal), err)
 	}
 
 	// Verify the program received a SIGTERM because the process was still alive upon exec.terminate()
-	require.Equal(t, "SIGTERM caught!\n", stderr.String(), `invalid stderr running [%v]`, cmd)
+	require.Equal(t, "sleep stderr\nSIGTERM caught!\n", stderr.String(), `invalid stderr running [%v]`, cmd)
 }
 
 // overrideSetupSignalHandler sets setupSignalHandler to a function. Doing so prevents the process from seeing signals.

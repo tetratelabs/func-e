@@ -29,19 +29,24 @@ import (
 	"github.com/shirou/gopsutil/v3/process"
 	"github.com/tetratelabs/log"
 
-	"github.com/tetratelabs/getenvoy/pkg/binary"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 )
 
 // EnableNodeCollection is a preset option that registers collection of node level information for debugging
 func EnableNodeCollection(r *envoy.Runtime) {
-	if err := os.MkdirAll(filepath.Join(r.DebugStore(), "node"), os.ModePerm); err != nil {
-		log.Errorf("unable to create directory to write node data to: %v", err)
+	nodeDir := filepath.Join(r.GetWorkingDir(), "node")
+	if err := os.MkdirAll(nodeDir, 0750); err != nil {
+		log.Errorf("unable to create directory %q, so node data will not be captured: %v", nodeDir, err)
 		return
 	}
-	r.RegisterPreTermination(ps)
-	r.RegisterPreTermination(networkInterfaces)
-	r.RegisterPreTermination(activeConnections)
+	n := nodeCollection{nodeDir}
+	r.RegisterPreTermination(n.ps)
+	r.RegisterPreTermination(n.networkInterfaces)
+	r.RegisterPreTermination(n.activeConnections)
+}
+
+type nodeCollection struct {
+	nodeDir string
 }
 
 // Don't wait forever. This has hung on macOS before
@@ -49,8 +54,8 @@ const processTimeout = 3 * time.Second
 
 // Errors from platform-specific libraries log to debug instead of raising an error or logging in an error category.
 // This avoids filling logs for unresolvable reasons.
-func ps(r binary.Runner) error {
-	f, err := os.Create(filepath.Join(r.DebugStore(), "node/ps.txt"))
+func (n *nodeCollection) ps() error {
+	f, err := os.Create(filepath.Join(n.nodeDir, "ps.txt"))
 	if err != nil {
 		return fmt.Errorf("unable to create file to write ps output to: %w", err)
 	}
@@ -167,8 +172,8 @@ func logDebugOnError(ctx context.Context, err error, field string, pid int32) bo
 	return false
 }
 
-func networkInterfaces(r binary.Runner) error {
-	f, err := os.Create(filepath.Join(r.DebugStore(), "node/network_interface.json"))
+func (n *nodeCollection) networkInterfaces() error {
+	f, err := os.Create(filepath.Join(n.nodeDir, "network_interface.json"))
 	if err != nil {
 		return fmt.Errorf("unable to create file to write network interface output to: %v", err)
 	}
@@ -209,8 +214,8 @@ var typeMap = map[uint32]string{
 	syscall.SOCK_DGRAM:  "SOCK_DGRAM",
 }
 
-func activeConnections(r binary.Runner) error {
-	f, err := os.Create(filepath.Join(r.DebugStore(), "node/connections.json"))
+func (n *nodeCollection) activeConnections() error {
+	f, err := os.Create(filepath.Join(n.nodeDir, "connections.json"))
 	if err != nil {
 		return fmt.Errorf("unable to create file to write network interface output to: %v", err)
 	}

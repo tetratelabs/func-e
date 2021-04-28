@@ -16,16 +16,13 @@ package init
 
 import (
 	"fmt"
+	"io"
+	"text/template"
 
 	"github.com/manifoldco/promptui"
 
 	uiutil "github.com/tetratelabs/getenvoy/pkg/util/ui"
 )
-
-// printer is a contract between the wizard and the command output.
-type printer interface {
-	Println(...interface{})
-}
 
 // infoData represents information about user's choice on a single configuration parameter.
 type infoData struct {
@@ -34,45 +31,43 @@ type infoData struct {
 }
 
 // defaultInfoStyle returns the default style for rendering user's choices on the screen.
-func defaultInfoStyle() uiutil.TextStyle {
-	return uiutil.Style(`{{ icon "good" | green }} {{ .Label | italic }} {{ .Value | faint }}`)
+func defaultInfoStyle(styleFuncs template.FuncMap) uiutil.TextStyle {
+	return uiutil.Style(styleFuncs, `{{ icon "good" | green }} {{ .Label | italic }} {{ .Value | faint }}`)
 }
 
 // wizard implements the interactive mode of the `init` command.
 type wizard struct {
-	out       printer
-	infoStyle uiutil.TextStyle
+	styleFuncs template.FuncMap
+	infoStyle  uiutil.TextStyle
+	w          io.Writer
 }
 
 // newWizard returns a new wizard.
-func newWizard(out printer) *wizard {
-	return &wizard{
-		out:       out,
-		infoStyle: defaultInfoStyle(),
-	}
+func newWizard(styleFuncs template.FuncMap, w io.Writer) *wizard {
+	return &wizard{styleFuncs, defaultInfoStyle(styleFuncs), w}
 }
 
 type promptOpts struct {
-	init func()
+	init func() error
 }
 
 // Fill runs the interactive UI to help a user to fill in parameters.
 func (w *wizard) Fill(params *params) error {
-	w.out.Println(uiutil.Underline("What kind of extension would you like to create?"))
+	fmt.Fprintln(w.w, uiutil.Underline(w.styleFuncs)("What kind of extension would you like to create?"))
 	if err := w.choose(&params.Category, supportedCategories, w.newCategorySelector); err != nil {
 		return err
 	}
 	if err := w.choose(&params.Language, supportedLanguages, w.newLanguageSelector); err != nil {
 		return err
 	}
-	if err := w.prompt(&params.OutputDir, w.newOutputDirPrompt, promptOpts{}); err != nil {
+	if err := w.prompt(&params.ExtensionDir, w.newExtensionDirPrompt, promptOpts{}); err != nil {
 		return err
 	}
 	if err := w.prompt(&params.Name, w.newNamePrompt, promptOpts{init: params.DefaultName}); err != nil {
 		return err
 	}
-	w.out.Println("Great! Let me help you with that!")
-	w.out.Println()
+	fmt.Fprintln(w.w, "Great! Let me help you with that!")
+	fmt.Fprintln(w.w)
 	return nil
 }
 
@@ -93,7 +88,9 @@ func (w *wizard) prompt(param *param, newPrompt func(*param) *promptui.Prompt, o
 	// only show the editor when the parameter hasn't been set on the command line or has an invalid value
 	if !param.IsValid() {
 		if opts.init != nil {
-			opts.init()
+			if err := opts.init(); err != nil {
+				return err
+			}
 		}
 		value, err := newPrompt(param).Run()
 		if err != nil {
@@ -113,7 +110,7 @@ func (w *wizard) newLanguageSelector(param *param, options options) *promptui.Se
 	return w.newSelector("Choose programming language", param, options)
 }
 
-func (w *wizard) newOutputDirPrompt(param *param) *promptui.Prompt {
+func (w *wizard) newExtensionDirPrompt(param *param) *promptui.Prompt {
 	return w.newPrompt("Provide output directory", param)
 }
 
@@ -165,6 +162,6 @@ func (w *wizard) printInput(param *param) error {
 }
 
 func (w *wizard) print(data *infoData) error {
-	w.out.Println(w.infoStyle.Apply(data))
+	fmt.Fprintln(w.w, w.infoStyle(data))
 	return nil
 }

@@ -35,20 +35,19 @@ func TestGetEnvoyExtensionExample(t *testing.T) {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.String(), func(t *testing.T) {
+			t.Parallel() // does not use Docker, so safe to run parallel
+
 			extensionConfigFileName := extensionConfigFileName(test.Language)
 
-			workDir, removeWorkDir := RequireNewTempDir(t)
-			defer removeWorkDir()
-
-			_, revertChDir := RequireChDir(t, workDir)
-			defer revertChDir()
+			extensionDir, removeExtensionDir := RequireNewTempDir(t)
+			defer removeExtensionDir()
 
 			// "getenvoy extension example XXX" commands require an extension init to succeed
-			requireExtensionInit(t, workDir, test.Category, test.Language, extensionName)
-			defer requireExtensionClean(t, workDir)
+			requireExtensionInit(t, extensionDir, test.Category, test.Language, extensionName)
+			defer requireExtensionClean(t, extensionDir)
 
 			// "getenvoy extension examples list" should start empty
-			c := getEnvoy("extension examples list")
+			c := getEnvoy("extension examples list").WorkingDir(extensionDir)
 			stderr := requireExecNoStdout(t, c)
 			require.Equal(t, `Extension has no example setups.
 
@@ -56,14 +55,14 @@ Use "getenvoy extension examples add --help" for more information on how to add 
 `, stderr, `invalid stderr running [%v]`, c)
 
 			// "getenvoy extension examples add" should result in stderr describing files created.
-			c = getEnvoy("extension examples add")
+			c = getEnvoy("extension examples add").WorkingDir(extensionDir)
 			stderr = requireExecNoStdout(t, c)
 
 			exampleFiles := []string{
-				filepath.Join(workDir, ".getenvoy/extension/examples/default/README.md"),
-				filepath.Join(workDir, ".getenvoy/extension/examples/default/envoy.tmpl.yaml"),
-				filepath.Join(workDir, ".getenvoy/extension/examples/default/example.yaml"),
-				fmt.Sprintf(".getenvoy/extension/examples/default/%s", extensionConfigFileName),
+				filepath.Join(extensionDir, ".getenvoy/extension/examples/default/README.md"),
+				filepath.Join(extensionDir, ".getenvoy/extension/examples/default/envoy.tmpl.yaml"),
+				filepath.Join(extensionDir, ".getenvoy/extension/examples/default/example.yaml"),
+				filepath.Join(extensionDir, fmt.Sprintf(".getenvoy/extension/examples/default/%s", extensionConfigFileName)),
 			}
 
 			exampleFileText := fmt.Sprintf(`
@@ -83,12 +82,12 @@ Use "getenvoy extension examples add --help" for more information on how to add 
 			}
 
 			// "getenvoy extension examples list" should now include an example
-			c = getEnvoy("extension examples list")
+			c = getEnvoy("extension examples list").WorkingDir(extensionDir)
 			stdout := requireExecNoStderr(t, c)
 			require.Equal(t, "EXAMPLE\ndefault\n", stdout, `invalid stdout running [%v]`, c)
 
 			// "getenvoy extension examples add" should result in stderr describing files created.
-			c = getEnvoy("extension examples remove --name default")
+			c = getEnvoy("extension examples remove --name default").WorkingDir(extensionDir)
 			stderr = requireExecNoStdout(t, c)
 
 			// Check stderr mentions the files removed

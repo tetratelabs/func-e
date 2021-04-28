@@ -16,11 +16,10 @@ package util
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"regexp"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 // LineOrError represents an element in the stream -
@@ -70,7 +69,7 @@ func StreamLines(r io.Reader) Stream {
 		for {
 			line, err := buf.ReadString('\n')
 			if err != nil && err != io.EOF {
-				lines <- StreamError{errors.Errorf("failed to read the next line: %v", err)}
+				lines <- StreamError{fmt.Errorf("failed to read the next line: %v", err)}
 			}
 			lines <- StreamLine(line)
 			if err == io.EOF {
@@ -110,7 +109,7 @@ func (s *NamedStream) FirstMatch(pattern *regexp.Regexp) Single {
 				return
 			}
 		}
-		match <- StreamError{errors.Errorf("%q didn't have a line that would match %q", s.Name, pattern)}
+		match <- StreamError{fmt.Errorf("%q didn't have a line that would match %q", s.Name, pattern)}
 	}()
 	return match
 }
@@ -121,6 +120,6 @@ func (s Single) Wait(timeout time.Duration) (string, error) {
 	case element := <-s:
 		return element.Line(), element.Err()
 	case <-time.After(timeout):
-		return "", errors.Errorf("reached timeout %s", timeout)
+		return "", fmt.Errorf("reached timeout %s", timeout)
 	}
 }

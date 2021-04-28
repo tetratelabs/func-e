@@ -19,11 +19,9 @@ import (
 )
 
 // EnableAll returns all debug options.
-func EnableAll() envoy.RuntimeOptions {
-	return envoy.RuntimeOptions{
-		EnableEnvoyAdminDataCollection,
-		EnableEnvoyLogCollection,
-		EnableNodeCollection,
-		EnableOpenFilesDataCollection,
-	}
+func EnableAll(r *envoy.Runtime) {
+	EnableEnvoyAdminDataCollection(r)
+	EnableEnvoyLogCollection(r)
+	EnableNodeCollection(r)
+	EnableOpenFilesDataCollection(r)
 }

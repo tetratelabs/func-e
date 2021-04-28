@@ -19,7 +19,6 @@ package builtin_test
 import (
 	"bytes"
 	"fmt"
-	"os/user"
 	"runtime"
 	"testing"
 
@@ -30,23 +29,20 @@ import (
 	builtinconfig "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/toolchain/builtin"
 	. "github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain/builtin"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain/types"
-	"github.com/tetratelabs/getenvoy/pkg/test/cmd"
-	. "github.com/tetratelabs/getenvoy/pkg/test/morerequire"
+	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 	ioutil "github.com/tetratelabs/getenvoy/pkg/util/io"
 )
 
 func TestBuiltinToolchain(t *testing.T) {
-	// We use a fake docker command to capture the commandline that would be invoked
-	dockerDir, revertPath := RequireOverridePath(t, "testdata/toolchain")
-	defer revertPath()
-
-	// Fake the current user so we can test it is used in the docker args
-	expectedUser := user.User{Uid: "1001", Gid: "1002"}
-	revertGetCurrentUser := cmd.OverrideGetCurrentUser(&expectedUser)
-	defer revertGetCurrentUser()
+	fakeDocker, removeFakeDocker := morerequire.RequireCaptureScript(t, "docker")
+	defer removeFakeDocker()
 
 	workspace, err := workspaces.GetWorkspaceAt("testdata/workspace")
 	require.NoError(t, err)
+	extensionDir := workspace.GetDir().GetRootDir()
+
+	baseDockerArgs := fmt.Sprintf(`run -u %s --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init`,
+		DefaultDockerUser, runtime.GOOS, extensionDir)
 
 	tests := []struct {
 		name           string
@@ -61,8 +57,11 @@ func TestBuiltinToolchain(t *testing.T) {
                 container:
                   image: default/image
 `,
-		tool:           build,
-		expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init default/image build --output-file extension.wasm\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+		tool: build,
+		expectedStdout: fmt.Sprintf(`docker wd: %s
+docker bin: %s
+docker args: %s default/image build --output-file extension.wasm
+`, extensionDir, fakeDocker, baseDockerArgs),
 	},
 		{
 			name: "test using default container image",
@@ -71,8 +70,9 @@ func TestBuiltinToolchain(t *testing.T) {
                 container:
                   image: default/image
 `,
-			tool:           test,
-			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init default/image test\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+			tool: test,
+			expectedStdout: fmt.Sprintf("docker wd: %s\ndocker bin: %s\ndocker args: %s default/image test\n",
+				extensionDir, fakeDocker, baseDockerArgs),
 		},
 		{
 			name: "clean using default container image",
@@ -81,8 +81,9 @@ func TestBuiltinToolchain(t *testing.T) {
                 container:
                   image: default/image
 `,
-			tool:           clean,
-			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init default/image clean\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+			tool: clean,
+			expectedStdout: fmt.Sprintf("docker wd: %s\ndocker bin: %s\ndocker args: %s default/image clean\n",
+				extensionDir, fakeDocker, baseDockerArgs),
 		},
 		{
 			name: "build using test container image",
@@ -100,12 +101,12 @@ func TestBuiltinToolchain(t *testing.T) {
                   container:
                     image: test/image
 `,
-			tool:           build,
-			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init build/image build --output-file output/file.wasm\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+			tool: build,
+			expectedStdout: fmt.Sprintf("docker wd: %s\ndocker bin: %s\ndocker args: %s build/image build --output-file output/file.wasm\n",
+				extensionDir, fakeDocker, baseDockerArgs),
 		},
 		{
 			name: "build using test container image and Docker cli options",
-
 			config: `
                 kind: BuiltinToolchain
                 container:
@@ -126,8 +127,9 @@ func TestBuiltinToolchain(t *testing.T) {
                     - -v
                     - /host/path=/container/path
 `,
-			tool:           build,
-			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -e VAR=VALUE build/image build --output-file output/file.wasm\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+			tool: build,
+			expectedStdout: fmt.Sprintf("docker wd: %s\ndocker bin: %s\ndocker args: %s -e VAR=VALUE build/image build --output-file output/file.wasm\n",
+				extensionDir, fakeDocker, baseDockerArgs),
 		},
 		{
 			name: "build fails with a non-0 exit code",
@@ -140,13 +142,14 @@ func TestBuiltinToolchain(t *testing.T) {
                     image: build/image
                     options:
                     - -e
-                    - DOCKER_EXIT_CODE=3
+                    - docker_exit=3
                   output:
                     wasmFile: output/file.wasm
 `,
-			tool:           build,
-			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 build/image build --output-file output/file.wasm\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
-			expectedErr:    fmt.Sprintf("failed to execute an external command \"%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 build/image build --output-file output/file.wasm\": exit status 3", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+			tool: build,
+			expectedStdout: fmt.Sprintf("docker wd: %s\ndocker bin: %s\ndocker args: %s -e docker_exit=3 build/image build --output-file output/file.wasm\n",
+				extensionDir, fakeDocker, baseDockerArgs),
+			expectedErr: fmt.Sprintf("failed to execute an external command \"%s %s -e docker_exit=3 build/image build --output-file output/file.wasm\": exit status 3", fakeDocker, baseDockerArgs),
 		},
 		{
 			name: "test using test container image",
@@ -164,8 +167,9 @@ func TestBuiltinToolchain(t *testing.T) {
                   container:
                     image: test/image
 `,
-			tool:           test,
-			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init test/image test\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+			tool: test,
+			expectedStdout: fmt.Sprintf("docker wd: %s\ndocker bin: %s\ndocker args: %s test/image test\n",
+				extensionDir, fakeDocker, baseDockerArgs),
 		},
 		{
 			name: "test using test container image and Docker cli options",
@@ -189,8 +193,9 @@ func TestBuiltinToolchain(t *testing.T) {
                     - -v
                     - /host/path=/container/path
 `,
-			tool:           test,
-			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -v /host/path=/container/path test/image test\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+			tool: test,
+			expectedStdout: fmt.Sprintf("docker wd: %s\ndocker bin: %s\ndocker args: %s -v /host/path=/container/path test/image test\n",
+				extensionDir, fakeDocker, baseDockerArgs),
 		},
 		{
 			name: "test fails with a non-0 exit code",
@@ -203,11 +208,12 @@ func TestBuiltinToolchain(t *testing.T) {
                     image: test/image
                     options:
                     - -e
-                    - DOCKER_EXIT_CODE=3
+                    - docker_exit=3
 `,
-			tool:           test,
-			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 test/image test\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
-			expectedErr:    fmt.Sprintf("failed to execute an external command \"%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 test/image test\": exit status 3", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+			tool: test,
+			expectedStdout: fmt.Sprintf("docker wd: %s\ndocker bin: %s\ndocker args: %s -e docker_exit=3 test/image test\n",
+				extensionDir, fakeDocker, baseDockerArgs),
+			expectedErr: fmt.Sprintf("failed to execute an external command \"%s %s -e docker_exit=3 test/image test\": exit status 3", fakeDocker, baseDockerArgs),
 		},
 		{
 			name: "clean using test container image",
@@ -225,8 +231,9 @@ func TestBuiltinToolchain(t *testing.T) {
                   container:
                     image: clean/image
 `,
-			tool:           clean,
-			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init clean/image clean\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+			tool: clean,
+			expectedStdout: fmt.Sprintf("docker wd: %s\ndocker bin: %s\ndocker args: %s clean/image clean\n",
+				extensionDir, fakeDocker, baseDockerArgs),
 		},
 		{
 			name: "clean using test container image and Docker cli options",
@@ -250,8 +257,9 @@ func TestBuiltinToolchain(t *testing.T) {
                     - -v
                     - /host/path=/container/path
 `,
-			tool:           clean,
-			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -v /host/path=/container/path clean/image clean\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+			tool: clean,
+			expectedStdout: fmt.Sprintf("docker wd: %s\ndocker bin: %s\ndocker args: %s -v /host/path=/container/path clean/image clean\n",
+				extensionDir, fakeDocker, baseDockerArgs),
 		},
 		{
 			name: "clean fails with a non-0 exit code",
@@ -264,11 +272,12 @@ func TestBuiltinToolchain(t *testing.T) {
                     image: clean/image
                     options:
                     - -e
-                    - DOCKER_EXIT_CODE=3
+                    - docker_exit=3
 `,
-			tool:           clean,
-			expectedStdout: fmt.Sprintf("%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 clean/image clean\n", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
-			expectedErr:    fmt.Sprintf("failed to execute an external command \"%s/docker run -u 1001:1002 --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --init -e DOCKER_EXIT_CODE=3 clean/image clean\": exit status 3", dockerDir, runtime.GOOS, workspace.GetDir().GetRootDir()),
+			tool: clean,
+			expectedStdout: fmt.Sprintf("docker wd: %s\ndocker bin: %s\ndocker args: %s -e docker_exit=3 clean/image clean\n",
+				extensionDir, fakeDocker, baseDockerArgs),
+			expectedErr: fmt.Sprintf("failed to execute an external command \"%s %s -e docker_exit=3 clean/image clean\": exit status 3", fakeDocker, baseDockerArgs),
 		},
 	}
 
@@ -283,6 +292,7 @@ func TestBuiltinToolchain(t *testing.T) {
 			err = cfg.Validate()
 			require.NoError(t, err)
 
+			cfg.Container.DockerPath = fakeDocker
 			toolchain := NewToolchain("test", &cfg, workspace)
 			stdin, stdout, stderr := new(bytes.Buffer), new(bytes.Buffer), new(bytes.Buffer)
 			stdio := ioutil.StdStreams{In: stdin, Out: stdout, Err: stderr}

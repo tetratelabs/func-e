@@ -15,9 +15,7 @@
 package envoy
 
 import (
-	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -29,14 +27,15 @@ import (
 
 	reference "github.com/tetratelabs/getenvoy/pkg"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
+	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
+// TODO: this whole test needs to be rewritten, possibly with the mock registry server
 func TestRuntime_Fetch(t *testing.T) {
 	key, err := manifest.NewKey(reference.Latest)
 	require.NoError(t, err)
 
 	defaultDarwinKey := &manifest.Key{Flavor: key.Flavor, Version: key.Version, Platform: "darwin"}
-	buildsDir := fmt.Sprintf("builds/%s/%s", key.Flavor, key.Version)
 	tests := []struct {
 		name             string
 		key              *manifest.Key
@@ -44,7 +43,6 @@ func TestRuntime_Fetch(t *testing.T) {
 		tarExtension     string
 		envoyLocation    string
 		libLocation      string
-		alreadyLocal     bool
 		responseStatus   int
 		wantErr          bool
 		wantServerCalled bool
@@ -55,8 +53,8 @@ func TestRuntime_Fetch(t *testing.T) {
 			tarballStructure: "envoy",
 			tarExtension:     ".tar.gz",
 			responseStatus:   http.StatusOK,
-			envoyLocation:    buildsDir + "/darwin/bin/envoy",
-			libLocation:      buildsDir + "/darwin/lib/somelib",
+			envoyLocation:    "bin/envoy",
+			libLocation:      "lib/somelib",
 			wantServerCalled: true,
 		},
 		{
@@ -65,17 +63,9 @@ func TestRuntime_Fetch(t *testing.T) {
 			tarballStructure: "envoy",
 			tarExtension:     ".tar.xz",
 			responseStatus:   http.StatusOK,
-			envoyLocation:    buildsDir + "/darwin/bin/envoy",
-			libLocation:      buildsDir + "/darwin/lib/somelib",
+			envoyLocation:    "bin/envoy",
+			libLocation:      "lib/somelib",
 			wantServerCalled: true,
-		},
-		{
-			name:             "Does nothing if it already has a local copy",
-			key:              defaultDarwinKey,
-			envoyLocation:    buildsDir + "/darwin/bin/envoy",
-			libLocation:      buildsDir + "/darwin/lib/somelib",
-			alreadyLocal:     true,
-			wantServerCalled: false,
 		},
 		{
 			name:             "errors if it can't find an envoy binary in tarball",
@@ -99,18 +89,14 @@ func TestRuntime_Fetch(t *testing.T) {
 	for _, tt := range tests {
 		tc := tt
 		t.Run(tc.name, func(t *testing.T) {
-			tmpDir, _ := ioutil.TempDir("", "getenvoy-test-")
-			defer os.RemoveAll(tmpDir)
-			envoyLocation := filepath.Join(tmpDir, tc.envoyLocation)
-			libLocation := filepath.Join(tmpDir, tc.libLocation)
-			mock, gotCalled := mockServer(tc.responseStatus, tc.tarballStructure, tc.tarExtension, tmpDir)
-			if tc.alreadyLocal {
-				createLocalFile(envoyLocation)
-				createLocalFile(libLocation)
-			}
+			tempDir, cleanupTempDir := morerequire.RequireNewTempDir(t)
+			defer cleanupTempDir()
 
-			r := &Runtime{fetcher: fetcher{tmpDir}}
-			err := r.Fetch(tc.key, mock.URL+"/"+tc.tarballStructure+tc.tarExtension)
+			envoyLocation := filepath.Join(tempDir, tc.envoyLocation)
+			libLocation := filepath.Join(tempDir, tc.libLocation)
+			mock, gotCalled := mockServer(tc.responseStatus, tc.tarballStructure, tc.tarExtension, tempDir)
+
+			err = fetchEnvoy(tempDir, mock.URL+"/"+tc.tarballStructure+tc.tarExtension)
 			if tc.wantErr {
 				require.Error(t, err)
 			} else {
@@ -124,14 +110,6 @@ func TestRuntime_Fetch(t *testing.T) {
 			require.Equal(t, tc.wantServerCalled, *gotCalled, "mismatch of expectations for calling of remote server")
 		})
 	}
-}
-
-func createLocalFile(location string) {
-	dir, _ := filepath.Split(location)
-	os.MkdirAll(dir, 0750)
-	f, _ := os.Create(location)
-	f.WriteString("some c++")
-	f.Close()
 }
 
 func mockServer(responseStatusCode int, tarballStructure, tarExtension, tmpDir string) (*httptest.Server, *bool) {

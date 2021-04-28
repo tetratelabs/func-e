@@ -54,6 +54,8 @@ func TestGetEnvoyExtensionInit(t *testing.T) {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.name, func(t *testing.T) {
+			t.Parallel() // does not use Docker, so safe to run parallel
+
 			outputDir, removeOutputDir := RequireNewTempDir(t)
 			defer removeOutputDir()
 
@@ -64,10 +66,9 @@ func TestGetEnvoyExtensionInit(t *testing.T) {
 				Arg("--name").Arg(extensionName)
 
 			if test.currentDirectory {
-				_, revertChDir := RequireChDir(t, outputDir)
-				defer revertChDir()
+				c.WorkingDir(outputDir)
 			} else {
-				c = c.Arg(outputDir)
+				c.Arg(outputDir)
 			}
 
 			stderr := requireExecNoStdout(t, c)

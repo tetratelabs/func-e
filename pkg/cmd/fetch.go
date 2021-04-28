@@ -16,26 +16,28 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/spf13/cobra"
 
+	reference "github.com/tetratelabs/getenvoy/pkg"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
-	"github.com/tetratelabs/getenvoy/pkg/manifest"
+	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/globals"
 )
 
 // NewFetchCmd create a command responsible for retrieving Envoy binaries
-func NewFetchCmd() *cobra.Command {
+func NewFetchCmd(o *globals.GlobalOpts) *cobra.Command {
 	return &cobra.Command{
 		Use:   "fetch <reference>",
 		Short: "Retrieve Envoy binaries from GetEnvoy.",
 		Long: `
 Retrieves the referenced Envoy binary from GetEnvoy. The reference can be a full or partial reference.
 A complete list of available builds can be retrieved using` + "`getenvoy list`" + `.`,
-		Example: `# Fetch using a partial manifest reference to retrieve a build suitable for your operating system.
-getenvoy fetch standard:1.11.1
+		Example: fmt.Sprintf(`# Fetch using a partial manifest reference to retrieve a build suitable for your operating system.
+getenvoy fetch %[1]s
 		
 # Fetch using a full manifest reference to retrieve a specific build for Linux. 
-getenvoy fetch standard:1.11.1/linux-glibc`,
+getenvoy fetch s%[1]s/linux-glibc`, reference.Latest),
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return errors.New("missing binary parameter")
@@ -43,19 +45,8 @@ getenvoy fetch standard:1.11.1/linux-glibc`,
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			key, err := manifest.NewKey(args[0])
-			if err != nil {
-				return err
-			}
-			location, err := manifest.Locate(key)
-			if err != nil {
-				return err
-			}
-			runtime, err := envoy.NewRuntime()
-			if err != nil {
-				return err
-			}
-			return runtime.Fetch(key, location)
+			_, err := envoy.FetchIfNeeded(o, args[0])
+			return err
 		},
 	}
 }

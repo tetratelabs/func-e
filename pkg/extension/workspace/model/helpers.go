@@ -15,9 +15,8 @@
 package model
 
 import (
+	"fmt"
 	"regexp"
-
-	"github.com/pkg/errors"
 )
 
 var (
@@ -28,10 +27,10 @@ var (
 // example name.
 func ValidateExampleName(text string) error {
 	if text == "" {
-		return errors.Errorf("example name cannot be empty")
+		return fmt.Errorf("example name cannot be empty")
 	}
 	if !exampleNameFormat.MatchString(text) {
-		return errors.Errorf("%q is not a valid example name. Example name must match the format %q."+
+		return fmt.Errorf("%q is not a valid example name. Example name must match the format %q."+
 			" E.g., 'my.example', 'my-example' or 'my_example'", text, exampleNameFormat)
 	}
 	return nil

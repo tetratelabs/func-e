@@ -99,19 +99,19 @@ func TestScaffold(t *testing.T) {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.name, func(t *testing.T) {
-			outputDir, revertOutputDir := morerequire.RequireNewTempDir(t)
-			defer revertOutputDir()
+			extensionDir, revertExtensionDir := morerequire.RequireNewTempDir(t)
+			defer revertExtensionDir()
 
 			opts := &ScaffoldOpts{
 				Extension:    test.extension,
 				TemplateName: "default",
-				OutputDir:    outputDir,
+				ExtensionDir: extensionDir,
 			}
 
 			err := Scaffold(opts)
 			require.NoError(t, err)
 
-			actual, err := os.ReadFile(filepath.Join(outputDir, test.file))
+			actual, err := os.ReadFile(filepath.Join(extensionDir, test.file))
 			require.NoError(t, err)
 			require.Contains(t, string(actual), test.expected)
 		})

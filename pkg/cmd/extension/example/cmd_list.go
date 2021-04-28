@@ -20,11 +20,12 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/globals"
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
 )
 
 // NewListCmd returns a command that prints a list of existing example setups.
-func NewListCmd() *cobra.Command {
+func NewListCmd(o *globals.GlobalOpts) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List existing example setups.",
@@ -35,7 +36,7 @@ List existing example setups.`,
   getenvoy extension examples list`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// find workspace
-			workspace, err := workspaces.GetCurrentWorkspace()
+			workspace, err := workspaces.GetWorkspaceAt(o.ExtensionDir)
 			if err != nil {
 				return err
 			}

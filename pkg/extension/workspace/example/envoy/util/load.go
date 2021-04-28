@@ -54,7 +54,7 @@ func (r fakeAnyResolver) FindMessageByName(message protoreflect.FullName) (proto
 	return r.FindMessageByURL(string(message))
 }
 
-func (r fakeAnyResolver) FindMessageByURL(url string) (protoreflect.MessageType, error) {
+func (r fakeAnyResolver) FindMessageByURL(_ string) (protoreflect.MessageType, error) {
 	// NOTE: as of github.com/golang/protobuf/jsonpb@v1.3.x, the only way to achieve
 	// desired behavior is to return a Protobuf message that has no fields.
 	// As an extra constraint, it cannot be a well-known type, such as google.protobuf.Empty.

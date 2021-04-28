@@ -25,7 +25,7 @@ import (
 	. "github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
-func TestOutputDirValidatorReject(t *testing.T) {
+func TestExtensionDirValidatorReject(t *testing.T) {
 	type testCase struct {
 		name        string
 		path        string
@@ -59,13 +59,13 @@ func TestOutputDirValidatorReject(t *testing.T) {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.name, func(t *testing.T) {
-			err = newParams().OutputDir.Validator(test.path)
+			err = newParams().ExtensionDir.Validator(test.path)
 			require.EqualError(t, err, test.expectedErr)
 		})
 	}
 }
 
-func TestOutputDirValidatorAccept(t *testing.T) {
+func TestExtensionDirValidatorAccept(t *testing.T) {
 	tempDir, revertTempDir := RequireNewTempDir(t)
 	defer revertTempDir()
 
@@ -89,7 +89,7 @@ func TestOutputDirValidatorAccept(t *testing.T) {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.name, func(t *testing.T) {
-			err := newParams().OutputDir.Validator(test.path)
+			err := newParams().ExtensionDir.Validator(test.path)
 			require.NoError(t, err)
 		})
 	}

@@ -65,19 +65,16 @@ Great! Let me help you with that!
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.name, func(t *testing.T) {
-			uiutil.StylesEnabled = !test.noColors
-
 			c := new(cobra.Command)
 			out := new(bytes.Buffer)
 			c.SetOut(out)
-
 			params := newParams()
 			params.Category.Value = "envoy.filters.http"
 			params.Language.Value = "rust"
-			params.OutputDir.Value = tempDir
+			params.ExtensionDir.Value = tempDir
 			params.Name.Value = "mycompany.filters.http.custom_metrics"
 
-			err := newWizard(c).Fill(params)
+			err := newWizard(uiutil.NewStyleFuncs(test.noColors), c.OutOrStderr()).Fill(params)
 
 			require.NoError(t, err)
 			require.Equal(t, test.expected, out.String(), `unexpected output running [%v]`, c)

@@ -17,12 +17,11 @@ package envoy
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"syscall"
 
 	"github.com/mholt/archiver/v3"
 	"github.com/tetratelabs/log"
-
-	"github.com/tetratelabs/getenvoy/pkg/binary"
 )
 
 func (r *Runtime) handleTermination() {
@@ -33,12 +32,10 @@ func (r *Runtime) handleTermination() {
 	log.Infof("GetEnvoy process (PID=%d) received SIGINT", os.Getpid())
 	// Execute all registered preTermination functions
 	for _, f := range r.preTermination {
-		if err := f(r); err != nil {
+		if err := f(); err != nil {
 			log.Error(err.Error())
 		}
 	}
-
-	interrupt(cmd.Process)
 }
 
 func interrupt(p *os.Process) {
@@ -48,26 +45,32 @@ func interrupt(p *os.Process) {
 
 func (r *Runtime) handlePostTermination() error {
 	for _, f := range r.postTermination {
-		if err := f(r); err != nil {
+		if err := f(); err != nil {
 			log.Errorf("failed to handle post termination: %v", err)
 		}
 	}
 
 	// Tar up the debug data and clean up
-	if err := archiver.Archive([]string{r.DebugStore()}, r.DebugStore()+".tar.gz"); err != nil {
-		return fmt.Errorf("unable to archive debug store directory %v: %v", r.DebugStore(), err)
+	debugDir := filepath.Join(filepath.Dir(r.GetWorkingDir()))
+	if err := os.MkdirAll(debugDir, 0750); err != nil {
+		return fmt.Errorf("unable to create directory %q: %w", debugDir, err)
 	}
-	return os.RemoveAll(r.DebugStore())
+
+	archive := filepath.Join(r.GetWorkingDir() + ".tar.gz")
+	if err := archiver.Archive([]string{r.GetWorkingDir()}, archive); err != nil {
+		return fmt.Errorf("unable to archive run directory %v: %w", r.GetWorkingDir(), err)
+	}
+	return os.RemoveAll(r.GetWorkingDir())
 }
 
 // RegisterPreTermination registers the passed functions to be run after Envoy has started
 // and just before GetEnvoy instructs Envoy to terminate
-func (r *Runtime) RegisterPreTermination(f ...func(binary.Runner) error) {
+func (r *Runtime) RegisterPreTermination(f ...func() error) {
 	r.preTermination = append(r.preTermination, f...)
 }
 
 // RegisterPostTermination registers the passed functions to be run after Envoy has terminated
-// and just before GetEnvoy archives the debug directory.
-func (r *Runtime) RegisterPostTermination(f ...func(binary.Runner) error) {
+// and just before GetEnvoy archives the run directory.
+func (r *Runtime) RegisterPostTermination(f ...func() error) {
 	r.postTermination = append(r.postTermination, f...)
 }

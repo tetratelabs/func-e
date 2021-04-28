@@ -35,17 +35,15 @@ func TestGetEnvoyExtensionTest(t *testing.T) {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.String(), func(t *testing.T) {
-			workDir, removeWorkDir := RequireNewTempDir(t)
-			defer removeWorkDir()
-
-			_, revertChDir := RequireChDir(t, workDir)
-			defer revertChDir()
+			// TODO: uses Docker, but may be possible to run parallel
+			extensionDir, removeExtensionDir := RequireNewTempDir(t)
+			defer removeExtensionDir()
 
 			// test requires "get envoy extension init" to have succeeded
-			requireExtensionInit(t, workDir, test.Category, test.Language, extensionName)
-			defer requireExtensionClean(t, workDir)
+			requireExtensionInit(t, extensionDir, test.Category, test.Language, extensionName)
+			defer requireExtensionClean(t, extensionDir)
 
-			c := getEnvoy("extension test").Args(getToolchainContainerOptions()...)
+			c := getEnvoy("extension test").Args(getToolchainContainerOptions()...).WorkingDir(extensionDir)
 			// "getenvoy extension test" only returns stdout because `docker run -t` redirects stderr to stdout.
 			stdout := requireExecNoStderr(t, c)
 

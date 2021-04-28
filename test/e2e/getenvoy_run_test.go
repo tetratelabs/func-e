@@ -22,13 +22,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mholt/archiver/v3"
 	"github.com/stretchr/testify/require"
 	"github.com/tetratelabs/log"
 
 	reference "github.com/tetratelabs/getenvoy/pkg"
-	"github.com/tetratelabs/getenvoy/pkg/common"
-	. "github.com/tetratelabs/getenvoy/pkg/test/morerequire"
+	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
 	e2e "github.com/tetratelabs/getenvoy/test/e2e/util"
 	utilenvoy "github.com/tetratelabs/getenvoy/test/e2e/util/envoy"
 )
@@ -37,8 +35,7 @@ import (
 //
 // See TestMain for general notes on about the test runtime.
 func TestGetEnvoyRun(t *testing.T) {
-	debugDir, revertOriginalDebugDir := backupDebugDir(t)
-	defer revertOriginalDebugDir()
+	t.Parallel() // uses random ports so safe to run parallel
 
 	c := getEnvoy(`run`).Arg(reference.Latest) // TODO allow implicit version #106
 	// Below is the minimal config needed to run envoy
@@ -54,51 +51,31 @@ func TestGetEnvoyRun(t *testing.T) {
 		}
 	}()
 
+	envoyWorkingDir := requireEnvoyWorkingDir(t, stdout, c)
 	requireEnvoyReady(t, stdout, stderr, c)
 
 	log.Infof(`stopping Envoy after running [%v]`, c)
 	terminate()
 	deferredTerminate = nil
 
-	verifyDebugDump(t, debugDir, c)
+	verifyDebugDump(t, envoyWorkingDir, c)
 }
 
-// backupDebugDir backs up ${GETENVOY_HOME}/debug in case the test hasn't overridden it and the developer has existing
-// data there. The function returned reverts this directory.
-//
-// Typically, this will run in the default ~/.getenvoy directory, as a means to avoid re-downloads of files such as
-// .getenvoy/builds/standard/1.17.1/darwin/bin/envoy (~100MB)
-//
-// While CI usually overrides the `HOME` variable with E2E_TOOLCHAIN_CONTAINER_OPTIONS, a developer may be
-// running this on their laptop. To avoid clobbering their old debug data, backup the
-func backupDebugDir(t *testing.T) (string, func()) {
-	debugDir := filepath.Join(common.HomeDir, "debug")
-
-	if _, err := os.Lstat(debugDir); err != nil && os.IsNotExist(err) {
-		return debugDir, func() {} // do nothing on remove, if there was no debug backup
-	}
-
-	// get a name of a new temp directory, which we'll rename the existing debug to
-	backupDir, _ := RequireNewTempDir(t)
-	err := os.RemoveAll(backupDir)
-	require.NoError(t, err, `error removing temp directory: %s`, backupDir)
-
-	err = os.Rename(debugDir, backupDir)
-	require.NoError(t, err, `error renaming debug dir %s to %s`, debugDir, backupDir)
-
-	return debugDir, func() {
-		err = os.Rename(backupDir, debugDir)
-		require.NoError(t, err, `error renaming backup dir %s to %s`, debugDir, backupDir)
-	}
+func requireEnvoyWorkingDir(t *testing.T, stdout io.Reader, c interface{}) string {
+	stdoutLines := e2e.StreamLines(stdout).Named("stdout")
+	log.Infof(`waiting for GetEnvoy to log working directory after running [%v]`, c)
+	workingDirectoryPattern := regexp.MustCompile(`cd (.*)`)
+	line, err := stdoutLines.FirstMatch(workingDirectoryPattern).Wait(10 * time.Minute) // give time to compile the extension
+	require.NoError(t, err, `error parsing working directory from stdout of [%v]`, c)
+	return workingDirectoryPattern.FindStringSubmatch(line)[1]
 }
 
 func requireEnvoyReady(t *testing.T, stdout, stderr io.Reader, c interface{}) utilenvoy.AdminAPI {
 	stdoutLines := e2e.StreamLines(stdout).Named("stdout")
 	stderrLines := e2e.StreamLines(stderr).Named("stderr")
-
-	log.Infof(`waiting for Envoy Admin address to get logged after running [%v]`, c)
+	log.Infof(`waiting for GetEnvoy to log Envoy Admin address after running [%v]`, c)
 	adminAddressPattern := regexp.MustCompile(`discovered admin address: ([^:]+:[0-9]+)`)
-	line, err := stdoutLines.FirstMatch(adminAddressPattern).Wait(10 * time.Minute) // give time to compile the extension
+	line, err := stdoutLines.FirstMatch(adminAddressPattern).Wait(1 * time.Minute)
 	require.NoError(t, err, `error parsing admin address from stdout of [%v]`, c)
 	adminAddress := adminAddressPattern.FindStringSubmatch(line)[1]
 
@@ -117,27 +94,14 @@ func requireEnvoyReady(t *testing.T, stdout, stderr io.Reader, c interface{}) ut
 	return envoyClient
 }
 
-func verifyDebugDump(t *testing.T, debugDir string, c interface{}) {
-	// verify the debug dump of Envoy state has been taken
-	files, err := os.ReadDir(debugDir)
-	require.NoError(t, err, `error reading %s after stopping [%v]`, debugDir, c)
-	require.Equal(t, 1, len(files), `expected 1 file in %s after stopping [%v]`, debugDir, c)
-	defer func() {
-		e := os.RemoveAll(debugDir)
-		require.NoError(t, e, `error removing debug dir %s after stopping [%v]`, debugDir, c)
-	}()
-
-	// get a listing of the debug archive
-	debugArchive := filepath.Join(debugDir, files[0].Name())
-	var dumpFiles []string
-	err = archiver.Walk(filepath.Join(debugDir, files[0].Name()), func(f archiver.File) error {
-		dumpFiles = append(dumpFiles, f.Name())
-		return nil
-	})
-	require.NoError(t, err, `error reading debug archive %s after stopping [%v]`, debugArchive, c)
+func verifyDebugDump(t *testing.T, workingDir string, c interface{}) {
+	debugArchive := envoytest.RequireRestoreWorkingDir(t, workingDir, c)
 
 	// ensure the minimum contents exist
-	for _, file := range []string{"config_dump.json", "stats.json"} {
-		require.Contains(t, dumpFiles, file, `debug archive %s doesn't contain %s after stopping [%v]`, debugArchive, file, c)
+	for _, filename := range []string{"config_dump.json", "stats.json"} {
+		path := filepath.Join(workingDir, filename)
+		f, err := os.Stat(path)
+		require.NoError(t, err, `debug archive %s doesn't contain %s after stopping [%v]`, debugArchive, filename, c)
+		require.NotEmpty(t, f.Size(), `%s was empty after stopping [%v]`, filename, c)
 	}
 }

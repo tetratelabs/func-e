@@ -23,8 +23,6 @@ import (
 )
 
 var (
-	// notice that the file is named `envoy.tmpl.yaml` rather than `envoy.tmpl.yaml`
-	// in order to meet constraints of Envoy.
 	exampleEnvoyBootstrapFileAltNames  = []string{"envoy.tmpl.yaml", "envoy.tmpl.json"}
 	exampleExtensionConfigFileAltNames = []string{"extension.yaml", "extension.json", "extension.txt", "extension"}
 )

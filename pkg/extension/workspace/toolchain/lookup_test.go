@@ -71,7 +71,7 @@ func TestLoadToolchainCreatesDefaultWhenMissing(t *testing.T) {
 	outputDir, revertOutputDir := morerequire.RequireNewTempDir(t)
 	defer revertOutputDir()
 
-	dir, err := fs.CreateWorkspaceDir(outputDir)
+	dir, err := fs.CreateExtensionDir(outputDir)
 	require.NoError(t, err)
 
 	err = dir.WriteFile(model.DescriptorFile, []byte(fmt.Sprintf(`

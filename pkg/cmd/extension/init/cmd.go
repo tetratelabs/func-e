@@ -16,14 +16,16 @@ package init
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
 
 	reference "github.com/tetratelabs/getenvoy/pkg"
-	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/globals"
+	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/globals"
 	scaffold "github.com/tetratelabs/getenvoy/pkg/extension/init"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
+	uiutil "github.com/tetratelabs/getenvoy/pkg/util/ui"
 )
 
 var (
@@ -61,7 +63,7 @@ var (
 
 // NewCmd returns a command that generates the initial set of files
 // to kick off development of a new extension.
-func NewCmd() *cobra.Command {
+func NewCmd(o *globals.GlobalOpts) *cobra.Command {
 	params := newParams()
 	cmd := &cobra.Command{
 		Use:   "init [DIR]",
@@ -78,18 +80,28 @@ Scaffold a new Envoy extension in a language of your choice.`,
   # Scaffold a new extension according to command options: Envoy Access logger, in Rust, with a given name, in the "my-access-logger" directory.
   getenvoy extension init my-access-logger --category envoy.access_loggers --language rust --name mycompany.access_loggers.custom_log`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			outputDir := ""
-			if len(args) > 0 {
-				outputDir = args[0]
-			}
-			params.OutputDir.Value = outputDir
-
-			usedWizard := false
-			if err := params.Validate(); err != nil {
-				if globals.NoPrompt {
+			if o.ExtensionDir == "" { // not overridden for tests
+				extensionDir := ""
+				if len(args) > 0 {
+					extensionDir = args[0]
+				}
+				abs, err := filepath.Abs(extensionDir)
+				if err != nil {
 					return err
 				}
-				if err := newWizard(cmd).Fill(params); err != nil {
+				o.ExtensionDir = abs
+			}
+
+			// Reassign any incoming extension directory value here. The wizard may override it later.
+			params.ExtensionDir.Value = o.ExtensionDir
+			styleFuncs := uiutil.NewStyleFuncs(o.NoColors)
+			usedWizard := false
+			if err := params.Validate(); err != nil {
+				if o.NoWizard {
+					return err
+				}
+				w := newWizard(styleFuncs, cmd.OutOrStderr())
+				if err := w.Fill(params); err != nil {
 					return err
 				}
 				usedWizard = true
@@ -102,19 +114,16 @@ Scaffold a new Envoy extension in a language of your choice.`,
 			descriptor.Name = params.Name.Value
 			descriptor.Runtime.Envoy.Version = defaultSupportedEnvoyVersion
 
-			outputDir, err = scaffold.NormalizeOutputPath(params.OutputDir.Value)
-			if err != nil {
-				return err
+			opts := &scaffold.ScaffoldOpts{
+				Extension:    descriptor,
+				ExtensionDir: params.ExtensionDir.Value,
+				TemplateName: "default",
 			}
-
-			opts := &scaffold.ScaffoldOpts{}
-			opts.Extension = descriptor
-			opts.TemplateName = "default"
-			opts.OutputDir = outputDir
 			opts.ProgressSink = &feedback{
 				cmd:        cmd,
-				opts:       opts,
+				opts:       opts, // << love circular refs right?
 				usedWizard: usedWizard,
+				styleFuncs: styleFuncs,
 				w:          cmd.ErrOrStderr(),
 			}
 			return scaffold.Scaffold(opts)

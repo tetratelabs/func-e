@@ -17,29 +17,29 @@ package example
 import (
 	"fmt"
 	"io"
-
-	"github.com/spf13/cobra"
+	"text/template"
 
 	scaffoldutil "github.com/tetratelabs/getenvoy/pkg/util/scaffold"
 	uiutil "github.com/tetratelabs/getenvoy/pkg/util/ui"
 )
 
 // NewAddExampleFeedback returns a progress sink for "add example" operation.
-func NewAddExampleFeedback(cmd *cobra.Command) scaffoldutil.ProgressSink {
-	return &addExampleFeedback{cmd.ErrOrStderr()}
+func NewAddExampleFeedback(styleFuncs template.FuncMap, w io.Writer) scaffoldutil.ProgressSink {
+	return &addExampleFeedback{styleFuncs, w}
 }
 
 // addExampleFeedback communicates to a user progress of the "add example" operation.
 type addExampleFeedback struct {
-	w io.Writer
+	styleFuncs template.FuncMap
+	w          io.Writer
 }
 
 func (f *addExampleFeedback) OnStart() {
-	fmt.Fprintln(f.w, uiutil.Underline("Scaffolding a new example setup:"))
+	fmt.Fprintln(f.w, uiutil.Underline(f.styleFuncs)("Scaffolding a new example setup:"))
 }
 
 func (f *addExampleFeedback) OnFile(file string) {
-	fmt.Fprintln(f.w, uiutil.Style(`{{ icon "good" | green }} {{ . }}`).Apply(file))
+	fmt.Fprintln(f.w, uiutil.Style(f.styleFuncs, `{{ icon "good" | green }} {{ . }}`)(file))
 }
 
 func (f *addExampleFeedback) OnComplete() {
@@ -47,21 +47,22 @@ func (f *addExampleFeedback) OnComplete() {
 }
 
 // NewRemoveExampleFeedback returns a progress sink for "remove example" operation.
-func NewRemoveExampleFeedback(cmd *cobra.Command) scaffoldutil.ProgressSink {
-	return &removeExampleFeedback{cmd.ErrOrStderr()}
+func NewRemoveExampleFeedback(styleFuncs template.FuncMap, w io.Writer) scaffoldutil.ProgressSink {
+	return &removeExampleFeedback{styleFuncs, w}
 }
 
 // removeExampleFeedback communicates to a user progress of the "remove example" operation.
 type removeExampleFeedback struct {
-	w io.Writer
+	styleFuncs template.FuncMap
+	w          io.Writer
 }
 
 func (f *removeExampleFeedback) OnStart() {
-	fmt.Fprintln(f.w, uiutil.Underline("Removing example setup:"))
+	fmt.Fprintln(f.w, uiutil.Underline(f.styleFuncs)("Removing example setup:"))
 }
 
 func (f *removeExampleFeedback) OnFile(file string) {
-	fmt.Fprintln(f.w, uiutil.Style(`{{ icon "good" | green }} {{ . }}`).Apply(file))
+	fmt.Fprintln(f.w, uiutil.Style(f.styleFuncs, `{{ icon "good" | green }} {{ . }}`)(file))
 }
 
 func (f *removeExampleFeedback) OnComplete() {

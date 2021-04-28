@@ -15,11 +15,10 @@
 package builtin
 
 import (
-	"github.com/pkg/errors"
+	"fmt"
 
 	extensionconfig "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 	builtinconfig "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/toolchain/builtin"
-	dockerutil "github.com/tetratelabs/getenvoy/pkg/util/docker"
 	"github.com/tetratelabs/getenvoy/pkg/version"
 )
 
@@ -36,8 +35,8 @@ var (
 		return version.Build.Version
 	}()
 	// defaultRustBuildImage represents a full name of the default Rust builder image in a Docker registry.
-	defaultRustBuildImage   = dockerutil.ImageName{Org: defaultBuildImageOrg, Name: "extension-rust-builder", Tag: defaultBuildImageTag}.String()
-	defaultTinyGoBuildImage = dockerutil.ImageName{Org: defaultBuildImageOrg, Name: "extension-tinygo-builder", Tag: defaultBuildImageTag}.String()
+	defaultRustBuildImage   = fmt.Sprintf("%s/%s:%s", defaultBuildImageOrg, "extension-rust-builder", defaultBuildImageTag)
+	defaultTinyGoBuildImage = fmt.Sprintf("%s/%s:%s", defaultBuildImageOrg, "extension-tinygo-builder", defaultBuildImageTag)
 )
 
 // defaultConfigFor returns a default toolchain config for a given extension.
@@ -62,7 +61,7 @@ func defaultBuildImageFor(language extensionconfig.Language) string {
 		return defaultTinyGoBuildImage
 	default:
 		// must be caught by unit tests
-		panic(errors.Errorf("failed to determine default build image for unsupported programming language %q", language))
+		panic(fmt.Errorf("failed to determine default build image for unsupported programming language %q", language))
 	}
 }
 
@@ -76,6 +75,6 @@ func defaultOutputPathFor(language extensionconfig.Language) string {
 		return "build/extension.wasm"
 	default:
 		// must be caught by unit tests
-		panic(errors.Errorf("failed to determine default output path for unsupported programming language %q", language))
+		panic(fmt.Errorf("failed to determine default output path for unsupported programming language %q", language))
 	}
 }
