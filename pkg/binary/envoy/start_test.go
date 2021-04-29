@@ -27,7 +27,7 @@ import (
 )
 
 func TestHandlePreStartReturnsOnFirstError(t *testing.T) {
-	r := NewRuntime(&globals.RunOpts{})
+	r := NewRuntime(nil)
 	err1, err2 := errors.New("1"), errors.New("2")
 	r.RegisterPreStart(func() error {
 		return err1
