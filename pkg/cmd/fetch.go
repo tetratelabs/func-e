@@ -40,7 +40,7 @@ getenvoy fetch %[1]s
 getenvoy fetch s%[1]s/linux-glibc`, reference.Latest),
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
-				return errors.New("missing binary parameter")
+				return errors.New("missing reference parameter")
 			}
 			return nil
 		},
