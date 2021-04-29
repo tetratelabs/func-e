@@ -20,7 +20,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 
 	"github.com/mholt/archiver/v3"
@@ -39,7 +38,8 @@ func TestFetchIfNeeded(t *testing.T) {
 	defer removeHomeDir()
 	o.HomeDir = homeDir
 
-	r := "standard:1"
+	// Hard code even if the unit test env isn't darwin. This avoids drifts like linux vs linux-glibc
+	r := "standard:1/darwin"
 	testManifest, err := manifesttest.NewSimpleManifest(r)
 	require.NoError(t, err, `error creating test manifest`)
 
@@ -54,7 +54,7 @@ func TestFetchIfNeeded(t *testing.T) {
 
 	o.ManifestURL = manifestServer.URL + "/manifest.json"
 
-	expectedPath := filepath.Join(homeDir, "builds", "standard", "1", runtime.GOOS, "bin", "envoy")
+	expectedPath := filepath.Join(homeDir, "builds", "standard", "1", "darwin", "bin", "envoy")
 	t.Run("downloads when doesn't exists", func(t *testing.T) {
 		envoyPath, e := FetchIfNeeded(o, r)
 		require.NoError(t, e)
@@ -78,7 +78,8 @@ func TestFetchIfNeeded(t *testing.T) {
 }
 
 func TestFetchIfNeededAlreadyExists(t *testing.T) {
-	r := "standard:1"
+	// Hard code even if the unit test env isn't darwin. This avoids drifts like linux vs linux-glibc
+	r := "standard:1/darwin"
 	testManifest, err := manifesttest.NewSimpleManifest(r)
 	require.NoError(t, err, `error creating test manifest`)
 
@@ -93,7 +94,7 @@ func TestFetchIfNeededAlreadyExists(t *testing.T) {
 
 	envoyPath, err := FetchIfNeeded(o, r)
 	require.NoError(t, err)
-	require.Equal(t, filepath.Join(homeDir, "builds", "standard", "1", runtime.GOOS, "bin", "envoy"), envoyPath)
+	require.Equal(t, filepath.Join(homeDir, "builds", "standard", "1", "darwin", "bin", "envoy"), envoyPath)
 	require.FileExists(t, envoyPath)
 }
 
