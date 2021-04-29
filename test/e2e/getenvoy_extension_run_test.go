@@ -56,7 +56,7 @@ func TestGetEnvoyExtensionRun(t *testing.T) {
 			}()
 
 			envoyWorkingDir := requireEnvoyWorkingDir(t, stdout, c)
-			envoyClient := requireEnvoyReady(t, stdout, stderr, c)
+			envoyClient := requireEnvoyReady(t, envoyWorkingDir, stderr, c)
 
 			log.Infof(`waiting for Wasm extensions after running [%v]`, c)
 			require.Eventually(t, func() bool {

@@ -26,12 +26,10 @@ import (
 	ioutil "github.com/tetratelabs/getenvoy/pkg/util/io"
 )
 
-// NewRuntime creates a new Runtime with the local file storage set to the home directory
-// runOpts allows a user running envoy to control the working directory by ID or path, allowing explicit cleanup.
+// NewRuntime creates a new Runtime that runs envoy in globals.RunOpts WorkingDir
+// opts allows a user running envoy to control the working directory by ID or path, allowing explicit cleanup.
 func NewRuntime(opts *globals.RunOpts) *Runtime {
-	return &Runtime{
-		opts: opts,
-	}
+	return &Runtime{opts: opts}
 }
 
 // Runtime manages an Envoy lifecycle including fetching (if necessary) and running

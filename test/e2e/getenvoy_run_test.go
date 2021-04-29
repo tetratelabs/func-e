@@ -52,7 +52,7 @@ func TestGetEnvoyRun(t *testing.T) {
 	}()
 
 	envoyWorkingDir := requireEnvoyWorkingDir(t, stdout, c)
-	requireEnvoyReady(t, stdout, stderr, c)
+	requireEnvoyReady(t, envoyWorkingDir, stderr, c)
 
 	log.Infof(`stopping Envoy after running [%v]`, c)
 	terminate()
@@ -70,21 +70,19 @@ func requireEnvoyWorkingDir(t *testing.T, stdout io.Reader, c interface{}) strin
 	return workingDirectoryPattern.FindStringSubmatch(line)[1]
 }
 
-func requireEnvoyReady(t *testing.T, stdout, stderr io.Reader, c interface{}) utilenvoy.AdminAPI {
-	stdoutLines := e2e.StreamLines(stdout).Named("stdout")
+func requireEnvoyReady(t *testing.T, envoyWorkingDir string, stderr io.Reader, c interface{}) utilenvoy.AdminAPI {
 	stderrLines := e2e.StreamLines(stderr).Named("stderr")
-	log.Infof(`waiting for GetEnvoy to log Envoy Admin address after running [%v]`, c)
-	adminAddressPattern := regexp.MustCompile(`discovered admin address: ([^:]+:[0-9]+)`)
-	line, err := stdoutLines.FirstMatch(adminAddressPattern).Wait(1 * time.Minute)
-	require.NoError(t, err, `error parsing admin address from stdout of [%v]`, c)
-	adminAddress := adminAddressPattern.FindStringSubmatch(line)[1]
 
 	log.Infof(`waiting for Envoy start-up to complete after running [%v]`, c)
-	_, err = stderrLines.FirstMatch(regexp.MustCompile(`starting main dispatch loop`)).Wait(1 * time.Minute)
+	_, err := stderrLines.FirstMatch(regexp.MustCompile(`starting main dispatch loop`)).Wait(1 * time.Minute)
 	require.NoError(t, err, `error parsing startup from stderr of [%v]`, c)
 
+	adminAddressPath := filepath.Join(envoyWorkingDir, "admin-address.txt")
+	adminAddress, err := os.ReadFile(adminAddressPath) //nolint:gosec
+	require.NoError(t, err, `error reading admin address file %q after running [%v]`, adminAddressPath, c)
+
 	log.Infof(`waiting for Envoy client to connect after running [%v]`, c)
-	envoyClient, err := utilenvoy.NewClient(adminAddress)
+	envoyClient, err := utilenvoy.NewClient(string(adminAddress))
 	require.NoError(t, err, `error from envoy client %s after running [%v]`, adminAddress, c)
 	require.Eventually(t, func() bool {
 		ready, e := envoyClient.IsReady()
