@@ -31,9 +31,6 @@ import (
 func NewRuntime(opts *globals.RunOpts) *Runtime {
 	return &Runtime{
 		opts:            opts,
-		preStart:        make([]func() error, 0),
-		preTermination:  make([]func() error, 0),
-		postTermination: make([]func() error, 0),
 	}
 }
 
