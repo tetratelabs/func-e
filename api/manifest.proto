@@ -67,6 +67,16 @@ message Build {
       LINUX_GLIBC = 3;
    }
 
+   // Envoy currently supports [aarch64/arm64, s390x, mips64, ppc, x86_64] as build targets.
+   // See the envoyproxy/envoy repository for more details.
+   // https://github.com/envoyproxy/envoy/blob/main/bazel/BUILD
+   enum Architecture {
+        UNKNOWN_ARCH = 0;
+        X86_64 = 1;
+        ARM64 = 2;
+    }
+
    Platform platform = 1;
    string download_location_url = 2;
+   Architecture architecture = 3;
 }
