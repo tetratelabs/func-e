@@ -28,7 +28,7 @@ import (
 	"github.com/schollz/progressbar/v3"
 	"github.com/tetratelabs/log"
 
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/globals"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 	"github.com/tetratelabs/getenvoy/pkg/transport"
 )

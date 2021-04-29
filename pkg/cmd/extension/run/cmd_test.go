@@ -25,10 +25,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	reference "github.com/tetratelabs/getenvoy/pkg"
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/globals"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
 	rootcmd "github.com/tetratelabs/getenvoy/pkg/cmd"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain/builtin"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 	"github.com/tetratelabs/getenvoy/pkg/test/cmd"
 	manifesttest "github.com/tetratelabs/getenvoy/pkg/test/manifest"

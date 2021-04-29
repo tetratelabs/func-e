@@ -22,7 +22,7 @@ import (
 
 	reference "github.com/tetratelabs/getenvoy/pkg"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/globals"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 )
 
 // NewFetchCmd create a command responsible for retrieving Envoy binaries

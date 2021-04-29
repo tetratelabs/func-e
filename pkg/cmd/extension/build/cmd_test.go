@@ -21,9 +21,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/globals"
 	rootcmd "github.com/tetratelabs/getenvoy/pkg/cmd"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain/builtin"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 	"github.com/tetratelabs/getenvoy/pkg/test/cmd"
 	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
@@ -85,7 +85,7 @@ func TestGetEnvoyExtensionBuildFailsOutsideExtensionDirectory(t *testing.T) {
 }
 
 func TestGetEnvoyExtensionBuild(t *testing.T) {
-	o, cleanup := requireGlobalOpts(t)
+	o, cleanup := morerequire.RequireGlobalOpts(t, relativeExtensionDir)
 	defer cleanup()
 
 	// Run "getenvoy extension build"
@@ -107,7 +107,7 @@ docker args: run -u %s --rm -e GETENVOY_GOOS=%s -t -v %s:/source -w /source --in
 
 // This tests --toolchain-container flags become docker command options
 func TestGetEnvoyExtensionBuildWithDockerOptions(t *testing.T) {
-	o, cleanup := requireGlobalOpts(t)
+	o, cleanup := morerequire.RequireGlobalOpts(t, relativeExtensionDir)
 	defer cleanup()
 
 	// Run "getenvoy extension build"
@@ -126,7 +126,7 @@ func TestGetEnvoyExtensionBuildWithDockerOptions(t *testing.T) {
 
 // TestGetEnvoyExtensionBuildFail ensures build failures show useful information in stderr
 func TestGetEnvoyExtensionBuildFail(t *testing.T) {
-	o, cleanup := requireGlobalOpts(t)
+	o, cleanup := morerequire.RequireGlobalOpts(t, relativeExtensionDir)
 	defer cleanup()
 
 	// "-e docker_exit=3" is a special instruction handled in the fake docker script
@@ -150,15 +150,4 @@ func TestGetEnvoyExtensionBuildFail(t *testing.T) {
 	// We also expect "docker stderr" in the output for the same reason.
 	expectedStderr := fmt.Sprintf("docker stderr\nError: %s\n\nRun 'getenvoy extension build --help' for usage.\n", expectedErr)
 	require.Equal(t, expectedStderr, stderr.String(), `expected stderr running [%v]`, c)
-}
-
-// requireGlobalOpts returns the options needed to run a docker-based extension command and a cleanup function.
-func requireGlobalOpts(t *testing.T) (*globals.GlobalOpts, func()) {
-	// We use a fake Docker command to capture the commandline that would be invoked, and force a failure.
-	fakeDocker, removeFakeDocker := morerequire.RequireCaptureScript(t, "docker")
-	o := &globals.GlobalOpts{
-		ExtensionDir: morerequire.RequireAbs(t, relativeExtensionDir),
-		DockerPath:   fakeDocker,
-	}
-	return o, removeFakeDocker
 }

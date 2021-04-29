@@ -84,7 +84,7 @@ func TestMain(m *testing.M) {
 		fmt.Fprintf(os.Stderr, `failed to start e2e tests due to an invalid "getenvoy" binary: %v`, err)
 		os.Exit(1)
 	}
-	e2e.GetEnvoyPatharyPath = path
+	e2e.GetEnvoyPath = path
 	extensionLanguages, err = getExtensionLanguages()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, `failed to start e2e tests due to an invalid extension language": %v`, err)

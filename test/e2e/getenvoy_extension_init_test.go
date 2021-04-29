@@ -56,8 +56,8 @@ func TestGetEnvoyExtensionInit(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel() // does not use Docker, so safe to run parallel
 
-			outputDir, removeOutputDir := RequireNewTempDir(t)
-			defer removeOutputDir()
+			extensionDir, removeExtensionDir := RequireNewTempDir(t)
+			defer removeExtensionDir()
 
 			// "getenvoy extension init" should result in stderr describing files created.
 			c := getEnvoy("extension init").
@@ -66,9 +66,9 @@ func TestGetEnvoyExtensionInit(t *testing.T) {
 				Arg("--name").Arg(extensionName)
 
 			if test.currentDirectory {
-				c.WorkingDir(outputDir)
+				c.WorkingDir(extensionDir)
 			} else {
-				c.Arg(outputDir)
+				c.Arg(extensionDir)
 			}
 
 			stderr := requireExecNoStdout(t, c)
@@ -76,7 +76,7 @@ func TestGetEnvoyExtensionInit(t *testing.T) {
 			// Check that the contents look valid for the inputs.
 			for _, regex := range []string{
 				`^\QScaffolding a new extension:\E\n`,
-				fmt.Sprintf(`\QGenerating files in %s:\E\n`, outputDir),
+				fmt.Sprintf(`\QGenerating files in %s:\E\n`, extensionDir),
 				`\Q* .getenvoy/extension/extension.yaml\E\n`,
 				`\QDone!\E\n$`,
 			} {
@@ -85,10 +85,10 @@ func TestGetEnvoyExtensionInit(t *testing.T) {
 
 			// Check to see that the extension.yaml mentioned in stderr exists.
 			// Note: we don't check all files as extensions are language-specific.
-			require.FileExists(t, filepath.Join(outputDir, ".getenvoy/extension/extension.yaml"), `extension.yaml missing after running [%v]`, c)
+			require.FileExists(t, filepath.Join(extensionDir, ".getenvoy/extension/extension.yaml"), `extension.yaml missing after running [%v]`, c)
 
 			// Check the generated extension.yaml includes values we passed and includes the default toolchain.
-			workspace, err := workspaces.GetWorkspaceAt(outputDir)
+			workspace, err := workspaces.GetWorkspaceAt(extensionDir)
 			require.NoError(t, err, `error getting workspace after running [%v]`, c)
 			require.NotNil(t, workspace, `nil workspace running [%v]`, c)
 			descriptor := workspace.GetExtensionDescriptor()
@@ -133,7 +133,7 @@ func TestGetEnvoyExtensionInit(t *testing.T) {
 			// Verify the paths were in stderr and actually exist.
 			for _, f := range languageSpecificPaths {
 				require.Regexp(t, fmt.Sprintf(`\Q* %s\E\n`, f), stderr, `expected stderr to include %s running [%v]`, f, c)
-				require.FileExists(t, filepath.Join(outputDir, f), `%s missing after running [%v]`, f, c)
+				require.FileExists(t, filepath.Join(extensionDir, f), `%s missing after running [%v]`, f, c)
 			}
 		})
 	}

@@ -22,9 +22,9 @@ import (
 	"github.com/spf13/cobra"
 
 	reference "github.com/tetratelabs/getenvoy/pkg"
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/globals"
 	scaffold "github.com/tetratelabs/getenvoy/pkg/extension/init"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 	uiutil "github.com/tetratelabs/getenvoy/pkg/util/ui"
 )
 

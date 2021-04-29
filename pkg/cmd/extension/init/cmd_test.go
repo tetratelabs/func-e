@@ -23,11 +23,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	reference "github.com/tetratelabs/getenvoy/pkg"
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/globals"
 	rootcmd "github.com/tetratelabs/getenvoy/pkg/cmd"
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 	toolchains "github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 	"github.com/tetratelabs/getenvoy/pkg/test/cmd"
 	. "github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
@@ -42,8 +42,8 @@ func TestGetEnvoyExtensionInitValidateFlag(t *testing.T) {
 	cwd, err := os.Getwd()
 	require.NoError(t, err, "error getting current working directory")
 
-	extensionDir, revertExtensionDir := RequireNewTempDir(t)
-	defer revertExtensionDir()
+	extensionDir, removeExtensionDir := RequireNewTempDir(t)
+	defer removeExtensionDir()
 
 	tests := []testCase{
 		{
@@ -69,7 +69,7 @@ func TestGetEnvoyExtensionInitValidateFlag(t *testing.T) {
 		{
 			name:        "output directory exists but is not empty",
 			args:        []string{"--category", "envoy.filters.http", "--language", "tinygo"},
-			expectedErr: fmt.Sprintf(`output directory must be empty or new: %s`, cwd),
+			expectedErr: fmt.Sprintf(`extension directory must be empty or new: %s`, cwd),
 		},
 		{
 			name:        "extension name is missing",
@@ -125,8 +125,8 @@ func TestGetEnvoyExtensionInit(t *testing.T) {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.name, func(t *testing.T) {
-			extensionDir, revertExtensionDir := RequireNewTempDir(t)
-			defer revertExtensionDir()
+			extensionDir, removeExtensionDir := RequireNewTempDir(t)
+			defer removeExtensionDir()
 
 			o := &globals.GlobalOpts{NoWizard: true, NoColors: true, ExtensionDir: extensionDir}
 			args := []string{"extension", "init",

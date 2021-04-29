@@ -17,12 +17,12 @@ package main
 import (
 	"os"
 
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/globals"
-	"github.com/tetratelabs/getenvoy/pkg/cmd"
+	cmdutil "github.com/tetratelabs/getenvoy/pkg/cmd"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 )
 
 func main() {
-	if cmd.Execute(cmd.NewRoot(&globals.GlobalOpts{})) != nil {
+	if cmdutil.Execute(cmdutil.NewRoot(&globals.GlobalOpts{})) != nil {
 		os.Exit(1)
 	}
 }

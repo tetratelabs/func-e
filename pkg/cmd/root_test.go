@@ -21,8 +21,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/globals"
 	rootcmd "github.com/tetratelabs/getenvoy/pkg/cmd"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 	cmdtest "github.com/tetratelabs/getenvoy/pkg/test/cmd"
 )
 

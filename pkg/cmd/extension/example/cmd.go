@@ -17,7 +17,7 @@ package example
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/globals"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 )
 
 // NewCmd returns a command that manages example setups.

@@ -23,9 +23,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/globals"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/run"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 	"github.com/tetratelabs/getenvoy/pkg/util/exec"
 	"github.com/tetratelabs/getenvoy/pkg/version"
 )

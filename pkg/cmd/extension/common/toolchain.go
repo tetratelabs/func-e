@@ -21,11 +21,11 @@ import (
 	"github.com/containerd/containerd/reference/docker"
 	"github.com/spf13/cobra"
 
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/globals"
 	builtinconfig "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/toolchain/builtin"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
 	toolchains "github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain/types"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 	argutil "github.com/tetratelabs/getenvoy/pkg/util/args"
 )
 

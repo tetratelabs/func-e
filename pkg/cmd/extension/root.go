@@ -20,7 +20,6 @@ import (
 	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
 
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/globals"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/build"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/clean"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/example"
@@ -28,6 +27,7 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/push"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/run"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/test"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 )
 
 // NewCmd returns a command that aggregates all extension-related commands.

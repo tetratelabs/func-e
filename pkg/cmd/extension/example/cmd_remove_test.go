@@ -21,8 +21,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/globals"
 	rootcmd "github.com/tetratelabs/getenvoy/pkg/cmd"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 	"github.com/tetratelabs/getenvoy/pkg/test/cmd"
 	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
@@ -102,8 +102,8 @@ Use "getenvoy extension examples list" to list existing example setups.
 
 func TestGetEnvoyExtensionExamplesRemoveDefault(t *testing.T) {
 	// Copy the workspace as this test will delete it, and we don't want to mutate our test data!
-	extensionDir, revertExtensionDir := morerequire.RequireCopyOfDir(t, relativeRustExtensionDirWithOneExample)
-	defer revertExtensionDir()
+	extensionDir, removeExtensionDir := morerequire.RequireCopyOfDir(t, relativeRustExtensionDirWithOneExample)
+	defer removeExtensionDir()
 
 	// "getenvoy extension examples remove" must be in a valid extension directory
 	o := &globals.GlobalOpts{ExtensionDir: extensionDir}
@@ -129,8 +129,8 @@ Done!
 
 func TestGetEnvoyExtensionExamplesRemoveDoesntEffectOtherExample(t *testing.T) {
 	// Copy the workspace as this test will delete it, and we don't want to mutate our test data!
-	extensionDir, revertExtensionDir := morerequire.RequireCopyOfDir(t, relativeExtensionDirWithTwoExamples)
-	defer revertExtensionDir()
+	extensionDir, removeExtensionDir := morerequire.RequireCopyOfDir(t, relativeExtensionDirWithTwoExamples)
+	defer removeExtensionDir()
 
 	// "getenvoy extension examples remove" must be in a valid extension directory
 	o := &globals.GlobalOpts{ExtensionDir: extensionDir}

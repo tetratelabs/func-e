@@ -99,8 +99,8 @@ func TestScaffold(t *testing.T) {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.name, func(t *testing.T) {
-			extensionDir, revertExtensionDir := morerequire.RequireNewTempDir(t)
-			defer revertExtensionDir()
+			extensionDir, removeExtensionDir := morerequire.RequireNewTempDir(t)
+			defer removeExtensionDir()
 
 			opts := &ScaffoldOpts{
 				Extension:    test.extension,

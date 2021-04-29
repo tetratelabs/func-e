@@ -25,6 +25,7 @@ import (
 	osutil "github.com/tetratelabs/getenvoy/pkg/util/os"
 )
 
+// TODO see if all these parameter fields need to be upper-cased
 // param represents a single parameter to be filled in by a user.
 type param struct {
 	Title     string
@@ -108,7 +109,7 @@ func newParams() *params {
 			},
 		},
 		ExtensionDir: param{
-			Title: "Output directory",
+			Title: "Extension directory",
 			Validator: func(value string) error {
 				extensionDir, err := filepath.Abs(value)
 				if err != nil {
@@ -122,14 +123,14 @@ func newParams() *params {
 					return err
 				}
 				if !info.IsDir() {
-					return fmt.Errorf("output path is not a directory: %s", extensionDir)
+					return fmt.Errorf("extension directory is a file: %s", extensionDir)
 				}
 				empty, err := osutil.IsEmptyDir(extensionDir)
 				if err != nil {
 					return err
 				}
 				if !empty {
-					return fmt.Errorf("output directory must be empty or new: %s", extensionDir)
+					return fmt.Errorf("extension directory must be empty or new: %s", extensionDir)
 				}
 				return nil
 			},

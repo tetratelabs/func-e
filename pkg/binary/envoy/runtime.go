@@ -22,7 +22,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/globals"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 	ioutil "github.com/tetratelabs/getenvoy/pkg/util/io"
 )
 
@@ -30,7 +30,7 @@ import (
 // runOpts allows a user running envoy to control the working directory by ID or path, allowing explicit cleanup.
 func NewRuntime(opts *globals.RunOpts) *Runtime {
 	return &Runtime{
-		opts:            opts,
+		opts: opts,
 	}
 }
 

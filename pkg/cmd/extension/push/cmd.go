@@ -21,11 +21,11 @@ import (
 	"github.com/containerd/containerd/reference/docker"
 	"github.com/spf13/cobra"
 
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/globals"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/common"
 	"github.com/tetratelabs/getenvoy/pkg/extension/wasmimage"
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/runtime"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 )
 
 // cmdOpts represents configuration options of the `push` command.

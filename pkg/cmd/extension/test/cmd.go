@@ -19,11 +19,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/globals"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/common"
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
 	builtinconfig "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/toolchain/builtin"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain/types"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 

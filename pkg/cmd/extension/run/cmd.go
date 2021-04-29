@@ -23,7 +23,6 @@ import (
 
 	reference "github.com/tetratelabs/getenvoy/pkg"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/globals"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/build"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/common"
 	examplecmd "github.com/tetratelabs/getenvoy/pkg/cmd/extension/example"
@@ -34,6 +33,7 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/runtime"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/runtime/configdir"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 	commontypes "github.com/tetratelabs/getenvoy/pkg/types"
 	argutil "github.com/tetratelabs/getenvoy/pkg/util/args"
 	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"

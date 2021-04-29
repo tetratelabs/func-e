@@ -41,7 +41,7 @@ func TestExtensionDirValidatorReject(t *testing.T) {
 		{
 			name:        "output path that is a file",
 			path:        file,
-			expectedErr: fmt.Sprintf(`output path is not a directory: %s`, file),
+			expectedErr: fmt.Sprintf(`extension directory is a file: %s`, file),
 		},
 		{
 			name:        "output path under a file",
@@ -51,7 +51,7 @@ func TestExtensionDirValidatorReject(t *testing.T) {
 		{
 			name:        "output path not empty",
 			path:        cwd,
-			expectedErr: fmt.Sprintf(`output directory must be empty or new: %s`, cwd),
+			expectedErr: fmt.Sprintf(`extension directory must be empty or new: %s`, cwd),
 		},
 	}
 
@@ -66,8 +66,8 @@ func TestExtensionDirValidatorReject(t *testing.T) {
 }
 
 func TestExtensionDirValidatorAccept(t *testing.T) {
-	tempDir, revertTempDir := RequireNewTempDir(t)
-	defer revertTempDir()
+	tempDir, removeTempDir := RequireNewTempDir(t)
+	defer removeTempDir()
 
 	type testCase struct {
 		name string

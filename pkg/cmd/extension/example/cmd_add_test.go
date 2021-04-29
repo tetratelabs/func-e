@@ -22,8 +22,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/globals"
 	rootcmd "github.com/tetratelabs/getenvoy/pkg/cmd"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 	"github.com/tetratelabs/getenvoy/pkg/test/cmd"
 	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
@@ -133,8 +133,8 @@ func TestGetEnvoyExtensionExamplesAdd(t *testing.T) {
 
 		t.Run(test.name, func(t *testing.T) {
 			// Copy the workspace as this test will delete it, and we don't want to mutate our test data!
-			extensionDir, revertExtensionDir := morerequire.RequireCopyOfDir(t, test.templateWorkspace)
-			defer revertExtensionDir()
+			extensionDir, removeExtensionDir := morerequire.RequireCopyOfDir(t, test.templateWorkspace)
+			defer removeExtensionDir()
 
 			// "getenvoy extension examples add" must be in a valid extension directory
 			o := &globals.GlobalOpts{ExtensionDir: extensionDir}

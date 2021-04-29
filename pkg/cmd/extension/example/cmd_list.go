@@ -20,8 +20,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/globals"
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 )
 
 // NewListCmd returns a command that prints a list of existing example setups.

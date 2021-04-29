@@ -24,8 +24,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/globals"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
@@ -63,13 +63,14 @@ func TestRuntime_Run(t *testing.T) {
 	for _, tt := range tests {
 		tc := tt
 		t.Run(tc.name, func(t *testing.T) {
-			debugDir, revertDebugDir := morerequire.RequireNewTempDir(t)
-			defer revertDebugDir()
+			debugDir, removeDebugDir := morerequire.RequireNewTempDir(t)
+			defer removeDebugDir()
 
 			fakeEnvoy, removeFakeEnvoy := morerequire.RequireCaptureScript(t, "envoy")
 			defer removeFakeEnvoy()
 
-			workingDir := filepath.Join(debugDir, "1")
+			fakeTimestamp := "1619574747231823000"
+			workingDir := filepath.Join(debugDir, fakeTimestamp)
 			require.NoError(t, os.MkdirAll(workingDir, 0750))
 
 			o := &globals.RunOpts{EnvoyPath: fakeEnvoy, WorkingDir: workingDir}

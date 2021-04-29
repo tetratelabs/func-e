@@ -33,9 +33,7 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/types"
 )
 
-const (
-	archiveFormat = ".tar.gz"
-)
+const archiveFormat = ".tar.gz"
 
 // RequireManifestTestServer serves "/manifest.json", which contains download links a compressed archive of artifactDir
 func RequireManifestTestServer(t *testing.T, manifest *api.Manifest) *httptest.Server {

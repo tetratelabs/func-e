@@ -28,8 +28,8 @@ import (
 )
 
 func TestEnableEnvoyAdminDataCollection(t *testing.T) {
-	debugDir, revertDebugDir := morerequire.RequireNewTempDir(t)
-	defer revertDebugDir()
+	debugDir, removeDebugDir := morerequire.RequireNewTempDir(t)
+	defer removeDebugDir()
 
 	mockAdmin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

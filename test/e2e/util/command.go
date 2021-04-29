@@ -31,8 +31,8 @@ import (
 )
 
 var (
-	// GetEnvoyPatharyPath holds a path to a 'getenvoy' binary under test.
-	GetEnvoyPatharyPath = "getenvoy"
+	// GetEnvoyPath holds a path to a 'getenvoy' binary under test.
+	GetEnvoyPath = "getenvoy"
 )
 
 // cmdBuilder represents a command builder.
@@ -46,7 +46,7 @@ func GetEnvoy(cmdline string) *cmdBuilder { //nolint:golint
 	if err != nil {
 		panic(err)
 	}
-	return &cmdBuilder{exec.Command(GetEnvoyPatharyPath, args...)} //nolint:gosec
+	return &cmdBuilder{exec.Command(GetEnvoyPath, args...)} //nolint:gosec
 }
 
 func (b *cmdBuilder) WorkingDir(arg string) *cmdBuilder {

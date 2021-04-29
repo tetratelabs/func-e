@@ -25,7 +25,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/globals"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
@@ -34,7 +34,8 @@ func RunAndTerminateWithDebug(t *testing.T, debugDir string, debug func(r *envoy
 	fakeEnvoy, removeFakeEnvoy := morerequire.RequireCaptureScript(t, "envoy")
 	defer removeFakeEnvoy()
 
-	o := &globals.RunOpts{EnvoyPath: fakeEnvoy, WorkingDir: filepath.Join(debugDir, "1")}
+	fakeTimestamp := "1619574747231823000"
+	o := &globals.RunOpts{EnvoyPath: fakeEnvoy, WorkingDir: filepath.Join(debugDir, fakeTimestamp)}
 	// InitializeRunOpts creates this directory in a real command run
 	require.NoError(t, os.MkdirAll(o.WorkingDir, 0750))
 

@@ -28,8 +28,8 @@ import (
 )
 
 func TestEnableNodeCollection(t *testing.T) {
-	debugDir, revertDebugDir := morerequire.RequireNewTempDir(t)
-	defer revertDebugDir()
+	debugDir, removeDebugDir := morerequire.RequireNewTempDir(t)
+	defer removeDebugDir()
 
 	workingDir := envoytest.RunAndTerminateWithDebug(t, debugDir, EnableNodeCollection)
 

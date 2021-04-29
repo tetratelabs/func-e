@@ -23,12 +23,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	reference "github.com/tetratelabs/getenvoy/pkg"
+	defaultreference "github.com/tetratelabs/getenvoy/pkg"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/debug"
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/globals"
 	"github.com/tetratelabs/getenvoy/pkg/flavors"
 	_ "github.com/tetratelabs/getenvoy/pkg/flavors/postgres" //nolint
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
@@ -54,7 +54,7 @@ getenvoy run %[1]s -- --help
 
 # Run with Postgres specific configuration bootstrapped
 getenvoy run postgres:nightly --templateArg endpoints=127.0.0.1:5432,192.168.0.101:5432 --templateArg inport=5555
-`, reference.Latest),
+`, defaultreference.Latest),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := InitializeRunOpts(o, args[0]); err != nil {
 				return err
@@ -83,12 +83,13 @@ getenvoy run postgres:nightly --templateArg endpoints=127.0.0.1:5432,192.168.0.1
 	return cmd
 }
 
-// InitializeRunOpts allows us to handle defaulting when tests override run parameters.
-// Notably, this ensures globals.RunOpts EnvoyPath and WorkingDir exist.
-func InitializeRunOpts(o *globals.GlobalOpts, r string) error {
+// InitializeRunOpts allows us to default values when not overridden for tests.
+// The reference parameter corresponds to the globals.GlobalOpts EnvoyPath which is fetched if needed.
+// Notably, this creates and sets a globals.GlobalOpts WorkingDirectory for Envoy, and any files that precede it.
+func InitializeRunOpts(o *globals.GlobalOpts, reference string) error {
 	runOpts := &o.RunOpts
 	if o.EnvoyPath == "" { // not overridden for tests
-		envoyPath, err := envoy.FetchIfNeeded(o, r)
+		envoyPath, err := envoy.FetchIfNeeded(o, reference)
 		if err != nil {
 			return err
 		}
@@ -109,6 +110,7 @@ func InitializeRunOpts(o *globals.GlobalOpts, r string) error {
 }
 
 // Run enables debug and runs Envoy with the IO from the cobra.Command
+// This is exposed for re-use in "getenvoy extension run"
 func Run(o *globals.GlobalOpts, cmd *cobra.Command, args []string) error {
 	r := envoy.NewRuntime(&o.RunOpts)
 	r.IO = cmdutil.StreamsOf(cmd)
