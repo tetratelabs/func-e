@@ -167,7 +167,7 @@ builders.pull: $(foreach lang,$(BUILDERS_LANGS), pull/builder/$(lang))
 .PHONY: api
 api: api/manifest.proto $(BUF) $(PROTOC_GEN_GO)
 	@echo "--- api ---"
-	@rm api/*.go
+	@rm -f api/*.go
 	@$(BUF) protoc \
 		--plugin=protoc-gen-go=$(PROTOC_GEN_GO) \
 		--go_out=paths=source_relative:. \
