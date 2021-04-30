@@ -15,25 +15,31 @@
 package run
 
 import (
-	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 
 	reference "github.com/tetratelabs/getenvoy/pkg"
+	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/build"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/common"
 	examplecmd "github.com/tetratelabs/getenvoy/pkg/cmd/extension/example"
+	"github.com/tetratelabs/getenvoy/pkg/cmd/run"
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
 	builtinconfig "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/toolchain/builtin"
 	examples "github.com/tetratelabs/getenvoy/pkg/extension/workspace/example"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/runtime"
+	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/runtime/configdir"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 	commontypes "github.com/tetratelabs/getenvoy/pkg/types"
 	argutil "github.com/tetratelabs/getenvoy/pkg/util/args"
 	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 	osutil "github.com/tetratelabs/getenvoy/pkg/util/os"
+	scaffoldutil "github.com/tetratelabs/getenvoy/pkg/util/scaffold"
+	uiutil "github.com/tetratelabs/getenvoy/pkg/util/ui"
 )
 
 // cmdOpts represents configuration options of the `run` command.
@@ -83,20 +89,10 @@ func (opts *runOpts) validateExtension() error {
 }
 
 func (opts *runOpts) validateEnvoy() error {
-	// Envoy version & path
-	if opts.Envoy.Version != "" && opts.Envoy.Path != "" {
-		return errors.New("only one of flags '--envoy-version' and '--envoy-path' can be used at a time")
-	}
 	// Envoy version
 	if opts.Envoy.Version != "" {
 		if _, err := commontypes.ParseReference(opts.Envoy.Version); err != nil {
 			return fmt.Errorf("envoy version is not valid: %w", err)
-		}
-	}
-	// Envoy path
-	if opts.Envoy.Path != "" {
-		if err := osutil.IsExecutable(opts.Envoy.Path); err != nil {
-			return fmt.Errorf("unable to find custom Envoy binary at %q: %w", opts.Envoy.Path, err)
 		}
 	}
 	// Envoy args
@@ -121,20 +117,13 @@ func (opts *cmdOpts) ApplyTo(config interface{}) {
 	}
 }
 
-func newCmdOpts() *cmdOpts {
-	return &cmdOpts{
-		Toolchain: common.NewToolchainOpts(),
-		Run: runOpts{
-			Example: runtime.ExampleOpts{
-				Name: examples.Default,
-			},
-		},
-	}
-}
-
 // NewCmd returns a command that runs the extension.
-func NewCmd() *cobra.Command {
-	opts := newCmdOpts()
+func NewCmd(o *globals.GlobalOpts) *cobra.Command {
+	opts := &cmdOpts{
+		Toolchain: common.NewToolchainOpts(o),
+		Run:       runOpts{Example: runtime.ExampleOpts{Name: examples.Default}},
+	}
+
 	//nolint:lll
 	cmd := &cobra.Command{
 		Use:   "run",
@@ -147,9 +136,6 @@ Run Envoy extension in the example setup.`,
 
   # Run Envoy extension in the "default" example setup using a particular Envoy release provided by getenvoy.io
   getenvoy extension run --envoy-version %s
-
-  # Run Envoy extension in the "default" example setup using a custom Envoy binary
-  getenvoy extension run --envoy-path /path/to/envoy
 
   # Run Envoy extension in the "default" example setup using Envoy with extra options
   getenvoy extension run --envoy-options '--concurrency 2 --component-log-level wasm:debug,config:trace'
@@ -174,45 +160,42 @@ Run Envoy extension in the example setup.`,
 			return opts.Toolchain.Validate()
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// find workspace
-			workspace, err := workspaces.GetCurrentWorkspace()
+			workspace, err := workspaces.GetWorkspaceAt(o.ExtensionDir)
 			if err != nil {
 				return err
 			}
-			// auto-create default example setup if necessary
-			scaffoldOpts := &examples.ScaffoldOpts{
-				Workspace:    workspace,
-				Name:         opts.Run.Example.Name,
-				ProgressSink: examplecmd.NewAddExampleFeedback(cmd),
-			}
-			err = examples.ScaffoldIfDefault(scaffoldOpts)
-			if err != nil {
-				return err
-			}
-			// find example
-			example, err := examples.LoadExample(opts.Run.Example.Name, workspace)
-			if err != nil {
-				return err
-			}
-			// build *.wasm file unless a user provided a pre-built one
-			if opts.Run.Extension.WasmFile == "" {
-				toolchain, e := common.LoadToolchain(workspace, opts)
-				if e != nil {
-					return e
-				}
-				e = build.Build(toolchain, cmdutil.StreamsOf(cmd))
-				if e != nil {
-					return e
-				}
-				opts.Run.Extension.WasmFile = toolchain.GetBuildOutputWasmFile()
-			}
-			// run example
 			opts.Run.Workspace = workspace
+
+			progressSink := examplecmd.NewAddExampleFeedback(uiutil.NewStyleFuncs(o.NoColors), cmd.ErrOrStderr())
+			example, err := ensureDefaultExample(workspace, opts.Run.Example.Name, progressSink)
+			if err != nil {
+				return err
+			}
 			opts.Run.Example.Example = example
-			err = examples.RunExample(&runtime.RunContext{
-				Opts: runtime.RunOpts(opts.Run),
-				IO:   cmdutil.StreamsOf(cmd),
-			})
+
+			if e := validateOrBuildWasm(cmd, opts, workspace); e != nil {
+				return e
+			}
+
+			// We now have a valid workspace, prepare to generate the Envoy config file.
+			runtimeOpts := runtime.RunOpts(opts.Run)
+			if e := run.InitializeRunOpts(o, runtimeOpts.GetEnvoyReference()); e != nil {
+				return e
+			}
+			if _, e := configdir.NewConfigDir(&runtimeOpts, o.WorkingDir); e != nil {
+				return e
+			}
+
+			// Run Envoy, fetching the distribution as needed.
+			if o.EnvoyPath == "" { // not overridden for tests
+				envoyPath, e := envoy.FetchIfNeeded(o, runtimeOpts.GetEnvoyReference())
+				if e != nil {
+					return e
+				}
+				o.EnvoyPath = envoyPath
+			}
+
+			err = run.Run(o, cmd, append([]string{"-c", "envoy.yaml"}, runtimeOpts.Envoy.Args...))
 			if err != nil {
 				return fmt.Errorf("failed to run %q example: %w", opts.Run.Example.Name, err)
 			}
@@ -228,9 +211,44 @@ Run Envoy extension in the example setup.`,
 		`Use a custom extension config`)
 	cmd.PersistentFlags().StringVar(&opts.Run.Envoy.Version, "envoy-version", opts.Run.Envoy.Version,
 		`Use a particular Envoy release provided by getenvoy.io. For a list of available releases run "getenvoy list"`)
-	cmd.PersistentFlags().StringVar(&opts.Run.Envoy.Path, "envoy-path", opts.Run.Envoy.Path,
-		`Use a custom Envoy binary`)
 	cmd.PersistentFlags().StringArrayVar(&opts.Run.Envoy.Args, "envoy-options", nil,
 		`Run Envoy using extra cli options`)
 	return cmd
+}
+
+// auto-create default example setup if necessary
+func ensureDefaultExample(workspace model.Workspace, name string, progressSink scaffoldutil.ProgressSink) (model.Example, error) {
+	scaffoldOpts := &examples.ScaffoldOpts{
+		Workspace:    workspace,
+		Name:         name,
+		ProgressSink: progressSink,
+	}
+	if e := examples.ScaffoldIfDefault(scaffoldOpts); e != nil {
+		return nil, e
+	}
+	// find example
+	return examples.LoadExample(scaffoldOpts.Name, workspace)
+}
+
+func validateOrBuildWasm(cmd *cobra.Command, opts *cmdOpts, workspace model.Workspace) error {
+	// build *.wasm file unless a user provided a pre-built one
+	if opts.Run.Extension.WasmFile == "" {
+		toolchain, e := common.LoadToolchain(workspace, opts)
+		if e != nil {
+			return e
+		}
+		e = build.Build(toolchain, cmdutil.StreamsOf(cmd))
+		if e != nil {
+			return e
+		}
+		opts.Run.Extension.WasmFile = toolchain.GetBuildOutputWasmFile()
+	}
+
+	// Use absolute path because Envoy doesn't run in this directory and may be configured to hot-reload the VM.
+	absoluteWasmFile, err := filepath.Abs(opts.Run.Extension.WasmFile)
+	if err != nil {
+		return err
+	}
+	opts.Run.Extension.WasmFile = absoluteWasmFile
+	return nil
 }

@@ -14,7 +14,7 @@
 
 package registry
 
-import "github.com/pkg/errors"
+import "fmt"
 
 // registry represents a registry of supported toolchains.
 type registry map[string]Entry
@@ -22,7 +22,7 @@ type registry map[string]Entry
 func (r registry) Register(entry Entry) {
 	_, exists := r[entry.Kind]
 	if exists {
-		panic(errors.Errorf("toolchain for kind %q has already been registered", entry.Kind))
+		panic(fmt.Errorf("toolchain for kind %q has already been registered", entry.Kind))
 	}
 	r[entry.Kind] = entry
 }

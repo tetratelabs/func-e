@@ -20,8 +20,8 @@ const (
 	extensionMetaDir = ".getenvoy/extension"
 )
 
-// WorkspaceDir represents a directory with an extension created by getenvoy toolkit.
-type WorkspaceDir interface {
+// ExtensionDir represents a directory with an extension created by getenvoy toolkit.
+type ExtensionDir interface {
 	// GetRootDir returns path to the root dir of an extension.
 	GetRootDir() string
 	// GetMetaDir returns path to the meta dir of an extension.

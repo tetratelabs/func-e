@@ -17,75 +17,78 @@ package envoy
 import (
 	"errors"
 	"os/exec"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/pkg/binary"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
+	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
-// fakeDebugDir is not actually written to as the commands tested are never invoked.
-const fakeDebugDir = "~/.getenvoy/debug/1"
-
 func TestHandlePreStartReturnsOnFirstError(t *testing.T) {
-	r, _ := NewRuntime()
+	r := NewRuntime(nil)
 	err1, err2 := errors.New("1"), errors.New("2")
-	r.RegisterPreStart(func(runner binary.Runner) error {
+	r.RegisterPreStart(func() error {
 		return err1
 	})
-	r.RegisterPreStart(func(runner binary.Runner) error {
+	r.RegisterPreStart(func() error {
 		return err2
 	})
 
-	actualErr := r.(*Runtime).handlePreStart()
+	actualErr := r.handlePreStart()
 	require.Equal(t, err1, actualErr)
 }
 
 func TestHandlePreStartReturnsError(t *testing.T) {
-	r, _ := NewRuntime()
+	r := NewRuntime(&globals.RunOpts{})
 	first := false
 	err := errors.New("1")
-	r.RegisterPreStart(func(runner binary.Runner) error {
+	r.RegisterPreStart(func() error {
 		first = true
 		return nil
 	})
-	r.RegisterPreStart(func(runner binary.Runner) error {
+	r.RegisterPreStart(func() error {
 		return err
 	})
 
-	actualErr := r.(*Runtime).handlePreStart()
+	actualErr := r.handlePreStart()
 	require.Equal(t, true, first)
 	require.Equal(t, err, actualErr)
 }
 
 func TestHandlePreStartEnsuresAdminAddressPath(t *testing.T) {
-	r, _ := NewRuntime()
-	e := r.(*Runtime)
-	e.cmd = exec.Command("envoy")
+	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
+	defer removeTempDir()
+
+	r := NewRuntime(&globals.RunOpts{WorkingDir: tempDir})
+	r.cmd = exec.Command("envoy")
 
 	// Verify the admin address path set (same assertion as ensureAdminAddressPath)
-	actualErr := r.(*Runtime).handlePreStart()
+	actualErr := r.handlePreStart()
 	require.NoError(t, actualErr)
-	require.Equal(t, []string{"envoy", "--admin-address-path", e.adminAddressPath}, e.cmd.Args)
+	require.Equal(t, []string{"envoy", "--admin-address-path", "admin-address.txt"}, r.cmd.Args)
 }
 
 func TestHandlePreStartEnsuresAdminAddressPathLast(t *testing.T) {
-	r, _ := NewRuntime()
-	e := r.(*Runtime)
-	e.cmd = exec.Command("envoy")
+	r := NewRuntime(&globals.RunOpts{})
+	r.cmd = exec.Command("envoy")
 
-	r.RegisterPreStart(func(runner binary.Runner) error {
-		runner.AppendArgs([]string{"--admin-address-path", "/tmp/admin.txt"})
+	r.RegisterPreStart(func() error {
+		r.AppendArgs([]string{"--admin-address-path", "/tmp/admin.txt"})
 		return nil
 	})
 
-	actualErr := r.(*Runtime).handlePreStart()
+	actualErr := r.handlePreStart()
 	require.NoError(t, actualErr)
-	require.Equal(t, "/tmp/admin.txt", e.adminAddressPath)
-	require.Equal(t, []string{"envoy", "--admin-address-path", "/tmp/admin.txt"}, e.cmd.Args)
+	require.Equal(t, "/tmp/admin.txt", r.adminAddressPath)
+	require.Equal(t, []string{"envoy", "--admin-address-path", "/tmp/admin.txt"}, r.cmd.Args)
 }
 
 func TestEnsureAdminAddressPath(t *testing.T) {
+	workingDir, removeWorkingDir := morerequire.RequireNewTempDir(t)
+	defer removeWorkingDir()
+
 	tests := []struct {
 		name                 string
 		args                 []string
@@ -95,14 +98,14 @@ func TestEnsureAdminAddressPath(t *testing.T) {
 		{
 			name:                 "no args",
 			args:                 []string{"envoy"},
-			wantAdminAddressPath: "~/.getenvoy/debug/1/admin-address.txt",
-			wantArgs:             []string{"envoy", "--admin-address-path", "~/.getenvoy/debug/1/admin-address.txt"},
+			wantAdminAddressPath: filepath.Join(workingDir, "admin-address.txt"),
+			wantArgs:             []string{"envoy", "--admin-address-path", "admin-address.txt"},
 		},
 		{
 			name:                 "args",
 			args:                 []string{"envoy", "-c", "/tmp/google_com_proxy.v2.yaml"},
-			wantAdminAddressPath: "~/.getenvoy/debug/1/admin-address.txt",
-			wantArgs:             []string{"envoy", "-c", "/tmp/google_com_proxy.v2.yaml", "--admin-address-path", "~/.getenvoy/debug/1/admin-address.txt"},
+			wantAdminAddressPath: filepath.Join(workingDir, "admin-address.txt"),
+			wantArgs:             []string{"envoy", "-c", "/tmp/google_com_proxy.v2.yaml", "--admin-address-path", "admin-address.txt"},
 		},
 		{
 			name:                 "already",
@@ -115,15 +118,13 @@ func TestEnsureAdminAddressPath(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			r, _ := NewRuntime()
-			e := r.(*Runtime)
-			e.cmd = exec.Command(tt.args[0], tt.args[1:]...)
-			e.debugDir = fakeDebugDir
+			r := NewRuntime(&globals.RunOpts{WorkingDir: workingDir})
+			r.cmd = exec.Command(tt.args[0], tt.args[1:]...)
 
-			err := e.ensureAdminAddressPath()
+			err := r.ensureAdminAddressPath()
 			require.NoError(t, err)
-			require.Equal(t, tt.wantAdminAddressPath, e.adminAddressPath)
-			require.Equal(t, tt.wantArgs, e.cmd.Args)
+			require.Equal(t, tt.wantAdminAddressPath, r.adminAddressPath)
+			require.Equal(t, tt.wantArgs, r.cmd.Args)
 		})
 	}
 }
@@ -149,14 +150,12 @@ func TestEnsureAdminAddressPathValidateExisting(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			r, _ := NewRuntime()
-			e := r.(*Runtime)
-			e.cmd = exec.Command(tt.args[0], tt.args[1:]...)
-			e.debugDir = fakeDebugDir
+			r := NewRuntime(&globals.RunOpts{})
+			r.cmd = exec.Command(tt.args[0], tt.args[1:]...)
 
-			err := e.ensureAdminAddressPath()
-			require.Equal(t, tt.args, e.cmd.Args)
-			require.Empty(t, e.adminAddressPath)
+			err := r.ensureAdminAddressPath()
+			require.Equal(t, tt.args, r.cmd.Args)
+			require.Empty(t, r.adminAddressPath)
 			require.EqualError(t, err, tt.expectedErr)
 		})
 	}

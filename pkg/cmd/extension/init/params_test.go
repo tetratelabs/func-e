@@ -25,7 +25,7 @@ import (
 	. "github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
-func TestOutputDirValidatorReject(t *testing.T) {
+func TestExtensionDirValidatorReject(t *testing.T) {
 	type testCase struct {
 		name        string
 		path        string
@@ -41,7 +41,7 @@ func TestOutputDirValidatorReject(t *testing.T) {
 		{
 			name:        "output path that is a file",
 			path:        file,
-			expectedErr: fmt.Sprintf(`output path is not a directory: %s`, file),
+			expectedErr: fmt.Sprintf(`extension directory is a file: %s`, file),
 		},
 		{
 			name:        "output path under a file",
@@ -51,7 +51,7 @@ func TestOutputDirValidatorReject(t *testing.T) {
 		{
 			name:        "output path not empty",
 			path:        cwd,
-			expectedErr: fmt.Sprintf(`output directory must be empty or new: %s`, cwd),
+			expectedErr: fmt.Sprintf(`extension directory must be empty or new: %s`, cwd),
 		},
 	}
 
@@ -59,15 +59,15 @@ func TestOutputDirValidatorReject(t *testing.T) {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.name, func(t *testing.T) {
-			err = newParams().OutputDir.Validator(test.path)
+			err = newParams().ExtensionDir.Validator(test.path)
 			require.EqualError(t, err, test.expectedErr)
 		})
 	}
 }
 
-func TestOutputDirValidatorAccept(t *testing.T) {
-	tempDir, revertTempDir := RequireNewTempDir(t)
-	defer revertTempDir()
+func TestExtensionDirValidatorAccept(t *testing.T) {
+	tempDir, removeTempDir := RequireNewTempDir(t)
+	defer removeTempDir()
 
 	type testCase struct {
 		name string
@@ -89,7 +89,7 @@ func TestOutputDirValidatorAccept(t *testing.T) {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.name, func(t *testing.T) {
-			err := newParams().OutputDir.Validator(test.path)
+			err := newParams().ExtensionDir.Validator(test.path)
 			require.NoError(t, err)
 		})
 	}

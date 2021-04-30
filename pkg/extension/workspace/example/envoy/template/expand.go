@@ -16,9 +16,8 @@ package template
 
 import (
 	"bytes"
+	"fmt"
 	"text/template"
-
-	"github.com/pkg/errors"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/manager"
 )
@@ -33,13 +32,13 @@ type ExpandContext struct {
 func Expand(content []byte, ctx *ExpandContext) ([]byte, error) {
 	tmpl, err := template.New("").Parse(string(content))
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse Envoy config template")
+		return nil, fmt.Errorf("failed to parse Envoy config template: %w", err)
 	}
 	data := newExpandData(ctx)
 	out := new(bytes.Buffer)
 	err = tmpl.Execute(out, data)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to render Envoy config template")
+		return nil, fmt.Errorf("failed to render Envoy config template: %w", err)
 	}
 	return out.Bytes(), nil
 }

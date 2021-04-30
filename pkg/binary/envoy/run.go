@@ -18,37 +18,21 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"os/exec"
 	"os/signal"
-	"path/filepath"
-	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/tetratelabs/log"
-
-	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
 
-// Run execs the binary defined by the key with the args passed
-// It is a blocking function that can only be terminated via SIGINT
-func (r *Runtime) Run(key *manifest.Key, args []string) error {
-	path := filepath.Join(r.platformDirectory(key), envoyLocation)
-	return r.RunPath(path, args)
-}
-
-// RunPath execs the binary at the path with the args passed
-// It is a blocking function that can only be terminated via SIGINT
-func (r *Runtime) RunPath(path string, args []string) error {
-	if _, err := os.Stat(path); err != nil {
-		return fmt.Errorf("unable to stat %q: %v", path, err)
-	}
-
+// Run execs the binary at the path with the args passed. It is a blocking function that can be terminated via SIGINT.
+func (r *Runtime) Run(ctx context.Context, args []string) error {
 	// We can't use CommandContext even if that seems correct here. The reason is that we need to invoke preTerminate
 	// handlers, and they expect the process to still be running. For example, this allows admin API hooks.
-	cmd := exec.Command(path, args...) // #nosec -> users can run whatever binary they like!
-	cmd.Dir = r.WorkingDir
+	cmd := exec.Command(r.opts.EnvoyPath, args...) // #nosec -> users can run whatever binary they like!
+	cmd.Dir = r.opts.WorkingDir
 	cmd.Stdout = r.IO.Out
 	cmd.Stderr = r.IO.Err
 	cmd.SysProcAttr = sysProcAttr()
@@ -59,22 +43,17 @@ func (r *Runtime) RunPath(path string, args []string) error {
 		return err
 	}
 
-	if cmd.Stdout == nil {
-		cmd.Stdout = os.Stdout
-	}
-	if cmd.Stderr == nil {
-		cmd.Stderr = os.Stderr
-	}
-
-	log.Infof("Envoy command: %v", cmd.Args)
+	// Log for the information of users and also for us to have a reliable parsing in e2e tests.
+	log.Infof("cd %s\n", cmd.Dir)
+	log.Infof("%s %s\n", r.opts.EnvoyPath, strings.Join(args, " "))
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("unable to start Envoy process: %w", err)
 	}
 
-	waitCtx, waitCancel := context.WithCancel(context.Background())
+	waitCtx, waitCancel := context.WithCancel(ctx)
 	sigCtx, sigCancel := signal.NotifyContext(waitCtx, syscall.SIGINT, syscall.SIGTERM)
 	defer waitCancel()
-	r.fakeInterrupt = sigCancel
+	r.FakeInterrupt = sigCancel
 
 	go waitForExit(cmd, waitCancel) // waits in a goroutine. We may need to kill the process if a signal occurs first.
 
@@ -84,7 +63,6 @@ func (r *Runtime) RunPath(path string, args []string) error {
 	<-sigCtx.Done()
 
 	if cmd.ProcessState != nil {
-		log.Infof("Envoy process (PID=%d) terminated prematurely", cmd.Process.Pid)
 		return r.handlePostTermination()
 	}
 
@@ -107,12 +85,6 @@ func awaitAdminAddress(sigCtx context.Context, r *Runtime) {
 		}
 		time.Sleep(200 * time.Millisecond)
 	}
-}
-
-// DebugStore returns the location at which the runtime instance persists debug data for this given instance
-// Getters typically aren't idiomatic Go, however, this one is deliberately part of the runner interface
-func (r *Runtime) DebugStore() string {
-	return r.debugDir
 }
 
 // SetStdout writes the stdout of Envoy to the passed writer
@@ -139,9 +111,4 @@ func waitForExit(cmd *exec.Cmd, cancel context.CancelFunc) {
 			log.Infof("Envoy process (PID=%d) terminated with an error: %v", cmd.Process.Pid, err)
 		}
 	}
-}
-
-func (r *Runtime) initializeDebugStore() error {
-	r.debugDir = filepath.Join(r.store, "debug", strconv.FormatInt(time.Now().UnixNano(), 10))
-	return os.MkdirAll(r.debugDir, 0750)
 }

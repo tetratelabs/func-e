@@ -14,10 +14,23 @@
 
 package ui
 
-var (
-	// Underline underlines a given text.
-	Underline = Style("{{ . | underline }}")
+import (
+	"text/template"
 
-	// Faint faints a given text.
-	Faint = Style(`{{ . | faint }}`)
+	"github.com/manifoldco/promptui"
 )
+
+// NewStyleFuncs allows us to control the noColors setting without global variables.
+func NewStyleFuncs(noColors bool) template.FuncMap {
+	return makeStyleFuncs(promptui.FuncMap, noColors)
+}
+
+// Underline underlines a given text.
+func Underline(f template.FuncMap) TextStyle {
+	return Style(f, "{{ . | underline }}")
+}
+
+// Faint faints a given text.
+func Faint(f template.FuncMap) TextStyle {
+	return Style(f, `{{ . | faint }}`)
+}

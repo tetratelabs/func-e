@@ -15,7 +15,7 @@
 package example
 
 import (
-	"github.com/pkg/errors"
+	"fmt"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
 )
@@ -29,14 +29,14 @@ const (
 func LoadExample(name string, workspace model.Workspace) (model.Example, error) {
 	exists, err := workspace.HasExample(name)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to determine whether example %q exists", name)
+		return nil, fmt.Errorf("failed to determine whether example %q exists: %w", name, err)
 	}
 	if !exists {
-		return nil, errors.Errorf("there is no example %q", name)
+		return nil, fmt.Errorf("there is no example %q", name)
 	}
 	example, err := workspace.GetExample(name)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to load example %q", name)
+		return nil, fmt.Errorf("failed to load example %q: %w", name, err)
 	}
 	return example, nil
 }

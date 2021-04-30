@@ -23,12 +23,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	reference "github.com/tetratelabs/getenvoy/pkg"
+	rootcmd "github.com/tetratelabs/getenvoy/pkg/cmd"
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 	toolchains "github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 	"github.com/tetratelabs/getenvoy/pkg/test/cmd"
 	. "github.com/tetratelabs/getenvoy/pkg/test/morerequire"
-	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 
 func TestGetEnvoyExtensionInitValidateFlag(t *testing.T) {
@@ -41,8 +42,8 @@ func TestGetEnvoyExtensionInitValidateFlag(t *testing.T) {
 	cwd, err := os.Getwd()
 	require.NoError(t, err, "error getting current working directory")
 
-	outputDir, revertOutputDir := RequireNewTempDir(t)
-	defer revertOutputDir()
+	extensionDir, removeExtensionDir := RequireNewTempDir(t)
+	defer removeExtensionDir()
 
 	tests := []testCase{
 		{
@@ -68,16 +69,16 @@ func TestGetEnvoyExtensionInitValidateFlag(t *testing.T) {
 		{
 			name:        "output directory exists but is not empty",
 			args:        []string{"--category", "envoy.filters.http", "--language", "tinygo"},
-			expectedErr: fmt.Sprintf(`output directory must be empty or new: %s`, cwd),
+			expectedErr: fmt.Sprintf(`extension directory must be empty or new: %s`, cwd),
 		},
 		{
 			name:        "extension name is missing",
-			args:        []string{"--category", "envoy.filters.http", "--language", "tinygo", outputDir},
+			args:        []string{"--category", "envoy.filters.http", "--language", "tinygo", extensionDir},
 			expectedErr: `extension name cannot be empty`,
 		},
 		{
 			name:        "extension name with invalid value",
-			args:        []string{"--category", "envoy.filters.http", "--language", "tinygo", "--name", "?!", outputDir},
+			args:        []string{"--category", "envoy.filters.http", "--language", "tinygo", "--name", "?!", extensionDir},
 			expectedErr: `"?!" is not a valid extension name. Extension name must match the format "^[a-z0-9_]+(\\.[a-z0-9_]+)*$". E.g., 'mycompany.filters.http.custom_metrics'`,
 		},
 	}
@@ -86,10 +87,11 @@ func TestGetEnvoyExtensionInitValidateFlag(t *testing.T) {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.name, func(t *testing.T) {
+			c, stdout, stderr := cmd.NewRootCommand(&globals.GlobalOpts{NoWizard: true, NoColors: true})
+
 			// Run "getenvoy extension init" with the flags we are testing
-			c, stdout, stderr := cmd.NewRootCommand()
-			c.SetArgs(append([]string{"extension", "init", "--no-prompt", "--no-colors"}, test.args...))
-			err := cmdutil.Execute(c)
+			c.SetArgs(append([]string{"extension", "init"}, test.args...))
+			err := rootcmd.Execute(c)
 			require.EqualError(t, err, test.expectedErr, `expected an error running [%v]`, c)
 
 			// Verify the command failed with the expected error
@@ -100,6 +102,8 @@ func TestGetEnvoyExtensionInitValidateFlag(t *testing.T) {
 	}
 }
 
+// TODO: test default to current directory
+
 func TestGetEnvoyExtensionInit(t *testing.T) {
 	const extensionName = "getenvoy_extension_init"
 
@@ -107,17 +111,13 @@ func TestGetEnvoyExtensionInit(t *testing.T) {
 		name string
 		extension.Category
 		extension.Language
-		currentDirectory bool
 	}
 
 	var tests []testCase
 	for _, c := range extension.Categories {
 		for _, l := range extension.Languages {
 			name := fmt.Sprintf(`category=%s language=%s`, c, l)
-			tests = append(tests,
-				testCase{name + "-currentDirectory", c, l, true},
-				testCase{name + "-newDirectory", c, l, false},
-			)
+			tests = append(tests, testCase{name, c, l})
 		}
 	}
 
@@ -125,33 +125,27 @@ func TestGetEnvoyExtensionInit(t *testing.T) {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.name, func(t *testing.T) {
-			outputDir, revertOutputDir := RequireNewTempDir(t)
-			defer revertOutputDir()
+			extensionDir, removeExtensionDir := RequireNewTempDir(t)
+			defer removeExtensionDir()
 
-			// Run "getenvoy extension init"
-			c, stdout, stderr := cmd.NewRootCommand()
-			args := []string{"extension", "init", "--no-prompt", "--no-colors",
+			o := &globals.GlobalOpts{NoWizard: true, NoColors: true, ExtensionDir: extensionDir}
+			args := []string{"extension", "init",
 				"--category", test.Category.String(),
 				"--language", test.Language.String(),
 				"--name", extensionName,
 			}
+			c, stdout, stderr := cmd.NewRootCommand(o)
 
-			if test.currentDirectory {
-				_, revertChDir := RequireChDir(t, outputDir)
-				defer revertChDir()
-			} else {
-				args = append(args, outputDir)
-			}
-
+			// Run "getenvoy extension init"
 			c.SetArgs(args)
-			err := cmdutil.Execute(c)
+			err := rootcmd.Execute(c)
 
 			require.NoError(t, err, `expected no error running [%v]`, c)
 			require.Empty(t, stdout.String(), `expected no stdout running [%v]`, c)
 			// Check that the contents look valid for the inputs.
 			for _, regex := range []string{
 				`^\QScaffolding a new extension:\E\n`,
-				fmt.Sprintf(`\QGenerating files in %s:\E\n`, outputDir),
+				fmt.Sprintf(`\QGenerating files in %s:\E\n`, extensionDir),
 				`\Q* .getenvoy/extension/extension.yaml\E\n`,
 				`\QDone!\E\n$`,
 			} {
@@ -160,10 +154,10 @@ func TestGetEnvoyExtensionInit(t *testing.T) {
 
 			// Check to see that the extension.yaml mentioned in stderr exists.
 			// Note: we don't check all files as extensions are language-specific.
-			require.FileExists(t, filepath.Join(outputDir, ".getenvoy/extension/extension.yaml"), `extension.yaml missing after running [%v]`, c)
+			require.FileExists(t, filepath.Join(extensionDir, ".getenvoy/extension/extension.yaml"), `extension.yaml missing after running [%v]`, c)
 
 			// Check the generated extension.yaml includes values we passed and includes the default toolchain.
-			workspace, err := workspaces.GetWorkspaceAt(outputDir)
+			workspace, err := workspaces.GetWorkspaceAt(extensionDir)
 			require.NoError(t, err, `error getting workspace after running [%v]`, c)
 			require.NotNil(t, workspace, `nil workspace running [%v]`, c)
 			descriptor := workspace.GetExtensionDescriptor()
@@ -208,7 +202,7 @@ func TestGetEnvoyExtensionInit(t *testing.T) {
 			// Verify the paths were in stderr and actually exist.
 			for _, f := range languageSpecificPaths {
 				require.Regexp(t, fmt.Sprintf(`\Q* %s\E\n`, f), stderr, `expected stderr to include %s running [%v]`, f, c)
-				require.FileExists(t, filepath.Join(outputDir, f), `%s missing after running [%v]`, f, c)
+				require.FileExists(t, filepath.Join(extensionDir, f), `%s missing after running [%v]`, f, c)
 			}
 		})
 	}

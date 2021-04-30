@@ -19,46 +19,46 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/globals"
+	rootcmd "github.com/tetratelabs/getenvoy/pkg/cmd"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 	cmdtest "github.com/tetratelabs/getenvoy/pkg/test/cmd"
-	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 
 func TestGetEnvoyExtensionGlobalFlags(t *testing.T) {
 	type testCase struct {
 		flag     string
-		value    *bool
+		value    func(o *globals.GlobalOpts) bool
 		expected bool
 	}
 	tests := []testCase{ // we don't test default as that depends on the runtime env
 		{
 			flag:     "--no-prompt",
-			value:    &globals.NoPrompt,
+			value:    func(o *globals.GlobalOpts) bool { return o.NoWizard },
 			expected: true,
 		},
 		{
 			flag:     "--no-prompt=true",
-			value:    &globals.NoPrompt,
+			value:    func(o *globals.GlobalOpts) bool { return o.NoWizard },
 			expected: true,
 		},
 		{
 			flag:     "--no-prompt=false",
-			value:    &globals.NoPrompt,
+			value:    func(o *globals.GlobalOpts) bool { return o.NoWizard },
 			expected: false,
 		},
 		{
 			flag:     "--no-colors",
-			value:    &globals.NoColors,
+			value:    func(o *globals.GlobalOpts) bool { return o.NoColors },
 			expected: true,
 		},
 		{
 			flag:     "--no-colors=true",
-			value:    &globals.NoColors,
+			value:    func(o *globals.GlobalOpts) bool { return o.NoColors },
 			expected: true,
 		},
 		{
 			flag:     "--no-colors=false",
-			value:    &globals.NoColors,
+			value:    func(o *globals.GlobalOpts) bool { return o.NoColors },
 			expected: false,
 		},
 	}
@@ -68,15 +68,16 @@ func TestGetEnvoyExtensionGlobalFlags(t *testing.T) {
 
 		t.Run(test.flag, func(t *testing.T) {
 			// Run "getenvoy extension"
-			c, stdout, stderr := cmdtest.NewRootCommand()
-			c.SetArgs(append([]string{"extension"}, test.flag))
-			err := cmdutil.Execute(c)
+			o := &globals.GlobalOpts{}
+			c, stdout, stderr := cmdtest.NewRootCommand(o)
+			c.SetArgs([]string{"extension", test.flag})
+			err := rootcmd.Execute(c)
 
 			require.NoError(t, err, `expected no error running [%v]`, c)
 			require.NotEmpty(t, stdout.String(), `expected stdout running [%v]`, c)
 			require.Empty(t, stderr.String(), `expected no stderr running [%v]`, c)
 
-			require.Equal(t, test.expected, *test.value)
+			require.Equal(t, test.expected, test.value(o))
 		})
 	}
 }

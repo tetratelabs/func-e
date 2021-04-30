@@ -15,10 +15,10 @@
 package example_test
 
 const (
-	relativeRustWorkspaceDirWithNoExample   = "testdata/workspaceRustNoExample"
-	relativeTinyGoWorkspaceDirWithNoExample = "testdata/workspaceTinyGoNoExample"
-	// relativeRustWorkspaceDirWithOneExample is a workspace with example "default"
-	relativeRustWorkspaceDirWithOneExample = "testdata/workspaceRustOneExample"
-	// relativeWorkspaceDirWithTwoExamples is a workspace with examples "default" and "another"
-	relativeWorkspaceDirWithTwoExamples = "testdata/workspaceRustTwoExamples"
+	relativeRustExtensionDirWithNoExample   = "testdata/workspaceRustNoExample"
+	relativeTinyGoExtensionDirWithNoExample = "testdata/workspaceTinyGoNoExample"
+	// relativeRustExtensionDirWithOneExample is a workspace with example "default"
+	relativeRustExtensionDirWithOneExample = "testdata/workspaceRustOneExample"
+	// relativeExtensionDirWithTwoExamples is a workspace with examples "default" and "another"
+	relativeExtensionDirWithTwoExamples = "testdata/workspaceRustTwoExamples"
 )

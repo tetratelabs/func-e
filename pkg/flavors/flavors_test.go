@@ -28,7 +28,7 @@ var flavor TestFlavor
 
 const testConfig string = "This is UnitTest config"
 
-func (f *TestFlavor) GenerateConfig(params map[string]string) (string, error) {
+func (f *TestFlavor) GenerateConfig(_ map[string]string) (string, error) {
 	// Just return predefined value.
 	// Normally a flavor would use template but
 	// here using templates is not part of the test.

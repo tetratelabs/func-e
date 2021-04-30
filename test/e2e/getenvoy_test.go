@@ -21,6 +21,8 @@ import (
 )
 
 func TestGetEnvoyVersion(t *testing.T) {
+	t.Parallel()
+
 	stdout, stderr, err := getEnvoy("--version").Exec()
 
 	require.Regexp(t, `^getenvoy version ([^\s]+)\n$`, stdout)
@@ -29,6 +31,8 @@ func TestGetEnvoyVersion(t *testing.T) {
 }
 
 func TestGetEnvoyString(t *testing.T) {
+	t.Parallel()
+
 	g := getEnvoy("--version")
 
 	require.Regexp(t, `.*getenvoy --version$`, g.String())

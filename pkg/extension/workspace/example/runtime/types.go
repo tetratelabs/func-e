@@ -16,7 +16,6 @@ package runtime
 
 import (
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
-	ioutil "github.com/tetratelabs/getenvoy/pkg/util/io"
 )
 
 // RunOpts represents arguments to the `run` tool.
@@ -42,17 +41,5 @@ type ExtensionOpts struct {
 // EnvoyOpts represents Envoy-related part of arguments to the `run` tool.
 type EnvoyOpts struct {
 	Version string
-	Path    string
 	Args    []string
-}
-
-// RunContext represents a context of the `run` tool.
-type RunContext struct {
-	Opts RunOpts
-	IO   ioutil.StdStreams
-}
-
-// Runtime knows how to run an example.
-type Runtime interface {
-	Run(*RunContext) error
 }

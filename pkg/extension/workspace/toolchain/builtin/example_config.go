@@ -16,9 +16,8 @@ package builtin
 
 import (
 	"bytes"
+	"fmt"
 	"text/template"
-
-	"github.com/pkg/errors"
 
 	extensionconfig "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 	builtinconfig "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/toolchain/builtin"
@@ -101,7 +100,7 @@ func renderExampleConfigTemplate(toolchain *builtinconfig.ToolchainConfig) []byt
 	err = tmpl.Execute(&out, toolchain)
 	if err != nil {
 		// must be caught by unit tests
-		panic(errors.Wrap(err, "failed to render example configuration template"))
+		panic(fmt.Errorf("failed to render example configuration template: %w", err))
 	}
 	return out.Bytes()
 }

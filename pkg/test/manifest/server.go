@@ -15,137 +15,113 @@
 package manifest
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"strings"
+	"testing"
 
-	"github.com/mholt/archiver/v3"
+	"github.com/Masterminds/semver/v3"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/tetratelabs/getenvoy/api"
+	"github.com/tetratelabs/getenvoy/pkg/types"
 )
 
-const (
-	archiveFormat = ".tar.gz"
-)
+const archiveFormat = ".tar.gz"
 
-// ServerOpts represents configuration options for NewServer.
-type ServerOpts struct {
-	Manifest       *api.Manifest
-	GetArtifactDir func(uri string) (string, error)
-	OnError        func(error)
-}
-
-// Server represents an HTTP server serving GetEnvoy manifest.
-type Server interface {
-	GetManifestURL() string
-	Close()
-}
-
-// NewServer returns a new HTTP server serving GetEnvoy manifest.
-func NewServer(opts *ServerOpts) Server {
-	s := &server{opts: opts}
-	s.http = httptest.NewServer(s)
-
-	manifest, _ := proto.Clone(opts.Manifest).(*api.Manifest)
-	s.rewriteManifestURLs(manifest)
-	s.manifest = manifest
-
-	return s
+// RequireManifestTestServer serves "/manifest.json", which contains download links a compressed archive of artifactDir
+func RequireManifestTestServer(t *testing.T, manifest *api.Manifest) *httptest.Server {
+	s := &server{t: t}
+	h := httptest.NewServer(s)
+	s.manifest = rewriteDownloadLocations(t, h.URL, manifest)
+	return h
 }
 
 // server represents an HTTP server serving GetEnvoy manifest.
 type server struct {
-	opts     *ServerOpts
+	t        *testing.T
 	manifest *api.Manifest
-	http     *httptest.Server
-}
-
-func (s *server) GetManifestURL() string {
-	return s.http.URL + "/getenvoy/manifest.json"
 }
 
 func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	handler := func(w http.ResponseWriter, r *http.Request) error {
-		switch {
-		case r.RequestURI == "/getenvoy/manifest.json":
-			payload, err := s.GetManifest()
-			if err != nil {
-				return err
-			}
-			w.WriteHeader(http.StatusOK)
-			_, err = w.Write(payload)
-			if err != nil {
-				return err
-			}
-		case strings.HasPrefix(r.RequestURI, "/getenvoy/builds/"):
-			uri := r.RequestURI[len("/getenvoy/builds/"):]
-			payload, err := s.GetArtifact(uri)
-			if err != nil {
-				return err
-			}
-			w.WriteHeader(http.StatusOK)
-			_, err = w.Write(payload)
-			if err != nil {
-				return err
-			}
-		default:
-			w.WriteHeader(http.StatusNotFound)
-		}
-		return nil
-	}
-	if err := handler(w, r); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-
-		s.opts.OnError(err)
+	switch {
+	case r.RequestURI == "/manifest.json":
+		w.WriteHeader(http.StatusOK)
+		_, err := w.Write(s.GetManifest())
+		require.NoError(s.t, err)
+	case strings.HasPrefix(r.RequestURI, "/builds/"):
+		uri := r.RequestURI[len("/builds/"):]
+		require.True(s.t, strings.HasSuffix(uri, archiveFormat),
+			"unexpected uri %q: expected archive suffix %q", uri, archiveFormat)
+		s.validateReference(uri)
+		w.WriteHeader(http.StatusOK)
+		writeFakeEnvoyTarGz(s.t, w)
+	default:
+		w.WriteHeader(http.StatusNotFound)
 	}
 }
 
-func (s *server) GetManifest() ([]byte, error) {
+func (s *server) validateReference(uri string) {
+	ref, err := types.ParseReference(uri)
+	require.NoError(s.t, err, "could not parse reference from uri %q", uri)
+	if ref.Flavor == "wasm" {
+		return // don't validate
+	}
+	require.Equal(s.t, "standard", ref.Flavor, "unsupported flavor in uri %q", uri)
+	ver, err := semver.NewVersion(ref.Version)
+	require.NoError(s.t, err, "could not parse version from uri %q", uri)
+	require.GreaterOrEqualf(s.t, uint64(1), ver.Major(), "unsupported major version in uri %q", uri)
+	require.GreaterOrEqualf(s.t, uint64(17), ver.Minor(), "unsupported minor version in uri %q", uri)
+}
+
+func (s *server) GetManifest() []byte {
 	data, err := protojson.Marshal(s.manifest)
-	if err != nil {
-		return nil, err
-	}
-	return data, nil
+	require.NoError(s.t, err)
+	return data
 }
 
-func (s *server) GetArtifact(uri string) ([]byte, error) {
-	if !strings.HasSuffix(uri, archiveFormat) {
-		return nil, fmt.Errorf("unexpected uri %q: expected archive suffix %q", uri, archiveFormat)
-	}
-	uri = uri[:len(uri)-len(archiveFormat)]
-	dir, err := s.opts.GetArtifactDir(uri)
-	if err != nil {
-		return nil, err
-	}
-	tmpDir, err := ioutil.TempDir("", "")
-	if err != nil {
-		return nil, err
-	}
-	defer os.RemoveAll(tmpDir) //nolint:errcheck
-	tarFile := filepath.Join(tmpDir, "archive"+archiveFormat)
-	err = archiver.Archive([]string{dir}, tarFile)
-	if err != nil {
-		return nil, err
-	}
-	return os.ReadFile(filepath.Clean(tarFile))
+// writeFakeEnvoyTarGz writes a tar.gz containing a "bin/envoy" that echos the commandline, output and stderr.
+// TODO: fake via exec.Run in unit tests because it is less complicated and error-prone than faking via shell scripts.
+func writeFakeEnvoyTarGz(t *testing.T, buf io.Writer) {
+	// Create script literal of $envoyHome/bin/envoy which copies the current directory to $envoyCapture when invoked.
+	// stdout and stderr are prefixed "envoy " to differentiate them from other command output, namely docker.
+	fakeEnvoy := []byte(`#!/bin/sh
+set -ue
+# Echo invocation context to stdout and fake stderr to ensure it is not combined into stdout.
+echo envoy wd: $PWD
+echo envoy bin: $0
+echo envoy args: $@
+echo >&2 envoy stderr
+`)
+	gw := gzip.NewWriter(buf)
+	defer gw.Close() // nolint
+	tw := tar.NewWriter(gw)
+	defer tw.Close() // nolint
+
+	err := tw.WriteHeader(&tar.Header{Name: "bin", Mode: 0750, Typeflag: tar.TypeDir})
+	require.NoError(t, err)
+	err = tw.WriteHeader(&tar.Header{Name: "bin/envoy", Mode: 0750, Size: int64(len(fakeEnvoy)), Typeflag: tar.TypeReg})
+	require.NoError(t, err)
+	_, err = tw.Write(fakeEnvoy)
+	require.NoError(t, err)
 }
 
-func (s *server) rewriteManifestURLs(manifest *api.Manifest) {
+func rewriteDownloadLocations(t *testing.T, baseURL string, m *api.Manifest) *api.Manifest {
+	manifest, ok := proto.Clone(m).(*api.Manifest) // safe copy
+	require.True(t, ok)
+
 	for _, flavor := range manifest.Flavors {
 		for _, version := range flavor.Versions {
 			for _, build := range version.Builds {
-				build.DownloadLocationUrl = fmt.Sprintf("%s/getenvoy/builds/%s%s", s.http.URL, build.DownloadLocationUrl, archiveFormat)
+				build.DownloadLocationUrl = fmt.Sprintf("%s/builds/%s%s", baseURL, build.DownloadLocationUrl, archiveFormat)
 			}
 		}
 	}
-}
-
-func (s *server) Close() {
-	s.http.Close()
+	return manifest
 }

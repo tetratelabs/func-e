@@ -99,7 +99,7 @@ func (f *Flavor) parseInputParams(params map[string]string) error {
 			}
 		case inportParam:
 			if !valid.IsInt(value) {
-				return fmt.Errorf("Value for templateArg %s must be integer number", param)
+				return fmt.Errorf("value for templateArg %s must be integer number", param)
 			}
 			f.InPort = value
 		default:
@@ -109,7 +109,7 @@ func (f *Flavor) parseInputParams(params map[string]string) error {
 
 	// Check if all required params have been found in the parameter list
 	if len(f.endpoints) == 0 {
-		return fmt.Errorf("Parameter endpoints must be specified")
+		return fmt.Errorf("parameter endpoints must be specified")
 	}
 
 	// Verify that all endpoints are of the same type:
@@ -117,7 +117,7 @@ func (f *Flavor) parseInputParams(params map[string]string) error {
 	clusterType := f.endpoints[0].IsIP
 	for _, singleEndpoint := range f.endpoints[1:] {
 		if singleEndpoint.IsIP != clusterType {
-			return fmt.Errorf("Endpoints must be of the same type type: IP addresses or hostnames")
+			return fmt.Errorf("endpoints must be of the same type type: IP addresses or hostnames")
 		}
 	}
 	return nil
@@ -142,7 +142,7 @@ func parseSingleEndpoint(endpoint string) (*clusterEndpoint, error) {
 			return nil, fmt.Errorf("%s endpoint has incorrect format. Should be endpoint[:port]", endpoint)
 		}
 		if !valid.IsInt(port) {
-			return nil, fmt.Errorf("Port value in endpoint:port must be integer not %s", port)
+			return nil, fmt.Errorf("port value in endpoint:port must be integer not %s", port)
 		}
 	} else {
 		host = parts[0]
@@ -185,13 +185,13 @@ func (f *Flavor) generateEndpointSetConfig() (string, error) {
 	if err != nil {
 		// Template is not supplied by a user, but is compiled-in, so this error should
 		// happen only during development time.
-		return "", fmt.Errorf("Cannot parse postgres endpoint template")
+		return "", fmt.Errorf("cannot parse postgres endpoint template")
 	}
 
 	for _, singleEndpoint := range f.endpoints {
 		err = tmpl.Execute(&buf, singleEndpoint)
 		if err != nil {
-			return "", fmt.Errorf("Cannot execute postgres endpoint template")
+			return "", fmt.Errorf("cannot execute postgres endpoint template")
 		}
 	}
 
@@ -211,11 +211,11 @@ func (f *Flavor) generateMainConfig() (string, error) {
 	if err != nil {
 		// Template is not supplied by a user, but is compiled-in, so this error should
 		// happen only during development time.
-		return "", fmt.Errorf("Cannot parse postgres main template")
+		return "", fmt.Errorf("cannot parse postgres main template")
 	}
 	err = tmpl.Execute(&buf, f)
 	if err != nil {
-		return "", fmt.Errorf("Cannot execute postgres main template")
+		return "", fmt.Errorf("cannot execute postgres main template")
 	}
 
 	return buf.String(), nil

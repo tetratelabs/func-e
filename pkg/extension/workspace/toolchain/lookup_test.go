@@ -68,10 +68,10 @@ func TestLoadToolchain(t *testing.T) {
 }
 
 func TestLoadToolchainCreatesDefaultWhenMissing(t *testing.T) {
-	outputDir, revertOutputDir := morerequire.RequireNewTempDir(t)
-	defer revertOutputDir()
+	extensionDir, removeExtensionDir := morerequire.RequireNewTempDir(t)
+	defer removeExtensionDir()
 
-	dir, err := fs.CreateWorkspaceDir(outputDir)
+	dir, err := fs.CreateExtensionDir(extensionDir)
 	require.NoError(t, err)
 
 	err = dir.WriteFile(model.DescriptorFile, []byte(fmt.Sprintf(`
@@ -89,7 +89,7 @@ runtime:
 `, reference.Latest)))
 	require.NoError(t, err)
 
-	workspace, err := workspaces.GetWorkspaceAt(outputDir)
+	workspace, err := workspaces.GetWorkspaceAt(extensionDir)
 	require.NoError(t, err)
 
 	builder, err := toolchains.LoadToolchain(toolchains.Default, workspace)

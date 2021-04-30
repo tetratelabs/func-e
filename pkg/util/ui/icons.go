@@ -51,18 +51,17 @@ var (
 	supportedIcons = icons{iconGood, iconWarn, iconBad}
 )
 
-// iconStyler returns a text/template function that knows how to style
-// a given set of icons.
-func iconStyler(icons icons) func(string) string {
+// iconStyler returns a text/template function that knows how to style a given set of icons.
+func iconStyler(icons icons, noColors bool) func(string) string {
 	index := icons.Index()
 	return func(name string) string {
 		icon, exists := index[name]
 		if !exists {
 			return fmt.Sprintf("icon(%s)", name)
 		}
-		if StylesEnabled {
-			return icon.rich
+		if noColors {
+			return icon.plain
 		}
-		return icon.plain
+		return icon.rich
 	}
 }

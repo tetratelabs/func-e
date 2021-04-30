@@ -17,6 +17,7 @@ package init
 import (
 	"fmt"
 	"io"
+	"text/template"
 
 	"github.com/spf13/cobra"
 
@@ -29,30 +30,31 @@ type feedback struct {
 	cmd        *cobra.Command
 	opts       *scaffold.ScaffoldOpts
 	usedWizard bool
+	styleFuncs template.FuncMap
 	w          io.Writer
 }
 
 func (f *feedback) OnStart() {
-	fmt.Fprintln(f.w, uiutil.Underline("Scaffolding a new extension:"))
-	fmt.Fprintln(f.w, uiutil.Style("Generating files in {{ . | faint }}:").Apply(f.opts.OutputDir))
+	fmt.Fprintln(f.w, uiutil.Underline(f.styleFuncs)("Scaffolding a new extension:"))
+	fmt.Fprintln(f.w, uiutil.Style(f.styleFuncs, "Generating files in {{ . | faint }}:")(f.opts.ExtensionDir))
 }
 
 func (f *feedback) OnFile(file string) {
-	fmt.Fprintln(f.w, uiutil.Style(`{{ icon "good" | green }} {{ . }}`).Apply(file))
+	fmt.Fprintln(f.w, uiutil.Style(f.styleFuncs, `{{ icon "good" | green }} {{ . }}`)(file))
 }
 
 func (f feedback) OnComplete() {
 	fmt.Fprintln(f.w, "Done!")
 	if f.usedWizard {
 		fmt.Fprintln(f.w)
-		fmt.Fprintln(f.w, uiutil.Style(`{{ . | underline | faint }}`).Apply("Hint:"))
-		fmt.Fprintln(f.w, uiutil.Faint("Next time you can skip the wizard by running"))
-		fmt.Fprintln(f.w, uiutil.Faint(
+		fmt.Fprintln(f.w, uiutil.Style(f.styleFuncs, `{{ . | underline | faint }}`)("Hint:"))
+		fmt.Fprintln(f.w, uiutil.Faint(f.styleFuncs)("Next time you can skip the wizard by running"))
+		fmt.Fprintln(f.w, uiutil.Faint(f.styleFuncs)(
 			fmt.Sprintf("  %s --category %s --language %s --name %s %s",
 				f.cmd.CommandPath(),
 				f.opts.Extension.Category,
 				f.opts.Extension.Language,
 				f.opts.Extension.Name,
-				f.opts.OutputDir)))
+				f.opts.ExtensionDir)))
 	}
 }

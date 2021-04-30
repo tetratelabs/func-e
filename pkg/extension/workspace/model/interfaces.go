@@ -24,7 +24,7 @@ import (
 // Workspace represents a workspace with an extension created by getenvoy toolkit.
 type Workspace interface {
 	// GetDir returns extension directory.
-	GetDir() fs.WorkspaceDir
+	GetDir() fs.ExtensionDir
 
 	// GetExtensionDescriptor returns extension descriptor.
 	GetExtensionDescriptor() *extension.Descriptor

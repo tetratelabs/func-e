@@ -16,91 +16,41 @@ package envoy
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
-	"net/http"
 	"os"
 	"os/exec"
-	"path/filepath"
 
-	"github.com/tetratelabs/log"
-
-	"github.com/tetratelabs/getenvoy/pkg/binary"
-	"github.com/tetratelabs/getenvoy/pkg/common"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 	ioutil "github.com/tetratelabs/getenvoy/pkg/util/io"
 )
 
-// RuntimeOption represents a configuration option to NewRuntime.
-type RuntimeOption func(*Runtime)
-
-// And returns a combined list of configuration options.
-func (o RuntimeOption) And(opts ...RuntimeOption) RuntimeOptions {
-	return o.AndAll(opts)
-}
-
-// AndAll returns a combined list of configuration options.
-func (o RuntimeOption) AndAll(opts RuntimeOptions) RuntimeOptions {
-	return RuntimeOptions{o}.And(opts...)
-}
-
-// RuntimeOptions represents a list of configuration options to NewRuntime.
-type RuntimeOptions []RuntimeOption
-
-// And returns a combined list of configuration options.
-func (o RuntimeOptions) And(opts ...RuntimeOption) RuntimeOptions {
-	return o.AndAll(opts)
-}
-
-// AndAll returns a combined list of configuration options.
-func (o RuntimeOptions) AndAll(opts RuntimeOptions) RuntimeOptions {
-	return append(o, opts...)
-}
-
-// NewRuntime creates a new Runtime with the local file storage set to the home directory
-func NewRuntime(options ...RuntimeOption) (binary.FetchRunner, error) {
-	local := common.HomeDir
-	runtime := &Runtime{
-		RootDir:         local,
-		fetcher:         fetcher{local},
-		TmplDir:         filepath.Join(local, "templates"),
-		preStart:        make([]func(binary.Runner) error, 0),
-		preTermination:  make([]func(binary.Runner) error, 0),
-		postTermination: make([]func(binary.Runner) error, 0),
-	}
-
-	if debugErr := runtime.initializeDebugStore(); debugErr != nil {
-		return nil, fmt.Errorf("unable to create directory to store debug information: %v", debugErr)
-	}
-
-	for _, option := range options {
-		option(runtime)
-	}
-	return runtime, nil
-}
-
-type fetcher struct {
-	store string
+// NewRuntime creates a new Runtime that runs envoy in globals.RunOpts WorkingDir
+// opts allows a user running envoy to control the working directory by ID or path, allowing explicit cleanup.
+func NewRuntime(opts *globals.RunOpts) *Runtime {
+	return &Runtime{opts: opts}
 }
 
 // Runtime manages an Envoy lifecycle including fetching (if necessary) and running
 type Runtime struct {
-	binary.FetchRunner
-	fetcher
+	opts *globals.RunOpts
 
-	RootDir  string
-	debugDir string
-	TmplDir  string
+	cmd *exec.Cmd
+	IO  ioutil.StdStreams
 
-	WorkingDir string
-	IO         ioutil.StdStreams
-
-	cmd                            *exec.Cmd
 	adminAddress, adminAddressPath string
-	fakeInterrupt                  context.CancelFunc
 
-	preStart, preTermination, postTermination []func(binary.Runner) error
+	// FakeInterrupt is exposed for unit tests to pretend "getenvoy run" received an interrupt or a ctrl-c.
+	// End-to-end tests should kill the getenvoy process to achieve the same.
+	FakeInterrupt context.CancelFunc
 
-	isReady bool
+	preStart, preTermination, postTermination []func() error
+}
+
+// GetWorkingDir returns the run-specific directory files can be written to.
+func (r *Runtime) GetWorkingDir() string {
+	return r.opts.WorkingDir
 }
 
 // GetAdminAddress returns the current admin address in host:port format, or empty if not yet available.
@@ -120,67 +70,10 @@ func (r *Runtime) GetAdminAddress() (string, error) {
 	return r.adminAddress, nil
 }
 
-// Status indicates the state of the child process
-func (r *Runtime) Status() int {
-	switch {
-	case r.cmd == nil, r.cmd.Process == nil:
-		return binary.StatusStarting
-	case r.cmd.ProcessState == nil: // the process started, but it hasn't completed, yet
-		// TODO: envoyReady() can succeed when there's a port collision even when the process managed by this
-		// runtime dies. We should consider checking for conflict on admin port_value when non-zero
-		if status, err := r.envoyReady(); err == nil {
-			return status
-		}
-		return binary.StatusStarted
-	default:
-		return binary.StatusTerminated
-	}
-}
-
 // GetPid returns the pid of the child process
 func (r *Runtime) GetPid() (int, error) {
 	if r.cmd == nil || r.cmd.Process == nil {
-		return 0, fmt.Errorf("envoy process not yet started")
+		return 0, errors.New("envoy process not yet started")
 	}
 	return r.cmd.Process.Pid, nil
-}
-
-// envoyReady reads the HTTP status from the /ready endpoint and returns binary.StatusReady on 200 or
-// binary.StatusInitializing on 503.
-func (r *Runtime) envoyReady() (int, error) {
-	adminAddress, err := r.GetAdminAddress()
-	if err != nil { // don't yet have an admin address
-		log.Debugf("%v", err) // don't fill logs
-		return binary.StatusInitializing, nil
-	}
-
-	// Once we have seen its ready once stop spamming the ready endpoint.
-	// If we expand the interface to support ready <-> not ready then
-	// this approach will be wrong but as the states are monotonic this is good enough for now
-	if r.isReady {
-		return binary.StatusReady, nil
-	}
-	resp, err := http.Get(fmt.Sprintf("http://%s/ready", adminAddress))
-	if err != nil {
-		return 0, err
-	}
-	defer resp.Body.Close() //nolint
-	switch resp.StatusCode {
-	case http.StatusOK:
-		r.isReady = true
-		return binary.StatusReady, nil
-	case http.StatusServiceUnavailable:
-		return binary.StatusInitializing, nil
-	default:
-		return 0, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	}
-}
-
-// FakeInterrupt is exposed for unit tests to pretend "getenvoy run" received an interrupt or a ctrl-c. End-to-end
-// tests should kill the getenvoy process to achieve the same.
-func (r *Runtime) FakeInterrupt() {
-	fakeInterrupt := r.fakeInterrupt
-	if fakeInterrupt != nil {
-		fakeInterrupt()
-	}
 }

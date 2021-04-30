@@ -15,10 +15,9 @@
 package init
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
-
-	"github.com/pkg/errors"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 )
@@ -40,7 +39,7 @@ func NewExtension(category, language string) (*extension.Descriptor, error) {
 }
 
 // GenerateExtensionName generates an extension name.
-func GenerateExtensionName(category extension.Category, outputDir string) string {
+func GenerateExtensionName(category extension.Category, extensionDir string) string {
 	kind := func(category extension.Category) string {
 		switch category {
 		case extension.EnvoyHTTPFilter:
@@ -51,16 +50,11 @@ func GenerateExtensionName(category extension.Category, outputDir string) string
 			return "access_loggers"
 		default:
 			// must be caught by unit tests
-			panic(errors.Errorf("unknown extension category %q", category))
+			panic(fmt.Errorf("unknown extension category %q", category))
 		}
 	}
 	segments := []string{"mycompany"}
 	segments = append(segments, strings.Split(kind(category), ".")...)
-	segments = append(segments, filepath.Base(outputDir))
+	segments = append(segments, filepath.Base(extensionDir))
 	return extension.SanitizeExtensionName(segments...)
-}
-
-// NormalizeOutputPath returns a normalized version of a given path.
-func NormalizeOutputPath(path string) (string, error) {
-	return filepath.Abs(path)
 }

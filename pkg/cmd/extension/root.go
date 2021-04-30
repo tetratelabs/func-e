@@ -23,35 +23,34 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/build"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/clean"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/example"
-	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/globals"
 	scaffold "github.com/tetratelabs/getenvoy/pkg/cmd/extension/init"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/push"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/run"
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/test"
-	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
-	uiutil "github.com/tetratelabs/getenvoy/pkg/util/ui"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 )
 
 // NewCmd returns a command that aggregates all extension-related commands.
-func NewCmd() *cobra.Command {
+func NewCmd(o *globals.GlobalOpts) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "extension",
 		Short: "Delve into Envoy extensions.",
 		Long:  `Explore ready-to-use Envoy extensions or develop a new one.`,
-		PersistentPreRunE: cmdutil.CallParentPersistentPreRunE().Then(func(*cobra.Command, []string) {
-			uiutil.StylesEnabled = !globals.NoColors
-		}),
 	}
-	cmd.AddCommand(scaffold.NewCmd())
-	cmd.AddCommand(build.NewCmd())
-	cmd.AddCommand(test.NewCmd())
-	cmd.AddCommand(clean.NewCmd())
-	cmd.AddCommand(example.NewCmd())
-	cmd.AddCommand(run.NewCmd())
-	cmd.AddCommand(push.NewCmd())
-	cmd.PersistentFlags().BoolVar(&globals.NoPrompt, "no-prompt", noPromptDefault(),
-		"disable automatic switching into interactive mode whenever a parameter is missing or not valid")
-	cmd.PersistentFlags().BoolVar(&globals.NoColors, "no-colors", noColorsDefault(), "disable colored output")
+	cmd.AddCommand(scaffold.NewCmd(o))
+	cmd.AddCommand(build.NewCmd(o))
+	cmd.AddCommand(test.NewCmd(o))
+	cmd.AddCommand(clean.NewCmd(o))
+	cmd.AddCommand(example.NewCmd(o))
+	cmd.AddCommand(run.NewCmd(o))
+	cmd.AddCommand(push.NewCmd(o))
+	if !o.NoWizard { // not overridden for tests
+		cmd.PersistentFlags().BoolVar(&o.NoWizard, "no-prompt", noPromptDefault(),
+			"disable automatic switching into interactive mode whenever a parameter is missing or not valid")
+	}
+	if !o.NoColors { // not overridden for tests
+		cmd.PersistentFlags().BoolVar(&o.NoColors, "no-colors", noColorsDefault(), "disable colored output")
+	}
 	return cmd
 }
 

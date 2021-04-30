@@ -19,18 +19,23 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
 
 // NewListCmd returns command that lists available Envoy binaries
-func NewListCmd() *cobra.Command {
+func NewListCmd(o *globals.GlobalOpts) *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
 		Short: "List available Envoys provided by GetEnvoy.",
 		Long: `
 Retrieves a list of Envoy builds provided by GetEnvoy.`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return manifest.Print(os.Stdout)
+			m, err := manifest.FetchManifest(o.ManifestURL)
+			if err != nil {
+				return err
+			}
+			return manifest.Print(m, os.Stdout)
 		},
 	}
 }

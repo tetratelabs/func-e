@@ -177,9 +177,8 @@ api: api/manifest.proto $(BUF) $(PROTOC_GEN_GO)
 
 LINT_OPTS ?= --timeout 5m
 .PHONY: lint
-lint: $(GOLANGCI_LINT) $(SHFMT) $(LICENSER) .golangci.yml  ## Run the linters
+lint: $(GOLANGCI_LINT) $(LICENSER) .golangci.yml  ## Run the linters
 	@echo "--- lint ---"
-	@$(SHFMT) -d .
 	@$(LICENSER) verify -r .
 # We skip tinygo templates which will fail lint. Since skip-dirs does not apply to go modules, we externally filter.
 # See https://github.com/golangci/golangci-lint/issues/301#issuecomment-441311986 for explanation.
@@ -188,9 +187,8 @@ lint: $(GOLANGCI_LINT) $(SHFMT) $(LICENSER) .golangci.yml  ## Run the linters
 # The goimports tool does not arrange imports in 3 blocks if there are already more than three blocks.
 # To avoid that, before running it, we collapse all imports in one block, then run the formatter.
 .PHONY: format
-format: $(GOIMPORTS) $(SHFMT) ## Format all Go code
+format: $(GOIMPORTS) ## Format all Go code
 	@echo "--- format ---"
-	@$(SHFMT) -w .
 	@$(LICENSER) apply -r "Tetrate"
 	@find . -type f -name '*.go' | xargs gofmt -s -w
 	@for f in `find . -name '*.go'`; do \

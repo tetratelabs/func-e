@@ -24,24 +24,24 @@ import (
 
 func TestGenerateExtensionName(t *testing.T) {
 	tests := []struct {
-		category  extension.Category
-		outputDir string
-		expected  string
+		category     extension.Category
+		ExtensionDir string
+		expected     string
 	}{
 		{
-			category:  extension.EnvoyHTTPFilter,
-			outputDir: `My-Ext3nsi0n.com`,
-			expected:  `mycompany.filters.http.my_ext3nsi0n_com`,
+			category:     extension.EnvoyHTTPFilter,
+			ExtensionDir: `My-Ext3nsi0n.com`,
+			expected:     `mycompany.filters.http.my_ext3nsi0n_com`,
 		},
 		{
-			category:  extension.EnvoyNetworkFilter,
-			outputDir: `My-Ext3nsi0n.com`,
-			expected:  `mycompany.filters.network.my_ext3nsi0n_com`,
+			category:     extension.EnvoyNetworkFilter,
+			ExtensionDir: `My-Ext3nsi0n.com`,
+			expected:     `mycompany.filters.network.my_ext3nsi0n_com`,
 		},
 		{
-			category:  extension.EnvoyAccessLogger,
-			outputDir: `My-Ext3nsi0n.com`,
-			expected:  `mycompany.access_loggers.my_ext3nsi0n_com`,
+			category:     extension.EnvoyAccessLogger,
+			ExtensionDir: `My-Ext3nsi0n.com`,
+			expected:     `mycompany.access_loggers.my_ext3nsi0n_com`,
 		},
 	}
 
@@ -49,7 +49,7 @@ func TestGenerateExtensionName(t *testing.T) {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.category.String(), func(t *testing.T) {
-			actual := GenerateExtensionName(test.category, test.outputDir)
+			actual := GenerateExtensionName(test.category, test.ExtensionDir)
 			require.Equal(t, test.expected, actual)
 		})
 	}
@@ -57,6 +57,6 @@ func TestGenerateExtensionName(t *testing.T) {
 
 func TestGenerateExtensionNamePanicsOnUnknownCategory(t *testing.T) {
 	require.PanicsWithError(t, `unknown extension category "my-category"`, func() {
-		_ = GenerateExtensionName(`my-category`, `outputDir`)
+		_ = GenerateExtensionName(`my-category`, `ExtensionDir`)
 	})
 }

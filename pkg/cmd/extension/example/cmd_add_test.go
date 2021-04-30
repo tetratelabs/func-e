@@ -22,9 +22,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	rootcmd "github.com/tetratelabs/getenvoy/pkg/cmd"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 	"github.com/tetratelabs/getenvoy/pkg/test/cmd"
-	. "github.com/tetratelabs/getenvoy/pkg/test/morerequire"
-	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
+	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
 func TestGetEnvoyExtensionExamplesAddValidateFlag(t *testing.T) {
@@ -37,7 +38,7 @@ func TestGetEnvoyExtensionExamplesAddValidateFlag(t *testing.T) {
 	tests := []testCase{
 		{
 			name:        "--name with invalid value",
-			args:        []string{"--name", "my:example"},
+			args:        []string{"extension", "examples", "add", "--name", "my:example"},
 			expectedErr: `"my:example" is not a valid example name. Example name must match the format "^[a-z0-9._-]+$". E.g., 'my.example', 'my-example' or 'my_example'`,
 		},
 	}
@@ -47,9 +48,10 @@ func TestGetEnvoyExtensionExamplesAddValidateFlag(t *testing.T) {
 
 		t.Run(test.name, func(t *testing.T) {
 			// Run "getenvoy extension examples add" with the args we are testing
-			c, stdout, stderr := cmd.NewRootCommand()
-			c.SetArgs(append([]string{"extension", "examples", "add"}, test.args...))
-			err := cmdutil.Execute(c)
+			c, stdout, stderr := cmd.NewRootCommand(&globals.GlobalOpts{})
+			c.SetArgs(test.args)
+
+			err := rootcmd.Execute(c)
 			require.EqualError(t, err, test.expectedErr, `expected an error running [%v]`, c)
 
 			// Verify the command failed with the expected error
@@ -60,18 +62,17 @@ func TestGetEnvoyExtensionExamplesAddValidateFlag(t *testing.T) {
 	}
 }
 
-func TestGetEnvoyExtensionExamplesAddFailsOutsideWorkspaceDirectory(t *testing.T) {
+func TestGetEnvoyExtensionExamplesAddFailsOutsideExtensionDirectory(t *testing.T) {
 	// Change to a non-workspace dir
-	dir, revertWd := RequireChDir(t, relativeRustWorkspaceDirWithOneExample+"/..")
-	defer revertWd()
+	o := &globals.GlobalOpts{ExtensionDir: morerequire.RequireAbs(t, relativeRustExtensionDirWithOneExample+"/..")}
 
 	// Run "getenvoy extension examples add"
-	c, stdout, stderr := cmd.NewRootCommand()
+	c, stdout, stderr := cmd.NewRootCommand(o)
 	c.SetArgs([]string{"extension", "examples", "add"})
-	err := cmdutil.Execute(c)
+	err := rootcmd.Execute(c)
 
 	// Verify the command failed with the expected error
-	expectedErr := "there is no extension directory at or above: " + dir
+	expectedErr := fmt.Sprintf("not an extension directory %q", o.ExtensionDir)
 	require.EqualError(t, err, expectedErr, `expected an error running [%v]`, c)
 	require.Empty(t, stdout.String(), `expected no stdout running [%v]`, c)
 	expectedStderr := fmt.Sprintf("Error: %s\n\nRun 'getenvoy extension examples add --help' for usage.\n", expectedErr)
@@ -79,13 +80,12 @@ func TestGetEnvoyExtensionExamplesAddFailsOutsideWorkspaceDirectory(t *testing.T
 }
 
 func TestGetEnvoyExtensionExamplesAddFailsWhenExampleExists(t *testing.T) {
-	_, revertWd := RequireChDir(t, relativeRustWorkspaceDirWithOneExample)
-	defer revertWd()
+	o := &globals.GlobalOpts{ExtensionDir: morerequire.RequireAbs(t, relativeRustExtensionDirWithOneExample)}
 
 	// Run "getenvoy extension examples add"
-	c, stdout, stderr := cmd.NewRootCommand()
+	c, stdout, stderr := cmd.NewRootCommand(o)
 	c.SetArgs([]string{"extension", "examples", "add"})
-	err := cmdutil.Execute(c)
+	err := rootcmd.Execute(c)
 
 	// Verify the command failed with the expected error
 	expectedErr := `example setup "default" already exists`
@@ -107,21 +107,21 @@ func TestGetEnvoyExtensionExamplesAdd(t *testing.T) {
 	tests := []testCase{
 		{
 			name:                   `rust workspace`,
-			templateWorkspace:      relativeRustWorkspaceDirWithNoExample,
+			templateWorkspace:      relativeRustExtensionDirWithNoExample,
 			args:                   []string{"--name", "test-example"},
 			expectedName:           `test-example`,
 			expectedConfigFileName: `extension.json`,
 		},
 		{
 			name:                   `tinygo workspace`,
-			templateWorkspace:      relativeTinyGoWorkspaceDirWithNoExample,
+			templateWorkspace:      relativeTinyGoExtensionDirWithNoExample,
 			args:                   []string{"--name", "test-example"},
 			expectedName:           `test-example`,
 			expectedConfigFileName: `extension.txt`,
 		},
 		{
 			name:                   `--name defaults to "default"`,
-			templateWorkspace:      relativeTinyGoWorkspaceDirWithNoExample,
+			templateWorkspace:      relativeTinyGoExtensionDirWithNoExample,
 			args:                   []string{},
 			expectedName:           `default`,
 			expectedConfigFileName: `extension.txt`,
@@ -133,17 +133,16 @@ func TestGetEnvoyExtensionExamplesAdd(t *testing.T) {
 
 		t.Run(test.name, func(t *testing.T) {
 			// Copy the workspace as this test will delete it, and we don't want to mutate our test data!
-			workspaceDir, revertWorkspaceDir := RequireCopyOfDir(t, test.templateWorkspace)
-			defer revertWorkspaceDir()
+			extensionDir, removeExtensionDir := morerequire.RequireCopyOfDir(t, test.templateWorkspace)
+			defer removeExtensionDir()
 
-			// "getenvoy extension examples add" must be in a valid workspace directory
-			_, revertWd := RequireChDir(t, workspaceDir)
-			defer revertWd()
+			// "getenvoy extension examples add" must be in a valid extension directory
+			o := &globals.GlobalOpts{ExtensionDir: extensionDir}
 
 			// Run "getenvoy extension examples add"
-			c, stdout, stderr := cmd.NewRootCommand()
+			c, stdout, stderr := cmd.NewRootCommand(o)
 			c.SetArgs(append([]string{"extension", "examples", "add"}, test.args...))
-			err := cmdutil.Execute(c)
+			err := rootcmd.Execute(c)
 
 			exampleDir := filepath.Join(`.getenvoy`, `extension`, `examples`, test.expectedName)
 
@@ -159,7 +158,7 @@ Done!
 `, exampleDir, test.expectedConfigFileName), stderr.String(), `unexpected stderr running [%v]`, c)
 
 			// Get the absolute path
-			exampleDir = filepath.Join(workspaceDir, exampleDir)
+			exampleDir = filepath.Join(extensionDir, exampleDir)
 
 			// Verify the files actually exist.
 			for _, p := range []string{

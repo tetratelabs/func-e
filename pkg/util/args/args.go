@@ -15,8 +15,9 @@
 package args
 
 import (
+	"fmt"
+
 	"github.com/mattn/go-shellwords"
-	"github.com/pkg/errors"
 )
 
 // SplitCommandLine splits fragments of a command line down to individual arguments.
@@ -25,7 +26,7 @@ func SplitCommandLine(fragments ...string) ([]string, error) {
 	for _, fragment := range fragments {
 		words, err := shellwords.Parse(fragment)
 		if err != nil {
-			return nil, errors.Errorf("%q is not a valid command line string", fragment)
+			return nil, fmt.Errorf("%q is not a valid command line string", fragment)
 		}
 		args = append(args, words...)
 	}

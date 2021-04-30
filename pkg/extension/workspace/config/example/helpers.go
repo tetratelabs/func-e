@@ -15,7 +15,8 @@
 package example
 
 import (
-	"github.com/pkg/errors"
+	"fmt"
+
 	"github.com/tetratelabs/multierror"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config"
@@ -38,7 +39,7 @@ func (d *Descriptor) Default() {
 // Validate returns an error if Descriptor is not valid.
 func (d *Descriptor) Validate() (errs error) {
 	if err := d.Runtime.Validate(); err != nil {
-		errs = multierror.Append(errs, errors.Wrap(err, "runtime configuration is not valid"))
+		errs = multierror.Append(errs, fmt.Errorf("runtime configuration is not valid: %w", err))
 	}
 	return
 }
@@ -49,7 +50,7 @@ func (r *Runtime) Validate() (errs error) {
 		return
 	}
 	if err := r.Envoy.Validate(); err != nil {
-		errs = multierror.Append(errs, errors.Wrap(err, "Envoy configuration is not valid"))
+		errs = multierror.Append(errs, fmt.Errorf("envoy configuration is not valid: %w", err))
 	}
 	return
 }
@@ -61,7 +62,7 @@ func (r *EnvoyRuntime) Validate() (errs error) {
 	}
 	if r.Version != "" {
 		if _, err := types.ParseReference(r.Version); err != nil {
-			errs = multierror.Append(errs, errors.Wrap(err, "Envoy version is not valid"))
+			errs = multierror.Append(errs, fmt.Errorf("envoy version is not valid: %w", err))
 		}
 	}
 	return

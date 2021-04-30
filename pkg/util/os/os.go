@@ -15,18 +15,13 @@
 package os
 
 import (
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
 
-	"github.com/pkg/errors"
 	"github.com/tetratelabs/multierror"
 )
-
-// EnsureDirExists makes sure a given directory exists.
-func EnsureDirExists(name string) error {
-	return os.MkdirAll(name, os.ModeDir|0755)
-}
 
 // IsEmptyDir checks whether a given directory is empty.
 func IsEmptyDir(name string) (empty bool, errs error) {
@@ -54,21 +49,6 @@ func IsRegularFile(name string) error {
 	}
 	if info.IsDir() {
 		return errors.New("there is a directory at a given path instead of a regular file")
-	}
-	return nil
-}
-
-// IsExecutable returns an error if there is no executable file at a given path.
-func IsExecutable(name string) error {
-	info, err := os.Stat(name)
-	if err != nil {
-		return err
-	}
-	if info.IsDir() {
-		return errors.New("there is a directory at a given path instead of a regular file")
-	}
-	if info.Mode()&0111 == 0 {
-		return errors.New("file is not executable")
 	}
 	return nil
 }

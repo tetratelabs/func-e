@@ -52,11 +52,7 @@ jobs:
         run: make check
 
       - name: "Run unit tests"
-        # Prefetch envoy to avoid latency during "go test" which contributes to timeouts.
-        # This version must align with pkg/binary/envoytest/util.go
-        run: |
-          go run cmd/getenvoy/main.go fetch $(cat pkg/reference.txt)
-          make test
+        run: make test
 
       - name: "Generate test coverage report"
         if: runner.os == 'Linux'  # no need to do this per operating system

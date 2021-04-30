@@ -20,23 +20,23 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	rootcmd "github.com/tetratelabs/getenvoy/pkg/cmd"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 	"github.com/tetratelabs/getenvoy/pkg/test/cmd"
-	. "github.com/tetratelabs/getenvoy/pkg/test/morerequire"
-	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
+	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
-func TestGetEnvoyExtensionExamplesListFailsOutsideWorkspaceDirectory(t *testing.T) {
+func TestGetEnvoyExtensionExamplesListFailsOutsideExtensionDirectory(t *testing.T) {
 	// Change to a non-workspace dir
-	dir, revertWd := RequireChDir(t, relativeRustWorkspaceDirWithOneExample+"/..")
-	defer revertWd()
+	o := &globals.GlobalOpts{ExtensionDir: morerequire.RequireAbs(t, relativeRustExtensionDirWithOneExample+"/..")}
 
 	// Run "getenvoy extension examples list"
-	c, stdout, stderr := cmd.NewRootCommand()
+	c, stdout, stderr := cmd.NewRootCommand(o)
 	c.SetArgs([]string{"extension", "examples", "list"})
-	err := cmdutil.Execute(c)
+	err := rootcmd.Execute(c)
 
 	// Verify the command failed with the expected error
-	expectedErr := "there is no extension directory at or above: " + dir
+	expectedErr := fmt.Sprintf("not an extension directory %q", o.ExtensionDir)
 	require.EqualError(t, err, expectedErr, `expected an error running [%v]`, c)
 	require.Empty(t, stdout.String(), `expected no stdout running [%v]`, c)
 	expectedStderr := fmt.Sprintf("Error: %s\n\nRun 'getenvoy extension examples list --help' for usage.\n", expectedErr)
@@ -44,14 +44,13 @@ func TestGetEnvoyExtensionExamplesListFailsOutsideWorkspaceDirectory(t *testing.
 }
 
 func TestGetEnvoyExtensionExamplesListNone(t *testing.T) {
-	// "getenvoy extension examples list" must be in a valid workspace directory
-	_, revertWd := RequireChDir(t, relativeTinyGoWorkspaceDirWithNoExample)
-	defer revertWd()
+	// "getenvoy extension examples list" must be in a valid extension directory
+	o := &globals.GlobalOpts{ExtensionDir: morerequire.RequireAbs(t, relativeTinyGoExtensionDirWithNoExample)}
 
 	// Run "getenvoy extension examples list"
-	c, stdout, stderr := cmd.NewRootCommand()
+	c, stdout, stderr := cmd.NewRootCommand(o)
 	c.SetArgs([]string{"extension", "examples", "list"})
-	err := cmdutil.Execute(c)
+	err := rootcmd.Execute(c)
 
 	// Verify lack of examples on list is a warning. not an error.
 	require.NoError(t, err, `expected no error running [%v]`, c)
@@ -63,14 +62,13 @@ Use "getenvoy extension examples add --help" for more information on how to add 
 }
 
 func TestGetEnvoyExtensionExamplesListOne(t *testing.T) {
-	// "getenvoy extension examples list" must be in a valid workspace directory
-	_, revertWd := RequireChDir(t, relativeRustWorkspaceDirWithOneExample)
-	defer revertWd()
+	// "getenvoy extension examples list" must be in a valid extension directory
+	o := &globals.GlobalOpts{ExtensionDir: morerequire.RequireAbs(t, relativeRustExtensionDirWithOneExample)}
 
 	// Run "getenvoy extension examples list"
-	c, stdout, stderr := cmd.NewRootCommand()
+	c, stdout, stderr := cmd.NewRootCommand(o)
 	c.SetArgs([]string{"extension", "examples", "list"})
-	err := cmdutil.Execute(c)
+	err := rootcmd.Execute(c)
 
 	// Verify the simple name of each example ended up in stdout
 	require.NoError(t, err, `expected no error running [%v]`, c)
@@ -81,14 +79,13 @@ default
 }
 
 func TestGetEnvoyExtensionExamplesListTwo(t *testing.T) {
-	// "getenvoy extension examples list" must be in a valid workspace directory
-	_, revertWd := RequireChDir(t, relativeWorkspaceDirWithTwoExamples)
-	defer revertWd()
+	// "getenvoy extension examples list" must be in a valid extension directory
+	o := &globals.GlobalOpts{ExtensionDir: morerequire.RequireAbs(t, relativeExtensionDirWithTwoExamples)}
 
 	// Run "getenvoy extension examples list"
-	c, stdout, stderr := cmd.NewRootCommand()
+	c, stdout, stderr := cmd.NewRootCommand(o)
 	c.SetArgs([]string{"extension", "examples", "list"})
-	err := cmdutil.Execute(c)
+	err := rootcmd.Execute(c)
 
 	// Verify the simple name of each example ended up in stdout
 	require.NoError(t, err, `expected no error running [%v]`, c)

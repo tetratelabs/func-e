@@ -18,8 +18,7 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 )
 
-// Extension represents a single extension, either developed locally or
-// downloaded from a remote regitry.
+// Extension represents a single extension, either developed locally or downloaded from a remote registry.
 type Extension interface {
 	GetDescriptor() *extension.Descriptor
 	GetWasmFile() string

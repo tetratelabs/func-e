@@ -25,7 +25,7 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/extension/wasmimage"
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/example/runtime"
-	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 )
 
 // cmdOpts represents configuration options of the `push` command.
@@ -39,17 +39,6 @@ type cmdOpts struct {
 	plainHTTP     bool
 }
 
-func newCmdOpts() *cmdOpts {
-	return &cmdOpts{
-		toolchain: common.ToolchainOpts{
-			Name: toolchain.Default,
-		},
-		extension:     runtime.ExtensionOpts{},
-		allowInsecure: false,
-		plainHTTP:     false,
-	}
-}
-
 func (opts *cmdOpts) GetToolchainName() string {
 	return opts.toolchain.Name
 }
@@ -61,8 +50,14 @@ func (opts *cmdOpts) Validate() error {
 }
 
 // NewCmd returns a command that pushes the built extension.
-func NewCmd() *cobra.Command {
-	opts := newCmdOpts()
+func NewCmd(o *globals.GlobalOpts) *cobra.Command {
+	opts := &cmdOpts{
+		toolchain:     common.NewToolchainOpts(o),
+		extension:     runtime.ExtensionOpts{},
+		allowInsecure: false,
+		plainHTTP:     false,
+	}
+
 	cmd := &cobra.Command{
 		Use:   "push <image-reference>",
 		Short: "Push the built WASM extension to the OCI-compliant registry.",
@@ -85,7 +80,7 @@ Push the built WASM extension to the OCI-compliant registry. This command requir
 		RunE: func(cmd *cobra.Command, args []string) error {
 			imagePath := opts.extension.WasmFile
 			if imagePath == "" {
-				ws, err := workspaces.GetCurrentWorkspace()
+				ws, err := workspaces.GetWorkspaceAt(o.ExtensionDir)
 				if err != nil {
 					return err
 				}

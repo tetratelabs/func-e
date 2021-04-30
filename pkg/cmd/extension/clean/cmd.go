@@ -15,13 +15,15 @@
 package clean // nolint:dupl
 
 import (
-	"github.com/pkg/errors"
+	"fmt"
+
 	"github.com/spf13/cobra"
 
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/common"
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
 	builtinconfig "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/toolchain/builtin"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain/types"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 )
 
@@ -41,15 +43,10 @@ func (opts *cmdOpts) ApplyTo(config interface{}) {
 	}
 }
 
-func newCmdOpts() *cmdOpts {
-	return &cmdOpts{
-		Toolchain: common.NewToolchainOpts(),
-	}
-}
-
 // NewCmd returns a command that cleans build directory of the extension.
-func NewCmd() *cobra.Command {
-	opts := newCmdOpts()
+func NewCmd(o *globals.GlobalOpts) *cobra.Command {
+	opts := &cmdOpts{Toolchain: common.NewToolchainOpts(o)}
+
 	cmd := &cobra.Command{
 		Use:   "clean",
 		Short: "Clean build directory of Envoy extension.",
@@ -70,7 +67,7 @@ Clean build directory of Envoy extension.`,
 			return opts.Toolchain.Validate()
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			workspace, err := workspaces.GetCurrentWorkspace()
+			workspace, err := workspaces.GetWorkspaceAt(o.ExtensionDir)
 			if err != nil {
 				return err
 			}
@@ -82,7 +79,7 @@ Clean build directory of Envoy extension.`,
 				IO: cmdutil.StreamsOf(cmd),
 			})
 			if err != nil {
-				return errors.Wrapf(err, "failed to clean build directory of Envoy extension using %q toolchain", opts.Toolchain.Name)
+				return fmt.Errorf("failed to clean build directory of Envoy extension using %q toolchain: %w", opts.Toolchain.Name, err)
 			}
 			return nil
 		},

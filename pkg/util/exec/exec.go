@@ -24,7 +24,6 @@ import (
 
 	"github.com/tetratelabs/log"
 
-	commonerrors "github.com/tetratelabs/getenvoy/pkg/errors"
 	ioutil "github.com/tetratelabs/getenvoy/pkg/util/io"
 	osutil "github.com/tetratelabs/getenvoy/pkg/util/os"
 )
@@ -65,6 +64,20 @@ func (e *RunError) Cause() error {
 
 func (e *RunError) Error() string {
 	return fmt.Sprintf("failed to execute an external command %q: %v", e.Cmd(), e.Cause())
+}
+
+func newShutdownError(signal os.Signal) ShutdownError {
+	return ShutdownError{signal: signal}
+}
+
+// ShutdownError represents an error caused by a shutdown signal.
+type ShutdownError struct {
+	signal os.Signal
+}
+
+// Error returns the error message.
+func (e ShutdownError) Error() string {
+	return fmt.Sprintf("Shutting down early because a Ctrl-C (%q) was received.", e.signal)
 }
 
 // Run executes a given command.
@@ -113,7 +126,7 @@ func Run(cmd *exec.Cmd, streams ioutil.StdStreams) error {
 		return nil
 	case sig := <-stopCh:
 		terminate(cmd, errCh)
-		return commonerrors.NewShutdownError(sig)
+		return newShutdownError(sig)
 	}
 }
 

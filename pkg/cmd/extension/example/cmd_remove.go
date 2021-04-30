@@ -21,10 +21,12 @@ import (
 
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
+	uiutil "github.com/tetratelabs/getenvoy/pkg/util/ui"
 )
 
 // NewRemoveCmd returns a command that removes an existing example setup.
-func NewRemoveCmd() *cobra.Command {
+func NewRemoveCmd(o *globals.GlobalOpts) *cobra.Command {
 	name := ""
 	cmd := &cobra.Command{
 		Use:   "remove",
@@ -39,7 +41,7 @@ Remove example setup.`,
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// find workspace
-			workspace, err := workspaces.GetCurrentWorkspace()
+			workspace, err := workspaces.GetWorkspaceAt(o.ExtensionDir)
 			if err != nil {
 				return err
 			}
@@ -57,7 +59,8 @@ Use "getenvoy extension examples list" to list existing example setups.
 				return nil
 			}
 			// remove the example
-			return workspace.RemoveExample(name, model.ProgressSink{ProgressSink: NewRemoveExampleFeedback(cmd)})
+			progressSink := NewRemoveExampleFeedback(uiutil.NewStyleFuncs(o.NoColors), cmd.ErrOrStderr())
+			return workspace.RemoveExample(name, model.ProgressSink{ProgressSink: progressSink})
 		},
 	}
 	cmd.PersistentFlags().StringVar(&name, "name", name, `Example name, e.g. "default", "advanced", "grpc-web", etc`)

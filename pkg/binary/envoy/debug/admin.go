@@ -15,7 +15,6 @@
 package debug
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -24,7 +23,6 @@ import (
 
 	"github.com/tetratelabs/multierror"
 
-	"github.com/tetratelabs/getenvoy/pkg/binary"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 )
 
@@ -42,16 +40,17 @@ var adminAPIPaths = map[string]string{
 
 // EnableEnvoyAdminDataCollection is a preset option that registers collection of Envoy Admin API information
 func EnableEnvoyAdminDataCollection(r *envoy.Runtime) {
-	r.RegisterPreTermination(retrieveAdminAPIData)
+	e := envoyAdminDataCollection{r.GetAdminAddress, r.GetWorkingDir()}
+	r.RegisterPreTermination(e.retrieveAdminAPIData)
 }
 
-func retrieveAdminAPIData(r binary.Runner) error {
-	// Type assert as we're using Envoy specific debugging (admin endpoint)
-	e, ok := r.(*envoy.Runtime)
-	if !ok {
-		return errors.New("binary.Runner is not an Envoy runtime")
-	}
-	adminAddress, err := e.GetAdminAddress()
+type envoyAdminDataCollection struct {
+	getAdminAddress func() (string, error)
+	workingDir      string
+}
+
+func (e *envoyAdminDataCollection) retrieveAdminAPIData() error {
+	adminAddress, err := e.getAdminAddress()
 	if err != nil {
 		return fmt.Errorf("unable to capture Envoy configuration and metrics: %w", err)
 	}
@@ -66,8 +65,8 @@ func retrieveAdminAPIData(r binary.Runner) error {
 			multiErr = multierror.Append(multiErr, fmt.Errorf("received %v from /%v ", resp.StatusCode, path))
 			continue
 		}
-		// #nosec -> r.DebugStore() is allowed to be anywhere
-		f, err := os.OpenFile(filepath.Join(r.DebugStore(), file), os.O_CREATE|os.O_WRONLY, 0600)
+		// #nosec -> r.GetWorkingDir() is allowed to be anywhere
+		f, err := os.OpenFile(filepath.Join(e.workingDir, file), os.O_CREATE|os.O_WRONLY, 0600)
 		if err != nil {
 			multiErr = multierror.Append(multiErr, err)
 			continue

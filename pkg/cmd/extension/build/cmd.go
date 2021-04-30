@@ -15,13 +15,15 @@
 package build // nolint:dupl
 
 import (
-	"github.com/pkg/errors"
+	"fmt"
+
 	"github.com/spf13/cobra"
 
 	"github.com/tetratelabs/getenvoy/pkg/cmd/extension/common"
 	workspaces "github.com/tetratelabs/getenvoy/pkg/extension/workspace"
 	builtinconfig "github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/toolchain/builtin"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/toolchain/types"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
 	ioutil "github.com/tetratelabs/getenvoy/pkg/util/io"
 )
@@ -42,15 +44,10 @@ func (opts *cmdOpts) ApplyTo(config interface{}) {
 	}
 }
 
-func newCmdOpts() *cmdOpts {
-	return &cmdOpts{
-		Toolchain: common.NewToolchainOpts(),
-	}
-}
-
 // NewCmd returns a command that builds the extension.
-func NewCmd() *cobra.Command {
-	opts := newCmdOpts()
+func NewCmd(o *globals.GlobalOpts) *cobra.Command {
+	opts := &cmdOpts{Toolchain: common.NewToolchainOpts(o)}
+
 	cmd := &cobra.Command{
 		Use:   "build",
 		Short: "Build Envoy extension.",
@@ -71,7 +68,7 @@ Build Envoy extension.`,
 			return opts.Toolchain.Validate()
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			workspace, err := workspaces.GetCurrentWorkspace()
+			workspace, err := workspaces.GetWorkspaceAt(o.ExtensionDir)
 			if err != nil {
 				return err
 			}
@@ -88,11 +85,9 @@ Build Envoy extension.`,
 
 // Build builds the extension using a given toolchain.
 func Build(toolchain types.Toolchain, stdio ioutil.StdStreams) error {
-	err := toolchain.Build(types.BuildContext{
-		IO: stdio,
-	})
+	err := toolchain.Build(types.BuildContext{IO: stdio})
 	if err != nil {
-		return errors.Wrapf(err, "failed to build Envoy extension using %q toolchain", toolchain.GetName())
+		return fmt.Errorf("failed to build Envoy extension using %q toolchain: %w", toolchain.GetName(), err)
 	}
 	return nil
 }

@@ -15,16 +15,17 @@
 package init
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
-
-	"github.com/pkg/errors"
 
 	scaffold "github.com/tetratelabs/getenvoy/pkg/extension/init"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 	osutil "github.com/tetratelabs/getenvoy/pkg/util/os"
 )
 
+// TODO see if all these parameter fields need to be upper-cased
 // param represents a single parameter to be filled in by a user.
 type param struct {
 	Title     string
@@ -42,10 +43,10 @@ func (p *param) IsValid() bool {
 
 // params represents all parameters to be filled in by a user.
 type params struct {
-	Category  param
-	Language  param
-	OutputDir param
-	Name      param
+	Category     param
+	Language     param
+	ExtensionDir param
+	Name         param
 }
 
 func (o *params) Validate() error {
@@ -55,7 +56,7 @@ func (o *params) Validate() error {
 	if err := o.Language.Validate(); err != nil {
 		return err
 	}
-	if err := o.OutputDir.Validate(); err != nil {
+	if err := o.ExtensionDir.Validate(); err != nil {
 		return err
 	}
 	if err := o.Name.Validate(); err != nil {
@@ -64,22 +65,20 @@ func (o *params) Validate() error {
 	return nil
 }
 
-func (o *params) DefaultName() {
+func (o *params) DefaultName() error {
 	if o.Name.Value != "" {
-		return
+		return errors.New("empty name")
 	}
 	category, err := extension.ParseCategory(o.Category.Value)
 	if err != nil {
-		return
+		return err
 	}
-	outputDir := filepath.Clean(o.OutputDir.Value)
-	if outputDir == "." {
-		outputDir, err = os.Getwd()
-		if err != nil {
-			return
-		}
+	extensionDir, err := filepath.Abs(o.ExtensionDir.Value)
+	if err != nil {
+		return err
 	}
-	o.Name.Value = scaffold.GenerateExtensionName(category, outputDir)
+	o.Name.Value = scaffold.GenerateExtensionName(category, extensionDir)
+	return nil
 }
 
 //nolint:gocyclo
@@ -92,7 +91,7 @@ func newParams() *params {
 					return errors.New("extension category cannot be empty")
 				}
 				if !supportedCategories.Contains(value) {
-					return errors.Errorf("%q is not a supported extension category", value)
+					return fmt.Errorf("%q is not a supported extension category", value)
 				}
 				return nil
 			},
@@ -104,19 +103,19 @@ func newParams() *params {
 					return errors.New("programming language cannot be empty")
 				}
 				if !supportedLanguages.Contains(value) {
-					return errors.Errorf("%q is not a supported programming language", value)
+					return fmt.Errorf("%q is not a supported programming language", value)
 				}
 				return nil
 			},
 		},
-		OutputDir: param{
-			Title: "Output directory",
+		ExtensionDir: param{
+			Title: "Extension directory",
 			Validator: func(value string) error {
-				outputDir, err := scaffold.NormalizeOutputPath(value)
+				extensionDir, err := filepath.Abs(value)
 				if err != nil {
 					return err
 				}
-				info, err := os.Stat(outputDir)
+				info, err := os.Stat(extensionDir)
 				if err != nil {
 					if os.IsNotExist(err) {
 						return nil
@@ -124,14 +123,14 @@ func newParams() *params {
 					return err
 				}
 				if !info.IsDir() {
-					return errors.Errorf("output path is not a directory: %s", outputDir)
+					return fmt.Errorf("extension directory is a file: %s", extensionDir)
 				}
-				empty, err := osutil.IsEmptyDir(outputDir)
+				empty, err := osutil.IsEmptyDir(extensionDir)
 				if err != nil {
 					return err
 				}
 				if !empty {
-					return errors.Errorf("output directory must be empty or new: %s", outputDir)
+					return fmt.Errorf("extension directory must be empty or new: %s", extensionDir)
 				}
 				return nil
 			},

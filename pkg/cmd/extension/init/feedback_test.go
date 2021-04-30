@@ -87,11 +87,7 @@ Next time you can skip the wizard by running
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.name, func(t *testing.T) {
-			uiutil.StylesEnabled = !test.noColors
-
-			c := &cobra.Command{
-				Use: "init",
-			}
+			c := &cobra.Command{Use: "init"}
 			stdout := new(bytes.Buffer)
 			stderr := new(bytes.Buffer)
 			c.SetOut(stdout)
@@ -105,9 +101,10 @@ Next time you can skip the wizard by running
 						Language: extension.LanguageRust,
 						Name:     "my_company.my_http_filter",
 					},
-					OutputDir: "/path/to/dir",
+					ExtensionDir: "/path/to/dir",
 				},
 				usedWizard: test.usedWizard,
+				styleFuncs: uiutil.NewStyleFuncs(test.noColors),
 				w:          c.ErrOrStderr(),
 			}
 

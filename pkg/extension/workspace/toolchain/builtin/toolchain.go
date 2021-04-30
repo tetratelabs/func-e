@@ -34,19 +34,30 @@ const (
 	commandClean = "clean"
 )
 
-// GetCurrentUser is overridable for unit tests
-var GetCurrentUser = user.Current
+// DefaultDockerUser allows tests to read-back what would be used in Docker commands.
+var DefaultDockerUser = func() string {
+	u, err := user.Current()
+	if err != nil {
+		panic(err)
+	}
+	return fmt.Sprintf("%s:%s", u.Uid, u.Gid)
+}()
 
 // NewToolchain returns a builtin toolchain with a given configuration.
 func NewToolchain(name string, cfg *config.ToolchainConfig, workspace model.Workspace) *builtin { //nolint
-	return &builtin{name: name, cfg: cfg, workspace: workspace}
+	dockerPath := cfg.Container.DockerPath
+	if dockerPath == "" {
+		dockerPath = "docker"
+	}
+	return &builtin{name: name, dockerPath: dockerPath, dockerUser: DefaultDockerUser, cfg: cfg, workspace: workspace}
 }
 
 // builtin represents a builtin toolchain.
 type builtin struct {
-	name      string
-	cfg       *config.ToolchainConfig
-	workspace model.Workspace
+	name                   string
+	dockerPath, dockerUser string
+	cfg                    *config.ToolchainConfig
+	workspace              model.Workspace
 }
 
 func (t *builtin) GetName() string {
@@ -58,48 +69,40 @@ func (t *builtin) GetBuildOutputWasmFile() string {
 }
 
 func (t *builtin) Build(context types.BuildContext) error {
-	args, err := t.dockerCliArgs(t.cfg.GetBuildContainer())
-	if err != nil {
-		return err
-	}
+	args := t.dockerCliArgs(t.cfg.GetBuildContainer())
 	// #nosec -> the current design is an argument builder, not arg literals
-	cmd := exec.Command("docker", args.Add(commandBuild).Add("--output-file", t.cfg.GetBuildOutputWasmFile())...)
+	cmd := exec.Command(t.dockerPath, append(args, commandBuild, "--output-file", t.cfg.GetBuildOutputWasmFile())...)
+	cmd.Dir = t.workspace.GetDir().GetRootDir() // execute DockerPath in ExtensionDir
 	return executil.Run(cmd, context.IO)
 }
 
 func (t *builtin) Test(context types.TestContext) error {
-	args, err := t.dockerCliArgs(t.cfg.GetTestContainer())
-	if err != nil {
-		return err
-	}
+	args := t.dockerCliArgs(t.cfg.GetTestContainer())
 	// #nosec -> the current design is an argument builder, not arg literals
-	cmd := exec.Command("docker", args.Add(commandTest)...)
+	cmd := exec.Command(t.dockerPath, append(args, commandTest)...)
+	cmd.Dir = t.workspace.GetDir().GetRootDir() // execute DockerPath in ExtensionDir
 	return executil.Run(cmd, context.IO)
 }
 
 func (t *builtin) Clean(context types.CleanContext) error {
-	args, err := t.dockerCliArgs(t.cfg.GetCleanContainer())
-	if err != nil {
-		return err
-	}
+	args := t.dockerCliArgs(t.cfg.GetCleanContainer())
 	// #nosec -> the current design is an argument builder, not arg literals
-	cmd := exec.Command("docker", args.Add(commandClean)...)
+	cmd := exec.Command(t.dockerPath, append(args, commandClean)...)
+	cmd.Dir = t.workspace.GetDir().GetRootDir() // execute DockerPath in ExtensionDir
 	return executil.Run(cmd, context.IO)
 }
 
-func (t *builtin) dockerCliArgs(container *config.ContainerConfig) (executil.Args, error) {
-	u, err := GetCurrentUser()
-	if err != nil {
-		return nil, err
-	}
-	return executil.Args{
+func (t *builtin) dockerCliArgs(container *config.ContainerConfig) []string {
+	extensionDir := t.workspace.GetDir().GetRootDir()
+	volume := fmt.Sprintf("%s:/source", extensionDir) // docker doesn't understand '.'
+	return append([]string{
 		"run",
-		"-u", fmt.Sprintf("%s:%s", u.Uid, u.Gid), // to get proper ownership on files created by the container
+		"-u", DefaultDockerUser, // to get proper ownership on files created by the container
 		"--rm",
 		"-e", "GETENVOY_GOOS=" + runtime.GOOS, // Allows builder images to act based on execution env
 		"-t", // to get interactive/colored output out of container
-		"-v", fmt.Sprintf("%s:%s", t.workspace.GetDir().GetRootDir(), "/source"),
+		"-v", volume,
 		"-w", "/source",
 		"--init", // to ensure container will be responsive to SIGTERM signal
-	}.Add(container.Options...).Add(container.Image), nil
+	}, append(container.Options, container.Image)...)
 }

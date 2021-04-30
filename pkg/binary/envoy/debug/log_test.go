@@ -15,28 +15,22 @@
 package debug
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
+	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
 func TestEnableEnvoyLogCollection(t *testing.T) {
-	r, err := envoy.NewRuntime(EnableEnvoyLogCollection)
-	require.NoError(t, err, "error getting envoy runtime")
-	defer os.RemoveAll(r.DebugStore())
+	debugDir, removeDebugDir := morerequire.RequireNewTempDir(t)
+	defer removeDebugDir()
 
-	envoytest.RequireRunTerminate(t, r, "")
+	workingDir := envoytest.RunAndTerminateWithDebug(t, debugDir, EnableEnvoyLogCollection)
 
-	// We expect to see logs because when envoy starts up, the status checker will make HTTP requests to /ready
 	for _, filename := range []string{"logs/access.log", "logs/error.log"} {
-		path := filepath.Join(r.DebugStore(), filename)
-		f, err := os.Stat(path)
-		require.NoError(t, err, "error stating %v", path)
-		require.NotEmpty(t, f.Size(), "file %v was empty", path)
+		require.FileExists(t, filepath.Join(workingDir, filename))
 	}
 }

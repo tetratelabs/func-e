@@ -19,19 +19,9 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/model"
 )
 
-// GetCurrentWorkspace returns an extension workspace rooted
-// in the current working directory or one of its parents.
-func GetCurrentWorkspace() (model.Workspace, error) {
-	dir, err := fs.FindWorkspaceDir()
-	if err != nil {
-		return nil, err
-	}
-	return model.WorkspaceAt(dir)
-}
-
 // GetWorkspaceAt returns an extension workspace rooted at a given path.
 func GetWorkspaceAt(path string) (model.Workspace, error) {
-	dir, err := fs.GetWorkspaceDir(path)
+	dir, err := fs.GetExtensionDir(path)
 	if err != nil {
 		return nil, err
 	}

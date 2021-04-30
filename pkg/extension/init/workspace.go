@@ -16,9 +16,8 @@ package init
 
 import (
 	"bytes"
+	"fmt"
 	"html/template"
-
-	"github.com/pkg/errors"
 
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/config/extension"
 	"github.com/tetratelabs/getenvoy/pkg/extension/workspace/fs"
@@ -47,19 +46,18 @@ runtime:
 func generateExtensionDescriptor(descriptor *extension.Descriptor) ([]byte, error) {
 	tmpl, err := template.New("").Parse(extensionDescriptorTemplate)
 	if err != nil {
-		// must be caught by unit tests
-		panic(err)
+		return nil, err
 	}
 	var out bytes.Buffer
 	err = tmpl.Execute(&out, descriptor)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to render extension descriptor template")
+		return nil, fmt.Errorf("failed to render extension descriptor template: %w", err)
 	}
 	return out.Bytes(), nil
 }
 
 func generateWorkspace(opts *ScaffoldOpts) error {
-	dir, err := fs.CreateWorkspaceDir(opts.OutputDir)
+	dir, err := fs.CreateExtensionDir(opts.ExtensionDir)
 	if err != nil {
 		return err
 	}
@@ -67,8 +65,8 @@ func generateWorkspace(opts *ScaffoldOpts) error {
 	if err != nil {
 		return err
 	}
-	if err := dir.WriteFile(model.DescriptorFile, descriptor); err != nil {
-		return err
+	if e := dir.WriteFile(model.DescriptorFile, descriptor); e != nil {
+		return e
 	}
 	opts.ProgressSink.OnFile(dir.Rel(model.DescriptorFile))
 	return nil
