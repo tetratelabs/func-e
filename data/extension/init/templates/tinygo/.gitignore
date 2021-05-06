@@ -1,4 +1,0 @@
-build/
-
-# We rename go.mod to go.mod_ See /RATIONALE.md for why
-go.mod

@@ -16,14 +16,8 @@ jobs:
       matrix:
         # Be precise in tag versions to improve reproducibility
         include:
-          - source: busybox:1.32.1  # test image: ci/e2e/darwin/install_docker.sh
-            target_tag: busybox
           - source: registry:2  # test image: docker-compose.yml
             target_tag: registry
-          - source: rust:1.51.0  # parent image: images/extension-builders/rust/Dockerfile
-            target_tag: rust
-          - source: tinygo/tinygo:0.17.0  # parent image: images/extension-builders/tinygo/Dockerfile
-            target_tag: tinygo
     runs-on: ubuntu-latest
     steps:
       # Same as doing this locally: echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_TOKEN}" --password-stdin

@@ -45,14 +45,6 @@ type GlobalOpts struct {
 	HomeDir string
 	// ManifestURL is the path to the getenvoy manifest json
 	ManifestURL string
-	// DockerPath is the exec.Cmd path up to and including "docker".
-	DockerPath string
-	// ExtensionDir is the location to initialize an extension into, or the path of an existing extension.
-	ExtensionDir string
-	// NoWizard indicates whether interactive mode is disabled.
-	NoWizard bool
-	// NoColors indicates whether colored output is disabled.
-	NoColors bool
 }
 
 // DefaultHomeDir returns the value for RunOpts.HomeDir. Defaults to homedir.Dir/.getenvoy

@@ -1,4 +1,4 @@
-// Copyright 2020 Tetrate
+// Copyright 2021 Tetrate
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,19 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package extension
+package wasm
 
-import (
-	"github.com/spf13/cobra"
+// media types defined in WASM Artifact Image Specification
+const (
+	configMediaType       = "application/vnd.module.wasm.config.v1+json"
+	contentLayerMediaType = "application/vnd.module.wasm.content.layer.v1+wasm"
 )
-
-// NewCmd returns a command that aggregates all extension-related commands.
-func NewCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "extension",
-		Short: "Manage Envoy extensions.",
-		Long:  `Manage Envoy extensions.`,
-	}
-	cmd.AddCommand(NewPushCmd())
-	return cmd
-}

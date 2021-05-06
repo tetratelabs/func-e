@@ -1,17 +1,4 @@
 # see https://github.com/mvdan/sh#shfmt
-[*.sh]
-indent_style = tab
-
-shell_variant      = bash
-binary_next_line   = true  # like -bn
-switch_case_indent = true  # like -ci
-space_redirects    = true  # like -sr
-keep_padding       = true  # like -kp
-
-[godownloader.sh]
-# auto-generated file
-ignore = true
-
 [reference.txt]
 insert_final_newline     = false
 trim_trailing_whitespace = true

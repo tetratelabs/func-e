@@ -44,38 +44,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_GETENVOY_GITHUB_TOKEN: ${{ secrets.GETENVOY_CI_GITHUB_TOKEN }}
 
-  builders:
-    name: "Release extension builder images"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          # fetch all history for all tags and branches (needed to determine the right cache source image)
-          fetch-depth: 0
-
-      - name: "Get tag name"
-        run: | # Trim "v" prefix in the release tag
-          RELEASE_TAG=${GITHUB_REF#refs/*/}
-          if [[ "${RELEASE_TAG}" = v* ]]; then RELEASE_VERSION="${RELEASE_TAG:1}"; else RELEASE_VERSION="${RELEASE_TAG}"; fi
-          echo "RELEASE_VERSION=${RELEASE_VERSION}" >> $GITHUB_ENV
-
-      - name: "Build extension builder images"
-        run: make builders BUILDERS_TAG=${{ env.RELEASE_VERSION }}
-
-      - name: "Login into DockerHub"
-        uses: azure/docker-login@v1
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
-
-      - name: "Push extension builder images"
-        run: make builders.push BUILDERS_TAG=${{ env.RELEASE_VERSION }}
-
   e2e:
-    name: Run e2e tests (${{ matrix.runner.os }}, ${{ matrix.args.extension-language }})
+    name: Run e2e tests (${{ matrix.runner.os }})
     needs:
       - getenvoy
-      - builders
     runs-on: ${{ matrix.runner.os }}
     timeout-minutes: 90  # instead of 360 by default
     strategy:
@@ -84,15 +56,6 @@ jobs:
         runner:
           - os: macos-latest
           - os: ubuntu-latest
-        args:  # Controls arguments used in all extension tests. Managed by test/e2e/main_test.go
-          - extension-language: rust
-            # Attempt to avoid re-downloading almost 200MB of deps per test that implies "getenvoy extension build"
-            # This uses the RUNNER_TEMP variable directly to avoid having to mkdir a sub-path.
-            toolchain-container-options: "-v ${RUNNER_TEMP}:/tmp/cargohome -e CARGO_HOME=/tmp/cargohome"
-          - extension-language: tinygo
-            toolchain-container-options: ""
-    env:
-      E2E_EXTENSION_LANGUAGE: ${{ matrix.args.extension-language }}
     steps:
       - name: "Checkout"
         uses: actions/checkout@v2
@@ -122,17 +85,10 @@ jobs:
 
       - name: "Install 'Docker for Mac' (Latest)"
         uses: docker-practice/actions-setup-docker@v1
-        if: runner.os == 'macOS'
+        if: runner.os == 'macOS' # because macOS doesn't have docker by default, needed to run docker-compose.yml
         with:
-          docker_buildx: false  # Install is flakey. When it, we can install it via docker/setup-buildx-action@v1
+          docker_buildx: false  # We don't build any images so don't need buildx
         timeout-minutes: 20  # fail fast if MacOS install takes too long
 
-      - name: "Pull extension builder images"
-        # pull Docker images in advance to make output of
-        # `getenvoy extension build | test | run` stable
-        run: make builders.pull BUILDERS_TAG=${{ env.RELEASE_VERSION }}
-        timeout-minutes: 10  # fail fast if MacOS runner becomes to slow
-
-      - name: "Run e2e tests using released `getenvoy` binary and published extension builder images"
-        # expand E2E_TOOLCHAIN_CONTAINER_OPTIONS here to allow shell interpolation
-        run: E2E_TOOLCHAIN_CONTAINER_OPTIONS="${{ matrix.args.toolchain-container-options }}" make e2e
+      - name: "Run e2e tests using released `getenvoy` binary"
+        run: make e2e

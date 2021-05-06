@@ -24,10 +24,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/otiai10/copy"
 	"github.com/stretchr/testify/require"
-
-	"github.com/tetratelabs/getenvoy/pkg/globals"
 )
 
 // RequireNewTempDir creates a new directory. The function returned cleans it up.
@@ -43,17 +40,6 @@ func RequireNewTempDir(t *testing.T) (string, func()) {
 		e := os.RemoveAll(d)
 		require.NoError(t, e, `error removing directory: %v`, d)
 	}
-}
-
-// RequireCopyOfDir creates a new directory which is a copy of the template. The function returned cleans it up.
-func RequireCopyOfDir(t *testing.T, templateDir string) (string, func()) {
-	d, cleanup := RequireNewTempDir(t)
-	err := copy.Copy(templateDir, d)
-	if err != nil {
-		cleanup()
-		t.Fatalf(`expected no error copying %s to %s: %v`, templateDir, d, err)
-	}
-	return d, cleanup
 }
 
 var (
@@ -73,17 +59,6 @@ func RequireCaptureScript(t *testing.T, name string) (string, func()) {
 		t.Fatalf(`expected no creating capture script %q: %v`, path, err)
 	}
 	return path, cleanup
-}
-
-// RequireGlobalOpts returns the options needed to run a docker-based extension command and a cleanup function.
-func RequireGlobalOpts(t *testing.T, extensionDir string) (*globals.GlobalOpts, func()) {
-	// We use a fake Docker command to capture the commandline that would be invoked, and force a failure.
-	fakeDocker, removeFakeDocker := RequireCaptureScript(t, "docker")
-	o := &globals.GlobalOpts{
-		ExtensionDir: RequireAbs(t, extensionDir),
-		DockerPath:   fakeDocker,
-	}
-	return o, removeFakeDocker
 }
 
 // RequireAbs runs filepath.Abs and ensures there are no errors.
