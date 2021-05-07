@@ -32,5 +32,5 @@ End-to-end (e2e) tests rely on a `getenvoy` binary that defaults to what was bui
 
 Run:
 ```shell
-make coverage
+make e2e
 ```
