@@ -31,6 +31,8 @@ import (
 	utilenvoy "github.com/tetratelabs/getenvoy/test/e2e/util/envoy"
 )
 
+const terminateTimeout = 2 * time.Minute
+
 // TestGetEnvoyRun runs the equivalent of "getenvoy run"
 //
 // See TestMain for general notes on about the test runtime.

@@ -1,5 +1,0 @@
-kind: BuiltinToolchain
-
-build:
-  output:
-    wasmFile: extension.wasm

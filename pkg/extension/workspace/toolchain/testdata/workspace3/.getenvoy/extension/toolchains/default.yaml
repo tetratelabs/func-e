@@ -1,4 +1,0 @@
-kind: BuiltinToolchain
-build:
-  container:
-    image: build/image

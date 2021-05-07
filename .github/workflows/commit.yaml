@@ -54,6 +54,12 @@ jobs:
       - name: "Run unit tests"
         run: make test
 
+      - name: "Build the `getenvoy` binary"
+        run: make bin
+
+      - name: "Run e2e tests using the `getenvoy` binary"
+        run: make e2e
+
       - name: "Generate test coverage report"
         if: runner.os == 'Linux'  # no need to do this per operating system
         run: make coverage
@@ -64,91 +70,3 @@ jobs:
         with:
           name: coverage
           path: build/coverage
-
-  bin:
-    name: "Build the `getenvoy` binary for use in e2e tests"
-    runs-on: ubuntu-latest
-    timeout-minutes: 15  # instead of 360 by default
-    steps:
-      - name: "Checkout"
-        uses: actions/checkout@v2
-
-      - name: "Install Go"
-        uses: actions/setup-go@v2
-        with:
-          go-version: '1.16.3'
-
-      - name: "Build the `getenvoy` binary"
-        run: make bin
-
-      - name: "Share the `getenvoy` binary with the downstream jobs"
-        uses: actions/upload-artifact@v2
-        with:
-          name: bin
-          path: build/bin
-
-  e2e:
-    name: Run e2e tests (${{ matrix.os }}, ${{ matrix.args.extension-language }})
-    needs:
-      - bin
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 90  # instead of 360 by default
-    strategy:
-      fail-fast: false  # don't fail fast as sometimes failures are operating system specific
-      matrix:
-        go-version: [1.16.3]
-        os: [ubuntu-latest, macos-latest]
-        args:  # Controls arguments used in all extension tests. Managed by test/e2e/main_test.go
-          - extension-language: rust
-            # Attempt to avoid re-downloading almost 200MB of deps per test that implies "getenvoy extension build"
-            # This uses the RUNNER_TEMP variable directly to avoid having to mkdir a sub-path.
-            toolchain-container-options: "-v ${RUNNER_TEMP}:/tmp/cargohome -e CARGO_HOME=/tmp/cargohome"
-          - extension-language: tinygo
-            toolchain-container-options: ""
-    env:
-      E2E_EXTENSION_LANGUAGE: ${{ matrix.args.extension-language }}
-    steps:
-      - name: "Checkout"
-        uses: actions/checkout@v2
-
-      - name: "Install Go"
-        uses: actions/setup-go@v2
-        with:
-          go-version: ${{ matrix.go-version }}
-
-      - name: "Cache dependencies"
-        uses: actions/cache@v2
-        with:
-          # This combines unrelated caches because actions/cache@v2 doesn't support multiple
-          # instances, rather a combined path. https://github.com/actions/cache/issues/16
-          path: |
-            ~/.getenvoy/builds
-            ~/go/pkg/mod
-            ~/go/bin/*-v*
-          # '.bingo/*.sum' files generate inconsistently when building `~/go/bin/*-v*`. We key '.bingo/*.mod' instead.
-          key: e2e-${{ runner.os }}-${{ matrix.go-version }}-go-${{ hashFiles('pkg/reference.txt', 'go.sum', '.bingo/*.mod') }}
-          restore-keys: e2e-${{ runner.os }}-${{ matrix.go-version }}-go-
-
-      - name: "Re-use the `getenvoy` binary pre-built by the upstream job"
-        uses: actions/download-artifact@v2
-        with:
-          name: bin
-          path: build/bin
-
-      - name: "Install 'Docker for Mac' (Latest)"
-        uses: docker-practice/actions-setup-docker@v1
-        if: runner.os == 'macOS'
-        with:
-          docker_buildx: false  # Install is flakey. When it, we can install it via docker/setup-buildx-action@v1
-        timeout-minutes: 20  # fail fast if MacOS install takes too long
-
-      - name: "Build language-specific Docker build images"
-        run: make builders
-        timeout-minutes: 20  # NOTE: the rust image is very large and can alone take 7 minutes to download and build
-
-      - name: "Run e2e tests using the `getenvoy` binary built by the upstream job"
-        # chmod to restore permissions lost in actions/download-artifact@v2
-        # expand E2E_TOOLCHAIN_CONTAINER_OPTIONS here to allow shell interpolation
-        run: |
-          chmod a+x build/bin/*/*/getenvoy
-          E2E_TOOLCHAIN_CONTAINER_OPTIONS="${{ matrix.args.toolchain-container-options }}" make e2e

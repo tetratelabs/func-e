@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package run
+package cmd
 
 import (
 	"fmt"
@@ -30,7 +30,7 @@ import (
 	_ "github.com/tetratelabs/getenvoy/pkg/flavors/postgres" //nolint
 	"github.com/tetratelabs/getenvoy/pkg/globals"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
-	cmdutil "github.com/tetratelabs/getenvoy/pkg/util/cmd"
+	ioutil "github.com/tetratelabs/getenvoy/pkg/util/io"
 )
 
 // NewRunCmd create a command responsible for starting an Envoy process
@@ -113,7 +113,11 @@ func InitializeRunOpts(o *globals.GlobalOpts, reference string) error {
 // This is exposed for re-use in "getenvoy extension run"
 func Run(o *globals.GlobalOpts, cmd *cobra.Command, args []string) error {
 	r := envoy.NewRuntime(&o.RunOpts)
-	r.IO = cmdutil.StreamsOf(cmd)
+	r.IO = ioutil.StdStreams{
+		In:  cmd.InOrStdin(),
+		Out: cmd.OutOrStdout(),
+		Err: cmd.ErrOrStderr(),
+	}
 	debug.EnableAll(r)
 	return r.Run(cmd.Context(), args)
 }
