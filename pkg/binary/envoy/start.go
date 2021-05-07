@@ -17,14 +17,12 @@ package envoy
 import (
 	"fmt"
 	"path/filepath"
-
-	"github.com/tetratelabs/getenvoy/pkg/binary"
 )
 
 func (r *Runtime) handlePreStart() error {
 	// Execute all registered preStart functions
 	for _, f := range r.preStart {
-		if err := f(r); err != nil {
+		if err := f(); err != nil {
 			return err
 		}
 	}
@@ -35,13 +33,13 @@ func (r *Runtime) handlePreStart() error {
 }
 
 // RegisterPreStart registers the passed functions to be run before Envoy has started
-func (r *Runtime) RegisterPreStart(f ...func(binary.Runner) error) {
+func (r *Runtime) RegisterPreStart(f ...func() error) {
 	r.preStart = append(r.preStart, f...)
 }
 
 // ensureAdminAddressPath sets the "--admin-address-path" flag so that it can be used in /ready checks. If a value
 // already exists, it will be returned. Otherwise, the flag will be set to the file "admin-address.txt" in the
-// debug directory. We don't use the working directory as sometimes that is a source directory.
+// run directory. We don't use the working directory as sometimes that is a source directory.
 //
 // Notably, this allows ephemeral admin ports via bootstrap configuration admin/port_value=0 (minimum Envoy 1.12 for macOS support)
 func (r *Runtime) ensureAdminAddressPath() error {
@@ -56,7 +54,8 @@ func (r *Runtime) ensureAdminAddressPath() error {
 			return nil
 		}
 	}
-	r.adminAddressPath = filepath.Join(r.DebugStore(), "admin-address.txt")
-	r.cmd.Args = append(r.cmd.Args, flag, r.adminAddressPath)
+	// Envoy's run directory is mutable, so it is fine to write the admin address there.
+	r.cmd.Args = append(r.cmd.Args, flag, "admin-address.txt")
+	r.adminAddressPath = filepath.Join(r.opts.WorkingDir, "admin-address.txt")
 	return nil
 }

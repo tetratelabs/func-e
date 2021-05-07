@@ -28,65 +28,52 @@ import (
 	"github.com/schollz/progressbar/v3"
 	"github.com/tetratelabs/log"
 
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 	"github.com/tetratelabs/getenvoy/pkg/transport"
 )
 
 const envoyLocation = "bin/envoy"
 
-// FetchAndRun downloads an Envoy binary, if necessary, and runs it.
-func (r *Runtime) FetchAndRun(reference string, args []string) error {
-	key, err := manifest.NewKey(reference)
-	if err != nil {
-		if _, err := os.Stat(reference); err != nil {
-			return fmt.Errorf("%q is neither a valid Envoy release provided by getenvoy.io nor a path to a custom Envoy binary", reference)
-		}
-		return r.RunPath(reference, args)
+// FetchIfNeeded downloads an Envoy binary corresponding to the given reference and returns a path to it or an error.
+func FetchIfNeeded(o *globals.GlobalOpts, reference string) (string, error) {
+	key, e := manifest.NewKey(reference)
+	if e != nil {
+		return "", e
 	}
-	if !r.AlreadyDownloaded(key) {
-		location, err := manifest.Locate(key)
+
+	platformDirectory := filepath.Join(o.HomeDir, "builds", key.Flavor, key.Version, key.Platform)
+	envoyPath := filepath.Join(platformDirectory, envoyLocation)
+	stat, e := os.Stat(envoyPath)
+	switch {
+	case os.IsNotExist(e):
+		m, err := manifest.FetchManifest(o.ManifestURL)
 		if err != nil {
-			return err
+			return "", err
 		}
-		if err := r.Fetch(key, location); err != nil {
-			return err
+		binaryLocation, err := manifest.LocateBuild(key, m)
+		if err != nil {
+			return "", err
 		}
-	}
-	return r.Run(key, args)
-}
+		if err = os.MkdirAll(platformDirectory, 0750); err != nil {
+			return "", fmt.Errorf("unable to create directory %q: %w", platformDirectory, err)
+		}
 
-// Fetch downloads an Envoy binary from the passed location
-func (r *Runtime) Fetch(key *manifest.Key, binaryLocation string) error {
-	if !r.AlreadyDownloaded(key) {
 		log.Debugf("fetching %v from %v", key, binaryLocation)
-		dst := r.platformDirectory(key)
-		if err := os.MkdirAll(dst, 0750); err != nil {
-			return fmt.Errorf("unable to create directory %q: %v", dst, err)
+		err = fetchEnvoy(platformDirectory, binaryLocation)
+		if err != nil {
+			return "", err
 		}
-		fmt.Printf("fetching %v\n", key)
-		return fetchEnvoy(dst, binaryLocation)
+	case e != nil:
+		return "", fmt.Errorf("invalid Envoy binary at %q: %w", envoyPath, e)
+	default:
+		fmt.Printf("%v is already downloaded\n", key)
+		if stat.Mode()&0111 == 0 {
+			return "", fmt.Errorf("envoy binary not executable: %s", envoyPath)
+		}
 	}
-	fmt.Printf("%v is already downloaded\n", key)
-	return nil
-}
 
-// AlreadyDownloaded returns true if there is a cached Envoy binary matching the passed Key
-func (r *Runtime) AlreadyDownloaded(key *manifest.Key) bool {
-	_, err := os.Stat(filepath.Join(r.platformDirectory(key), envoyLocation))
-
-	// !IsNotExist is not the same as IsExist
-	// os.Stat doesn't return IsExist typed errors
-	return !os.IsNotExist(err)
-}
-
-// BinaryStore returns the location at which the runtime instance persists binaries
-// Getters typically aren't idiomatic Go, however, this one is deliberately part of the fetcher interface
-func (r *Runtime) BinaryStore() string {
-	return filepath.Join(r.store, "builds")
-}
-
-func (r *Runtime) platformDirectory(key *manifest.Key) string {
-	return filepath.Join(r.BinaryStore(), key.Flavor, key.Version, key.Platform)
+	return envoyPath, nil
 }
 
 func fetchEnvoy(dst, src string) error {
@@ -97,10 +84,11 @@ func fetchEnvoy(dst, src string) error {
 	defer os.RemoveAll(tmpDir) //nolint
 	tarball, err := doDownload(tmpDir, src)
 	if err != nil {
-		return fmt.Errorf("unable to fetch envoy from %v: %v", src, err)
+		return fmt.Errorf("unable to fetch envoy from %v: %w", src, err)
 	}
-	if err := extractEnvoy(dst, tarball); err != nil {
-		return fmt.Errorf("unable to extract envoy to %v: %v", dst, err)
+	err = extractEnvoy(dst, tarball)
+	if err != nil {
+		return fmt.Errorf("unable to extract envoy to %v: %w", dst, err)
 	}
 	return nil
 }
@@ -139,7 +127,7 @@ func extractEnvoy(dst, tarball string) error {
 			if f.Header != nil {
 				if header, ok := f.Header.(*tar.Header); ok {
 					if err := archiver.Extract(tarball, header.Name, dst); err != nil {
-						log.Errorf("error extracting %v: %v", f.Name(), err)
+						return fmt.Errorf("error extracting %v: %w", f.Name(), err)
 					}
 				}
 			}

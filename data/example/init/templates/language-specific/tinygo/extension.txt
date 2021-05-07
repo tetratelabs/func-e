@@ -1,3 +1,0 @@
-# We recommend to use json as the configuration format,
-# however, some languages (e.g. TinyGo) does not support ready-to-use json library as of now.
-# As a temporary alternative, we use ".txt" format.

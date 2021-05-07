@@ -25,7 +25,6 @@ import (
 	"github.com/shirou/gopsutil/v3/process"
 	"github.com/tetratelabs/log"
 
-	"github.com/tetratelabs/getenvoy/pkg/binary"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 )
 
@@ -49,24 +48,32 @@ type OpenFileStat struct {
 // EnableOpenFilesDataCollection is a preset option that registers collection of statistics of files opened by envoy
 // instance(s). This is unsupported on macOS/Darwin because it does not support process.OpenFiles
 func EnableOpenFilesDataCollection(r *envoy.Runtime) {
-	if err := os.Mkdir(filepath.Join(r.DebugStore(), "lsof"), os.ModePerm); err != nil {
-		log.Errorf("error in creating a directory to write open file data of envoy to: %v", err)
+	lsofDir := filepath.Join(r.GetWorkingDir(), "lsof")
+	if err := os.MkdirAll(lsofDir, 0750); err != nil {
+		log.Errorf("unable to create directory %q, so lsof will not be captured: %v", lsofDir, err)
+		return
 	}
-	r.RegisterPreTermination(retrieveOpenFilesData)
+	o := openFilesDataCollection{r.GetPid, lsofDir}
+	r.RegisterPreTermination(o.retrieveOpenFilesData)
+}
+
+type openFilesDataCollection struct {
+	getPid  func() (int, error)
+	lsofDir string
 }
 
 // retrieveOpenFilesData writes statistics of open files associated with envoy instance(s) to a json file
 // Errors from platform-specific libraries log to debug instead of raising an error or logging in an error category.
 // This avoids filling logs for unresolvable reasons.
-func retrieveOpenFilesData(r binary.Runner) error {
-	f, err := os.Create(filepath.Join(r.DebugStore(), "lsof/lsof.json"))
+func (o *openFilesDataCollection) retrieveOpenFilesData() error {
+	f, err := os.Create(filepath.Join(o.lsofDir, "lsof.json"))
 	if err != nil {
 		return fmt.Errorf("error in creating a file to write open file statistics to: %w", err)
 	}
 	defer f.Close() //nolint
 
 	// get pid of envoy instance
-	p, err := r.GetPid()
+	p, err := o.getPid()
 	if err != nil {
 		return fmt.Errorf("error in getting pid of envoy instance: %w", err)
 	}

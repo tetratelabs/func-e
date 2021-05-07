@@ -21,14 +21,6 @@ include .bingo/Variables.mk
 ENVOY = $(shell cat pkg/reference.txt)
 HUB ?= docker.io/getenvoy
 GETENVOY_TAG ?= dev
-BUILDERS_LANGS := rust tinygo
-BUILDERS_TAG ?= latest
-EXTRA_TAG ?=
-
-USE_DOCKER_BUILDKIT_CACHE ?= yes
-ifneq ($(filter-out yes on true 1,$(USE_DOCKER_BUILDKIT_CACHE)),)
-  USE_DOCKER_BUILDKIT_CACHE=
-endif
 
 BUILD_DIR ?= build
 BIN_DIR ?= $(BUILD_DIR)/bin
@@ -52,12 +44,10 @@ GO_COVERAGE_OPTS ?= -covermode=atomic -coverpkg=./...
 GO_COVERAGE_EXTRA_OPTS ?= -p 1
 
 E2E_PKG_LIST ?= ./test/e2e
-# Set the default timeout >10m as particularly rust e2e tests are slow https://golang.org/cmd/go/#hdr-Testing_flags
 # Run only one test at a time, in verbose mode, so that failures are easy to diagnose.
 # Note: -failfast helps as it stops at the first error. However, it is not a cacheable flag, so runs won't cache.
-E2E_OPTS ?= -timeout 45m -parallel 1 -v -failfast
+E2E_OPTS ?= -parallel 1 -v -failfast
 E2E_EXTRA_OPTS ?=
-E2E_EXTENSION_LANGUAGE ?= all
 
 GOOSES := linux darwin
 GOARCHS := amd64
@@ -92,8 +82,7 @@ test:
 
 .PHONY: e2e
 e2e: $(call GETENVOY_OUT_PATH,$(GOOS),$(GOARCH))
-	docker-compose up -d
-	E2E_EXTENSION_LANGUAGE=$(E2E_EXTENSION_LANGUAGE) go test $(E2E_OPTS) $(E2E_EXTRA_OPTS) $(E2E_PKG_LIST)
+	go test $(E2E_OPTS) $(E2E_EXTRA_OPTS) $(E2E_PKG_LIST)
 
 .PHONY: bin
 bin: $(foreach os,$(GOOSES), bin/$(os))
@@ -116,58 +105,10 @@ coverage:
 	go test $(GO_COVERAGE_OPTS) $(GO_COVERAGE_EXTRA_OPTS) -coverprofile="$(COVERAGE_PROFILE)" $(COVERAGE_PKG_LIST)
 	go tool cover -html="$(COVERAGE_PROFILE)" -o "$(COVERAGE_REPORT)"
 
-EXTENSION_BUILDER_IMAGE = getenvoy/extension-$(1)-builder:$(2)
-EXTENSION_BUILDER_IMAGE_LATEST_VERSION = $(shell git log --pretty=format:'%H' -n 1 images/extension-builders)
-
-define GEN_BUILD_EXTENSION_BUILDER_IMAGE_TARGET
-.PHONY: builder/$(1)
-builder/$(1):
-	$(if $(USE_DOCKER_BUILDKIT_CACHE),DOCKER_BUILDKIT=1,)                                                                           \
-	docker build                                                                                                                    \
-	$(if $(USE_DOCKER_BUILDKIT_CACHE),--build-arg BUILDKIT_INLINE_CACHE=1,)                                                         \
-	$(if $(USE_DOCKER_BUILDKIT_CACHE),--cache-from $(call EXTENSION_BUILDER_IMAGE,$(1),$(EXTENSION_BUILDER_IMAGE_LATEST_VERSION)),) \
-	-t $(call EXTENSION_BUILDER_IMAGE,$(1),$(BUILDERS_TAG))                                                                         \
-	-f images/extension-builders/$(1)/Dockerfile images/extension-builders
-endef
-$(foreach lang,$(BUILDERS_LANGS),$(eval $(call GEN_BUILD_EXTENSION_BUILDER_IMAGE_TARGET,$(lang))))
-
-.PHONY: builders
-builders: $(foreach lang,$(BUILDERS_LANGS), builder/$(lang))
-
-define GEN_PUSH_EXTENSION_BUILDER_IMAGE_TARGET
-.PHONY: push/builder/$(1)
-push/builder/$(1):
-	docker push $(call EXTENSION_BUILDER_IMAGE,$(1),$(BUILDERS_TAG))
-endef
-$(foreach lang,$(BUILDERS_LANGS),$(eval $(call GEN_PUSH_EXTENSION_BUILDER_IMAGE_TARGET,$(lang))))
-
-.PHONY: builders.push
-builders.push: $(foreach lang,$(BUILDERS_LANGS), push/builder/$(lang))
-
-define GEN_TAG_EXTENSION_BUILDER_IMAGE_TARGET
-.PHONY: tag/builder/$(1)
-tag/builder/$(1):
-	docker tag $(call EXTENSION_BUILDER_IMAGE,$(1),$(BUILDERS_TAG)) $(call EXTENSION_BUILDER_IMAGE,$(1),$(EXTRA_TAG))
-endef
-$(foreach lang,$(BUILDERS_LANGS),$(eval $(call GEN_TAG_EXTENSION_BUILDER_IMAGE_TARGET,$(lang))))
-
-.PHONY: builders.tag
-builders.tag: $(foreach lang,$(BUILDERS_LANGS), tag/builder/$(lang))
-
-define GEN_PULL_EXTENSION_BUILDER_IMAGE_TARGET
-.PHONY: pull/builder/$(1)
-pull/builder/$(1):
-	docker pull $(call EXTENSION_BUILDER_IMAGE,$(1),$(BUILDERS_TAG))
-endef
-$(foreach lang,$(BUILDERS_LANGS),$(eval $(call GEN_PULL_EXTENSION_BUILDER_IMAGE_TARGET,$(lang))))
-
-.PHONY: builders.pull
-builders.pull: $(foreach lang,$(BUILDERS_LANGS), pull/builder/$(lang))
-
 .PHONY: api
 api: api/manifest.proto $(BUF) $(PROTOC_GEN_GO)
 	@echo "--- api ---"
-	@rm api/*.go
+	@rm -f api/*.go
 	@$(BUF) protoc \
 		--plugin=protoc-gen-go=$(PROTOC_GEN_GO) \
 		--go_out=paths=source_relative:. \
@@ -177,9 +118,8 @@ api: api/manifest.proto $(BUF) $(PROTOC_GEN_GO)
 
 LINT_OPTS ?= --timeout 5m
 .PHONY: lint
-lint: $(GOLANGCI_LINT) $(SHFMT) $(LICENSER) .golangci.yml  ## Run the linters
+lint: $(GOLANGCI_LINT) $(LICENSER) .golangci.yml  ## Run the linters
 	@echo "--- lint ---"
-	@$(SHFMT) -d .
 	@$(LICENSER) verify -r .
 # We skip tinygo templates which will fail lint. Since skip-dirs does not apply to go modules, we externally filter.
 # See https://github.com/golangci/golangci-lint/issues/301#issuecomment-441311986 for explanation.
@@ -188,9 +128,8 @@ lint: $(GOLANGCI_LINT) $(SHFMT) $(LICENSER) .golangci.yml  ## Run the linters
 # The goimports tool does not arrange imports in 3 blocks if there are already more than three blocks.
 # To avoid that, before running it, we collapse all imports in one block, then run the formatter.
 .PHONY: format
-format: $(GOIMPORTS) $(SHFMT) ## Format all Go code
+format: $(GOIMPORTS) ## Format all Go code
 	@echo "--- format ---"
-	@$(SHFMT) -w .
 	@$(LICENSER) apply -r "Tetrate"
 	@find . -type f -name '*.go' | xargs gofmt -s -w
 	@for f in `find . -name '*.go'`; do \

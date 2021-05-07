@@ -17,23 +17,15 @@ package manifest
 import (
 	"fmt"
 	"io"
-	"net/http"
 	"sort"
 	"text/tabwriter"
 
-	"google.golang.org/protobuf/encoding/protojson"
-
 	"github.com/tetratelabs/getenvoy/api"
-	"github.com/tetratelabs/getenvoy/pkg/transport"
 	"github.com/tetratelabs/getenvoy/pkg/types"
 )
 
 // Print retrieves the manifest from the passed location and writes it to the passed writer
-func Print(writer io.Writer) error {
-	manifest, err := fetch(GetURL())
-	if err != nil {
-		return err
-	}
+func Print(manifest *api.Manifest, writer io.Writer) error {
 	w := tabwriter.NewWriter(writer, 0, 8, 5, ' ', 0)
 	fmt.Fprintln(w, "REFERENCE\tFLAVOR\tVERSION")
 
@@ -46,29 +38,6 @@ func Print(writer io.Writer) error {
 		}
 	}
 	return w.Flush()
-}
-
-func fetch(url string) (*api.Manifest, error) {
-	// #nosec => This is by design, users can call out to wherever they like!
-	resp, err := transport.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close() //nolint
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("received %v response code from %v", resp.StatusCode, url)
-	}
-	body, err := io.ReadAll(resp.Body) // fully read the response
-	if err != nil {
-		return nil, fmt.Errorf("error reading %s: %w", url, err)
-	}
-
-	result := api.Manifest{}
-	if err := protojson.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("error unmarshalling manifest: %w", err)
-	}
-	return &result, nil
 }
 
 func deterministicFlavors(flavors map[string]*api.Flavor) []*api.Flavor {

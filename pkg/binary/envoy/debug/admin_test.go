@@ -15,30 +15,37 @@
 package debug
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
+	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
-func TestMain(m *testing.M) {
-	envoytest.FetchEnvoyAndRun(m)
-}
-
 func TestEnableEnvoyAdminDataCollection(t *testing.T) {
-	r, err := envoy.NewRuntime(EnableEnvoyAdminDataCollection)
-	require.NoError(t, err, "error getting envoy runtime")
-	defer os.RemoveAll(r.DebugStore())
+	debugDir, removeDebugDir := morerequire.RequireNewTempDir(t)
+	defer removeDebugDir()
 
-	// admin.yaml because we need services defined in order to check adminAPIPaths
-	envoytest.RequireRunTerminate(t, r, "testdata/admin.yaml")
+	mockAdmin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("junk"))
+	}))
+	defer mockAdmin.Close()
+
+	adminPath := filepath.Join(debugDir, "admin-address.txt")
+	err := os.WriteFile(adminPath, []byte(mockAdmin.Listener.Addr().String()), 0600)
+	require.NoError(t, err)
+
+	workingDir := envoytest.RunAndTerminateWithDebug(t, debugDir,
+		EnableEnvoyAdminDataCollection, `--admin-address-path`, adminPath)
 
 	for _, filename := range adminAPIPaths {
-		path := filepath.Join(r.DebugStore(), filename)
+		path := filepath.Join(workingDir, filename)
 		f, err := os.Stat(path)
 		require.NoError(t, err, "error stating %v", path)
 		require.NotEmpty(t, f.Size(), "file %v was empty", path)

@@ -12,119 +12,116 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package envoy
+package envoy_test
 
 import (
 	"os"
 	"path/filepath"
-	"sync"
 	"syscall"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/pkg/binary"
+	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
+	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
-func TestRuntime_RunPath(t *testing.T) {
+func TestRuntime_Run(t *testing.T) {
 	tests := []struct {
 		name                      string
 		args                      []string
-		killerFunc                func(*Runtime)
+		terminate                 func(r *envoy.Runtime)
 		wantPreTerm, wantPostTerm bool
 	}{
 		{
-			name:         "GetEnvoy shot first",
-			killerFunc:   func(r *Runtime) { r.FakeInterrupt() },
+			name:         "GetEnvoy Ctrl-C",
+			terminate:    nil,
 			wantPreTerm:  true,
 			wantPostTerm: true,
 		},
 		{
-			name:       "Envoy shot first",
-			killerFunc: func(r *Runtime) { r.cmd.Process.Signal(syscall.SIGINT) },
+			name: "Envoy interrupted externally",
+			terminate: func(r *envoy.Runtime) {
+				pid, e := r.GetPid()
+				require.NoError(t, e)
+				proc, e := os.FindProcess(pid)
+				require.NoError(t, e)
+				e = proc.Signal(syscall.SIGINT)
+				require.NoError(t, e)
+			},
 		},
 		{
-			name:       "Envoy simulate error",
-			killerFunc: func(r *Runtime) { time.Sleep(time.Millisecond * 100) },
-			args:       []string{"error"},
+			name:      "Envoy exited with error",
+			terminate: func(r *envoy.Runtime) { time.Sleep(time.Millisecond * 100) },
+			args:      []string{"envoy_exit=3"},
 		},
 	}
 
 	for _, tt := range tests {
 		tc := tt
 		t.Run(tc.name, func(t *testing.T) {
+			debugDir, removeDebugDir := morerequire.RequireNewTempDir(t)
+			defer removeDebugDir()
+
+			fakeEnvoy, removeFakeEnvoy := morerequire.RequireCaptureScript(t, "envoy")
+			defer removeFakeEnvoy()
+
+			fakeTimestamp := "1619574747231823000"
+			workingDir := filepath.Join(debugDir, fakeTimestamp)
+			require.NoError(t, os.MkdirAll(workingDir, 0750))
+
+			o := &globals.RunOpts{EnvoyPath: fakeEnvoy, WorkingDir: workingDir}
+
 			// This ensures functions are called in the correct order
-			r, preStartCalled, preTerminationCalled, postTerminationCalled := newRuntimeWithMockFunctions(t)
-			tempDir, revertTempDir := morerequire.RequireNewTempDir(t)
-			defer revertTempDir()
-			r.store = tempDir
+			r, preStartCalled, preTerminationCalled, postTerminationCalled := newRuntimeWithMockFunctions(t, o)
 
-			wd, err := os.Getwd()
-			require.NoError(t, err, "error reading working directory")
-			sleep := filepath.Join(wd, "testdata", "sleep.sh")
-
-			wg := &sync.WaitGroup{}
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				r.RunPath(sleep, tc.args)
-			}()
-
-			expectedStatus := binary.StatusInitializing // because we won't have an admin URL to check
-			require.Eventually(t, func() bool {
-				return r.Status() == expectedStatus || r.Status() == binary.StatusTerminated
-			}, 10*time.Second, 100*time.Millisecond, "never achieved StatusInitializing or StatusTerminated")
-			require.Equal(t, expectedStatus, r.Status(), "never achieved StatusInitializing or StatusTerminated")
-
-			tc.killerFunc(r)
-			wg.Wait()
+			envoytest.RequireRunTerminate(t, tc.terminate, r, tc.args...)
 
 			// Assert appropriate functions are called
 			require.True(t, *preStartCalled, "preStart was not called")
 			require.Equal(t, tc.wantPreTerm, *preTerminationCalled, "expected preTermination execution to be %v", tc.wantPreTerm)
 			require.Equal(t, tc.wantPostTerm, *postTerminationCalled, "expected postTermination execution to be %v", tc.wantPostTerm)
+
+			// Ensure the debug directory was created
+			files, err := os.ReadDir(debugDir)
+			require.NoError(t, err)
+			require.Equal(t, 1, len(files))
+
+			// Ensure a debug archive was created
+			require.Contains(t, files[0].Name(), ".tar.gz")
 		})
 	}
 }
 
 // This ensures functions are called in the correct order
-func newRuntimeWithMockFunctions(t *testing.T) (*Runtime, *bool, *bool, *bool) {
+func newRuntimeWithMockFunctions(t *testing.T, o *globals.RunOpts) (*envoy.Runtime, *bool, *bool, *bool) {
+	r := envoy.NewRuntime(o)
 	preStartCalled := false
-	preStart := func(r *Runtime) {
-		r.RegisterPreStart(func(r binary.Runner) error {
-			r, _ = r.(*Runtime)
-			if r.Status() > binary.StatusStarting {
-				t.Error("preStart was called after process has started")
-			}
-			preStartCalled = true
-			return nil
-		})
-	}
+	r.RegisterPreStart(func() error {
+		_, err := r.GetPid()
+		require.Error(t, err, "preTermination was called after process was started")
+		preStartCalled = true
+		return nil
+	})
 
 	preTerminationCalled := false
-	preTermination := func(r *Runtime) {
-		r.RegisterPreTermination(func(r binary.Runner) error {
-			r, _ = r.(*Runtime)
-			if r.Status() < binary.StatusStarted {
-				t.Error("preTermination was called before process was started")
-			}
-			if r.Status() > binary.StatusReady {
-				t.Error("preTermination was called after process was terminated")
-			}
-			preTerminationCalled = true
-			return nil
-		})
-	}
-	postTerminationCalled := false
-	postTermination := func(r *Runtime) {
-		r.RegisterPreTermination(func(r binary.Runner) error {
-			postTerminationCalled = true
-			return nil
-		})
-	}
-	runtime, _ := NewRuntime(preStart, preTermination, postTermination)
+	r.RegisterPreTermination(func() error {
+		pid, err := r.GetPid()
+		require.NoError(t, err, "preTermination was called before process was started")
+		_, err = os.FindProcess(pid)
+		require.NoError(t, err, "preTermination was called after process was terminated")
+		preTerminationCalled = true
+		return nil
+	})
 
-	return runtime.(*Runtime), &preStartCalled, &preTerminationCalled, &postTerminationCalled
+	postTerminationCalled := false
+	r.RegisterPreTermination(func() error {
+		postTerminationCalled = true
+		return nil
+	})
+
+	return r, &preStartCalled, &preTerminationCalled, &postTerminationCalled
 }

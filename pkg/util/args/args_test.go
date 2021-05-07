@@ -12,14 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package args_test
+package args
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	. "github.com/tetratelabs/getenvoy/pkg/util/args"
 )
 
 func TestSplitCommandLine(t *testing.T) {

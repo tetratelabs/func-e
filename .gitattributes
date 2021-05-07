@@ -1,6 +1,0 @@
-#
-# Exclude extension template code from the repository's language statistics.
-#
-# See https://github.com/github/linguist/#detectable
-#
-/data/extension/init/templates/** -linguist-detectable

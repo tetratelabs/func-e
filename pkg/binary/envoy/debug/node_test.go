@@ -23,20 +23,19 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
+	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
 func TestEnableNodeCollection(t *testing.T) {
-	r, err := envoy.NewRuntime(EnableNodeCollection)
-	require.NoError(t, err, "error creating envoy runtime")
-	defer os.RemoveAll(r.DebugStore())
+	debugDir, removeDebugDir := morerequire.RequireNewTempDir(t)
+	defer removeDebugDir()
 
-	envoytest.RequireRunTerminate(t, r, "")
+	workingDir := envoytest.RunAndTerminateWithDebug(t, debugDir, EnableNodeCollection)
 
 	files := [...]string{"node/ps.txt", "node/network_interface.json", "node/connections.json"}
 	for _, file := range files {
-		path := filepath.Join(r.DebugStore(), file)
+		path := filepath.Join(workingDir, file)
 		f, err := os.Stat(path)
 		require.NoError(t, err, "error stating %v", path)
 

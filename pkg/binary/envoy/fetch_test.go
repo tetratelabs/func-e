@@ -15,9 +15,7 @@
 package envoy
 
 import (
-	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -28,23 +26,89 @@ import (
 	"github.com/stretchr/testify/require"
 
 	reference "github.com/tetratelabs/getenvoy/pkg"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
+	manifesttest "github.com/tetratelabs/getenvoy/pkg/test/manifest"
+	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
-func TestRuntime_Fetch(t *testing.T) {
+func TestFetchIfNeeded(t *testing.T) {
+	o := &globals.GlobalOpts{}
+	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
+	defer removeHomeDir()
+	o.HomeDir = homeDir
+
+	// Hard code even if the unit test env isn't darwin. This avoids drifts like linux vs linux-glibc
+	r := "standard:1/darwin"
+	testManifest, err := manifesttest.NewSimpleManifest(r)
+	require.NoError(t, err, `error creating test manifest`)
+
+	manifestServer := manifesttest.RequireManifestTestServer(t, testManifest)
+	defer manifestServer.Close()
+
+	t.Run("error on incorrect URL", func(t *testing.T) {
+		o.ManifestURL = manifestServer.URL + "/mannyfest.json"
+		_, e := FetchIfNeeded(o, r)
+		require.EqualError(t, e, "received 404 response code from "+o.ManifestURL)
+	})
+
+	o.ManifestURL = manifestServer.URL + "/manifest.json"
+
+	expectedPath := filepath.Join(homeDir, "builds", "standard", "1", "darwin", "bin", "envoy")
+	t.Run("downloads when doesn't exists", func(t *testing.T) {
+		envoyPath, e := FetchIfNeeded(o, r)
+		require.NoError(t, e)
+		require.Equal(t, expectedPath, envoyPath)
+		require.FileExists(t, envoyPath)
+	})
+
+	envoyStat, err := os.Stat(expectedPath)
+	require.NoError(t, err)
+
+	t.Run("doesn't error when already exists", func(t *testing.T) {
+		envoyPath, e := FetchIfNeeded(o, r)
+		require.NoError(t, e)
+
+		newStat, e := os.Stat(envoyPath)
+		require.NoError(t, e)
+
+		// didn't overwrite
+		require.Equal(t, envoyStat, newStat)
+	})
+}
+
+func TestFetchIfNeededAlreadyExists(t *testing.T) {
+	// Hard code even if the unit test env isn't darwin. This avoids drifts like linux vs linux-glibc
+	r := "standard:1/darwin"
+	testManifest, err := manifesttest.NewSimpleManifest(r)
+	require.NoError(t, err, `error creating test manifest`)
+
+	o := &globals.GlobalOpts{}
+	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
+	defer removeHomeDir()
+	o.HomeDir = homeDir
+
+	manifestServer := manifesttest.RequireManifestTestServer(t, testManifest)
+	defer manifestServer.Close()
+	o.ManifestURL = manifestServer.URL + "/manifest.json"
+
+	envoyPath, err := FetchIfNeeded(o, r)
+	require.NoError(t, err)
+	require.Equal(t, filepath.Join(homeDir, "builds", "standard", "1", "darwin", "bin", "envoy"), envoyPath)
+	require.FileExists(t, envoyPath)
+}
+
+// TODO: this whole test needs to be rewritten, possibly with the mock registry server
+func TestFetchEnvoy(t *testing.T) {
 	key, err := manifest.NewKey(reference.Latest)
 	require.NoError(t, err)
 
 	defaultDarwinKey := &manifest.Key{Flavor: key.Flavor, Version: key.Version, Platform: "darwin"}
-	buildsDir := fmt.Sprintf("builds/%s/%s", key.Flavor, key.Version)
 	tests := []struct {
 		name             string
 		key              *manifest.Key
 		tarballStructure string
 		tarExtension     string
-		envoyLocation    string
-		libLocation      string
-		alreadyLocal     bool
 		responseStatus   int
 		wantErr          bool
 		wantServerCalled bool
@@ -55,8 +119,6 @@ func TestRuntime_Fetch(t *testing.T) {
 			tarballStructure: "envoy",
 			tarExtension:     ".tar.gz",
 			responseStatus:   http.StatusOK,
-			envoyLocation:    buildsDir + "/darwin/bin/envoy",
-			libLocation:      buildsDir + "/darwin/lib/somelib",
 			wantServerCalled: true,
 		},
 		{
@@ -65,22 +127,12 @@ func TestRuntime_Fetch(t *testing.T) {
 			tarballStructure: "envoy",
 			tarExtension:     ".tar.xz",
 			responseStatus:   http.StatusOK,
-			envoyLocation:    buildsDir + "/darwin/bin/envoy",
-			libLocation:      buildsDir + "/darwin/lib/somelib",
 			wantServerCalled: true,
-		},
-		{
-			name:             "Does nothing if it already has a local copy",
-			key:              defaultDarwinKey,
-			envoyLocation:    buildsDir + "/darwin/bin/envoy",
-			libLocation:      buildsDir + "/darwin/lib/somelib",
-			alreadyLocal:     true,
-			wantServerCalled: false,
 		},
 		{
 			name:             "errors if it can't find an envoy binary in tarball",
 			key:              defaultDarwinKey,
-			tarballStructure: "noenvoy",
+			tarballStructure: "envoy/lib",
 			tarExtension:     ".tar.gz",
 			responseStatus:   http.StatusOK,
 			wantErr:          true,
@@ -89,7 +141,7 @@ func TestRuntime_Fetch(t *testing.T) {
 		{
 			name:             "errors if it gets !200 from download",
 			key:              defaultDarwinKey,
-			tarballStructure: "noenvoy",
+			tarballStructure: "envoy/lib",
 			tarExtension:     ".tar.gz",
 			responseStatus:   http.StatusTeapot,
 			wantErr:          true,
@@ -99,23 +151,17 @@ func TestRuntime_Fetch(t *testing.T) {
 	for _, tt := range tests {
 		tc := tt
 		t.Run(tc.name, func(t *testing.T) {
-			tmpDir, _ := ioutil.TempDir("", "getenvoy-test-")
-			defer os.RemoveAll(tmpDir)
-			envoyLocation := filepath.Join(tmpDir, tc.envoyLocation)
-			libLocation := filepath.Join(tmpDir, tc.libLocation)
-			mock, gotCalled := mockServer(tc.responseStatus, tc.tarballStructure, tc.tarExtension, tmpDir)
-			if tc.alreadyLocal {
-				createLocalFile(envoyLocation)
-				createLocalFile(libLocation)
-			}
+			tempDir, cleanupTempDir := morerequire.RequireNewTempDir(t)
+			defer cleanupTempDir()
 
-			r := &Runtime{fetcher: fetcher{tmpDir}}
-			err := r.Fetch(tc.key, mock.URL+"/"+tc.tarballStructure+tc.tarExtension)
+			mock, gotCalled := mockServer(t, tc.responseStatus, tc.tarballStructure, tc.tarExtension, tempDir)
+
+			err = fetchEnvoy(tempDir, mock.URL+"/"+tc.tarballStructure+tc.tarExtension)
 			if tc.wantErr {
 				require.Error(t, err)
 			} else {
 				require.Nil(t, err)
-				for _, location := range []string{libLocation, envoyLocation} {
+				for _, location := range []string{filepath.Join(tempDir, "lib/somelib"), filepath.Join(tempDir, "bin/envoy")} {
 					f, _ := os.Open(location)
 					bytes, _ := io.ReadAll(f)
 					require.Contains(t, string(bytes), "some c++")
@@ -126,24 +172,19 @@ func TestRuntime_Fetch(t *testing.T) {
 	}
 }
 
-func createLocalFile(location string) {
-	dir, _ := filepath.Split(location)
-	os.MkdirAll(dir, 0750)
-	f, _ := os.Create(location)
-	f.WriteString("some c++")
-	f.Close()
-}
-
-func mockServer(responseStatusCode int, tarballStructure, tarExtension, tmpDir string) (*httptest.Server, *bool) {
+func mockServer(t *testing.T, responseStatusCode int, tarballStructure, tarExtension, tmpDir string) (*httptest.Server, *bool) {
 	called := false
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called = true
 		w.WriteHeader(responseStatusCode)
 		if responseStatusCode == http.StatusOK {
 			tarball := filepath.Join(tmpDir, tarballStructure+tarExtension)
-			archiver.Archive([]string{filepath.Join("testdata", tarballStructure)}, tarball)
-			bytes, _ := os.ReadFile(tarball)
-			w.Write(bytes)
+			err := archiver.Archive([]string{filepath.Join("testdata", tarballStructure)}, tarball)
+			require.NoError(t, err)
+			bytes, err := os.ReadFile(tarball)
+			require.NoError(t, err)
+			_, err = w.Write(bytes)
+			require.NoError(t, err)
 		}
 	})), &called
 }

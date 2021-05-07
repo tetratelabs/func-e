@@ -15,97 +15,106 @@
 package cmd
 
 import (
+	"errors"
+	"fmt"
+	"net/url"
 	"os"
-	"strconv"
+	"path/filepath"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/tetratelabs/log"
 
-	"github.com/tetratelabs/getenvoy/pkg/cmd/extension"
-	"github.com/tetratelabs/getenvoy/pkg/common"
-	"github.com/tetratelabs/getenvoy/pkg/manifest"
-	osutil "github.com/tetratelabs/getenvoy/pkg/util/os"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
+	"github.com/tetratelabs/getenvoy/pkg/util/exec"
 	"github.com/tetratelabs/getenvoy/pkg/version"
 )
 
-// globalOpts represents options that affect all getenvoy sub-commands.
-//
-// Options will have their values set according to the following rules:
-//  1) to a value of the command line argument, e.g. `--home-dir`
-//  2) otherwise, to a non-empty value of the environment variable, e.g. `GETENVOY_HOME`
-//  3) otherwise, to the default value, e.g. `${HOME}/.getenvoy`
-type globalOpts struct {
-	HomeDir     string
-	ManifestURL string
-}
-
-func newRootOpts() *globalOpts {
-	return &globalOpts{
-		HomeDir:     common.DefaultHomeDir(),
-		ManifestURL: manifest.GetURL(),
-	}
-}
-
-// NewRoot create a new root command and sets the version to the passed variable
-// TODO: Add version support on the command
-func NewRoot() *cobra.Command {
-	rootOpts := newRootOpts()
-	logOpts := log.DefaultOptions()
-	configureLogging := enableLoggingConfig()
+// NewRoot create a new root command. The globals.GlobalOpts parameter allows tests to scope overrides, which avoids
+// having to define a flag for everything needed in tests.
+func NewRoot(globalOpts *globals.GlobalOpts) *cobra.Command {
+	// we set a default flags values eagerly so that handleFlagOverrides can validate if the user errored by clearing it
+	// TODO: determine if it is worth the code and bother if the user or a tool they use accidentally set to empty!!
+	homeDirFlag, manifestURLFlag := initializeGlobalOpts(globalOpts)
 
 	rootCmd := &cobra.Command{
 		Use:               "getenvoy",
+		SilenceErrors:     true, // We can't adjust the error message on Ctrl+C, so we redo error logging in Execute
+		SilenceUsage:      true, // We decided to return short usage form on error in Execute
 		DisableAutoGenTag: true, // removes autogenerate on ___ from produced docs
 		Short:             "Fetch, deploy and debug Envoy",
 		Long: `Manage full lifecycle of Envoy including fetching binaries,
 bootstrap generation and automated collection of access logs, Envoy state and machine state.`,
-		Version: version.Build.Version,
+		Version: version.Build.Version, // TODO: Add version support on the command
 		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
-			if rootOpts.HomeDir == "" {
-				return errors.New("GetEnvoy home directory cannot be empty")
-			}
-			common.HomeDir = rootOpts.HomeDir
-
-			if rootOpts.ManifestURL == "" {
-				return errors.New("GetEnvoy manifest URL cannot be empty")
-			}
-			if err := manifest.SetURL(rootOpts.ManifestURL); err != nil {
-				return err
-			}
-
-			if configureLogging {
-				return log.Configure(logOpts)
-			}
-			return nil
+			return handleFlagOverrides(globalOpts, homeDirFlag, manifestURLFlag)
 		},
 	}
 
-	rootCmd.AddCommand(NewRunCmd())
-	rootCmd.AddCommand(NewListCmd())
-	rootCmd.AddCommand(NewFetchCmd())
+	rootCmd.AddCommand(NewRunCmd(globalOpts))
+	rootCmd.AddCommand(NewListCmd(globalOpts))
+	rootCmd.AddCommand(NewFetchCmd(globalOpts))
 	rootCmd.AddCommand(NewDocCmd())
-	rootCmd.AddCommand(extension.NewCmd())
 
-	if configureLogging {
-		logOpts.AttachFlags(rootCmd)
-	}
-	rootCmd.PersistentFlags().StringVar(&rootOpts.HomeDir, "home-dir", osutil.Getenv("GETENVOY_HOME", rootOpts.HomeDir),
+	rootCmd.PersistentFlags().StringVar(&homeDirFlag, "home-dir", homeDirFlag,
 		"GetEnvoy home directory (location of downloaded artifacts, caches, etc)")
-	rootCmd.PersistentFlags().StringVar(&rootOpts.ManifestURL, "manifest", osutil.Getenv("GETENVOY_MANIFEST_URL", rootOpts.ManifestURL),
+
+	rootCmd.PersistentFlags().StringVar(&manifestURLFlag, "manifest", manifestURLFlag,
 		"GetEnvoy manifest URL (source of information about available Envoy builds)")
 	rootCmd.PersistentFlags().MarkHidden("manifest") // nolint
 	return rootCmd
 }
 
-// enableLoggingConfig checks whether logging should be configurable.
-//
-// At the moment, logging configuration is disabled by default to avoid abundance of options.
-//
-// TODO(yskopets): consider introducing simplified configuration options.
-func enableLoggingConfig() bool {
-	if enable, err := strconv.ParseBool(os.Getenv("EXPERIMENTAL_GETENVOY_LOGGING_CONFIG")); err == nil {
-		return enable
+func initializeGlobalOpts(globalOpts *globals.GlobalOpts) (string, string) {
+	homeDirFlag := os.Getenv("GETENVOY_HOME")
+	if homeDirFlag == "" && globalOpts.HomeDir == "" { // don't lookup homedir when overridden for tests
+		homeDirFlag = globals.DefaultHomeDir()
 	}
-	return false
+
+	manifestURLFlag := os.Getenv("GETENVOY_MANIFEST_URL")
+	if manifestURLFlag == "" {
+		manifestURLFlag = globals.DefaultManifestURL
+	}
+	return homeDirFlag, manifestURLFlag
+}
+
+func handleFlagOverrides(o *globals.GlobalOpts, homeDirFlag, manifestURLFlag string) error {
+	if o.HomeDir == "" { // not overridden for tests
+		if homeDirFlag == "" {
+			return errors.New("GetEnvoy home directory cannot be empty")
+		}
+		abs, err := filepath.Abs(homeDirFlag)
+		if err != nil {
+			return err
+		}
+		o.HomeDir = abs
+	}
+
+	if o.ManifestURL == "" { // not overridden for tests
+		if manifestURLFlag == "" {
+			return errors.New("GetEnvoy manifest URL cannot be empty")
+		}
+		otherURL, err := url.Parse(manifestURLFlag)
+		if err != nil || otherURL.Host == "" || otherURL.Scheme == "" {
+			return fmt.Errorf("%q is not a valid manifest URL", manifestURLFlag)
+		}
+		o.ManifestURL = manifestURLFlag
+	}
+	return nil
+}
+
+// Execute prints short usage (similar to args failing to parse) on any error.
+// This requires ExecuteC, which doesn't support context.Context, or looking up the subcommand with Find.
+func Execute(cmd *cobra.Command) error {
+	actualCmd, err := cmd.ExecuteC()
+	if actualCmd != nil && err != nil { // both are always true on error
+		var serr exec.ShutdownError
+		if errors.As(err, &serr) { // in case of ShutdownError, we want to avoid any wrapper messages
+			cmd.PrintErrln("NOTE:", serr.Error())
+		} else {
+			cmd.PrintErrln("Error:", err.Error())
+			// actualCmd ensures command path includes the subcommand (ex "extension run")
+			cmd.PrintErrf("\nRun '%v --help' for usage.\n", actualCmd.CommandPath())
+			return err
+		}
+	}
+	return nil
 }

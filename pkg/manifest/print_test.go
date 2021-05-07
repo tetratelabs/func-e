@@ -16,10 +16,6 @@ package manifest
 
 import (
 	"bytes"
-	"net/http"
-	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -28,146 +24,64 @@ import (
 )
 
 func TestPrint(t *testing.T) {
-	tests := []struct {
-		name             string
-		wantOutputFile   string
-		wantErr          bool
-		locationOverride string
-	}{
-		{
-			name:           "Prints golden output",
-			wantOutputFile: "list.golden",
-		},
-	}
-	for _, tt := range tests {
-		tc := tt
-		t.Run(tc.name, func(t *testing.T) {
-			mock := mockServer(http.StatusOK, "manifest.golden")
-			defer mock.Close()
-			got := bytes.NewBuffer(nil)
-			location := mock.URL
-			if tc.locationOverride != "" {
-				location = tc.locationOverride
-			}
-			defer func(originalURL string) {
-				err := SetURL(originalURL)
-				require.NoError(t, err)
-			}(GetURL())
-			err := SetURL(location)
-			require.NoError(t, err)
-			if err := Print(got); tc.wantErr {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-			}
-			want, _ := os.ReadFile(filepath.Join("testdata", tc.wantOutputFile))
-			require.Equal(t, string(want), got.String())
-		})
-	}
+	got := bytes.NewBuffer(nil)
+	err := Print(goodManifest, got)
+
+	require.NoError(t, err)
+	require.Equal(t, `REFERENCE                                FLAVOR                VERSION
+standard:nightly/linux-glibc             standard              nightly
+standard:1.17.1/linux-glibc              standard              1.17.1
+standard:1.17.1/darwin                   standard              1.17.1
+standard-fips1402:1.10.0/linux-glibc     standard-fips1402     1.10.0
+`, got.String())
 }
 
-func TestFetch(t *testing.T) {
-	tests := []struct {
-		name                 string
-		responseStatusCode   int
-		responseManifestFile string
-		want                 *api.Manifest
-		wantErr              bool
-	}{
-		{
-			name:                 "responds with parsed manifest",
-			responseStatusCode:   http.StatusOK,
-			responseManifestFile: "manifest.golden",
-			want:                 goodManifest(),
-		},
-		{
-			name:               "errors on non-200 response",
-			responseStatusCode: http.StatusInternalServerError,
-			want:               nil,
-			wantErr:            true,
-		},
-		{
-			name:                 "errors on unparsable manifest",
-			responseStatusCode:   http.StatusOK,
-			responseManifestFile: "malformed.golden",
-			wantErr:              true,
-		},
-	}
-	for _, tt := range tests {
-		tc := tt
-		t.Run(tc.name, func(t *testing.T) {
-			mock := mockServer(tc.responseStatusCode, tc.responseManifestFile)
-			defer mock.Close()
-			got, err := fetch(mock.URL)
-			// Use prototext comparison to avoid comparing internal state
-			require.Equal(t, tc.want.String(), got.String())
-			if tc.wantErr {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
-}
-
-func mockServer(responseStatusCode int, responseManifestFile string) *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(responseStatusCode)
-		if responseStatusCode == http.StatusOK {
-			b, _ := os.ReadFile(filepath.Join("testdata", responseManifestFile))
-			w.Write(b)
-		}
-	}))
-}
-
-func goodManifest() *api.Manifest {
-	return &api.Manifest{
-		ManifestVersion: "v0.1.0",
-		Flavors: map[string]*api.Flavor{
-			"standard": {
-				Name:          "standard",
-				FilterProfile: "standard",
-				Versions: map[string]*api.Version{
-					"1.17.1": {
-						Name: "1.17.1",
-						Builds: map[string]*api.Build{
-							api.Build_LINUX_GLIBC.String(): {
-								Platform:            api.Build_LINUX_GLIBC,
-								DownloadLocationUrl: "standard:1.17.1/linux-glibc",
-							},
-							api.Build_DARWIN.String(): {
-								Platform:            api.Build_DARWIN,
-								DownloadLocationUrl: "standard:1.17.1/darwin",
-							},
+var goodManifest = &api.Manifest{
+	ManifestVersion: "v0.1.0",
+	Flavors: map[string]*api.Flavor{
+		"standard": {
+			Name:          "standard",
+			FilterProfile: "standard",
+			Versions: map[string]*api.Version{
+				"1.17.1": {
+					Name: "1.17.1",
+					Builds: map[string]*api.Build{
+						api.Build_LINUX_GLIBC.String(): {
+							Platform:            api.Build_LINUX_GLIBC,
+							DownloadLocationUrl: "standard:1.17.1/linux-glibc",
 						},
-					},
-					"nightly": {
-						Name: "nightly",
-						Builds: map[string]*api.Build{
-							api.Build_LINUX_GLIBC.String(): {
-								Platform:            api.Build_LINUX_GLIBC,
-								DownloadLocationUrl: "standard:nightly/linux-glibc",
-							},
+						api.Build_DARWIN.String(): {
+							Platform:            api.Build_DARWIN,
+							DownloadLocationUrl: "standard:1.17.1/darwin",
 						},
 					},
 				},
-			},
-			"standard-fips1402": {
-				Name:          "standard-fips1402",
-				FilterProfile: "standard",
-				Compliances:   []api.Compliance{api.Compliance_FIPS1402},
-				Versions: map[string]*api.Version{
-					"1.10.0": {
-						Name: "1.10.0",
-						Builds: map[string]*api.Build{
-							api.Build_LINUX_GLIBC.String(): {
-								Platform:            api.Build_LINUX_GLIBC,
-								DownloadLocationUrl: "standard-fips1402:1.10.0/linux-glibc",
-							},
+				"nightly": {
+					Name: "nightly",
+					Builds: map[string]*api.Build{
+						api.Build_LINUX_GLIBC.String(): {
+							Platform:            api.Build_LINUX_GLIBC,
+							DownloadLocationUrl: "standard:nightly/linux-glibc",
 						},
 					},
 				},
 			},
 		},
-	}
+		"standard-fips1402": {
+			Name:          "standard-fips1402",
+			FilterProfile: "standard",
+			Compliances:   []api.Compliance{api.Compliance_FIPS1402},
+			Versions: map[string]*api.Version{
+				"1.10.0": {
+					Name: "1.10.0",
+					Builds: map[string]*api.Build{
+						api.Build_LINUX_GLIBC.String(): {
+							Platform:            api.Build_LINUX_GLIBC,
+							DownloadLocationUrl: "standard-fips1402:1.10.0/linux-glibc",
+						},
+					},
+				},
+			},
+		},
+	},
 }

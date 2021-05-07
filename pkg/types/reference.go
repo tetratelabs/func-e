@@ -18,8 +18,6 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 // Reference identifies an Envoy release provided by getenvoy.io.
@@ -45,7 +43,7 @@ var (
 func ParseReference(text string) (*Reference, error) {
 	matches := referenceFormat.FindStringSubmatch(text)
 	if len(matches) != 4 {
-		return nil, errors.Errorf("%q is not a valid GetEnvoy reference. Expected format: <flavor>:<version>[/<platform>]", text)
+		return nil, fmt.Errorf("%q is not a valid GetEnvoy reference. Expected format: <flavor>:<version>[/<platform>]", text)
 	}
 	return &Reference{strings.ToLower(matches[1]), strings.ToLower(matches[2]), PlatformFromEnum(matches[3])}, nil
 }
