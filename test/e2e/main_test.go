@@ -21,9 +21,6 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-	"github.com/tetratelabs/log"
-
 	e2e "github.com/tetratelabs/getenvoy/test/e2e/util"
 )
 
@@ -71,26 +68,4 @@ func getEnvoyPath() (string, error) {
 		return "", fmt.Errorf("%s is not executable. Correct environment variable %s", path, E2E_GETENVOY_BINARY)
 	}
 	return path, nil
-}
-
-// Command gives us an interface needed for testing getEnvoy
-type Command interface {
-	Exec() (string, string, error)
-}
-
-// requireExecNoStdout invokes the command and returns its stderr if successful and stdout is empty.
-func requireExecNoStdout(t *testing.T, c Command) string {
-	stdout, stderr := requireExec(t, c)
-	require.Empty(t, stdout, `expected no stdout running [%v]`, c)
-	require.NotEmpty(t, stderr, `expected stderr running [%v]`, c)
-	return stderr
-}
-
-// requireExec invokes the command and returns its (stdout, stderr) if successful.
-func requireExec(t *testing.T, c Command) (string, string) {
-	log.Infof(`running [%v]`, c)
-	stdout, stderr, err := c.Exec()
-
-	require.NoError(t, err, `error running [%v]`, c)
-	return stdout, stderr
 }

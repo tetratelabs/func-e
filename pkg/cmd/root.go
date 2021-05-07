@@ -23,7 +23,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/tetratelabs/getenvoy/pkg/cmd/extension"
 	"github.com/tetratelabs/getenvoy/pkg/globals"
 	"github.com/tetratelabs/getenvoy/pkg/util/exec"
 	"github.com/tetratelabs/getenvoy/pkg/version"
@@ -54,7 +53,6 @@ bootstrap generation and automated collection of access logs, Envoy state and ma
 	rootCmd.AddCommand(NewListCmd(globalOpts))
 	rootCmd.AddCommand(NewFetchCmd(globalOpts))
 	rootCmd.AddCommand(NewDocCmd())
-	rootCmd.AddCommand(extension.NewCmd())
 
 	rootCmd.PersistentFlags().StringVar(&homeDirFlag, "home-dir", homeDirFlag,
 		"GetEnvoy home directory (location of downloaded artifacts, caches, etc)")

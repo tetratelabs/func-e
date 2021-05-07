@@ -7,12 +7,10 @@ require (
 	bitbucket.org/creachadair/shell v0.0.6
 	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d
-	github.com/containerd/containerd v1.4.4
-	github.com/deislabs/oras v0.11.1
 	github.com/mattn/go-shellwords v1.0.11
 	github.com/mholt/archiver/v3 v3.5.0
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/opencontainers/image-spec v1.0.1
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/schollz/progressbar/v3 v3.7.6
 	github.com/shirou/gopsutil/v3 v3.21.3
 	github.com/spf13/cobra v1.1.3

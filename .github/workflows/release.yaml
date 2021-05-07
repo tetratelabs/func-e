@@ -83,12 +83,5 @@ jobs:
           mkdir -p build/bin/${GOOS}/amd64
           tar -C build/bin/${GOOS}/amd64 -xf ${INPUT_FILE} getenvoy
 
-      - name: "Install 'Docker for Mac' (Latest)"
-        uses: docker-practice/actions-setup-docker@v1
-        if: runner.os == 'macOS' # because macOS doesn't have docker by default, needed to run docker-compose.yml
-        with:
-          docker_buildx: false  # We don't build any images so don't need buildx
-        timeout-minutes: 20  # fail fast if MacOS install takes too long
-
       - name: "Run e2e tests using released `getenvoy` binary"
         run: make e2e

@@ -35,13 +35,6 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
 
-      - name: "Install 'Docker for Mac' (Latest)"
-        uses: docker-practice/actions-setup-docker@v1
-        if: runner.os == 'macOS' # because macOS doesn't have docker by default, needed to run docker-compose.yml
-        with:
-          docker_buildx: false  # We don't build any images so don't need buildx
-        timeout-minutes: 20  # fail fast if MacOS install takes too long
-
       - name: "Cache dependencies"
         uses: actions/cache@v2
         with:
