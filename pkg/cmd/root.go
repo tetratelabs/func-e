@@ -52,7 +52,6 @@ bootstrap generation and automated collection of access logs, Envoy state and ma
 	rootCmd.AddCommand(NewRunCmd(globalOpts))
 	rootCmd.AddCommand(NewListCmd(globalOpts))
 	rootCmd.AddCommand(NewFetchCmd(globalOpts))
-	rootCmd.AddCommand(NewDocCmd())
 
 	rootCmd.PersistentFlags().StringVar(&homeDirFlag, "home-dir", homeDirFlag,
 		"GetEnvoy home directory (location of downloaded artifacts, caches, etc)")
