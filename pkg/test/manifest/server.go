@@ -86,7 +86,7 @@ func (s *server) GetManifest() []byte {
 // TODO: fake via exec.Run in unit tests because it is less complicated and error-prone than faking via shell scripts.
 func writeFakeEnvoyTarGz(t *testing.T, buf io.Writer) {
 	// Create script literal of $envoyHome/bin/envoy which copies the current directory to $envoyCapture when invoked.
-	// stdout and stderr are prefixed "envoy " to differentiate them from other command output, namely docker.
+	// stdout and stderr are prefixed "envoy " to differentiate them from other command output.
 	fakeEnvoy := []byte(`#!/bin/sh
 set -ue
 # Echo invocation context to stdout and fake stderr to ensure it is not combined into stdout.

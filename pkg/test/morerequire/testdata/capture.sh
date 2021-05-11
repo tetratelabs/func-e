@@ -29,7 +29,7 @@ echo "$bin bin: $0"
 echo "$bin args: $*"
 echo >&2 "$bin stderr"
 
-# If any arg is ${bin}_exit=N, exit with that code. Ex. docker_exit=3
+# If any arg is ${bin}_exit=N, exit with that code. Ex. envoy_exit=3
 for arg in "$@"; do
 	case $arg in ${bin}_exit=*) exit $(echo "$arg" | cut -d= -f2) ;; esac
 done
