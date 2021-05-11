@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package types
+package manifest
 
 import (
 	"fmt"
@@ -36,19 +36,39 @@ func PlatformFromEnum(s string) string {
 }
 
 var (
-	referenceFormat = regexp.MustCompile(`^([\w\d-\._]+):([\w\d-\._]+)/?([\w\d-\._]+)?$`)
+	referenceFormat = regexp.MustCompile(`^([^:]+\:)?([\w\d-\._]+)/?([\w\d-\._]+)?$`)
 )
 
 // ParseReference parses a given text as a Reference.
 func ParseReference(text string) (*Reference, error) {
 	matches := referenceFormat.FindStringSubmatch(text)
 	if len(matches) != 4 {
-		return nil, fmt.Errorf("%q is not a valid GetEnvoy reference. Expected format: <flavor>:<version>[/<platform>]", text)
+		return nil, fmt.Errorf("%q is not a valid GetEnvoy reference. Expected format: [<flavor>:]<version>[/<platform>]", text)
 	}
-	return &Reference{strings.ToLower(matches[1]), strings.ToLower(matches[2]), PlatformFromEnum(matches[3])}, nil
+	flavor := strings.ToLower(matches[1])
+	if flavor == "" {
+		flavor = "standard"
+	} else {
+		flavor = flavor[:len(flavor)-1]
+	}
+	version := strings.ToLower(matches[2])
+	platform := PlatformFromEnum(matches[3])
+	// If platform is empty, fill it in.
+	if platform == "" {
+		platform = CurrentPlatform()
+	}
+	return &Reference{flavor, version, platform}, nil
 }
 
+// String returns a plain version optionally platform qualified. Ex "1.17.2" or "1.17.2/darwin"
+// Reference.Flavor is prefixed with a colon when non-standard. Ex "experimental:1.18.2"
 func (r *Reference) String() string {
+	if r.Flavor == "standard" { // don't clutter output in normal case
+		if r.Platform == "" {
+			return r.Version
+		}
+		return fmt.Sprintf("%s/%s", r.Version, r.Platform)
+	}
 	if r.Platform == "" {
 		return fmt.Sprintf("%s:%s", r.Flavor, r.Version)
 	}

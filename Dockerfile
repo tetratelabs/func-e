@@ -17,8 +17,9 @@ FROM gcr.io/distroless/cc
 ARG getenvoy_binary=getenvoy
 COPY ${getenvoy_binary} /
 
+# TODO: delete this when we build in default version
 ARG reference
 ENV ENVOY_REFERENCE=$reference
-RUN ["/getenvoy", "fetch", "@"]
-ENTRYPOINT ["/getenvoy", "run", "@"]
+RUN ["/getenvoy", "fetch", "${ENVOY_REFERENCE}"]
+ENTRYPOINT ["/getenvoy", "run", "${ENVOY_REFERENCE}"]
 

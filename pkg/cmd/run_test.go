@@ -41,7 +41,7 @@ func TestGetEnvoyRunValidateFlag(t *testing.T) {
 		{
 			name:        "arg[0] with invalid reference",
 			args:        []string{"run", "???"},
-			expectedErr: `"???" is not a valid GetEnvoy reference. Expected format: <flavor>:<version>[/<platform>]`,
+			expectedErr: `"???" is not a valid GetEnvoy reference. Expected format: [<flavor>:]<version>[/<platform>]`,
 		},
 	}
 
@@ -90,8 +90,8 @@ func TestGetEnvoyRunFailWithUnknownVersion(t *testing.T) {
 	o.EnvoyPath = "" // force lookup of version flag
 	c, _, stderr := cmd.NewRootCommand(&o.GlobalOpts)
 
-	// Run "getenvoy run unknown:unknown"
-	version := "unknown:unknown"
+	// Run "getenvoy run unknown"
+	version := "unknown"
 	c.SetArgs([]string{"run", version})
 	err := rootcmd.Execute(c)
 
@@ -124,11 +124,11 @@ func setupTest(t *testing.T) (*testEnvoyExtensionConfig, func()) {
 	err := os.Mkdir(result.HomeDir, 0700)
 	require.NoError(t, err, `error creating directory: %s`, result.HomeDir)
 
-	key, err := manifest.NewKey(reference.Latest)
-	require.NoError(t, err, `error resolving manifest for key: %s`, key)
-	result.platform = key.Platform
+	ref, err := manifest.ParseReference(reference.Latest)
+	require.NoError(t, err, `error resolving manifest for reference: %s`, ref)
+	result.platform = ref.Platform
 
-	testManifest, err := manifesttest.NewSimpleManifest(key.String())
+	testManifest, err := manifesttest.NewSimpleManifest(ref.String())
 	require.NoError(t, err, `error creating test manifest`)
 
 	manifestServer := manifesttest.RequireManifestTestServer(t, testManifest)

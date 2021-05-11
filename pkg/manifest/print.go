@@ -21,19 +21,18 @@ import (
 	"text/tabwriter"
 
 	"github.com/tetratelabs/getenvoy/api"
-	"github.com/tetratelabs/getenvoy/pkg/types"
 )
 
 // Print retrieves the manifest from the passed location and writes it to the passed writer
 func Print(manifest *api.Manifest, writer io.Writer) error {
 	w := tabwriter.NewWriter(writer, 0, 8, 5, ' ', 0)
-	fmt.Fprintln(w, "REFERENCE\tFLAVOR\tVERSION")
+	fmt.Fprintln(w, "REFERENCE\tVERSION")
 
 	for _, flavor := range deterministicFlavors(manifest.Flavors) {
 		for _, version := range deterministicVersions(flavor.Versions) {
 			for _, build := range deterministicBuilds(version.Builds) {
-				ref := fmt.Sprintf("%v:%v/%v", flavor.Name, version.Name, types.PlatformFromEnum(build.Platform.String()))
-				fmt.Fprintf(w, "%v\t%v\t%v\n", ref, flavor.Name, version.Name)
+				ref := Reference{flavor.Name, version.Name, PlatformFromEnum(build.Platform.String())}
+				fmt.Fprintf(w, "%s\t%s\n", ref.String(), version.Name)
 			}
 		}
 	}

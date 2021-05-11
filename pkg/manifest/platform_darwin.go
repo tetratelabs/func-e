@@ -14,6 +14,8 @@
 
 package manifest
 
-func platform() string {
+// CurrentPlatform is the value of Reference.Platform for this GOOS.
+// We need this function because even if "darwin" matches exactly the platform in the manifest.json, "linux" does not.
+func CurrentPlatform() string {
 	return "darwin"
 }

@@ -8,7 +8,6 @@ require (
 	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/StackExchange/wmi v0.0.0-20210224194228-fe8f1750fd46 // indirect
 	github.com/andybalholm/brotli v1.0.2 // indirect
-	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d
 	github.com/go-ole/go-ole v1.2.5 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/klauspost/compress v1.12.2 // indirect

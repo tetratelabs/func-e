@@ -37,12 +37,12 @@ const envoyLocation = "bin/envoy"
 
 // FetchIfNeeded downloads an Envoy binary corresponding to the given reference and returns a path to it or an error.
 func FetchIfNeeded(o *globals.GlobalOpts, reference string) (string, error) {
-	key, e := manifest.NewKey(reference)
+	ref, e := manifest.ParseReference(reference)
 	if e != nil {
 		return "", e
 	}
 
-	platformDirectory := filepath.Join(o.HomeDir, "builds", key.Flavor, key.Version, key.Platform)
+	platformDirectory := filepath.Join(o.HomeDir, "builds", ref.Flavor, ref.Version, ref.Platform)
 	envoyPath := filepath.Join(platformDirectory, envoyLocation)
 	stat, e := os.Stat(envoyPath)
 	switch {
@@ -51,7 +51,7 @@ func FetchIfNeeded(o *globals.GlobalOpts, reference string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		binaryLocation, err := manifest.LocateBuild(key, m)
+		binaryLocation, err := manifest.LocateBuild(ref, m)
 		if err != nil {
 			return "", err
 		}
@@ -59,7 +59,7 @@ func FetchIfNeeded(o *globals.GlobalOpts, reference string) (string, error) {
 			return "", fmt.Errorf("unable to create directory %q: %w", platformDirectory, err)
 		}
 
-		log.Debugf("fetching %v from %v", key, binaryLocation)
+		log.Debugf("fetching %v from %v", ref, binaryLocation)
 		err = fetchEnvoy(platformDirectory, binaryLocation)
 		if err != nil {
 			return "", err
@@ -67,7 +67,7 @@ func FetchIfNeeded(o *globals.GlobalOpts, reference string) (string, error) {
 	case e != nil:
 		return "", fmt.Errorf("invalid Envoy binary at %q: %w", envoyPath, e)
 	default:
-		fmt.Printf("%v is already downloaded\n", key)
+		fmt.Printf("%v is already downloaded\n", ref)
 		if stat.Mode()&0111 == 0 {
 			return "", fmt.Errorf("envoy binary not executable: %s", envoyPath)
 		}

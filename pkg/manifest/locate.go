@@ -18,44 +18,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 
 	"github.com/tetratelabs/log"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/tetratelabs/getenvoy/api"
 	"github.com/tetratelabs/getenvoy/pkg/transport"
-	"github.com/tetratelabs/getenvoy/pkg/types"
 )
-
-const (
-	referenceEnv = "ENVOY_REFERENCE"
-)
-
-// NewKey creates a manifest key based on the reference it is given
-func NewKey(reference string) (*Key, error) {
-	// This enables us to parameterize Docker images
-	if reference == "@" {
-		reference = os.Getenv(referenceEnv)
-	}
-	ref, err := types.ParseReference(reference)
-	if err != nil {
-		return nil, err
-	}
-	key := Key{Flavor: ref.Flavor, Version: ref.Version, Platform: ref.Platform}
-	// If platform is empty, fill it in.
-	if key.Platform == "" {
-		key.Platform = platform()
-	}
-	return &key, nil
-}
-
-// Key is the primary key used to locate Envoy builds in the manifest
-type Key types.Reference
-
-func (k *Key) String() string {
-	return fmt.Sprintf("%v:%v/%v", k.Flavor, k.Version, k.Platform)
-}
 
 // FetchManifest returns a manifest from a remote URL. eg global.manifestURL.
 func FetchManifest(manifestURL string) (*api.Manifest, error) {
@@ -75,23 +44,26 @@ func FetchManifest(manifestURL string) (*api.Manifest, error) {
 		return nil, fmt.Errorf("error reading %s: %w", manifestURL, err)
 	}
 
+	// Prevent crashing the CLI if new fields are added later
+	options := protojson.UnmarshalOptions{DiscardUnknown: true}
+
 	result := api.Manifest{}
-	if err := protojson.Unmarshal(body, &result); err != nil {
+	if err := options.Unmarshal(body, &result); err != nil {
 		return nil, fmt.Errorf("error unmarshalling manifest: %w", err)
 	}
 	return &result, nil
 }
 
 // LocateBuild returns the downloadLocationURL of the associated envoy binary in the manifest using the input key
-func LocateBuild(key *Key, manifest *api.Manifest) (string, error) {
+func LocateBuild(ref *Reference, manifest *api.Manifest) (string, error) {
 	// This is pretty horrible... Not sure there is a nicer way though.
-	if manifest.Flavors[key.Flavor] != nil && manifest.Flavors[key.Flavor].Versions[key.Version] != nil {
-		for _, build := range manifest.Flavors[key.Flavor].Versions[key.Version].Builds {
-			normalizedPlatform := types.PlatformFromEnum(build.Platform.String())
-			if normalizedPlatform == key.Platform {
+	if manifest.Flavors[ref.Flavor] != nil && manifest.Flavors[ref.Flavor].Versions[ref.Version] != nil {
+		for _, build := range manifest.Flavors[ref.Flavor].Versions[ref.Version].Builds {
+			normalizedPlatform := PlatformFromEnum(build.Platform.String())
+			if normalizedPlatform == ref.Platform {
 				return build.DownloadLocationUrl, nil
 			}
 		}
 	}
-	return "", fmt.Errorf("unable to find matching GetEnvoy build for reference %q", key)
+	return "", fmt.Errorf("unable to find matching GetEnvoy build for reference %q", ref)
 }

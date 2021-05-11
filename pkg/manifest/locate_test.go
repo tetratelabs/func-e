@@ -36,7 +36,7 @@ func TestLocateBuild(t *testing.T) {
 		{
 			name:      "standard 1.17.1 matches",
 			reference: "standard:1.17.1",
-			want:      fmt.Sprintf("standard:1.17.1/%v", platform()),
+			want:      fmt.Sprintf("standard:1.17.1/%v", CurrentPlatform()),
 		},
 		{
 			name:      "standard-fips1402:1.10.0/linux-glibc matches",
@@ -57,7 +57,7 @@ func TestLocateBuild(t *testing.T) {
 	for _, tt := range tests {
 		tc := tt
 		t.Run(tc.name, func(t *testing.T) {
-			key, err := NewKey(tc.reference)
+			key, err := ParseReference(tc.reference)
 			require.NoError(t, err)
 
 			if have, err := LocateBuild(key, goodManifest); tc.wantErr != "" {
@@ -75,6 +75,48 @@ func TestFetchManifest(t *testing.T) {
 	goodManifestBytes, err := protojson.Marshal(goodManifest)
 	require.NoError(t, err)
 
+	// This tests we can parse a flavor besides "standard", and don't crash on new fields
+	nonStandardManifestBytes := []byte(`{
+  "manifestVersion": "v0.1.2",
+  "flavors": {
+    "experiment": {
+      "name": "experiment",
+      "versions": {
+        "1.15": {
+          "name": "1.15",
+          "builds": {
+            "DARWIN": {
+              "downloadLocationUrl": "1.17.1/darwin",
+              "platform": "DARWIN",
+              "ARCH": "amd64"
+            }
+          }
+        }
+      }
+    }
+  }
+}`)
+
+	var nonStandardManifest = &api.Manifest{
+		ManifestVersion: "v0.1.2",
+		Flavors: map[string]*api.Flavor{
+			"experiment": {
+				Name: "experiment",
+				Versions: map[string]*api.Version{
+					"1.15": {
+						Name: "1.15",
+						Builds: map[string]*api.Build{
+							api.Build_DARWIN.String(): {
+								Platform:            api.Build_DARWIN,
+								DownloadLocationUrl: "1.17.1/darwin",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
 	tests := []struct {
 		name                  string
 		responseStatusCode    int
@@ -87,6 +129,12 @@ func TestFetchManifest(t *testing.T) {
 			responseStatusCode:    http.StatusOK,
 			responseManifestBytes: goodManifestBytes,
 			want:                  goodManifest,
+		},
+		{
+			name:                  "allows non-standard flavor and unknown fields",
+			responseStatusCode:    http.StatusOK,
+			responseManifestBytes: nonStandardManifestBytes,
+			want:                  nonStandardManifest, // instead of crash
 		},
 		{
 			name:               "errors on non-200 response",
@@ -113,37 +161,6 @@ func TestFetchManifest(t *testing.T) {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
-			}
-		})
-	}
-}
-
-func TestNewKey(t *testing.T) {
-	tests := []struct {
-		reference string
-		want      *Key
-		wantErr   bool
-	}{
-		{"flavor:version/platform/platform", nil, true},
-		{"flavor:version/DARWIN", &Key{Flavor: "flavor", Version: "version", Platform: "darwin"}, false},
-		{"flavor:version/PLATFORM_GLIBC", &Key{Flavor: "flavor", Version: "version", Platform: "platform-glibc"}, false},
-		{"fLaVoR:VeRsIoN/pLaTfOrM", &Key{Flavor: "flavor", Version: "version", Platform: "platform"}, false},
-		{"flavor:version/", &Key{Flavor: "flavor", Version: "version", Platform: platform()}, false},
-		{"flavor:version", &Key{Flavor: "flavor", Version: "version", Platform: platform()}, false},
-		{"fLaVoR:VeRsIoN", &Key{Flavor: "flavor", Version: "version", Platform: platform()}, false},
-		{"flavor:", nil, true},
-		{"flavor", nil, true},
-	}
-	for _, tt := range tests {
-		tc := tt
-		t.Run(tc.reference, func(t *testing.T) {
-			have, err := NewKey(tc.reference)
-			if tc.wantErr {
-				require.Error(t, err)
-				require.Nil(t, have)
-			} else {
-				require.Nil(t, err)
-				require.Equal(t, tc.want, have)
 			}
 		})
 	}

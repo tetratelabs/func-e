@@ -30,16 +30,16 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/tetratelabs/getenvoy/api"
-	"github.com/tetratelabs/getenvoy/pkg/types"
+	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
 
 const archiveFormat = ".tar.gz"
 
 // RequireManifestTestServer serves "/manifest.json", which contains download links a compressed archive of artifactDir
-func RequireManifestTestServer(t *testing.T, manifest *api.Manifest) *httptest.Server {
+func RequireManifestTestServer(t *testing.T, m *api.Manifest) *httptest.Server {
 	s := &server{t: t}
 	h := httptest.NewServer(s)
-	s.manifest = rewriteDownloadLocations(t, h.URL, manifest)
+	s.manifest = rewriteDownloadLocations(t, h.URL, m)
 	return h
 }
 
@@ -68,12 +68,8 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) validateReference(uri string) {
-	ref, err := types.ParseReference(uri)
+	ref, err := manifest.ParseReference(uri)
 	require.NoError(s.t, err, "could not parse reference from uri %q", uri)
-	if ref.Flavor == "wasm" {
-		return // don't validate
-	}
-	require.Equal(s.t, "standard", ref.Flavor, "unsupported flavor in uri %q", uri)
 	ver, err := semver.NewVersion(ref.Version)
 	require.NoError(s.t, err, "could not parse version from uri %q", uri)
 	require.GreaterOrEqualf(s.t, uint64(1), ver.Major(), "unsupported major version in uri %q", uri)
@@ -113,15 +109,15 @@ echo >&2 envoy stderr
 }
 
 func rewriteDownloadLocations(t *testing.T, baseURL string, m *api.Manifest) *api.Manifest {
-	manifest, ok := proto.Clone(m).(*api.Manifest) // safe copy
+	m, ok := proto.Clone(m).(*api.Manifest) // safe copy
 	require.True(t, ok)
 
-	for _, flavor := range manifest.Flavors {
+	for _, flavor := range m.Flavors {
 		for _, version := range flavor.Versions {
 			for _, build := range version.Builds {
 				build.DownloadLocationUrl = fmt.Sprintf("%s/builds/%s%s", baseURL, build.DownloadLocationUrl, archiveFormat)
 			}
 		}
 	}
-	return manifest
+	return m
 }

@@ -28,11 +28,11 @@ func TestPrint(t *testing.T) {
 	err := Print(goodManifest, got)
 
 	require.NoError(t, err)
-	require.Equal(t, `REFERENCE                                FLAVOR                VERSION
-standard:nightly/linux-glibc             standard              nightly
-standard:1.17.1/linux-glibc              standard              1.17.1
-standard:1.17.1/darwin                   standard              1.17.1
-standard-fips1402:1.10.0/linux-glibc     standard-fips1402     1.10.0
+	require.Equal(t, `REFERENCE                                VERSION
+nightly/linux-glibc                      nightly
+1.17.1/linux-glibc                       1.17.1
+1.17.1/darwin                            1.17.1
+standard-fips1402:1.10.0/linux-glibc     1.10.0
 `, got.String())
 }
 

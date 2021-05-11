@@ -16,50 +16,48 @@ package manifest
 
 import (
 	"github.com/tetratelabs/getenvoy/api"
-	"github.com/tetratelabs/getenvoy/pkg/types"
+	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
 
 // NewSimpleManifest returns a new manifest auto-generated for a given
 // list of references.
-func NewSimpleManifest(references ...string) (*api.Manifest, error) {
-	manifest := new(api.Manifest)
-	manifest.ManifestVersion = "v0.1.0"
-	manifest.Flavors = make(map[string]*api.Flavor)
-	for _, reference := range references {
-		ref, err := types.ParseReference(reference)
+func NewSimpleManifest(reference string) (*api.Manifest, error) {
+	m := new(api.Manifest)
+	m.ManifestVersion = "v0.1.0"
+	m.Flavors = make(map[string]*api.Flavor)
+	ref, err := manifest.ParseReference(reference)
+	if err != nil {
+		return nil, err
+	}
+	flavor, exists := m.Flavors[ref.Flavor]
+	if !exists {
+		flavor = &api.Flavor{Name: ref.Flavor, FilterProfile: ref.Flavor}
+		m.Flavors[ref.Flavor] = flavor
+	}
+	if flavor.Versions == nil {
+		flavor.Versions = make(map[string]*api.Version)
+	}
+	version, exists := flavor.Versions[ref.Version]
+	if !exists {
+		version = &api.Version{Name: ref.Version}
+		flavor.Versions[ref.Version] = version
+	}
+	if version.Builds == nil {
+		version.Builds = make(map[string]*api.Build)
+	}
+	platforms := SupportedPlatforms
+	if ref.Platform != "" {
+		platform, err := ParsePlatform(ref.Platform)
 		if err != nil {
 			return nil, err
 		}
-		flavor, exists := manifest.Flavors[ref.Flavor]
-		if !exists {
-			flavor = &api.Flavor{Name: ref.Flavor, FilterProfile: ref.Flavor}
-			manifest.Flavors[ref.Flavor] = flavor
-		}
-		if flavor.Versions == nil {
-			flavor.Versions = make(map[string]*api.Version)
-		}
-		version, exists := flavor.Versions[ref.Version]
-		if !exists {
-			version = &api.Version{Name: ref.Version}
-			flavor.Versions[ref.Version] = version
-		}
-		if version.Builds == nil {
-			version.Builds = make(map[string]*api.Build)
-		}
-		platforms := SupportedPlatforms
-		if ref.Platform != "" {
-			platform, err := ParsePlatform(ref.Platform)
-			if err != nil {
-				return nil, err
-			}
-			platforms = Platforms{platform}
-		}
-		for _, platform := range platforms {
-			version.Builds[platform.Code()] = &api.Build{
-				Platform:            platform.BuildPlatform(),
-				DownloadLocationUrl: (&types.Reference{Flavor: ref.Flavor, Version: ref.Version, Platform: platform.String()}).String(),
-			}
+		platforms = Platforms{platform}
+	}
+	for _, platform := range platforms {
+		version.Builds[platform.Code()] = &api.Build{
+			Platform:            platform.BuildPlatform(),
+			DownloadLocationUrl: ref.String(),
 		}
 	}
-	return manifest, nil
+	return m, nil
 }
