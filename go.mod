@@ -8,7 +8,6 @@ require (
 	github.com/StackExchange/wmi v0.0.0-20210224194228-fe8f1750fd46 // indirect
 	github.com/andybalholm/brotli v1.0.2 // indirect
 	github.com/go-ole/go-ole v1.2.5 // indirect
-	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/klauspost/compress v1.12.2 // indirect
 	github.com/klauspost/pgzip v1.2.5 // indirect
 	github.com/mattn/go-runewidth v0.0.12 // indirect
@@ -22,7 +21,6 @@ require (
 	github.com/spf13/cobra v1.1.3
 	github.com/stretchr/testify v1.7.0
 	github.com/tetratelabs/log v0.0.0-20210422163326-7ba70517903b
-	github.com/tetratelabs/multierror v1.1.0
 	github.com/tklauser/go-sysconf v0.3.5 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
