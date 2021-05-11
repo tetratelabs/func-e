@@ -1,4 +1,4 @@
-// Copyright 2019 Tetrate
+// Copyright 2021 Tetrate
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,8 +14,8 @@
 
 package manifest
 
-// currentPlatform is the value of Reference.Platform for this GOOS.
-// We need this function because even if "darwin" matches exactly the platform in the manifest.json, "linux" does not.
-func currentPlatform() string {
-	return "darwin"
+// CurrentPlatform exports currentPlatform for testing purpose.
+// Note that this file is not compiled into the resulting binary since the name is suffixed by `_test.go`
+func CurrentPlatform() string {
+	return currentPlatform() // unexported one defined in platform_${darwin,linux}.go
 }

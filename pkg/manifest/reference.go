@@ -28,8 +28,8 @@ type Reference struct {
 	Platform string
 }
 
-// PlatformFromEnum takes a Reference.Platform like "LINUX_GLIBC" and returns a string variant like "linux-glibc"
-func PlatformFromEnum(s string) string {
+// platformFromEnum takes a Reference.Platform like "LINUX_GLIBC" and returns a string variant like "linux-glibc"
+func platformFromEnum(s string) string {
 	s = strings.ToLower(s)
 	s = strings.ReplaceAll(s, "_", "-")
 	return s
@@ -51,11 +51,12 @@ func ParseReference(text string) (*Reference, error) {
 	} else {
 		flavor = flavor[:len(flavor)-1]
 	}
+	// Even though versions are usually semver, we currently allow anything in the version. Ex "latest" "1.19.2-alpha"
 	version := strings.ToLower(matches[2])
-	platform := PlatformFromEnum(matches[3])
+	platform := platformFromEnum(matches[3])
 	// If platform is empty, fill it in.
 	if platform == "" {
-		platform = CurrentPlatform()
+		platform = currentPlatform()
 	}
 	return &Reference{flavor, version, platform}, nil
 }
@@ -64,13 +65,7 @@ func ParseReference(text string) (*Reference, error) {
 // Reference.Flavor is prefixed with a colon when non-standard. Ex "experimental:1.18.2"
 func (r *Reference) String() string {
 	if r.Flavor == "standard" { // don't clutter output in normal case
-		if r.Platform == "" {
-			return r.Version
-		}
 		return fmt.Sprintf("%s/%s", r.Version, r.Platform)
-	}
-	if r.Platform == "" {
-		return fmt.Sprintf("%s:%s", r.Flavor, r.Version)
 	}
 	return fmt.Sprintf("%s:%s/%s", r.Flavor, r.Version, r.Platform)
 }

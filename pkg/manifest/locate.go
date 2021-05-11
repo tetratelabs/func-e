@@ -59,7 +59,7 @@ func LocateBuild(ref *Reference, manifest *api.Manifest) (string, error) {
 	// This is pretty horrible... Not sure there is a nicer way though.
 	if manifest.Flavors[ref.Flavor] != nil && manifest.Flavors[ref.Flavor].Versions[ref.Version] != nil {
 		for _, build := range manifest.Flavors[ref.Flavor].Versions[ref.Version].Builds {
-			normalizedPlatform := PlatformFromEnum(build.Platform.String())
+			normalizedPlatform := platformFromEnum(build.Platform.String())
 			if normalizedPlatform == ref.Platform {
 				return build.DownloadLocationUrl, nil
 			}

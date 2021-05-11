@@ -31,7 +31,7 @@ func Print(manifest *api.Manifest, writer io.Writer) error {
 	for _, flavor := range deterministicFlavors(manifest.Flavors) {
 		for _, version := range deterministicVersions(flavor.Versions) {
 			for _, build := range deterministicBuilds(version.Builds) {
-				ref := Reference{flavor.Name, version.Name, PlatformFromEnum(build.Platform.String())}
+				ref := Reference{flavor.Name, version.Name, platformFromEnum(build.Platform.String())}
 				fmt.Fprintf(w, "%s\t%s\n", ref.String(), version.Name)
 			}
 		}

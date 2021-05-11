@@ -14,9 +14,9 @@
 
 package manifest
 
-// CurrentPlatform is the value of Reference.Platform for this GOOS.
+// currentPlatform is the value of Reference.Platform for this GOOS.
 // Specifically, when "getenvoy" runs and detects GOOS == "linux", we choose the "linux-glibc" Envoy platform.
 // While this name is qualified, it does not effect platform support because Envoy is statically linked.
-func CurrentPlatform() string {
+func currentPlatform() string {
 	return "linux-glibc"
 }

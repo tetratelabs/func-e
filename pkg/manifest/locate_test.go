@@ -36,7 +36,7 @@ func TestLocateBuild(t *testing.T) {
 		{
 			name:      "standard 1.17.1 matches",
 			reference: "standard:1.17.1",
-			want:      fmt.Sprintf("standard:1.17.1/%v", CurrentPlatform()),
+			want:      fmt.Sprintf("standard:1.17.1/%v", currentPlatform()),
 		},
 		{
 			name:      "standard-fips1402:1.10.0/linux-glibc matches",

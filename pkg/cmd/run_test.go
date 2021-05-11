@@ -32,12 +32,16 @@ import (
 )
 
 func TestGetEnvoyRunValidateFlag(t *testing.T) {
-	type testCase struct {
+	tests := []struct {
 		name        string
 		args        []string
 		expectedErr string
-	}
-	tests := []testCase{
+	}{
+		{
+			name:        "arg[0] missing",
+			args:        []string{"run"},
+			expectedErr: `missing reference parameter`,
+		},
 		{
 			name:        "arg[0] with invalid reference",
 			args:        []string{"run", "???"},

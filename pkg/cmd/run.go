@@ -15,6 +15,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -46,6 +47,12 @@ getenvoy run %[1]s -- --config-path ./bootstrap.yaml
 # List available Envoy flags.
 getenvoy run %[1]s -- --help
 `, defaultreference.Latest),
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return errors.New("missing reference parameter")
+			}
+			return nil
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := InitializeRunOpts(o, args[0]); err != nil {
 				return err
