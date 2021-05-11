@@ -104,7 +104,7 @@ func TestGetEnvoyRunFailWithUnknownVersion(t *testing.T) {
 	expectedErr := fmt.Sprintf(`unable to find matching GetEnvoy build for reference "%s"`, r)
 	require.EqualError(t, err, expectedErr, `expected an error running [%v]`, c)
 
-	// We also expect "docker stderr" in the output for the same reason.
+	// We expect the end-users will see the error in stderr
 	expectedStderr := fmt.Sprintf("Error: %s\n\nRun 'getenvoy run --help' for usage.\n", expectedErr)
 	require.Equal(t, expectedStderr, stderr.String(), `expected stderr running [%v]`, c)
 }

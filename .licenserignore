@@ -8,7 +8,6 @@ go.sum
 *.pem
 
 .bingo
-.dockerignore
 .idea
 
 reference.txt

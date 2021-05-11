@@ -57,29 +57,3 @@ brews:
   description: Distribute, deploy and operate a fleet of Envoys
   test: |
     system "#{bin}/getenvoy --help"
-dockers:
-- image_templates: 
-  - getenvoy/{{ .ProjectName }}:{{ .Version }}-standard-1.11.1
-  dockerfile: Dockerfile
-  binaries:
-    - getenvoy
-  build_flag_templates:
-  - "--build-arg=reference=standard:1.11.1"
-
-- image_templates: 
-  - getenvoy/{{ .ProjectName }}:{{ .Version }}-standard-1.11.2
-  dockerfile: Dockerfile
-  binaries:
-    - getenvoy
-  build_flag_templates:
-  - "--build-arg=reference=standard:1.11.2"
-
-- image_templates: 
-  - getenvoy/{{ .ProjectName }}:{{ .Version }}-standard-1.12.0
-  - getenvoy/{{ .ProjectName }}:standard-latest
-  dockerfile: Dockerfile
-  binaries:
-    - getenvoy
-  build_flag_templates:
-  - "--build-arg=reference=standard:1.12.0"
-

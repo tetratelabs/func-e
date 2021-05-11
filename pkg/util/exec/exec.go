@@ -94,7 +94,6 @@ func Run(cmd *exec.Cmd, streams ioutil.StdStreams) error {
 		cmd.SysProcAttr = new(syscall.SysProcAttr)
 	}
 	// give OS a hint to automatically kill a child process whenever its parent dies.
-	// notice that when it comes to a `docker run` command, SIGTERM is a better fit than SIGKILL
 	parentDeathAttr.Set(cmd.SysProcAttr, syscall.SIGTERM)
 
 	// start the specified command in a separate step to ensure that
@@ -141,8 +140,7 @@ func terminate(cmd *exec.Cmd, errCh <-chan error) {
 	}()
 
 	if isProcessRunning(cmd.Process.Pid) {
-		// first, give the external process a chance to exit gracefully,
-		// which is a must in case of `docker run` command.
+		// First, give the external process a chance to exit gracefully.
 		if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
 			log.Warnf("failed to send SIGTERM to the external process %q: %v", cmd, err)
 		}

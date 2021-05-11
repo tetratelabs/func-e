@@ -19,7 +19,6 @@
 include .bingo/Variables.mk
 
 ENVOY = $(shell cat pkg/reference.txt)
-HUB ?= docker.io/getenvoy
 GETENVOY_TAG ?= dev
 
 BUILD_DIR ?= build
@@ -67,10 +66,6 @@ deps:
 
 .PHONY: build
 build: $(call GETENVOY_OUT_PATH,$(GOOS),$(GOARCH))
-
-.PHONY: docker
-docker: $(call GETENVOY_OUT_PATH,linux,amd64)
-	docker build -t $(HUB)/getenvoy:$(GETENVOY_TAG) --build-arg reference=$(ENVOY) --build-arg getenvoy_binary=$(call GETENVOY_OUT_PATH,linux,amd64) .
 
 .PHONY: release.dryrun
 release.dryrun:
