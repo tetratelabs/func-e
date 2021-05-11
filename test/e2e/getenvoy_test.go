@@ -36,7 +36,7 @@ func TestGetEnvoyList(t *testing.T) {
 	stdout, stderr, err := getEnvoy("list").Exec()
 
 	require.Regexp(t, `REFERENCE +VERSION\n`, stdout)
-	require.Equal(t, ``, stderr)
+	require.Empty(t, stderr)
 	require.NoError(t, err)
 }
 
