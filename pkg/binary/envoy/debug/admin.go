@@ -21,8 +21,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/tetratelabs/multierror"
-
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 )
 
@@ -54,28 +52,36 @@ func (e *envoyAdminDataCollection) retrieveAdminAPIData() error {
 	if err != nil {
 		return fmt.Errorf("unable to capture Envoy configuration and metrics: %w", err)
 	}
-	multiErr := &multierror.Error{}
-	for path, file := range adminAPIPaths {
-		resp, err := http.Get(fmt.Sprintf("http://%s/%v", adminAddress, path))
-		if err != nil {
-			multiErr = multierror.Append(multiErr, err)
-			continue
-		}
-		if resp.StatusCode != http.StatusOK {
-			multiErr = multierror.Append(multiErr, fmt.Errorf("received %v from /%v ", resp.StatusCode, path))
-			continue
-		}
-		// #nosec -> r.GetWorkingDir() is allowed to be anywhere
-		f, err := os.OpenFile(filepath.Join(e.workingDir, file), os.O_CREATE|os.O_WRONLY, 0600)
-		if err != nil {
-			multiErr = multierror.Append(multiErr, err)
-			continue
-		}
-		defer f.Close()         //nolint
-		defer resp.Body.Close() //nolint
-		if _, err := io.Copy(f, resp.Body); err != nil {
-			multiErr = multierror.Append(multiErr, err)
+	for p, f := range adminAPIPaths {
+		url := fmt.Sprintf("http://%s/%v", adminAddress, p)
+		file := filepath.Join(e.workingDir, f)
+		if e := copyURLToFile(url, file); e != nil {
+			return e
 		}
 	}
-	return multiErr.ErrorOrNil()
+	return nil
+}
+
+func copyURLToFile(url, fullPath string) error {
+	// #nosec -> e.workingDir is allowed to be anywhere
+	f, err := os.OpenFile(fullPath, os.O_CREATE|os.O_WRONLY, 0600)
+	if err != nil {
+		return fmt.Errorf("could not open %q: %w", fullPath, err)
+	}
+	defer f.Close() //nolint
+
+	// #nosec -> adminAddress is written by Envoy and the paths are hard-coded
+	resp, err := http.Get(url)
+	if err != nil {
+		return fmt.Errorf("could not read %v: %w", url, err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("received %v from %v", resp.StatusCode, url)
+	}
+	defer resp.Body.Close() //nolint
+
+	if _, err := io.Copy(f, resp.Body); err != nil {
+		return fmt.Errorf("could write response body of %v: %w", url, err)
+	}
+	return nil
 }
