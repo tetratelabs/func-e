@@ -26,8 +26,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-
-	argutil "github.com/tetratelabs/getenvoy/pkg/util/args"
 )
 
 var (
@@ -42,7 +40,7 @@ type cmdBuilder struct {
 
 // GetEnvoy returns a new command builder.
 func GetEnvoy(cmdline string) *cmdBuilder { //nolint:golint
-	args, err := argutil.SplitCommandLine(cmdline)
+	args, err := SplitCommandLine(cmdline)
 	if err != nil {
 		panic(err)
 	}

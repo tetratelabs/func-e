@@ -33,8 +33,8 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 	// handlers, and they expect the process to still be running. For example, this allows admin API hooks.
 	cmd := exec.Command(r.opts.EnvoyPath, args...) // #nosec -> users can run whatever binary they like!
 	cmd.Dir = r.opts.WorkingDir
-	cmd.Stdout = r.IO.Out
-	cmd.Stderr = r.IO.Err
+	cmd.Stdout = r.Out
+	cmd.Stderr = r.Err
 	cmd.SysProcAttr = sysProcAttr()
 	r.cmd = cmd
 

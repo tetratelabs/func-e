@@ -12,19 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package exec
+package util
 
-import "syscall"
+import (
+	"fmt"
 
-// parentDeathAttrFn represents an OS-specific field on syscall.SysProcAttr.
-type parentDeathAttrFn func(attr *syscall.SysProcAttr, signal syscall.Signal)
+	"github.com/mattn/go-shellwords"
+)
 
-func (fn parentDeathAttrFn) Supported() bool {
-	return fn != nil
-}
-
-func (fn parentDeathAttrFn) Set(attr *syscall.SysProcAttr, signal syscall.Signal) {
-	if fn.Supported() {
-		fn(attr, signal)
+// SplitCommandLine splits fragments of a command line down to individual arguments.
+func SplitCommandLine(fragments ...string) ([]string, error) {
+	args := make([]string, 0, len(fragments))
+	for _, fragment := range fragments {
+		words, err := shellwords.Parse(fragment)
+		if err != nil {
+			return nil, fmt.Errorf("%q is not a valid command line string", fragment)
+		}
+		args = append(args, words...)
 	}
+	return args, nil
 }

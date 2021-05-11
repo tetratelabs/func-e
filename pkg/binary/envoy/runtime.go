@@ -18,12 +18,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"os/exec"
 
 	"github.com/tetratelabs/getenvoy/pkg/globals"
-	ioutil "github.com/tetratelabs/getenvoy/pkg/util/io"
 )
 
 // NewRuntime creates a new Runtime that runs envoy in globals.RunOpts WorkingDir
@@ -37,7 +37,8 @@ type Runtime struct {
 	opts *globals.RunOpts
 
 	cmd *exec.Cmd
-	IO  ioutil.StdStreams
+	Out io.Writer
+	Err io.Writer
 
 	adminAddress, adminAddressPath string
 

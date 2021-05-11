@@ -60,10 +60,3 @@ func RequireCaptureScript(t *testing.T, name string) (string, func()) {
 	}
 	return path, cleanup
 }
-
-// RequireAbs runs filepath.Abs and ensures there are no errors.
-func RequireAbs(t *testing.T, f string) string {
-	f, err := filepath.Abs(f)
-	require.NoError(t, err, `error determining absolute path: %v`, f)
-	return f
-}

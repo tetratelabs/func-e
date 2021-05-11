@@ -15,15 +15,16 @@
 package cmd_test
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"testing"
 
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
 
 	rootcmd "github.com/tetratelabs/getenvoy/pkg/cmd"
 	"github.com/tetratelabs/getenvoy/pkg/globals"
-	cmdtest "github.com/tetratelabs/getenvoy/pkg/test/cmd"
 )
 
 func TestGetEnvoyValidateArgs(t *testing.T) {
@@ -55,7 +56,7 @@ func TestGetEnvoyValidateArgs(t *testing.T) {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.name, func(t *testing.T) {
-			c, stdout, stderr := cmdtest.NewRootCommand(o)
+			c, stdout, stderr := newRootCommand(o)
 			c.SetArgs(test.args)
 			err := rootcmd.Execute(c)
 
@@ -116,7 +117,7 @@ func TestGetEnvoyHomeDir(t *testing.T) {
 			}
 
 			o := &globals.GlobalOpts{}
-			c, stdout, stderr := cmdtest.NewRootCommand(o)
+			c, stdout, stderr := newRootCommand(o)
 			c.SetArgs(test.args)
 			err := rootcmd.Execute(c)
 
@@ -175,7 +176,7 @@ func TestGetEnvoyManifest(t *testing.T) {
 			}
 
 			o := &globals.GlobalOpts{}
-			c, stdout, stderr := cmdtest.NewRootCommand(o)
+			c, stdout, stderr := newRootCommand(o)
 			c.SetArgs(append(test.args, "help"))
 			err := rootcmd.Execute(c)
 
@@ -197,4 +198,14 @@ func requireSetenv(t *testing.T, key, value string) func() {
 		e := os.Setenv(key, previous)
 		require.NoError(t, e, `error reverting env variable %s=%s`, key, previous)
 	}
+}
+
+// newRootCommand initializes a command with buffers for stdout and stderr.
+func newRootCommand(o *globals.GlobalOpts) (c *cobra.Command, stdout, stderr *bytes.Buffer) {
+	stdout = new(bytes.Buffer)
+	stderr = new(bytes.Buffer)
+	c = rootcmd.NewRoot(o)
+	c.SetOut(stdout)
+	c.SetErr(stderr)
+	return c, stdout, stderr
 }
