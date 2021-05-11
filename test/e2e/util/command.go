@@ -39,21 +39,13 @@ type cmdBuilder struct {
 }
 
 // GetEnvoy returns a new command builder.
-func GetEnvoy(cmdline string) *cmdBuilder { //nolint:golint
-	args, err := SplitCommandLine(cmdline)
-	if err != nil {
-		panic(err)
-	}
-	return &cmdBuilder{exec.Command(GetEnvoyPath, args...)} //nolint:gosec
+func GetEnvoy(arg0 string) *cmdBuilder { //nolint:golint
+	return &cmdBuilder{exec.Command(GetEnvoyPath, arg0)} //nolint:gosec
 }
 
 func (b *cmdBuilder) WorkingDir(arg string) *cmdBuilder {
 	b.cmd.Dir = arg
 	return b
-}
-
-func (b *cmdBuilder) Arg(arg string) *cmdBuilder {
-	return b.Args(arg)
 }
 
 func (b *cmdBuilder) Args(args ...string) *cmdBuilder {

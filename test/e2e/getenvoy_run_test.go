@@ -39,9 +39,10 @@ const terminateTimeout = 2 * time.Minute
 func TestGetEnvoyRun(t *testing.T) {
 	t.Parallel() // uses random ports so safe to run parallel
 
-	c := getEnvoy(`run`).Arg(reference.Latest) // TODO allow implicit version #106
+	c := getEnvoy(`run`)
 	// Below is the minimal config needed to run envoy
-	c.Args(`--`, `--config-yaml`, `admin: {access_log_path: '/dev/stdout', address: {socket_address: {address: '127.0.0.1', port_value: 0}}}`)
+	// TODO allow implicit version #106
+	c.Args(reference.Latest, `--`, `--config-yaml`, `admin: {access_log_path: '/dev/stdout', address: {socket_address: {address: '127.0.0.1', port_value: 0}}}`)
 
 	stdout, stderr, terminate := c.Start(t, terminateTimeout)
 
