@@ -24,7 +24,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/tetratelabs/getenvoy/pkg/globals"
-	"github.com/tetratelabs/getenvoy/pkg/util/exec"
 	"github.com/tetratelabs/getenvoy/pkg/version"
 )
 
@@ -106,15 +105,10 @@ func handleFlagOverrides(o *globals.GlobalOpts, homeDirFlag, manifestURLFlag str
 func Execute(cmd *cobra.Command) error {
 	actualCmd, err := cmd.ExecuteC()
 	if actualCmd != nil && err != nil { // both are always true on error
-		var serr exec.ShutdownError
-		if errors.As(err, &serr) { // in case of ShutdownError, we want to avoid any wrapper messages
-			cmd.PrintErrln("NOTE:", serr.Error())
-		} else {
-			cmd.PrintErrln("Error:", err.Error())
-			// actualCmd ensures command path includes the subcommand (ex "extension run")
-			cmd.PrintErrf("\nRun '%v --help' for usage.\n", actualCmd.CommandPath())
-			return err
-		}
+		cmd.PrintErrln("Error:", err.Error())
+		// actualCmd ensures command path includes the subcommand (ex "extension run")
+		cmd.PrintErrf("\nRun '%v --help' for usage.\n", actualCmd.CommandPath())
+		return err
 	}
 	return nil
 }

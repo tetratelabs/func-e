@@ -26,7 +26,6 @@ import (
 	rootcmd "github.com/tetratelabs/getenvoy/pkg/cmd"
 	"github.com/tetratelabs/getenvoy/pkg/globals"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
-	"github.com/tetratelabs/getenvoy/pkg/test/cmd"
 	manifesttest "github.com/tetratelabs/getenvoy/pkg/test/manifest"
 	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
@@ -54,7 +53,7 @@ func TestGetEnvoyRunValidateFlag(t *testing.T) {
 
 		t.Run(test.name, func(t *testing.T) {
 			// Run "getenvoy run"
-			c, stdout, stderr := cmd.NewRootCommand(&globals.GlobalOpts{})
+			c, stdout, stderr := newRootCommand(&globals.GlobalOpts{})
 			c.SetArgs(test.args)
 			err := rootcmd.Execute(c)
 
@@ -72,7 +71,7 @@ func TestGetEnvoyRun(t *testing.T) {
 	defer cleanup()
 
 	// Run "getenvoy run standard:1.17.1 -- -c envoy.yaml"
-	c, stdout, stderr := cmd.NewRootCommand(&o.GlobalOpts)
+	c, stdout, stderr := newRootCommand(&o.GlobalOpts)
 	c.SetArgs([]string{"run", reference.Latest, "--", "-c", "envoy.yaml"})
 	err := rootcmd.Execute(c)
 
@@ -92,7 +91,7 @@ func TestGetEnvoyRunFailWithUnknownVersion(t *testing.T) {
 	defer cleanup()
 
 	o.EnvoyPath = "" // force lookup of version flag
-	c, _, stderr := cmd.NewRootCommand(&o.GlobalOpts)
+	c, _, stderr := newRootCommand(&o.GlobalOpts)
 
 	// Run "getenvoy run unknown"
 	version := "unknown"
