@@ -15,6 +15,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -26,10 +27,7 @@ import (
 	defaultreference "github.com/tetratelabs/getenvoy/pkg"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/debug"
-	"github.com/tetratelabs/getenvoy/pkg/flavors"
-	_ "github.com/tetratelabs/getenvoy/pkg/flavors/postgres" //nolint
 	"github.com/tetratelabs/getenvoy/pkg/globals"
-	"github.com/tetratelabs/getenvoy/pkg/manifest"
 	ioutil "github.com/tetratelabs/getenvoy/pkg/util/io"
 )
 
@@ -46,35 +44,19 @@ Envoy state and machine state into the ` + "`~/.getenvoy/debug`" + ` directory.`
 		Example: fmt.Sprintf(`# Run using a manifest reference.
 getenvoy run %[1]s -- --config-path ./bootstrap.yaml
 
-# Run using a filepath.
-getenvoy run /usr/local/bin/envoy -- --config-path ./bootstrap.yaml
-
 # List available Envoy flags.
 getenvoy run %[1]s -- --help
-
-# Run with Postgres specific configuration bootstrapped
-getenvoy run postgres:nightly --templateArg endpoints=127.0.0.1:5432,192.168.0.101:5432 --templateArg inport=5555
 `, defaultreference.Latest),
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return errors.New("missing reference parameter")
+			}
+			return nil
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := InitializeRunOpts(o, args[0]); err != nil {
 				return err
 			}
-
-			// Check if the templateArgs were passed to the cmd line. If they were passed, config must be created based
-			// on template.
-			// TODO: delete this template thing as it is really complicated and is less functional than shell scripts.
-			if len(templateArgs) > 0 {
-				key, err := manifest.NewKey(args[0])
-				if err != nil {
-					return fmt.Errorf("envoy version is not valid: %w", err)
-				}
-				configYaml, err := flavors.CreateConfig(key.Flavor, templateArgs)
-				if err != nil {
-					return err
-				}
-				args = append(args, `--config-yaml`, configYaml)
-			}
-
 			return Run(o, cmd, args[1:]) // consume the envoy path argument
 		},
 	}

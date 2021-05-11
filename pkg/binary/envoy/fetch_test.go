@@ -100,13 +100,13 @@ func TestFetchIfNeededAlreadyExists(t *testing.T) {
 
 // TODO: this whole test needs to be rewritten, possibly with the mock registry server
 func TestFetchEnvoy(t *testing.T) {
-	key, err := manifest.NewKey(reference.Latest)
+	ref, err := manifest.ParseReference(reference.Latest)
 	require.NoError(t, err)
 
-	defaultDarwinKey := &manifest.Key{Flavor: key.Flavor, Version: key.Version, Platform: "darwin"}
+	defaultDarwinRef := &manifest.Reference{Flavor: ref.Flavor, Version: ref.Version, Platform: "darwin"}
 	tests := []struct {
 		name             string
-		key              *manifest.Key
+		key              *manifest.Reference
 		tarballStructure string
 		tarExtension     string
 		responseStatus   int
@@ -115,7 +115,7 @@ func TestFetchEnvoy(t *testing.T) {
 	}{
 		{
 			name:             "Downloads and untars envoy and runtime libs to store/key/bin and store/key/lib",
-			key:              defaultDarwinKey,
+			key:              defaultDarwinRef,
 			tarballStructure: "envoy",
 			tarExtension:     ".tar.gz",
 			responseStatus:   http.StatusOK,
@@ -123,7 +123,7 @@ func TestFetchEnvoy(t *testing.T) {
 		},
 		{
 			name:             "Downloads and untars envoy and runtime libs to store/key/bin and store/key/lib",
-			key:              defaultDarwinKey,
+			key:              defaultDarwinRef,
 			tarballStructure: "envoy",
 			tarExtension:     ".tar.xz",
 			responseStatus:   http.StatusOK,
@@ -131,7 +131,7 @@ func TestFetchEnvoy(t *testing.T) {
 		},
 		{
 			name:             "errors if it can't find an envoy binary in tarball",
-			key:              defaultDarwinKey,
+			key:              defaultDarwinRef,
 			tarballStructure: "envoy/lib",
 			tarExtension:     ".tar.gz",
 			responseStatus:   http.StatusOK,
@@ -140,7 +140,7 @@ func TestFetchEnvoy(t *testing.T) {
 		},
 		{
 			name:             "errors if it gets !200 from download",
-			key:              defaultDarwinKey,
+			key:              defaultDarwinRef,
 			tarballStructure: "envoy/lib",
 			tarExtension:     ".tar.gz",
 			responseStatus:   http.StatusTeapot,

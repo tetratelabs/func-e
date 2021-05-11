@@ -30,6 +30,16 @@ func TestGetEnvoyVersion(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestGetEnvoyList(t *testing.T) {
+	t.Parallel()
+
+	stdout, stderr, err := getEnvoy("list").Exec()
+
+	require.Regexp(t, `REFERENCE +VERSION\n`, stdout)
+	require.Empty(t, stderr)
+	require.NoError(t, err)
+}
+
 func TestGetEnvoyString(t *testing.T) {
 	t.Parallel()
 
