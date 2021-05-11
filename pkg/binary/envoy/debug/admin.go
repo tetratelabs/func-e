@@ -81,7 +81,7 @@ func copyURLToFile(url, fullPath string) error {
 	defer resp.Body.Close() //nolint
 
 	if _, err := io.Copy(f, resp.Body); err != nil {
-		return fmt.Errorf("could write response body of %v: %w", url, err)
+		return fmt.Errorf("could not write response body of %v: %w", url, err)
 	}
 	return nil
 }
