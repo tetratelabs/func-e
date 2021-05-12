@@ -34,7 +34,7 @@ type RunOpts struct {
 type GlobalOpts struct {
 	// RunOpts are inlined to allow tests to override parameters without changing ENV variables or flags
 	RunOpts
-	// HomeDir most importantly contains envoy binaries fetched from ManifestURL. Defaults to homedir.Dir/.getenvoy
+	// HomeDir most importantly contains envoy binaries fetched from ManifestURL. Defaults to $HOME/.getenvoy
 	HomeDir string
 	// ManifestURL is the path to the getenvoy manifest json
 	ManifestURL string
