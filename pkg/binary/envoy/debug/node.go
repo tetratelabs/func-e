@@ -16,12 +16,10 @@ package debug
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"syscall"
 	"text/tabwriter"
 	"time"
@@ -186,16 +184,6 @@ func printProcessTable(out io.Writer, parsed []*proc) error {
 	return w.Flush()
 }
 
-func wrapError(ctx context.Context, err error, field string, pid int32) error {
-	if err == nil {
-		err = ctx.Err()
-	}
-	if err != nil && err.Error() != "not implemented yet" { // don't log if it will never work
-		return fmt.Errorf("unable to retrieve %s of pid %d: %w", field, pid, err)
-	}
-	return nil
-}
-
 func (n *nodeCollection) networkInterfaces() error {
 	result, err := net.Interfaces()
 	if err != nil {
@@ -246,15 +234,6 @@ func (n *nodeCollection) activeConnections() error {
 		return nil // don't write a file on an unsupported platform
 	}
 	return writeJSON(result, filepath.Join(n.nodeDir, "connections.json"))
-}
-
-// writeJSONIfNonEmpty centralizes logic to avoid writing empty files.
-func writeJSON(result interface{}, filename string) error {
-	sb := new(strings.Builder)
-	if err := json.NewEncoder(sb).Encode(result); err != nil {
-		return fmt.Errorf("error serializing %v as JSON: %w", sb, err)
-	}
-	return os.WriteFile(filename, []byte(sb.String()), 0600)
 }
 
 // Replace uint32 label to human readable string label.

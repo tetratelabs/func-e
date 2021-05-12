@@ -15,6 +15,12 @@
 package debug
 
 import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"os"
+	"strings"
+
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 )
 
@@ -30,4 +36,25 @@ func EnableAll(r *envoy.Runtime, logErr func(error)) {
 			logErr(err)
 		}
 	}
+}
+
+// wrapError wraps an error from using "gopsutil" or returns nil on "not implemented yet".
+// We don't err on unimplemented because we don't want to disturb users for unresolvable reasons.
+func wrapError(ctx context.Context, err error, field string, pid int32) error {
+	if err == nil {
+		err = ctx.Err()
+	}
+	if err != nil && err.Error() != "not implemented yet" { // don't log if it will never work
+		return fmt.Errorf("unable to retrieve %s of pid %d: %w", field, pid, err)
+	}
+	return nil
+}
+
+// writeJSON centralizes logic to avoid writing empty files.
+func writeJSON(result interface{}, filename string) error {
+	sb := new(strings.Builder)
+	if err := json.NewEncoder(sb).Encode(result); err != nil {
+		return fmt.Errorf("error serializing %v as JSON: %w", sb, err)
+	}
+	return os.WriteFile(filename, []byte(sb.String()), 0600)
 }
