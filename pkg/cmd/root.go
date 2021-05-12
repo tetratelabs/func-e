@@ -20,9 +20,9 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"os/user"
 	"path/filepath"
 
-	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 
 	"github.com/tetratelabs/getenvoy/pkg/globals"
@@ -70,11 +70,11 @@ bootstrap generation and automated collection of access logs, Envoy state and ma
 func initializeGlobalOpts(globalOpts *globals.GlobalOpts) (string, string, error) {
 	homeDirFlag := os.Getenv("GETENVOY_HOME")
 	if homeDirFlag == "" && globalOpts.HomeDir == "" { // don't lookup homedir when overridden for tests
-		userHome, err := homedir.Dir()
-		if err != nil {
+		u, err := user.Current()
+		if err != nil || u.HomeDir == "" {
 			return "", "", fmt.Errorf("unable to determine home directory. Set GETENVOY_HOME instead: %w", err)
 		}
-		homeDirFlag = filepath.Join(userHome, ".getenvoy")
+		homeDirFlag = filepath.Join(u.HomeDir, ".getenvoy")
 	}
 
 	manifestURLFlag := os.Getenv("GETENVOY_MANIFEST_URL")
