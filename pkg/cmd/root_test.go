@@ -18,8 +18,10 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
+	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
 
@@ -78,11 +80,14 @@ func TestGetEnvoyHomeDir(t *testing.T) {
 		expected string
 	}
 
+	userHome, err := homedir.Dir()
+	require.NoError(t, err)
+
 	tests := []testCase{ // we don't test default as that depends on the runtime env
 		{
 			name:     "default is ~/.getenvoy",
 			args:     []string{"help"},
-			expected: globals.DefaultHomeDir(),
+			expected: filepath.Join(userHome, ".getenvoy"),
 		},
 		{
 			name: "GETENVOY_HOME env",

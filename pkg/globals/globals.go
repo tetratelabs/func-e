@@ -14,13 +14,6 @@
 
 package globals
 
-import (
-	"path/filepath"
-
-	"github.com/mitchellh/go-homedir"
-	"github.com/tetratelabs/log"
-)
-
 // RunOpts support invocations of "getenvoy run" and "getenvoy extension run"
 type RunOpts struct {
 	// EnvoyPath is the exec.Cmd path to "envoy". Defaults to "$HomeDir/builds/$flavor/$version/$platform/bin/envoy"
@@ -41,22 +34,10 @@ type RunOpts struct {
 type GlobalOpts struct {
 	// RunOpts are inlined to allow tests to override parameters without changing ENV variables or flags
 	RunOpts
-	// HomeDir most importantly contains envoy binaries fetched from ManifestURL. Defaults to DefaultHomeDir
+	// HomeDir most importantly contains envoy binaries fetched from ManifestURL. Defaults to homedir.Dir/.getenvoy
 	HomeDir string
 	// ManifestURL is the path to the getenvoy manifest json
 	ManifestURL string
-}
-
-// DefaultHomeDir returns the value for RunOpts.HomeDir. Defaults to homedir.Dir/.getenvoy
-// Intentionally defer this to prevent log warnings.
-func DefaultHomeDir() string {
-	home, err := homedir.Dir()
-	dir := filepath.Join(home, ".getenvoy")
-	if err != nil {
-		log.Errorf("unable to determine the user home directory: %v", err)
-		log.Warnf("default GetEnvoy home directory will have a non-standard value %q", dir)
-	}
-	return dir
 }
 
 // DefaultManifestURL is the default value for GlobalOpts.ManifestURL

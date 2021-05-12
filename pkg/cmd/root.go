@@ -17,10 +17,12 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net/url"
 	"os"
 	"path/filepath"
 
+	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 
 	"github.com/tetratelabs/getenvoy/pkg/globals"
@@ -30,9 +32,12 @@ import (
 // NewRoot create a new root command. The globals.GlobalOpts parameter allows tests to scope overrides, which avoids
 // having to define a flag for everything needed in tests.
 func NewRoot(globalOpts *globals.GlobalOpts) *cobra.Command {
-	// we set a default flags values eagerly so that handleFlagOverrides can validate if the user errored by clearing it
+	// We set default flags values eagerly so that handleFlagOverrides can validate if the user errored by clearing it
 	// TODO: determine if it is worth the code and bother if the user or a tool they use accidentally set to empty!!
-	homeDirFlag, manifestURLFlag := initializeGlobalOpts(globalOpts)
+	homeDirFlag, manifestURLFlag, err := initializeGlobalOpts(globalOpts)
+	if err != nil {
+		log.Fatalln(err) // exit the process instead of using incoherent state
+	}
 
 	rootCmd := &cobra.Command{
 		Use:               "getenvoy",
@@ -62,17 +67,21 @@ bootstrap generation and automated collection of access logs, Envoy state and ma
 	return rootCmd
 }
 
-func initializeGlobalOpts(globalOpts *globals.GlobalOpts) (string, string) {
+func initializeGlobalOpts(globalOpts *globals.GlobalOpts) (string, string, error) {
 	homeDirFlag := os.Getenv("GETENVOY_HOME")
 	if homeDirFlag == "" && globalOpts.HomeDir == "" { // don't lookup homedir when overridden for tests
-		homeDirFlag = globals.DefaultHomeDir()
+		userHome, err := homedir.Dir()
+		if err != nil {
+			return "", "", fmt.Errorf("unable to determine home directory. Set GETENVOY_HOME instead: %w", err)
+		}
+		homeDirFlag = filepath.Join(userHome, ".getenvoy")
 	}
 
 	manifestURLFlag := os.Getenv("GETENVOY_MANIFEST_URL")
 	if manifestURLFlag == "" {
 		manifestURLFlag = globals.DefaultManifestURL
 	}
-	return homeDirFlag, manifestURLFlag
+	return homeDirFlag, manifestURLFlag, nil
 }
 
 func handleFlagOverrides(o *globals.GlobalOpts, homeDirFlag, manifestURLFlag string) error {
