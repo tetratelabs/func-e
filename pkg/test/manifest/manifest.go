@@ -15,48 +15,43 @@
 package manifest
 
 import (
-	"github.com/tetratelabs/getenvoy/api"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
 
 // NewSimpleManifest returns a new manifest auto-generated for a given
 // list of references.
-func NewSimpleManifest(reference string) (*api.Manifest, error) {
-	m := new(api.Manifest)
+func NewSimpleManifest(reference string) (*manifest.Manifest, error) {
+	m := new(manifest.Manifest)
 	m.ManifestVersion = "v0.1.0"
-	m.Flavors = make(map[string]*api.Flavor)
+	m.Flavors = make(map[string]*manifest.Flavor)
 	ref, err := manifest.ParseReference(reference)
 	if err != nil {
 		return nil, err
 	}
 	flavor, exists := m.Flavors[ref.Flavor]
 	if !exists {
-		flavor = &api.Flavor{Name: ref.Flavor, FilterProfile: ref.Flavor}
+		flavor = &manifest.Flavor{Name: ref.Flavor}
 		m.Flavors[ref.Flavor] = flavor
 	}
 	if flavor.Versions == nil {
-		flavor.Versions = make(map[string]*api.Version)
+		flavor.Versions = make(map[string]*manifest.Version)
 	}
 	version, exists := flavor.Versions[ref.Version]
 	if !exists {
-		version = &api.Version{Name: ref.Version}
+		version = &manifest.Version{Name: ref.Version}
 		flavor.Versions[ref.Version] = version
 	}
 	if version.Builds == nil {
-		version.Builds = make(map[string]*api.Build)
+		version.Builds = make(map[string]*manifest.Build)
 	}
-	platforms := SupportedPlatforms
+	platforms := []string{"DARWIN", "LINUX_GLIBC"}
 	if ref.Platform != "" {
-		platform, err := ParsePlatform(ref.Platform)
-		if err != nil {
-			return nil, err
-		}
-		platforms = Platforms{platform}
+		platforms = []string{ref.Platform}
 	}
 	for _, platform := range platforms {
-		version.Builds[platform.Code()] = &api.Build{
-			Platform:            platform.BuildPlatform(),
-			DownloadLocationUrl: ref.String(),
+		version.Builds[platform] = &manifest.Build{
+			Platform:            platform,
+			DownloadLocationURL: ref.String(),
 		}
 	}
 	return m, nil

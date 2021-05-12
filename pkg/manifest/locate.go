@@ -15,18 +15,16 @@
 package manifest
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 
-	"google.golang.org/protobuf/encoding/protojson"
-
-	"github.com/tetratelabs/getenvoy/api"
 	"github.com/tetratelabs/getenvoy/pkg/transport"
 )
 
 // FetchManifest returns a manifest from a remote URL. eg global.manifestURL.
-func FetchManifest(manifestURL string) (*api.Manifest, error) {
+func FetchManifest(manifestURL string) (*Manifest, error) {
 	// #nosec => This is by design, users can call out to wherever they like!
 	resp, err := transport.Get(manifestURL)
 	if err != nil {
@@ -42,24 +40,21 @@ func FetchManifest(manifestURL string) (*api.Manifest, error) {
 		return nil, fmt.Errorf("error reading %s: %w", manifestURL, err)
 	}
 
-	// Prevent crashing the CLI if new fields are added later
-	options := protojson.UnmarshalOptions{DiscardUnknown: true}
-
-	result := api.Manifest{}
-	if err := options.Unmarshal(body, &result); err != nil {
+	result := Manifest{}
+	if err := json.Unmarshal(body, &result); err != nil {
 		return nil, fmt.Errorf("error unmarshalling manifest: %w", err)
 	}
 	return &result, nil
 }
 
 // LocateBuild returns the downloadLocationURL of the associated envoy binary in the manifest using the input key
-func LocateBuild(ref *Reference, manifest *api.Manifest) (string, error) {
+func LocateBuild(ref *Reference, manifest *Manifest) (string, error) {
 	// This is pretty horrible... Not sure there is a nicer way though.
 	if manifest.Flavors[ref.Flavor] != nil && manifest.Flavors[ref.Flavor].Versions[ref.Version] != nil {
 		for _, build := range manifest.Flavors[ref.Flavor].Versions[ref.Version].Builds {
-			normalizedPlatform := platformFromEnum(build.Platform.String())
+			normalizedPlatform := platformFromEnum(build.Platform)
 			if normalizedPlatform == ref.Platform {
-				return build.DownloadLocationUrl, nil
+				return build.DownloadLocationURL, nil
 			}
 		}
 	}

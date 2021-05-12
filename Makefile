@@ -100,15 +100,6 @@ coverage:
 	go test $(GO_COVERAGE_OPTS) $(GO_COVERAGE_EXTRA_OPTS) -coverprofile="$(COVERAGE_PROFILE)" $(COVERAGE_PKG_LIST)
 	go tool cover -html="$(COVERAGE_PROFILE)" -o "$(COVERAGE_REPORT)"
 
-.PHONY: api
-api: api/manifest.proto $(BUF) $(PROTOC_GEN_GO)
-	@echo "--- api ---"
-	@rm -f api/*.go
-	@$(BUF) protoc \
-		--plugin=protoc-gen-go=$(PROTOC_GEN_GO) \
-		--go_out=paths=source_relative:. \
-		api/manifest.proto
-
 ##@ Code quality and integrity
 
 LINT_OPTS ?= --timeout 5m
@@ -146,7 +137,6 @@ check:  ## CI blocks merge until this passes. If this fails, run "make check" lo
 		echo "Expected 'go version' to start with $(EXPECTED_GO_VERSION_PREFIX), but it didn't: $(GO_VERSION)"; \
 		exit 1; \
 	esac
-	@$(MAKE) api
 	@$(MAKE) lint
 	@$(MAKE) format
 	@go mod tidy

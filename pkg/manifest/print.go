@@ -19,19 +19,17 @@ import (
 	"io"
 	"sort"
 	"text/tabwriter"
-
-	"github.com/tetratelabs/getenvoy/api"
 )
 
 // Print retrieves the manifest from the passed location and writes it to the passed writer
-func Print(manifest *api.Manifest, writer io.Writer) error {
+func Print(manifest *Manifest, writer io.Writer) error {
 	w := tabwriter.NewWriter(writer, 0, 8, 5, ' ', 0)
 	fmt.Fprintln(w, "REFERENCE\tVERSION")
 
 	for _, flavor := range deterministicFlavors(manifest.Flavors) {
 		for _, version := range deterministicVersions(flavor.Versions) {
 			for _, build := range deterministicBuilds(version.Builds) {
-				ref := Reference{flavor.Name, version.Name, platformFromEnum(build.Platform.String())}
+				ref := Reference{flavor.Name, version.Name, platformFromEnum(build.Platform)}
 				fmt.Fprintf(w, "%s\t%s\n", ref.String(), version.Name)
 			}
 		}
@@ -39,8 +37,8 @@ func Print(manifest *api.Manifest, writer io.Writer) error {
 	return w.Flush()
 }
 
-func deterministicFlavors(flavors map[string]*api.Flavor) []*api.Flavor {
-	flavorList := make([]*api.Flavor, 0, len(flavors))
+func deterministicFlavors(flavors map[string]*Flavor) []*Flavor {
+	flavorList := make([]*Flavor, 0, len(flavors))
 	for _, flavor := range flavors {
 		flavorList = append(flavorList, flavor)
 	}
@@ -50,8 +48,8 @@ func deterministicFlavors(flavors map[string]*api.Flavor) []*api.Flavor {
 	return flavorList
 }
 
-func deterministicVersions(versions map[string]*api.Version) []*api.Version {
-	versionList := make([]*api.Version, 0, len(versions))
+func deterministicVersions(versions map[string]*Version) []*Version {
+	versionList := make([]*Version, 0, len(versions))
 	for _, version := range versions {
 		versionList = append(versionList, version)
 	}
@@ -62,14 +60,14 @@ func deterministicVersions(versions map[string]*api.Version) []*api.Version {
 	return versionList
 }
 
-func deterministicBuilds(builds map[string]*api.Build) []*api.Build {
-	buildList := make([]*api.Build, 0, len(builds))
+func deterministicBuilds(builds map[string]*Build) []*Build {
+	buildList := make([]*Build, 0, len(builds))
 	for _, build := range builds {
 		buildList = append(buildList, build)
 	}
 	sort.Slice(buildList, func(i, j int) bool {
 		// Note: build is reverse alphabetical so that Linux versions are before Darwin
-		return buildList[i].String() > buildList[j].String()
+		return fmt.Sprintf("%v", buildList[i]) > fmt.Sprintf("%v", buildList[j])
 	})
 	return buildList
 }
