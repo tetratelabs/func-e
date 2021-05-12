@@ -18,6 +18,8 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"os/user"
+	"path/filepath"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -78,11 +80,14 @@ func TestGetEnvoyHomeDir(t *testing.T) {
 		expected string
 	}
 
+	u, err := user.Current()
+	require.NoError(t, err)
+
 	tests := []testCase{ // we don't test default as that depends on the runtime env
 		{
 			name:     "default is ~/.getenvoy",
 			args:     []string{"help"},
-			expected: globals.DefaultHomeDir(),
+			expected: filepath.Join(u.HomeDir, ".getenvoy"),
 		},
 		{
 			name: "GETENVOY_HOME env",
