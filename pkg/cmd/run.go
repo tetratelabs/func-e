@@ -17,6 +17,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -96,6 +97,12 @@ func Run(o *globals.GlobalOpts, cmd *cobra.Command, args []string) error {
 	r := envoy.NewRuntime(&o.RunOpts)
 	r.Out = cmd.OutOrStdout()
 	r.Err = cmd.ErrOrStderr()
-	debug.EnableAll(r)
+
+	// All debug features are optional. If there is any unexpected failure, log as "debug" to stdout.
+	debugLog := log.New(r.Out, "debug: ", log.LstdFlags)
+	debug.EnableAll(r, func(err error) {
+		debugLog.Println(err.Error())
+	})
+
 	return r.Run(cmd.Context(), args)
 }

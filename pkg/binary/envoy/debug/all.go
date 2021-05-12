@@ -18,10 +18,16 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 )
 
-// EnableAll returns all debug options.
-func EnableAll(r *envoy.Runtime) {
-	EnableEnvoyAdminDataCollection(r)
-	EnableEnvoyLogCollection(r)
-	EnableNodeCollection(r)
-	EnableOpenFilesDataCollection(r)
+// EnableAll enables all debug options invoking logErr on each that failed
+func EnableAll(r *envoy.Runtime, logErr func(error)) {
+	for _, debug := range []func(*envoy.Runtime) error{
+		enableEnvoyAdminDataCollection,
+		enableEnvoyLogCollection,
+		enableNodeCollection,
+		enableOpenFilesDataCollection,
+	} {
+		if err := debug(r); err != nil {
+			logErr(err)
+		}
+	}
 }

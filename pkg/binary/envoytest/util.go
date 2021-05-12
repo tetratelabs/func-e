@@ -30,7 +30,7 @@ import (
 )
 
 // RunAndTerminateWithDebug is like RequireRunTerminate, except returns a directory populated by the debug plugin.
-func RunAndTerminateWithDebug(t *testing.T, debugDir string, debug func(r *envoy.Runtime), args ...string) string {
+func RunAndTerminateWithDebug(t *testing.T, debugDir string, debug func(r *envoy.Runtime) error, args ...string) string {
 	fakeEnvoy, removeFakeEnvoy := morerequire.RequireCaptureScript(t, "envoy")
 	defer removeFakeEnvoy()
 
@@ -41,7 +41,8 @@ func RunAndTerminateWithDebug(t *testing.T, debugDir string, debug func(r *envoy
 
 	r := envoy.NewRuntime(o)
 
-	debug(r)
+	e := debug(r)
+	require.NoError(t, e)
 
 	RequireRunTerminate(t, nil, r, args...)
 	RequireRestoreWorkingDir(t, o.WorkingDir, r)

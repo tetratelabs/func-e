@@ -19,7 +19,6 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/tetratelabs/log"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/tetratelabs/getenvoy/api"
@@ -28,7 +27,6 @@ import (
 
 // FetchManifest returns a manifest from a remote URL. eg global.manifestURL.
 func FetchManifest(manifestURL string) (*api.Manifest, error) {
-	log.Debugf("retrieving manifest %s", manifestURL)
 	// #nosec => This is by design, users can call out to wherever they like!
 	resp, err := transport.Get(manifestURL)
 	if err != nil {

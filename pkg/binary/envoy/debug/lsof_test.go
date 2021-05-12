@@ -31,16 +31,16 @@ func TestEnableOpenFilesDataCollection(t *testing.T) {
 	debugDir, removeDebugDir := morerequire.RequireNewTempDir(t)
 	defer removeDebugDir()
 
-	workingDir := envoytest.RunAndTerminateWithDebug(t, debugDir, EnableOpenFilesDataCollection)
+	workingDir := envoytest.RunAndTerminateWithDebug(t, debugDir, enableOpenFilesDataCollection)
 
 	file := "lsof/lsof.json"
 	path := filepath.Join(workingDir, file)
-	f, err := os.Stat(path)
-	require.NoError(t, err, "error stating %v", path)
 
 	if runtime.GOOS == `darwin` { // process.OpenFiles in unsupported, so this feature won't work
-		require.Empty(t, f.Size(), "file %v was not empty", path)
+		require.NoFileExists(t, path)
 	} else {
+		f, err := os.Stat(path)
+		require.NoError(t, err, "error stating %v", path)
 		require.NotEmpty(t, f.Size(), "file %v was empty", path)
 		raw, err := os.ReadFile(path)
 		require.NoError(t, err, "error reading file %v", path)

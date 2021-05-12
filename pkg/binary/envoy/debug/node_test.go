@@ -31,7 +31,7 @@ func TestEnableNodeCollection(t *testing.T) {
 	debugDir, removeDebugDir := morerequire.RequireNewTempDir(t)
 	defer removeDebugDir()
 
-	workingDir := envoytest.RunAndTerminateWithDebug(t, debugDir, EnableNodeCollection)
+	workingDir := envoytest.RunAndTerminateWithDebug(t, debugDir, enableNodeCollection)
 
 	files := [...]string{"node/ps.txt", "node/network_interface.json", "node/connections.json"}
 	for _, file := range files {
@@ -52,7 +52,7 @@ func TestEnableNodeCollection(t *testing.T) {
 
 			err = json.Unmarshal(raw, &is)
 			require.NoError(t, err, "error to unmarshal json string, %v: \"%v\"", err, raw)
-			require.NotEmpty(t, len(is), "unmarshaled content is empty, expected to be a non-empty array: \"%v\"", raw)
+			require.NotEmpty(t, len(is), "unmarshalled content is empty, expected to be a non-empty array: \"%v\"", raw)
 		}
 	}
 }

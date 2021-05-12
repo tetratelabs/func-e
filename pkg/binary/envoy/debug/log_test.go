@@ -28,7 +28,7 @@ func TestEnableEnvoyLogCollection(t *testing.T) {
 	debugDir, removeDebugDir := morerequire.RequireNewTempDir(t)
 	defer removeDebugDir()
 
-	workingDir := envoytest.RunAndTerminateWithDebug(t, debugDir, EnableEnvoyLogCollection)
+	workingDir := envoytest.RunAndTerminateWithDebug(t, debugDir, enableEnvoyLogCollection)
 
 	for _, filename := range []string{"logs/access.log", "logs/error.log"} {
 		require.FileExists(t, filepath.Join(workingDir, filename))
