@@ -19,8 +19,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/tetratelabs/getenvoy/api"
 )
 
 func TestPrint(t *testing.T) {
@@ -36,48 +34,45 @@ standard-fips1402:1.10.0/linux-glibc     1.10.0
 `, got.String())
 }
 
-var goodManifest = &api.Manifest{
+var goodManifest = &Manifest{
 	ManifestVersion: "v0.1.0",
-	Flavors: map[string]*api.Flavor{
+	Flavors: map[string]*Flavor{
 		"standard": {
-			Name:          "standard",
-			FilterProfile: "standard",
-			Versions: map[string]*api.Version{
+			Name: "standard",
+			Versions: map[string]*Version{
 				"1.17.1": {
 					Name: "1.17.1",
-					Builds: map[string]*api.Build{
-						api.Build_LINUX_GLIBC.String(): {
-							Platform:            api.Build_LINUX_GLIBC,
-							DownloadLocationUrl: "standard:1.17.1/linux-glibc",
+					Builds: map[string]*Build{
+						"LINUX_GLIBC": {
+							Platform:            "LINUX_GLIBC",
+							DownloadLocationURL: "standard:1.17.1/linux-glibc",
 						},
-						api.Build_DARWIN.String(): {
-							Platform:            api.Build_DARWIN,
-							DownloadLocationUrl: "standard:1.17.1/darwin",
+						"DARWIN": {
+							Platform:            "DARWIN",
+							DownloadLocationURL: "standard:1.17.1/darwin",
 						},
 					},
 				},
 				"nightly": {
 					Name: "nightly",
-					Builds: map[string]*api.Build{
-						api.Build_LINUX_GLIBC.String(): {
-							Platform:            api.Build_LINUX_GLIBC,
-							DownloadLocationUrl: "standard:nightly/linux-glibc",
+					Builds: map[string]*Build{
+						"LINUX_GLIBC": {
+							Platform:            "LINUX_GLIBC",
+							DownloadLocationURL: "standard:nightly/linux-glibc",
 						},
 					},
 				},
 			},
 		},
 		"standard-fips1402": {
-			Name:          "standard-fips1402",
-			FilterProfile: "standard",
-			Compliances:   []api.Compliance{api.Compliance_FIPS1402},
-			Versions: map[string]*api.Version{
+			Name: "standard-fips1402",
+			Versions: map[string]*Version{
 				"1.10.0": {
 					Name: "1.10.0",
-					Builds: map[string]*api.Build{
-						api.Build_LINUX_GLIBC.String(): {
-							Platform:            api.Build_LINUX_GLIBC,
-							DownloadLocationUrl: "standard-fips1402:1.10.0/linux-glibc",
+					Builds: map[string]*Build{
+						"LINUX_GLIBC": {
+							Platform:            "LINUX_GLIBC",
+							DownloadLocationURL: "standard-fips1402:1.10.0/linux-glibc",
 						},
 					},
 				},

@@ -15,15 +15,13 @@
 package manifest
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/encoding/protojson"
-
-	"github.com/tetratelabs/getenvoy/api"
 )
 
 func TestLocateBuild(t *testing.T) {
@@ -72,7 +70,7 @@ func TestLocateBuild(t *testing.T) {
 }
 
 func TestFetchManifest(t *testing.T) {
-	goodManifestBytes, err := protojson.Marshal(goodManifest)
+	goodManifestBytes, err := json.Marshal(goodManifest)
 	require.NoError(t, err)
 
 	// This tests we can parse a flavor besides "standard", and don't crash on new fields
@@ -97,18 +95,18 @@ func TestFetchManifest(t *testing.T) {
   }
 }`)
 
-	var nonStandardManifest = &api.Manifest{
+	var nonStandardManifest = &Manifest{
 		ManifestVersion: "v0.1.2",
-		Flavors: map[string]*api.Flavor{
+		Flavors: map[string]*Flavor{
 			"experiment": {
 				Name: "experiment",
-				Versions: map[string]*api.Version{
+				Versions: map[string]*Version{
 					"1.15": {
 						Name: "1.15",
-						Builds: map[string]*api.Build{
-							api.Build_DARWIN.String(): {
-								Platform:            api.Build_DARWIN,
-								DownloadLocationUrl: "1.17.1/darwin",
+						Builds: map[string]*Build{
+							"DARWIN": {
+								Platform:            "DARWIN",
+								DownloadLocationURL: "1.17.1/darwin",
 							},
 						},
 					},
@@ -121,7 +119,7 @@ func TestFetchManifest(t *testing.T) {
 		name                  string
 		responseStatusCode    int
 		responseManifestBytes []byte
-		want                  *api.Manifest
+		want                  *Manifest
 		wantErr               bool
 	}{
 		{
@@ -155,8 +153,7 @@ func TestFetchManifest(t *testing.T) {
 			mock := mockServer(tc.responseStatusCode, tc.responseManifestBytes)
 			defer mock.Close()
 			have, err := FetchManifest(mock.URL)
-			// Use prototext comparison to avoid comparing internal state
-			require.Equal(t, tc.want.String(), have.String())
+			require.Equal(t, tc.want, have)
 			if tc.wantErr {
 				require.Error(t, err)
 			} else {

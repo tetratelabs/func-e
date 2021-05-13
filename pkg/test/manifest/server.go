@@ -17,6 +17,7 @@ package manifest
 import (
 	"archive/tar"
 	"compress/gzip"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -25,27 +26,24 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
 
-	"github.com/tetratelabs/getenvoy/api"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
 
 const archiveFormat = ".tar.gz"
 
 // RequireManifestTestServer serves "/manifest.json", which contains download links a compressed archive of artifactDir
-func RequireManifestTestServer(t *testing.T, m *api.Manifest) *httptest.Server {
+func RequireManifestTestServer(t *testing.T, m *manifest.Manifest) *httptest.Server {
 	s := &server{t: t}
 	h := httptest.NewServer(s)
-	s.manifest = rewriteDownloadLocations(t, h.URL, m)
+	s.manifest = rewriteDownloadLocations(h.URL, *m)
 	return h
 }
 
 // server represents an HTTP server serving GetEnvoy manifest.
 type server struct {
 	t        *testing.T
-	manifest *api.Manifest
+	manifest *manifest.Manifest
 }
 
 func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -73,7 +71,7 @@ func (s *server) validateReference(uri string) {
 }
 
 func (s *server) GetManifest() []byte {
-	data, err := protojson.Marshal(s.manifest)
+	data, err := json.Marshal(s.manifest)
 	require.NoError(s.t, err)
 	return data
 }
@@ -104,16 +102,13 @@ echo >&2 envoy stderr
 	require.NoError(t, err)
 }
 
-func rewriteDownloadLocations(t *testing.T, baseURL string, m *api.Manifest) *api.Manifest {
-	m, ok := proto.Clone(m).(*api.Manifest) // safe copy
-	require.True(t, ok)
-
+func rewriteDownloadLocations(baseURL string, m manifest.Manifest) *manifest.Manifest {
 	for _, flavor := range m.Flavors {
 		for _, version := range flavor.Versions {
 			for _, build := range version.Builds {
-				build.DownloadLocationUrl = fmt.Sprintf("%s/builds/%s%s", baseURL, build.DownloadLocationUrl, archiveFormat)
+				build.DownloadLocationURL = fmt.Sprintf("%s/builds/%s%s", baseURL, build.DownloadLocationURL, archiveFormat)
 			}
 		}
 	}
-	return m
+	return &m
 }
