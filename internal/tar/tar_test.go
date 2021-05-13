@@ -129,7 +129,7 @@ func requireTarTestData(t *testing.T, tempDir string) string {
 	require.NoError(t, e)
 	defer f.Close()
 
-	e = tar.Tar(f, "testdata", "foo")
+	e = tar.Tar(f, os.DirFS("testdata"), "foo")
 	require.NoError(t, e)
 	return f.Name()
 }

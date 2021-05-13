@@ -7,7 +7,6 @@ require (
 	github.com/StackExchange/wmi v0.0.0-20210224194228-fe8f1750fd46 // indirect
 	github.com/go-ole/go-ole v1.2.5 // indirect
 	github.com/mattn/go-runewidth v0.0.12 // indirect
-	github.com/mholt/archiver/v3 v3.5.0
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/schollz/progressbar/v3 v3.8.0
 	github.com/shirou/gopsutil/v3 v3.21.4

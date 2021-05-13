@@ -105,6 +105,6 @@ echo >&2 envoy stderr
 	zw, err := xz.NewWriter(w)
 	require.NoError(s.t, err)
 	defer zw.Close() //nolint
-	err = tar.Tar(zw, tempDir, version)
+	err = tar.Tar(zw, os.DirFS(tempDir), version)
 	require.NoError(s.t, err)
 }

@@ -66,7 +66,7 @@ func (r *Runtime) handlePostTermination() error {
 	zw := gzip.NewWriter(targz)
 	defer zw.Close() //nolint
 
-	if err = tar.Tar(zw, dirName, baseName); err != nil {
+	if err = tar.Tar(zw, os.DirFS(dirName), baseName); err != nil {
 		return fmt.Errorf("unable to archive run directory %v: %w", r.GetWorkingDir(), err)
 	}
 	return os.RemoveAll(r.GetWorkingDir())
