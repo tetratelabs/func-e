@@ -69,7 +69,7 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (s *server) validateReference(uri string) {
 	ref, err := manifest.ParseReference(uri)
 	require.NoError(s.t, err, "could not parse reference from uri %q", uri)
-	require.Regexpf(s.t, `^1\.[1-9][7]\.[0-9]+$`, ref.Version, "unsupported version in uri %q", uri)
+	require.Regexpf(s.t, `^1\.[1-9][0-9]\.[0-9]+$`, ref.Version, "unsupported version in uri %q", uri)
 }
 
 func (s *server) GetManifest() []byte {
