@@ -16,14 +16,12 @@ package debug
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"syscall"
 
 	"github.com/shirou/gopsutil/v3/process"
-	"github.com/tetratelabs/log"
 
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 )
@@ -45,16 +43,16 @@ type OpenFileStat struct {
 	Name   string `json:"name"` // name of the mount point and file system on which the file resides
 }
 
-// EnableOpenFilesDataCollection is a preset option that registers collection of statistics of files opened by envoy
-// instance(s). This is unsupported on macOS/Darwin because it does not support process.OpenFiles
-func EnableOpenFilesDataCollection(r *envoy.Runtime) {
+// enableOpenFilesDataCollection is a preset option that registers collection of statistics of files opened by envoy
+// instance(s).
+func enableOpenFilesDataCollection(r *envoy.Runtime) error {
 	lsofDir := filepath.Join(r.GetWorkingDir(), "lsof")
 	if err := os.MkdirAll(lsofDir, 0750); err != nil {
-		log.Errorf("unable to create directory %q, so lsof will not be captured: %v", lsofDir, err)
-		return
+		return fmt.Errorf("unable to create directory %q, so lsof will not be captured: %w", lsofDir, err)
 	}
 	o := openFilesDataCollection{r.GetPid, lsofDir}
 	r.RegisterPreTermination(o.retrieveOpenFilesData)
+	return nil
 }
 
 type openFilesDataCollection struct {
@@ -63,15 +61,7 @@ type openFilesDataCollection struct {
 }
 
 // retrieveOpenFilesData writes statistics of open files associated with envoy instance(s) to a json file
-// Errors from platform-specific libraries log to debug instead of raising an error or logging in an error category.
-// This avoids filling logs for unresolvable reasons.
 func (o *openFilesDataCollection) retrieveOpenFilesData() error {
-	f, err := os.Create(filepath.Join(o.lsofDir, "lsof.json"))
-	if err != nil {
-		return fmt.Errorf("error in creating a file to write open file statistics to: %w", err)
-	}
-	defer f.Close() //nolint
-
 	// get pid of envoy instance
 	p, err := o.getPid()
 	if err != nil {
@@ -83,26 +73,25 @@ func (o *openFilesDataCollection) retrieveOpenFilesData() error {
 	defer cancel()
 
 	envoyProcess, err := process.NewProcessWithContext(ctx, pid)
-	if logDebugOnError(ctx, err, "process", pid) {
-		return nil
+	if w := wrapError(ctx, err, "process", pid); w != nil {
+		return w
 	}
 
 	result := make([]OpenFileStat, 0)
-	// print open file stats for all envoy instances
-	// relevant fields of the process
+	// print open file stats for all envoy relevant fields of the process
 	username, err := envoyProcess.UsernameWithContext(ctx)
-	if logDebugOnError(ctx, err, "username", pid) {
-		return nil
+	if w := wrapError(ctx, err, "username", pid); w != nil {
+		return w
 	}
 
 	name, err := envoyProcess.NameWithContext(ctx)
-	if logDebugOnError(ctx, err, "name", pid) {
-		return nil
+	if w := wrapError(ctx, err, "name", pid); w != nil {
+		return w
 	}
 
 	openFiles, err := envoyProcess.OpenFilesWithContext(ctx)
-	if logDebugOnError(ctx, err, "open files", pid) {
-		return nil
+	if w := wrapError(ctx, err, "open files", pid); w != nil {
+		return w
 	}
 
 	for _, stat := range openFiles {
@@ -126,8 +115,8 @@ func (o *openFilesDataCollection) retrieveOpenFilesData() error {
 		result = append(result, ofStat)
 	}
 
-	if err = json.NewEncoder(f).Encode(result); err != nil {
-		return fmt.Errorf("error writing JSON to file %v: %w", f, err)
+	if len(result) == 0 {
+		return nil // don't write a file on an unsupported platform
 	}
-	return nil
+	return writeJSON(result, filepath.Join(o.lsofDir, "lsof.json"))
 }

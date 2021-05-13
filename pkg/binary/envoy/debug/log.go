@@ -20,21 +20,19 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/tetratelabs/log"
-
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 )
 
-// EnableEnvoyLogCollection is a preset option that registers collection of Envoy access logs and stderr
-func EnableEnvoyLogCollection(r *envoy.Runtime) {
+// enableEnvoyLogCollection is a preset option that registers collection of Envoy access logs and stderr
+func enableEnvoyLogCollection(r *envoy.Runtime) error {
 	logsDir := filepath.Join(r.GetWorkingDir(), "logs")
 	if err := os.MkdirAll(logsDir, 0750); err != nil {
-		log.Errorf("unable to create directory %q, so no logs will be captured: %v", logsDir, err)
-		return
+		return fmt.Errorf("unable to create directory %q, so no logs will be captured: %w", logsDir, err)
 	}
 	e := envoyLogCollection{r, logsDir}
 	r.RegisterPreStart(e.captureStdout)
 	r.RegisterPreStart(e.captureStderr)
+	return nil
 }
 
 type envoyLogCollection struct {
@@ -76,7 +74,7 @@ func createLogFile(path string) (*os.File, error) {
 	// #nosec -> logs can be written anywhere
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
-		return nil, fmt.Errorf("unable to open file to write logs to %v: %v", path, err)
+		return nil, fmt.Errorf("unable to open file to write logs to %v: %w", path, err)
 	}
 	return f, nil
 }

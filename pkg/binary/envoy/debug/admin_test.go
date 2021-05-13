@@ -42,7 +42,7 @@ func TestEnableEnvoyAdminDataCollection(t *testing.T) {
 	require.NoError(t, err)
 
 	workingDir := envoytest.RunAndTerminateWithDebug(t, debugDir,
-		EnableEnvoyAdminDataCollection, `--admin-address-path`, adminPath)
+		enableEnvoyAdminDataCollection, `--admin-address-path`, adminPath)
 
 	for _, filename := range adminAPIPaths {
 		path := filepath.Join(workingDir, filename)

@@ -16,7 +16,6 @@ package debug
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -27,22 +26,21 @@ import (
 
 	"github.com/shirou/gopsutil/v3/net"
 	"github.com/shirou/gopsutil/v3/process"
-	"github.com/tetratelabs/log"
 
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 )
 
-// EnableNodeCollection is a preset option that registers collection of node level information for debugging
-func EnableNodeCollection(r *envoy.Runtime) {
+// enableNodeCollection is a preset option that registers collection of node level information for debugging
+func enableNodeCollection(r *envoy.Runtime) error {
 	nodeDir := filepath.Join(r.GetWorkingDir(), "node")
 	if err := os.MkdirAll(nodeDir, 0750); err != nil {
-		log.Errorf("unable to create directory %q, so node data will not be captured: %v", nodeDir, err)
-		return
+		return fmt.Errorf("unable to create directory %q, so node data will not be captured: %w", nodeDir, err)
 	}
 	n := nodeCollection{nodeDir}
 	r.RegisterPreTermination(n.ps)
 	r.RegisterPreTermination(n.networkInterfaces)
 	r.RegisterPreTermination(n.activeConnections)
+	return nil
 }
 
 type nodeCollection struct {
@@ -52,8 +50,6 @@ type nodeCollection struct {
 // Don't wait forever. This has hung on macOS before
 const processTimeout = 3 * time.Second
 
-// Errors from platform-specific libraries log to debug instead of raising an error or logging in an error category.
-// This avoids filling logs for unresolvable reasons.
 func (n *nodeCollection) ps() error {
 	f, err := os.Create(filepath.Join(n.nodeDir, "ps.txt"))
 	if err != nil {
@@ -65,34 +61,25 @@ func (n *nodeCollection) ps() error {
 	defer cancel()
 
 	processes, err := process.ProcessesWithContext(ctx)
-	if ctx.Err() == context.DeadlineExceeded {
-		log.Debugf("timeout getting a list of running processes")
-		return nil
+	if err == nil {
+		err = ctx.Err()
 	}
 	if err != nil {
-		log.Debugf("unable to get list of running processes: %v", err)
+		if err.Error() == "not implemented yet" { // internal error used by gopsutil
+			return nil // It will never work, so there's no reason to bother users
+		}
+		return fmt.Errorf("unable to get list of running processes: %w", err)
+	}
+
+	parsed, err := parseProcessTable(ctx, processes)
+	if len(parsed) == 0 {
+		if err != nil {
+			return fmt.Errorf("unable to parse any processes: %w", err)
+		}
 		return nil
 	}
 
-	return printProcessTable(ctx, f, processes)
-}
-
-func printProcessTable(ctx context.Context, out io.Writer, processes []*process.Process) error {
-	w := tabwriter.NewWriter(out, 0, 8, 5, ' ', 0)
-	fmt.Fprintln(w, "PID\tUSERNAME\tSTATUS\tRSS\tVSZ\tMINFLT\tMAJFLT\tPCPU\tPMEM\tARGS")
-	for _, p := range processes {
-		proc := safeProc(ctx, p)
-		if proc == empty { // Ignore, but continue. The process could have died between the process listing and now.
-			continue
-		}
-		status := ""
-		if len(proc.status) > 0 {
-			status = proc.status[0]
-		}
-		fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\t%v\t%v\t%.2f\t%.2f\t%v\n", proc.pid, proc.username, status, proc.rss, proc.vms, proc.minflt,
-			proc.majflt, proc.pCPU, proc.pMem, proc.cmd)
-	}
-	return w.Flush()
+	return printProcessTable(f, parsed)
 }
 
 type proc struct {
@@ -104,48 +91,64 @@ type proc struct {
 	pMem                     float32
 }
 
-var empty = &proc{}
+// parseProcessTable returns processes that could be parsed and the first error
+func parseProcessTable(ctx context.Context, processes []*process.Process) ([]*proc, error) {
+	procs := make([]*proc, 0, len(processes))
+	var err error
+	for _, p := range processes {
+		parsed, e := parseProc(ctx, p)
+		if e != nil { // Continue as the process could have died between the process listing and now.
+			if err == nil { // Capture only one error
+				err = e
+			}
+			continue
+		}
+		procs = append(procs, parsed)
+	}
+	return procs, err
+}
 
-func safeProc(ctx context.Context, p *process.Process) *proc {
+// parseProc returns a proc if there were no errors parsing its data
+func parseProc(ctx context.Context, p *process.Process) (*proc, error) {
 	user, err := p.UsernameWithContext(ctx)
-	if logDebugOnError(ctx, err, "username", p.Pid) {
-		return empty
+	if w := wrapError(ctx, err, "username", p.Pid); w != nil {
+		return nil, w
 	}
 
 	status, err := p.StatusWithContext(ctx)
-	if logDebugOnError(ctx, err, "status", p.Pid) {
-		return empty
+	if w := wrapError(ctx, err, "status", p.Pid); w != nil {
+		return nil, w
 	}
 
 	mem, err := p.MemoryInfoWithContext(ctx)
-	if logDebugOnError(ctx, err, "memory information", p.Pid) {
-		return empty
+	if w := wrapError(ctx, err, "memory information", p.Pid); w != nil {
+		return nil, w
 	}
 	if mem == nil {
 		mem = &process.MemoryInfoStat{}
 	}
 
 	pagefault, err := p.PageFaultsWithContext(ctx)
-	if logDebugOnError(ctx, err, "page faults", p.Pid) {
-		return empty
+	if w := wrapError(ctx, err, "page faults", p.Pid); w != nil {
+		return nil, w
 	}
 	if pagefault == nil {
 		pagefault = &process.PageFaultsStat{}
 	}
 
 	pCPU, err := p.CPUPercentWithContext(ctx)
-	if logDebugOnError(ctx, err, "CPU percent", p.Pid) {
-		return empty
+	if w := wrapError(ctx, err, "CPU percent", p.Pid); w != nil {
+		return nil, w
 	}
 
 	pMem, err := p.MemoryPercentWithContext(ctx)
-	if logDebugOnError(ctx, err, "memory percent", p.Pid) {
-		return empty
+	if w := wrapError(ctx, err, "memory percent", p.Pid); w != nil {
+		return nil, w
 	}
 
 	cmd, err := p.CmdlineWithContext(ctx)
-	if logDebugOnError(ctx, err, "command-line", p.Pid) {
-		return empty
+	if w := wrapError(ctx, err, "command-line", p.Pid); w != nil {
+		return nil, w
 	}
 
 	return &proc{
@@ -158,38 +161,39 @@ func safeProc(ctx context.Context, p *process.Process) *proc {
 		pCPU:     pCPU,
 		pMem:     pMem,
 		cmd:      cmd,
-	}
+	}, nil
 }
 
-func logDebugOnError(ctx context.Context, err error, field string, pid int32) bool {
-	if ctx.Err() == context.DeadlineExceeded {
-		log.Debugf("timeout getting %s of pid %d", field, pid)
-		return true
-	} else if err != nil {
-		log.Debugf("unable to retrieve %s of pid %d: %v", field, pid, err)
-		return true
+func printProcessTable(out io.Writer, parsed []*proc) error {
+	// Now, start writing the process table
+	w := tabwriter.NewWriter(out, 0, 8, 5, ' ', 0)
+	if _, err := fmt.Fprintln(w, "PID\tUSERNAME\tSTATUS\tRSS\tVSZ\tMINFLT\tMAJFLT\tPCPU\tPMEM\tARGS"); err != nil {
+		return err
 	}
-	return false
+
+	for _, p := range parsed {
+		status := ""
+		if len(p.status) > 0 {
+			status = p.status[0]
+		}
+		if _, err := fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\t%v\t%v\t%.2f\t%.2f\t%v\n",
+			p.pid, p.username, status, p.rss, p.vms, p.minflt, p.majflt, p.pCPU, p.pMem, p.cmd); err != nil {
+			return err
+		}
+	}
+	return w.Flush()
 }
 
 func (n *nodeCollection) networkInterfaces() error {
-	f, err := os.Create(filepath.Join(n.nodeDir, "network_interface.json"))
+	result, err := net.Interfaces()
 	if err != nil {
-		return fmt.Errorf("unable to create file to write network interface output to: %v", err)
+		return fmt.Errorf("unable to fetch network Interfaces: %w", err)
 	}
-	defer f.Close() //nolint
 
-	is, err := net.Interfaces()
-	if err != nil {
-		return fmt.Errorf("unable to fetch network Interfaces: %v", err)
+	if len(result) == 0 {
+		return nil // don't write a file on an unsupported platform
 	}
-	out, err := json.Marshal(is)
-	if err != nil {
-		return fmt.Errorf("unable to convert to json representation: %v", err)
-	}
-	fmt.Fprintln(f, string(out))
-
-	return nil
+	return writeJSON(result, filepath.Join(n.nodeDir, "network_interface.json"))
 }
 
 type connStat struct {
@@ -215,29 +219,21 @@ var typeMap = map[uint32]string{
 }
 
 func (n *nodeCollection) activeConnections() error {
-	f, err := os.Create(filepath.Join(n.nodeDir, "connections.json"))
-	if err != nil {
-		return fmt.Errorf("unable to create file to write network interface output to: %v", err)
-	}
-	defer f.Close() //nolint
-
 	cs, err := net.Connections("all")
 	if err != nil {
-		return fmt.Errorf("unable to fetch network Interfaces: %v", err)
+		return fmt.Errorf("unable to fetch network interfaces: %w", err)
 	}
 
-	ret := make([]connStat, 0, len(cs))
+	result := make([]connStat, 0, len(cs))
 	for i := range cs {
 		st := addLabelToConnection(&cs[i])
-		ret = append(ret, st)
+		result = append(result, st)
 	}
-	out, err := json.Marshal(ret)
-	if err != nil {
-		return fmt.Errorf("unable to convert to json representation: %v", err)
-	}
-	fmt.Fprintln(f, string(out))
 
-	return nil
+	if len(result) == 0 {
+		return nil // don't write a file on an unsupported platform
+	}
+	return writeJSON(result, filepath.Join(n.nodeDir, "connections.json"))
 }
 
 // Replace uint32 label to human readable string label.

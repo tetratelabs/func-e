@@ -54,6 +54,11 @@ func (r *Runtime) GetWorkingDir() string {
 	return r.opts.WorkingDir
 }
 
+// LogDebug is used by the debug package to warn users about a feature failure, such as lsof.
+func (r *Runtime) LogDebug(format string, v ...interface{}) {
+	r.opts.DebugLog.Printf(format, v...)
+}
+
 // GetAdminAddress returns the current admin address in host:port format, or empty if not yet available.
 // Exported for debug.EnableEnvoyAdminDataCollection, which is always on due to debug.EnableAll.
 func (r *Runtime) GetAdminAddress() (string, error) {

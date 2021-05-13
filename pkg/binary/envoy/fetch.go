@@ -26,7 +26,6 @@ import (
 
 	"github.com/mholt/archiver/v3"
 	"github.com/schollz/progressbar/v3"
-	"github.com/tetratelabs/log"
 
 	"github.com/tetratelabs/getenvoy/pkg/globals"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
@@ -59,7 +58,6 @@ func FetchIfNeeded(o *globals.GlobalOpts, reference string) (string, error) {
 			return "", fmt.Errorf("unable to create directory %q: %w", platformDirectory, err)
 		}
 
-		log.Debugf("fetching %v from %v", ref, binaryLocation)
 		err = fetchEnvoy(platformDirectory, binaryLocation)
 		if err != nil {
 			return "", err
@@ -137,7 +135,6 @@ func extractEnvoy(dst, tarball string) error {
 		return err
 	}
 	envoyFilepath := filepath.Join(dst, envoyLocation)
-	log.Debugf("checking for binary at %v", envoyFilepath)
 	if _, err := os.Stat(envoyFilepath); os.IsNotExist(err) {
 		return errors.New("no Envoy binary in downloaded tarball")
 	}

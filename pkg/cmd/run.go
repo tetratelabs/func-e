@@ -17,6 +17,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -87,6 +88,13 @@ func InitializeRunOpts(o *globals.GlobalOpts, reference string) error {
 		}
 		runOpts.WorkingDir = workingDir
 	}
+	if runOpts.Log == nil { // not overridden for tests
+		runOpts.Log = log.New(os.Stdout, "run: ", log.LstdFlags)
+	}
+	if runOpts.DebugLog == nil { // not overridden for tests
+		// All debug features are optional. If there is any unexpected failure, log as "debug" to stdout.
+		runOpts.DebugLog = log.New(os.Stdout, "debug: ", log.LstdFlags)
+	}
 	return nil
 }
 
@@ -96,6 +104,8 @@ func Run(o *globals.GlobalOpts, cmd *cobra.Command, args []string) error {
 	r := envoy.NewRuntime(&o.RunOpts)
 	r.Out = cmd.OutOrStdout()
 	r.Err = cmd.ErrOrStderr()
+
 	debug.EnableAll(r)
+
 	return r.Run(cmd.Context(), args)
 }

@@ -21,32 +21,30 @@ import (
 	"syscall"
 
 	"github.com/mholt/archiver/v3"
-	"github.com/tetratelabs/log"
 )
 
 func (r *Runtime) handleTermination() {
-	cmd := r.cmd
+	defer r.interrupt() // Ensure the SIGINT forwards to Envoy even if a pre-termination hook panics
 
-	defer interrupt(cmd.Process) // Ensure the SIGINT forwards to Envoy even if a pre-termination hook panics
-
-	log.Infof("GetEnvoy process (PID=%d) received SIGINT", os.Getpid())
+	r.opts.Log.Printf("GetEnvoy process (PID=%d) received SIGINT", os.Getpid())
 	// Execute all registered preTermination functions
 	for _, f := range r.preTermination {
 		if err := f(); err != nil {
-			log.Error(err.Error())
+			r.LogDebug("failed to handle pre termination: %v", err)
 		}
 	}
 }
 
-func interrupt(p *os.Process) {
-	log.Infof("Sending Envoy process (PID=%d) SIGINT", p.Pid)
+func (r *Runtime) interrupt() {
+	p := r.cmd.Process
+	r.opts.Log.Printf("Sending Envoy process (PID=%d) SIGINT", p.Pid)
 	_ = p.Signal(syscall.SIGINT)
 }
 
 func (r *Runtime) handlePostTermination() error {
 	for _, f := range r.postTermination {
 		if err := f(); err != nil {
-			log.Errorf("failed to handle post termination: %v", err)
+			r.LogDebug("failed to handle post termination: %v", err)
 		}
 	}
 

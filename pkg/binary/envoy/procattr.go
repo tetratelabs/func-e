@@ -18,13 +18,10 @@ package envoy
 
 import (
 	"syscall"
-
-	"github.com/tetratelabs/log"
 )
 
 func sysProcAttr() *syscall.SysProcAttr {
-	log.Warn("Running on a non-Linux system, cannot set child process kill signal. " +
-		"Some cases where this process terminates before the Envoy child process may not be handled gracefully.")
+	// TODO: Add a test for "getenvoy run" kill -9, that checks if the child envoy process remains running.
 	return &syscall.SysProcAttr{
 		Setpgid: true, // equivalent to setpgrp() syscall
 	}

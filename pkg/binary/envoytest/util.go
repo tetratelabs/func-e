@@ -16,6 +16,8 @@ package envoytest
 
 import (
 	"context"
+	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"testing"
@@ -30,18 +32,21 @@ import (
 )
 
 // RunAndTerminateWithDebug is like RequireRunTerminate, except returns a directory populated by the debug plugin.
-func RunAndTerminateWithDebug(t *testing.T, debugDir string, debug func(r *envoy.Runtime), args ...string) string {
+func RunAndTerminateWithDebug(t *testing.T, debugDir string, debug func(r *envoy.Runtime) error, args ...string) string {
 	fakeEnvoy, removeFakeEnvoy := morerequire.RequireCaptureScript(t, "envoy")
 	defer removeFakeEnvoy()
 
 	fakeTimestamp := "1619574747231823000"
-	o := &globals.RunOpts{EnvoyPath: fakeEnvoy, WorkingDir: filepath.Join(debugDir, fakeTimestamp)}
+	workingDir := filepath.Join(debugDir, fakeTimestamp)
+	fakeLogger := log.New(io.Discard, "", 0)
+	o := &globals.RunOpts{EnvoyPath: fakeEnvoy, WorkingDir: workingDir, Log: fakeLogger, DebugLog: fakeLogger}
 	// InitializeRunOpts creates this directory in a real command run
 	require.NoError(t, os.MkdirAll(o.WorkingDir, 0750))
 
 	r := envoy.NewRuntime(o)
 
-	debug(r)
+	e := debug(r)
+	require.NoError(t, e)
 
 	RequireRunTerminate(t, nil, r, args...)
 	RequireRestoreWorkingDir(t, o.WorkingDir, r)

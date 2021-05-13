@@ -16,6 +16,7 @@ package e2e_test
 
 import (
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -23,7 +24,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/tetratelabs/log"
 
 	reference "github.com/tetratelabs/getenvoy/pkg"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
@@ -57,7 +57,7 @@ func TestGetEnvoyRun(t *testing.T) {
 	envoyWorkingDir := requireEnvoyWorkingDir(t, stdout, c)
 	requireEnvoyReady(t, envoyWorkingDir, stderr, c)
 
-	log.Infof(`stopping Envoy after running [%v]`, c)
+	log.Printf(`stopping Envoy after running [%v]`, c)
 	terminate()
 	deferredTerminate = nil
 
@@ -66,7 +66,7 @@ func TestGetEnvoyRun(t *testing.T) {
 
 func requireEnvoyWorkingDir(t *testing.T, stdout io.Reader, c interface{}) string {
 	stdoutLines := e2e.StreamLines(stdout).Named("stdout")
-	log.Infof(`waiting for GetEnvoy to log working directory after running [%v]`, c)
+	log.Printf(`waiting for GetEnvoy to log working directory after running [%v]`, c)
 	workingDirectoryPattern := regexp.MustCompile(`cd (.*)`)
 	line, err := stdoutLines.FirstMatch(workingDirectoryPattern).Wait(10 * time.Minute) // give time to compile the extension
 	require.NoError(t, err, `error parsing working directory from stdout of [%v]`, c)
@@ -76,7 +76,7 @@ func requireEnvoyWorkingDir(t *testing.T, stdout io.Reader, c interface{}) strin
 func requireEnvoyReady(t *testing.T, envoyWorkingDir string, stderr io.Reader, c interface{}) utilenvoy.AdminAPI {
 	stderrLines := e2e.StreamLines(stderr).Named("stderr")
 
-	log.Infof(`waiting for Envoy start-up to complete after running [%v]`, c)
+	log.Printf(`waiting for Envoy start-up to complete after running [%v]`, c)
 	_, err := stderrLines.FirstMatch(regexp.MustCompile(`starting main dispatch loop`)).Wait(1 * time.Minute)
 	require.NoError(t, err, `error parsing startup from stderr of [%v]`, c)
 
@@ -84,7 +84,7 @@ func requireEnvoyReady(t *testing.T, envoyWorkingDir string, stderr io.Reader, c
 	adminAddress, err := os.ReadFile(adminAddressPath) //nolint:gosec
 	require.NoError(t, err, `error reading admin address file %q after running [%v]`, adminAddressPath, c)
 
-	log.Infof(`waiting for Envoy client to connect after running [%v]`, c)
+	log.Printf(`waiting for Envoy client to connect after running [%v]`, c)
 	envoyClient, err := utilenvoy.NewClient(string(adminAddress))
 	require.NoError(t, err, `error from envoy client %s after running [%v]`, adminAddress, c)
 	require.Eventually(t, func() bool {
