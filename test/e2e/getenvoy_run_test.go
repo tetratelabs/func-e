@@ -16,6 +16,7 @@ package e2e_test
 
 import (
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -23,7 +24,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"log"
 
 	reference "github.com/tetratelabs/getenvoy/pkg"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
