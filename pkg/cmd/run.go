@@ -88,6 +88,10 @@ func InitializeRunOpts(o *globals.GlobalOpts, reference string) error {
 		}
 		runOpts.WorkingDir = workingDir
 	}
+	if runOpts.DebugLog == nil { // not overridden for tests
+		// All debug features are optional. If there is any unexpected failure, log as "debug" to stdout.
+		runOpts.DebugLog = log.New(os.Stdout, "debug: ", log.LstdFlags)
+	}
 	return nil
 }
 
@@ -98,11 +102,7 @@ func Run(o *globals.GlobalOpts, cmd *cobra.Command, args []string) error {
 	r.Out = cmd.OutOrStdout()
 	r.Err = cmd.ErrOrStderr()
 
-	// All debug features are optional. If there is any unexpected failure, log as "debug" to stdout.
-	debugLog := log.New(r.Out, "debug: ", log.LstdFlags)
-	debug.EnableAll(r, func(err error) {
-		debugLog.Println(err.Error())
-	})
+	debug.EnableAll(r)
 
 	return r.Run(cmd.Context(), args)
 }

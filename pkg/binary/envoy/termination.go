@@ -33,7 +33,7 @@ func (r *Runtime) handleTermination() {
 	// Execute all registered preTermination functions
 	for _, f := range r.preTermination {
 		if err := f(); err != nil {
-			log.Error(err.Error())
+			r.LogDebug("failed to handle pre termination: %v", err)
 		}
 	}
 }
@@ -46,7 +46,7 @@ func interrupt(p *os.Process) {
 func (r *Runtime) handlePostTermination() error {
 	for _, f := range r.postTermination {
 		if err := f(); err != nil {
-			log.Errorf("failed to handle post termination: %v", err)
+			r.LogDebug("failed to handle post termination: %v", err)
 		}
 	}
 

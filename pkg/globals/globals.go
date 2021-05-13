@@ -14,6 +14,8 @@
 
 package globals
 
+import "log"
+
 // RunOpts support invocations of "getenvoy run" and "getenvoy extension run"
 type RunOpts struct {
 	// EnvoyPath is the exec.Cmd path to "envoy". Defaults to "$HomeDir/builds/$flavor/$version/$platform/bin/envoy"
@@ -22,6 +24,8 @@ type RunOpts struct {
 	// Upon termination, this directory is archived as "../$(basename $WorkingDir).tar.gz"
 	// Defaults to "$HomeDir/debug/$epochtime"
 	WorkingDir string
+	// DebugLog generates output for debug features such as access logging. Defaults to os.Stdout with "debug " prefix.
+	DebugLog *log.Logger
 }
 
 // GlobalOpts represents options that affect more than one getenvoy commands.
