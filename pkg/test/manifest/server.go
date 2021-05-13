@@ -24,7 +24,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Masterminds/semver/v3"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -70,10 +69,7 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (s *server) validateReference(uri string) {
 	ref, err := manifest.ParseReference(uri)
 	require.NoError(s.t, err, "could not parse reference from uri %q", uri)
-	ver, err := semver.NewVersion(ref.Version)
-	require.NoError(s.t, err, "could not parse version from uri %q", uri)
-	require.GreaterOrEqualf(s.t, uint64(1), ver.Major(), "unsupported major version in uri %q", uri)
-	require.GreaterOrEqualf(s.t, uint64(17), ver.Minor(), "unsupported minor version in uri %q", uri)
+	require.Regexpf(s.t, `^1\.[1-9][7]\.[0-9]+$`, ref.Version, "unsupported version in uri %q", uri)
 }
 
 func (s *server) GetManifest() []byte {
