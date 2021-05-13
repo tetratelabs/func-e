@@ -4,7 +4,6 @@ module github.com/tetratelabs/getenvoy
 go 1.16
 
 require (
-	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/StackExchange/wmi v0.0.0-20210224194228-fe8f1750fd46 // indirect
 	github.com/andybalholm/brotli v1.0.2 // indirect
 	github.com/go-ole/go-ole v1.2.5 // indirect

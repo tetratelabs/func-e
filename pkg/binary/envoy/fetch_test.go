@@ -15,6 +15,7 @@
 package envoy
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -32,6 +33,8 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
+const envoyVersion = "1.17.2" // This is only for unit testing: we don't need to use latest.
+
 func TestFetchIfNeeded(t *testing.T) {
 	o := &globals.GlobalOpts{}
 	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
@@ -39,7 +42,7 @@ func TestFetchIfNeeded(t *testing.T) {
 	o.HomeDir = homeDir
 
 	// Hard code even if the unit test env isn't darwin. This avoids drifts like linux vs linux-glibc
-	r := "standard:1/darwin"
+	r := fmt.Sprintf("standard:%s/darwin", envoyVersion)
 	testManifest, err := manifesttest.NewSimpleManifest(r)
 	require.NoError(t, err, `error creating test manifest`)
 
@@ -54,7 +57,7 @@ func TestFetchIfNeeded(t *testing.T) {
 
 	o.ManifestURL = manifestServer.URL + "/manifest.json"
 
-	expectedPath := filepath.Join(homeDir, "builds", "standard", "1", "darwin", "bin", "envoy")
+	expectedPath := filepath.Join(homeDir, "builds", "standard", envoyVersion, "darwin", "bin", "envoy")
 	t.Run("downloads when doesn't exists", func(t *testing.T) {
 		envoyPath, e := FetchIfNeeded(o, r)
 		require.NoError(t, e)
@@ -79,7 +82,7 @@ func TestFetchIfNeeded(t *testing.T) {
 
 func TestFetchIfNeededAlreadyExists(t *testing.T) {
 	// Hard code even if the unit test env isn't darwin. This avoids drifts like linux vs linux-glibc
-	r := "standard:1/darwin"
+	r := fmt.Sprintf("standard:%s/darwin", envoyVersion)
 	testManifest, err := manifesttest.NewSimpleManifest(r)
 	require.NoError(t, err, `error creating test manifest`)
 
@@ -94,7 +97,7 @@ func TestFetchIfNeededAlreadyExists(t *testing.T) {
 
 	envoyPath, err := FetchIfNeeded(o, r)
 	require.NoError(t, err)
-	require.Equal(t, filepath.Join(homeDir, "builds", "standard", "1", "darwin", "bin", "envoy"), envoyPath)
+	require.Equal(t, filepath.Join(homeDir, "builds", "standard", envoyVersion, "darwin", "bin", "envoy"), envoyPath)
 	require.FileExists(t, envoyPath)
 }
 
