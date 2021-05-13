@@ -18,13 +18,11 @@ require (
 	github.com/shirou/gopsutil/v3 v3.21.4
 	github.com/spf13/cobra v1.1.3
 	github.com/stretchr/testify v1.7.0
-	github.com/tetratelabs/log v0.0.0-20210422163326-7ba70517903b
 	github.com/tklauser/go-sysconf v0.3.5 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
-	go.uber.org/multierr v1.7.0 // indirect
 	golang.org/x/crypto v0.0.0-20210506145944-38f3c27a63bf // indirect
 	golang.org/x/sys v0.0.0-20210510120138-977fb7262007 // indirect
 	golang.org/x/term v0.0.0-20210503060354-a79de5458b56 // indirect
-	google.golang.org/grpc v1.37.0 // indirect
 	google.golang.org/protobuf v1.26.0
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )

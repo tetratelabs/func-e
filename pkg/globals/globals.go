@@ -24,7 +24,9 @@ type RunOpts struct {
 	// Upon termination, this directory is archived as "../$(basename $WorkingDir).tar.gz"
 	// Defaults to "$HomeDir/debug/$epochtime"
 	WorkingDir string
-	// DebugLog generates output for debug features such as access logging. Defaults to os.Stdout with "debug " prefix.
+	// Log generates output users should be aware of. Defaults to os.Stdout with "run: " prefix.
+	Log *log.Logger
+	// DebugLog generates output for debug features such as access logging. Defaults to os.Stdout with "debug: " prefix.
 	DebugLog *log.Logger
 }
 

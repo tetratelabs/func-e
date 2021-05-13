@@ -15,6 +15,8 @@
 package envoy_test
 
 import (
+	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -71,9 +73,9 @@ func TestRuntime_Run(t *testing.T) {
 
 			fakeTimestamp := "1619574747231823000"
 			workingDir := filepath.Join(debugDir, fakeTimestamp)
+			fakeLogger := log.New(io.Discard, "", 0)
+			o := &globals.RunOpts{EnvoyPath: fakeEnvoy, WorkingDir: workingDir, Log: fakeLogger, DebugLog: fakeLogger}
 			require.NoError(t, os.MkdirAll(workingDir, 0750))
-
-			o := &globals.RunOpts{EnvoyPath: fakeEnvoy, WorkingDir: workingDir}
 
 			// This ensures functions are called in the correct order
 			r, preStartCalled, preTerminationCalled, postTerminationCalled := newRuntimeWithMockFunctions(t, o)

@@ -16,6 +16,8 @@ package envoytest
 
 import (
 	"context"
+	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"testing"
@@ -35,7 +37,9 @@ func RunAndTerminateWithDebug(t *testing.T, debugDir string, debug func(r *envoy
 	defer removeFakeEnvoy()
 
 	fakeTimestamp := "1619574747231823000"
-	o := &globals.RunOpts{EnvoyPath: fakeEnvoy, WorkingDir: filepath.Join(debugDir, fakeTimestamp)}
+	workingDir := filepath.Join(debugDir, fakeTimestamp)
+	fakeLogger := log.New(io.Discard, "", 0)
+	o := &globals.RunOpts{EnvoyPath: fakeEnvoy, WorkingDir: workingDir, Log: fakeLogger, DebugLog: fakeLogger}
 	// InitializeRunOpts creates this directory in a real command run
 	require.NoError(t, os.MkdirAll(o.WorkingDir, 0750))
 

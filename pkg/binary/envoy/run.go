@@ -23,8 +23,6 @@ import (
 	"strings"
 	"syscall"
 	"time"
-
-	"github.com/tetratelabs/log"
 )
 
 // Run execs the binary at the path with the args passed. It is a blocking function that can be terminated via SIGINT.
@@ -44,8 +42,8 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 	}
 
 	// Log for the information of users and also for us to have a reliable parsing in e2e tests.
-	log.Infof("cd %s\n", cmd.Dir)
-	log.Infof("%s %s\n", r.opts.EnvoyPath, strings.Join(args, " "))
+	r.opts.Log.Printf("cd %s\n", cmd.Dir)
+	r.opts.Log.Printf("%s %s\n", r.opts.EnvoyPath, strings.Join(args, " "))
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("unable to start Envoy process: %w", err)
 	}
@@ -55,7 +53,7 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 	defer waitCancel()
 	r.FakeInterrupt = sigCancel
 
-	go waitForExit(cmd, waitCancel) // waits in a goroutine. We may need to kill the process if a signal occurs first.
+	go r.waitForExit(waitCancel) // waits in a goroutine. We may need to kill the process if a signal occurs first.
 
 	awaitAdminAddress(sigCtx, r)
 
@@ -80,7 +78,7 @@ func awaitAdminAddress(sigCtx context.Context, r *Runtime) {
 	for i := 0; i < 10 && sigCtx.Err() == nil; i++ {
 		adminAddress, adminErr := r.GetAdminAddress()
 		if adminErr == nil {
-			log.Infof("discovered admin address: %v", adminAddress)
+			r.opts.Log.Printf("discovered admin address: %v", adminAddress)
 			return
 		}
 		time.Sleep(200 * time.Millisecond)
@@ -102,13 +100,13 @@ func (r *Runtime) AppendArgs(args []string) {
 	r.cmd.Args = append(r.cmd.Args, args...)
 }
 
-func waitForExit(cmd *exec.Cmd, cancel context.CancelFunc) {
+func (r *Runtime) waitForExit(cancel context.CancelFunc) {
 	defer cancel()
-	if err := cmd.Wait(); err != nil {
-		if cmd.ProcessState.ExitCode() == -1 {
-			log.Infof("Envoy process (PID=%d) terminated via %v", cmd.Process.Pid, err)
+	if err := r.cmd.Wait(); err != nil {
+		if r.cmd.ProcessState.ExitCode() == -1 {
+			r.opts.Log.Printf("Envoy process (PID=%d) terminated via %v", r.cmd.Process.Pid, err)
 		} else {
-			log.Infof("Envoy process (PID=%d) terminated with an error: %v", cmd.Process.Pid, err)
+			r.opts.Log.Printf("Envoy process (PID=%d) terminated with an error: %v", r.cmd.Process.Pid, err)
 		}
 	}
 }

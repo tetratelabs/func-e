@@ -88,6 +88,9 @@ func InitializeRunOpts(o *globals.GlobalOpts, reference string) error {
 		}
 		runOpts.WorkingDir = workingDir
 	}
+	if runOpts.Log == nil { // not overridden for tests
+		runOpts.Log = log.New(os.Stdout, "run: ", log.LstdFlags)
+	}
 	if runOpts.DebugLog == nil { // not overridden for tests
 		// All debug features are optional. If there is any unexpected failure, log as "debug" to stdout.
 		runOpts.DebugLog = log.New(os.Stdout, "debug: ", log.LstdFlags)
