@@ -32,12 +32,11 @@ func TestGetEnvoyHelp(t *testing.T) {
 		command := command
 		t.Run(command, func(t *testing.T) {
 			c, stdout, _ := newApp(&globals.GlobalOpts{})
-			args := []string{"-h"}
+			args := []string{"getenvoy", "-h"}
 			if command != "" {
-				args = []string{command, "-h"}
+				args = []string{"getenvoy", command, "-h"}
 			}
-			c.SetArgs(args)
-			require.NoError(t, c.Execute())
+			require.NoError(t, c.Run(args))
 
 			expected := "getenvoy_help.txt"
 			if command != "" {

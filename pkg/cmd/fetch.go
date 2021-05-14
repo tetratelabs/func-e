@@ -17,7 +17,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/spf13/cobra"
+	"github.com/urfave/cli/v2"
 
 	"github.com/tetratelabs/getenvoy/internal/reference"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
@@ -25,18 +25,19 @@ import (
 )
 
 // NewFetchCmd create a command responsible for retrieving Envoy binaries
-func NewFetchCmd(o *globals.GlobalOpts) *cobra.Command {
-	return &cobra.Command{
-		Use:   "fetch <reference>",
-		Short: "Downloads a version of Envoy. Available builds can be retrieved using `getenvoy list`.",
-		Example: fmt.Sprintf(`# Fetch using a partial manifest reference to retrieve a build suitable for your operating system.
+func NewFetchCmd(o *globals.GlobalOpts) *cli.Command {
+	return &cli.Command{
+		Name:      "fetch",
+		Usage:     "Downloads a version of Envoy. Available builds can be retrieved using `getenvoy list`.",
+		ArgsUsage: "<reference>",
+		Description: fmt.Sprintf(`# Fetch using a partial manifest reference to retrieve a build suitable for your operating system.
 getenvoy fetch %[1]s
 
 # Fetch using a full manifest reference to retrieve a specific build for Linux.
 getenvoy fetch %[1]s/linux-glibc`, reference.Latest),
-		Args: validateReferenceArg,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			_, err := envoy.FetchIfNeeded(o, args[0])
+		Before: validateReferenceArg,
+		Action: func(c *cli.Context) error {
+			_, err := envoy.FetchIfNeeded(o, c.Args().First())
 			return err
 		},
 	}

@@ -46,7 +46,8 @@ func TestRunErrors(t *testing.T) {
 			name:           "incorrect global flag name",
 			args:           []string{"getenvoy", "--d"},
 			expectedStatus: 1,
-			expectedStderr: `error: unknown flag: --d
+			expectedStderr: `flag provided but not defined: -d
+show usage with: getenvoy -h
 `,
 		},
 		{
@@ -61,7 +62,8 @@ show usage with: getenvoy -h
 			name:           "unknown command",
 			args:           []string{"getenvoy", "fly"},
 			expectedStatus: 1,
-			expectedStderr: `error: unknown command "fly" for "getenvoy"
+			expectedStderr: `unknown command "fly"
+show usage with: getenvoy -h
 `,
 		},
 		{

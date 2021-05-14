@@ -17,18 +17,18 @@ package cmd
 import (
 	"os"
 
-	"github.com/spf13/cobra"
+	"github.com/urfave/cli/v2"
 
 	"github.com/tetratelabs/getenvoy/pkg/globals"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
 
 // NewListCmd returns command that lists available Envoy binaries
-func NewListCmd(o *globals.GlobalOpts) *cobra.Command {
-	return &cobra.Command{
-		Use:   "list",
-		Short: "List available Envoy version references you can run",
-		RunE: func(cmd *cobra.Command, _ []string) error {
+func NewListCmd(o *globals.GlobalOpts) *cli.Command {
+	return &cli.Command{
+		Name:  "list",
+		Usage: "List available Envoy version references you can run",
+		Action: func(c *cli.Context) error {
 			m, err := manifest.FetchManifest(o.ManifestURL)
 			if err != nil {
 				return err

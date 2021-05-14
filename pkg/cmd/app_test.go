@@ -21,8 +21,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
+	"github.com/urfave/cli/v2"
 
 	rootcmd "github.com/tetratelabs/getenvoy/pkg/cmd"
 	"github.com/tetratelabs/getenvoy/pkg/globals"
@@ -45,7 +45,7 @@ func TestGetEnvoyValidateArgs(t *testing.T) {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.name, func(t *testing.T) {
-			err := runTestCommand(t, &globals.GlobalOpts{}, test.args[1:])
+			err := runTestCommand(t, &globals.GlobalOpts{}, test.args)
 			require.EqualError(t, err, test.expectedErr)
 		})
 	}
@@ -102,7 +102,7 @@ func TestGetEnvoyHomeDir(t *testing.T) {
 			}
 
 			o := &globals.GlobalOpts{}
-			err := runTestCommand(t, o, test.args[1:])
+			err := runTestCommand(t, o, test.args)
 
 			require.NoError(t, err)
 			require.Equal(t, test.expected, o.HomeDir)
@@ -158,7 +158,7 @@ func TestGetEnvoyManifest(t *testing.T) {
 			}
 
 			o := &globals.GlobalOpts{}
-			err := runTestCommand(t, o, test.args[1:])
+			err := runTestCommand(t, o, test.args)
 
 			require.NoError(t, err)
 			require.Equal(t, test.expected, o.ManifestURL)
@@ -178,25 +178,23 @@ func requireSetenv(t *testing.T, key, value string) func() {
 }
 
 // newApp initializes a command with buffers for stdout and stderr.
-func newApp(o *globals.GlobalOpts) (c *cobra.Command, stdout, stderr *bytes.Buffer) {
+func newApp(o *globals.GlobalOpts) (c *cli.App, stdout, stderr *bytes.Buffer) {
 	stdout = new(bytes.Buffer)
 	stderr = new(bytes.Buffer)
 	c = rootcmd.NewApp(o)
-	c.SetOut(stdout)
-	c.SetErr(stderr)
-	return c, stdout, stderr
+	c.Name = "getenvoy"
+	c.Writer = stdout
+	c.ErrWriter = stderr
+	return
 }
 
 func runTestCommand(t *testing.T, o *globals.GlobalOpts, args []string) error {
 	c, stdout, stderr := newApp(o)
-	c.AddCommand(&cobra.Command{
-		Use: "test",
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			return nil
-		},
-	})
-	c.SetArgs(append(args, "test"))
-	err := c.Execute()
+	c.Commands = append(c.Commands, &cli.Command{Name: "test", Action: func(context *cli.Context) error {
+		return nil
+	}})
+
+	err := c.Run(append(args, "test"))
 
 	// Main handles logging of errors, so we expect nothing in stdout or stderr even in error case
 	require.Empty(t, stdout)

@@ -19,6 +19,8 @@ import (
 	"io"
 	"os"
 
+	"github.com/urfave/cli/v2"
+
 	cmdutil "github.com/tetratelabs/getenvoy/pkg/cmd"
 	"github.com/tetratelabs/getenvoy/pkg/globals"
 )
@@ -30,12 +32,22 @@ func main() {
 // run handles all error logging and coding so that no other place needs to.
 func run(stdout, stderr io.Writer, args []string) int {
 	app := cmdutil.NewApp(&globals.GlobalOpts{Out: stdout})
-	app.SetArgs(args[1:])
-	app.SetOut(stdout)
-	app.SetErr(stderr)
-	if err := app.Execute(); err != nil {
+	app.Writer = stdout
+	app.ErrWriter = stderr
+	app.Action = func(c *cli.Context) error {
+		command := c.Args().First()
+		if command == "" { // Show help by default
+			return cli.ShowSubcommandHelp(c)
+		}
+		return cmdutil.NewValidationError("unknown command %q", command)
+	}
+	app.OnUsageError = func(c *cli.Context, err error, isSub bool) error {
+		return cmdutil.NewValidationError(err.Error())
+	}
+	if err := app.Run(args); err != nil {
 		if _, ok := err.(*cmdutil.ValidationError); ok {
-			logUsageError(app.Name(), err, stderr)
+			fmt.Fprintln(stderr, err) //nolint
+			logUsageError(app.Name, stderr)
 		} else {
 			fmt.Fprintln(stderr, "error:", err) //nolint
 		}
@@ -44,7 +56,6 @@ func run(stdout, stderr io.Writer, args []string) int {
 	return 0
 }
 
-func logUsageError(name string, err error, stderr io.Writer) {
-	fmt.Fprintln(stderr, err)                            //nolint
+func logUsageError(name string, stderr io.Writer) {
 	fmt.Fprintln(stderr, "show usage with:", name, "-h") //nolint
 }
