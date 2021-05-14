@@ -33,7 +33,7 @@ var (
 func NewDocCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:    "doc",
-		Short:  "Generates markdown documentation for the cli.",
+		Short:  "Generates Markdown documentation for the CLI.",
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			getenvoy := cmd.Parent()

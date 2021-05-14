@@ -14,26 +14,18 @@
 
 package cmd
 
-import (
-	"os"
+import "fmt"
 
-	"github.com/spf13/cobra"
+func newValidationError(format string, a ...interface{}) error {
+	return &ValidationError{fmt.Sprintf(format, a...)}
+}
 
-	"github.com/tetratelabs/getenvoy/pkg/globals"
-	"github.com/tetratelabs/getenvoy/pkg/manifest"
-)
+// ValidationError is a marker of a validation error vs an execution one.
+type ValidationError struct {
+	string
+}
 
-// NewListCmd returns command that lists available Envoy binaries
-func NewListCmd(o *globals.GlobalOpts) *cobra.Command {
-	return &cobra.Command{
-		Use:   "list",
-		Short: "List available Envoy version references you can run",
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			m, err := manifest.FetchManifest(o.ManifestURL)
-			if err != nil {
-				return err
-			}
-			return manifest.Print(m, os.Stdout)
-		},
-	}
+// Error implements the error interface.
+func (e *ValidationError) Error() string {
+	return e.string
 }

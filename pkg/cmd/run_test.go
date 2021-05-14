@@ -23,7 +23,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	reference "github.com/tetratelabs/getenvoy/pkg"
-	rootcmd "github.com/tetratelabs/getenvoy/pkg/cmd"
 	"github.com/tetratelabs/getenvoy/pkg/globals"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 	manifesttest "github.com/tetratelabs/getenvoy/pkg/test/manifest"
@@ -38,12 +37,12 @@ func TestGetEnvoyRunValidateFlag(t *testing.T) {
 	}{
 		{
 			name:        "arg[0] missing",
-			args:        []string{"run"},
+			args:        []string{"getenvoy", "run"},
 			expectedErr: `missing reference parameter`,
 		},
 		{
 			name:        "arg[0] with invalid reference",
-			args:        []string{"run", "???"},
+			args:        []string{"getenvoy", "run", "???"},
 			expectedErr: `"???" is not a valid GetEnvoy reference. Expected format: [<flavor>:]<version>[/<platform>]`,
 		},
 	}
@@ -53,37 +52,63 @@ func TestGetEnvoyRunValidateFlag(t *testing.T) {
 
 		t.Run(test.name, func(t *testing.T) {
 			// Run "getenvoy run"
-			c, stdout, stderr := newRootCommand(&globals.GlobalOpts{})
-			c.SetArgs(test.args)
-			err := rootcmd.Execute(c)
+			c, stdout, stderr := newApp(&globals.GlobalOpts{})
+			c.SetArgs(test.args[1:])
+			err := c.Execute()
 
 			// Verify the command failed with the expected error
 			require.EqualError(t, err, test.expectedErr, `expected an error running [%v]`, c)
-			require.Empty(t, stdout.String(), `expected no stdout running [%v]`, c)
-			expectedStderr := fmt.Sprintf("Error: %s\n\nRun 'getenvoy run --help' for usage.\n", test.expectedErr)
-			require.Equal(t, expectedStderr, stderr.String(), `expected stderr running [%v]`, c)
+			// Main handles logging of errors, so we expect nothing in stdout or stderr
+			require.Empty(t, stdout, `expected no stdout running [%v]`, c)
+			require.Empty(t, stderr, `expected no stderr running [%v]`, c)
 		})
 	}
 }
 
 func TestGetEnvoyRun(t *testing.T) {
-	o, cleanup := setupTest(t)
-	defer cleanup()
+	tests := []struct {
+		name              string
+		args              []string
+		expectedEnvoyArgs string
+	}{
+		{
+			name: "no envoy args",
+			args: []string{"getenvoy", "run", reference.Latest},
+		},
+		{
+			name: "empty envoy args",
+			args: []string{"getenvoy", "run", reference.Latest, "--"},
+		},
+		{
+			name:              "envoy args",
+			args:              []string{"getenvoy", "run", reference.Latest, "--", "-c", "envoy.yaml"},
+			expectedEnvoyArgs: ` -c envoy.yaml`,
+		},
+	}
 
-	// Run "getenvoy run standard:1.17.1 -- -c envoy.yaml"
-	c, stdout, stderr := newRootCommand(&o.GlobalOpts)
-	c.SetArgs([]string{"run", reference.Latest, "--", "-c", "envoy.yaml"})
-	err := rootcmd.Execute(c)
+	for _, test := range tests {
+		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
-	// Verify the command invoked, passing the correct default commandline
-	require.NoError(t, err, `expected no error running [%v]`, c)
+		t.Run(test.name, func(t *testing.T) {
+			o, cleanup := setupTest(t)
+			defer cleanup()
 
-	// We expect envoy to run from the expected path, and add the --admin-address-path flag
-	expectedStdout := fmt.Sprintf(`envoy wd: %s
+			// Run "getenvoy run standard:1.17.1 -- -c envoy.yaml"
+			c, stdout, stderr := newApp(&o.GlobalOpts)
+			c.SetArgs(test.args[1:])
+			err := c.Execute()
+
+			// Verify the command invoked, passing the correct default commandline
+			require.NoError(t, err, `expected no error running [%v]`, c)
+
+			// We expect envoy to run from the expected path, and add the --admin-address-path flag
+			expectedStdout := fmt.Sprintf(`envoy wd: %s
 envoy bin: %s
-envoy args: -c envoy.yaml --admin-address-path admin-address.txt`, o.WorkingDir, o.EnvoyPath)
-	require.Equal(t, expectedStdout+"\n", stdout.String(), `expected stdout running [%v]`, c)
-	require.Equal(t, "envoy stderr\n", stderr.String(), `expected stderr running [%v]`, c)
+envoy args:%s --admin-address-path admin-address.txt`, o.WorkingDir, o.EnvoyPath, test.expectedEnvoyArgs)
+			require.Equal(t, expectedStdout+"\n", stdout.String(), `expected stdout running [%v]`, c)
+			require.Equal(t, "envoy stderr\n", stderr.String(), `expected stderr running [%v]`, c)
+		})
+	}
 }
 
 func TestGetEnvoyRunFailWithUnknownVersion(t *testing.T) {
@@ -91,21 +116,20 @@ func TestGetEnvoyRunFailWithUnknownVersion(t *testing.T) {
 	defer cleanup()
 
 	o.EnvoyPath = "" // force lookup of version flag
-	c, _, stderr := newRootCommand(&o.GlobalOpts)
+	c, stdout, stderr := newApp(&o.GlobalOpts)
 
 	// Run "getenvoy run unknown"
 	version := "unknown"
 	c.SetArgs([]string{"run", version})
-	err := rootcmd.Execute(c)
+	err := c.Execute()
 
 	// Verify the command failed with the expected error.
 	r := version + "/" + o.platform
 	expectedErr := fmt.Sprintf(`unable to find matching GetEnvoy build for reference "%s"`, r)
 	require.EqualError(t, err, expectedErr, `expected an error running [%v]`, c)
-
-	// We expect the end-users will see the error in stderr
-	expectedStderr := fmt.Sprintf("Error: %s\n\nRun 'getenvoy run --help' for usage.\n", expectedErr)
-	require.Equal(t, expectedStderr, stderr.String(), `expected stderr running [%v]`, c)
+	// Main handles logging of errors, so we expect nothing in stdout or stderr
+	require.Empty(t, stdout, `expected no stdout running [%v]`, c)
+	require.Empty(t, stderr, `expected no stderr running [%v]`, c)
 }
 
 type testEnvoyExtensionConfig struct {

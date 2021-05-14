@@ -15,7 +15,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -33,47 +32,42 @@ import (
 
 // NewRunCmd create a command responsible for starting an Envoy process
 func NewRunCmd(o *globals.GlobalOpts) *cobra.Command {
-	templateArgs := map[string]string{}
-
 	cmd := &cobra.Command{
 		Use:   "run reference [flags] [-- <envoy-args>]",
-		Short: "Runs an instance of Envoy.",
-		Long: `
-Manages full lifecycle of Envoy including bootstrap generation and automated collection of access logs,
-Envoy state and machine state into the ` + "`~/.getenvoy/debug`" + ` directory.`,
+		Short: "Runs Envoy and collects process state on exit. Available builds can be retrieved using `getenvoy list`.",
 		Example: fmt.Sprintf(`# Run using a manifest reference.
 getenvoy run %[1]s -- --config-path ./bootstrap.yaml
 
 # List available Envoy flags.
 getenvoy run %[1]s -- --help
 `, defaultreference.Latest),
-		Args: func(cmd *cobra.Command, args []string) error {
-			if len(args) == 0 {
-				return errors.New("missing reference parameter")
-			}
-			return nil
-		},
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := InitializeRunOpts(o, args[0]); err != nil {
+		Args: validateReferenceArg,
+		RunE: func(c *cobra.Command, args []string) error {
+			if err := initializeRunOpts(o, args[0]); err != nil {
 				return err
 			}
-			return Run(o, cmd, args[1:]) // consume the envoy path argument
+			r := envoy.NewRuntime(&o.RunOpts)
+			r.Out = c.OutOrStderr()
+			r.Err = c.ErrOrStderr()
+
+			debug.EnableAll(r)
+
+			envoyArgs := args[1:]
+			return r.Run(c.Context(), envoyArgs)
 		},
 	}
-	cmd.Flags().StringToStringVar(&templateArgs, "templateArg", map[string]string{},
-		"arguments passed to a config template for substitution")
 	return cmd
 }
 
-// InitializeRunOpts allows us to default values when not overridden for tests.
+// initializeRunOpts allows us to default values when not overridden for tests.
 // The reference parameter corresponds to the globals.GlobalOpts EnvoyPath which is fetched if needed.
 // Notably, this creates and sets a globals.GlobalOpts WorkingDirectory for Envoy, and any files that precede it.
-func InitializeRunOpts(o *globals.GlobalOpts, reference string) error {
+func initializeRunOpts(o *globals.GlobalOpts, reference string) error {
 	runOpts := &o.RunOpts
 	if o.EnvoyPath == "" { // not overridden for tests
 		envoyPath, err := envoy.FetchIfNeeded(o, reference)
 		if err != nil {
-			return err
+			return newValidationError(err.Error())
 		}
 		o.EnvoyPath = envoyPath
 	}
@@ -84,7 +78,7 @@ func InitializeRunOpts(o *globals.GlobalOpts, reference string) error {
 
 		// When the directory is implicitly generated, we should create it to avoid late errors.
 		if err := os.MkdirAll(workingDir, 0750); err != nil {
-			return fmt.Errorf("unable to create working directory %q, so we cannot run envoy: %w", workingDir, err)
+			return newValidationError("unable to create working directory %q, so we cannot run envoy", workingDir)
 		}
 		runOpts.WorkingDir = workingDir
 	}
