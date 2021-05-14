@@ -16,7 +16,6 @@ package cmd_test
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -38,18 +37,8 @@ func TestGetEnvoyValidateArgs(t *testing.T) {
 		expectedErr string
 	}{
 		{
-			name:        "--home-dir empty",
-			args:        []string{"--home-dir", "", "help"},
-			expectedErr: `GetEnvoy home directory cannot be empty`,
-		},
-		{
-			name:        "--manifest empty",
-			args:        []string{"--manifest", "", "help"},
-			expectedErr: `GetEnvoy manifest URL cannot be empty`,
-		},
-		{
 			name:        "--manifest not a URL",
-			args:        []string{"--manifest", "/not/url", "help"},
+			args:        []string{"getenvoy", "--manifest", "/not/url", "help"},
 			expectedErr: `"/not/url" is not a valid manifest URL`,
 		},
 	}
@@ -58,15 +47,15 @@ func TestGetEnvoyValidateArgs(t *testing.T) {
 		test := test // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(test.name, func(t *testing.T) {
-			c, stdout, stderr := newRootCommand(o)
-			c.SetArgs(test.args)
-			err := rootcmd.Execute(c)
+			c, stdout, stderr := newApp(o)
+			c.SetArgs(test.args[1:])
+			err := c.Execute()
 
 			// Verify the command failed with the expected error
 			require.EqualError(t, err, test.expectedErr, `expected an error running [%v]`, c)
-			require.Empty(t, stdout.String(), `expected no stdout running [%v]`, c)
-			expectedStderr := fmt.Sprintf("Error: %s\n\nRun 'getenvoy help --help' for usage.\n", test.expectedErr)
-			require.Equal(t, expectedStderr, stderr.String(), `unexpected stderr running [%v]`, c)
+			// Main handles logging of errors, so we expect nothing in stdout or stderr
+			require.Empty(t, stdout, `expected no stdout running [%v]`, c)
+			require.Empty(t, stderr, `expected no stderr running [%v]`, c)
 		})
 	}
 }
@@ -86,12 +75,12 @@ func TestGetEnvoyHomeDir(t *testing.T) {
 	tests := []testCase{ // we don't test default as that depends on the runtime env
 		{
 			name:     "default is ~/.getenvoy",
-			args:     []string{"help"},
+			args:     []string{"getenvoy", "help"},
 			expected: filepath.Join(u.HomeDir, ".getenvoy"),
 		},
 		{
 			name: "GETENVOY_HOME env",
-			args: []string{"help"},
+			args: []string{"getenvoy", "help"},
 			setup: func() func() {
 				return requireSetenv(t, "GETENVOY_HOME", "/from/GETENVOY_HOME/env")
 			},
@@ -99,12 +88,12 @@ func TestGetEnvoyHomeDir(t *testing.T) {
 		},
 		{
 			name:     "--home-dir arg",
-			args:     []string{"--home-dir", "/from/home-dir/arg", "help"},
+			args:     []string{"getenvoy", "--home-dir", "/from/home-dir/arg", "help"},
 			expected: "/from/home-dir/arg",
 		},
 		{
 			name: "prioritizes --home-dir arg over GETENVOY_HOME env",
-			args: []string{"--home-dir", "/from/home-dir/arg", "help"},
+			args: []string{"getenvoy", "--home-dir", "/from/home-dir/arg", "help"},
 			setup: func() func() {
 				return requireSetenv(t, "GETENVOY_HOME", "/from/GETENVOY_HOME/env")
 			},
@@ -122,9 +111,9 @@ func TestGetEnvoyHomeDir(t *testing.T) {
 			}
 
 			o := &globals.GlobalOpts{}
-			c, stdout, stderr := newRootCommand(o)
-			c.SetArgs(test.args)
-			err := rootcmd.Execute(c)
+			c, stdout, stderr := newApp(o)
+			c.SetArgs(test.args[1:])
+			err := c.Execute()
 
 			require.NoError(t, err, `expected no error running [%v]`, c)
 			require.NotEmpty(t, stdout.String(), `expected stdout running [%v]`, c)
@@ -147,10 +136,12 @@ func TestGetEnvoyManifest(t *testing.T) {
 	tests := []testCase{ // we don't test default as that depends on the runtime env
 		{
 			name:     "default is https://dl.getenvoy.io/public/raw/files/manifest.json",
+			args:     []string{"getenvoy", "help"},
 			expected: "https://dl.getenvoy.io/public/raw/files/manifest.json",
 		},
 		{
 			name: "GETENVOY_MANIFEST_URL env",
+			args: []string{"getenvoy", "help"},
 			setup: func() func() {
 				return requireSetenv(t, "GETENVOY_MANIFEST_URL", "http://GETENVOY_MANIFEST_URL/env")
 			},
@@ -158,12 +149,12 @@ func TestGetEnvoyManifest(t *testing.T) {
 		},
 		{
 			name:     "--manifest arg",
-			args:     []string{"--manifest", "http://manifest/arg"},
+			args:     []string{"getenvoy", "--manifest", "http://manifest/arg", "help"},
 			expected: "http://manifest/arg",
 		},
 		{
 			name: "prioritizes --manifest arg over GETENVOY_MANIFEST_URL env",
-			args: []string{"--manifest", "http://manifest/arg"},
+			args: []string{"getenvoy", "--manifest", "http://manifest/arg", "help"},
 			setup: func() func() {
 				return requireSetenv(t, "GETENVOY_MANIFEST_URL", "http://GETENVOY_MANIFEST_URL/env")
 			},
@@ -181,9 +172,9 @@ func TestGetEnvoyManifest(t *testing.T) {
 			}
 
 			o := &globals.GlobalOpts{}
-			c, stdout, stderr := newRootCommand(o)
-			c.SetArgs(append(test.args, "help"))
-			err := rootcmd.Execute(c)
+			c, stdout, stderr := newApp(o)
+			c.SetArgs(test.args[1:])
+			err := c.Execute()
 
 			require.NoError(t, err, `expected no error running [%v]`, c)
 			require.NotEmpty(t, stdout.String(), `expected stdout running [%v]`, c)
@@ -205,11 +196,11 @@ func requireSetenv(t *testing.T, key, value string) func() {
 	}
 }
 
-// newRootCommand initializes a command with buffers for stdout and stderr.
-func newRootCommand(o *globals.GlobalOpts) (c *cobra.Command, stdout, stderr *bytes.Buffer) {
+// newApp initializes a command with buffers for stdout and stderr.
+func newApp(o *globals.GlobalOpts) (c *cobra.Command, stdout, stderr *bytes.Buffer) {
 	stdout = new(bytes.Buffer)
 	stderr = new(bytes.Buffer)
-	c = rootcmd.NewRoot(o)
+	c = rootcmd.NewApp(o)
 	c.SetOut(stdout)
 	c.SetErr(stderr)
 	return c, stdout, stderr

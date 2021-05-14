@@ -15,7 +15,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -29,21 +28,13 @@ import (
 func NewFetchCmd(o *globals.GlobalOpts) *cobra.Command {
 	return &cobra.Command{
 		Use:   "fetch <reference>",
-		Short: "Retrieve Envoy binaries from GetEnvoy.",
-		Long: `
-Retrieves the referenced Envoy binary from GetEnvoy. The reference can be a full or partial reference.
-A complete list of available builds can be retrieved using` + "`getenvoy list`" + `.`,
+		Short: "Downloads a version of Envoy. Available builds can be retrieved using `getenvoy list`.",
 		Example: fmt.Sprintf(`# Fetch using a partial manifest reference to retrieve a build suitable for your operating system.
 getenvoy fetch %[1]s
 		
 # Fetch using a full manifest reference to retrieve a specific build for Linux. 
-getenvoy fetch s%[1]s/linux-glibc`, reference.Latest),
-		Args: func(cmd *cobra.Command, args []string) error {
-			if len(args) == 0 {
-				return errors.New("missing reference parameter")
-			}
-			return nil
-		},
+getenvoy fetch %[1]s/linux-glibc`, reference.Latest),
+		Args: validateReferenceArg,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			_, err := envoy.FetchIfNeeded(o, args[0])
 			return err

@@ -27,9 +27,7 @@ import (
 func NewListCmd(o *globals.GlobalOpts) *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
-		Short: "List available Envoys provided by GetEnvoy.",
-		Long: `
-Retrieves a list of Envoy builds provided by GetEnvoy.`,
+		Short: "List available Envoy version references you can run",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			m, err := manifest.FetchManifest(o.ManifestURL)
 			if err != nil {

@@ -15,6 +15,8 @@
 package main
 
 import (
+	"fmt"
+	"io"
 	"os"
 
 	cmdutil "github.com/tetratelabs/getenvoy/pkg/cmd"
@@ -22,7 +24,27 @@ import (
 )
 
 func main() {
-	if cmdutil.Execute(cmdutil.NewRoot(&globals.GlobalOpts{})) != nil {
-		os.Exit(1)
+	os.Exit(run(os.Stdout, os.Stderr, os.Args))
+}
+
+// run handles all error logging and coding so that no other place needs to.
+func run(stdout, stderr io.Writer, args []string) int {
+	app := cmdutil.NewApp(&globals.GlobalOpts{})
+	app.SetArgs(args[1:])
+	app.SetOut(stdout)
+	app.SetErr(stderr)
+	if err := app.Execute(); err != nil {
+		if _, ok := err.(*cmdutil.ValidationError); ok {
+			logUsageError(app.Name(), err, stderr)
+		} else {
+			_, _ = fmt.Fprintln(stderr, "error:", err)
+		}
+		return 1
 	}
+	return 0
+}
+
+func logUsageError(name string, err error, stderr io.Writer) {
+	_, _ = fmt.Fprintln(stderr, err)
+	_, _ = fmt.Fprintln(stderr, "show usage with:", name, "-h")
 }
