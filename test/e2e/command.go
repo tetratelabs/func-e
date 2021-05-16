@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package util
+package e2e
 
 import (
 	"bytes"
@@ -29,8 +29,8 @@ import (
 )
 
 var (
-	// GetEnvoyPath holds a path to a 'getenvoy' binary under test.
-	GetEnvoyPath = "getenvoy"
+	// getEnvoyPath holds a path to a 'getenvoy' binary under test.
+	getEnvoyPath = "getenvoy"
 )
 
 // cmdBuilder represents a command builder.
@@ -38,17 +38,17 @@ type cmdBuilder struct {
 	cmd *exec.Cmd
 }
 
-// GetEnvoy returns a new command builder.
-func GetEnvoy(arg0 string) *cmdBuilder { //nolint:golint
-	return &cmdBuilder{exec.Command(GetEnvoyPath, arg0)} //nolint:gosec
+// getEnvoy returns a new command builder.
+func getEnvoy(arg0 string) *cmdBuilder { //nolint:golint
+	return &cmdBuilder{exec.Command(getEnvoyPath, arg0)} //nolint:gosec
 }
 
-func (b *cmdBuilder) WorkingDir(arg string) *cmdBuilder {
+func (b *cmdBuilder) workingDir(arg string) *cmdBuilder {
 	b.cmd.Dir = arg
 	return b
 }
 
-func (b *cmdBuilder) Args(args ...string) *cmdBuilder {
+func (b *cmdBuilder) args(args ...string) *cmdBuilder {
 	b.cmd.Args = append(b.cmd.Args, args...)
 	return b
 }
@@ -57,7 +57,7 @@ func (b *cmdBuilder) String() string {
 	return fmt.Sprintf("%s: %s", b.cmd.Dir, strings.Join(b.cmd.Args, " "))
 }
 
-func (b *cmdBuilder) Exec() (string, string, error) {
+func (b *cmdBuilder) exec() (string, string, error) {
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
 	b.cmd.Stdout = io.MultiWriter(os.Stdout, stdout) // we want to see full `getenvoy` output in the test log
@@ -66,7 +66,7 @@ func (b *cmdBuilder) Exec() (string, string, error) {
 	return stdout.String(), stderr.String(), err
 }
 
-func (b *cmdBuilder) Start(t *testing.T, terminateTimeout time.Duration) (io.Reader, io.Reader, func()) {
+func (b *cmdBuilder) start(t *testing.T, terminateTimeout time.Duration) (io.Reader, io.Reader, func()) {
 	stdout := newSyncBuffer()
 	stderr := newSyncBuffer()
 	b.cmd.Stdout = io.MultiWriter(os.Stdout, stdout) // we want to see full `getenvoy` output in the test log

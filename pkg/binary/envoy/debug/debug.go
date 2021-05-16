@@ -24,8 +24,9 @@ import (
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 )
 
-// EnableAll enables all debug options invoking r.LogDebug on each that failed
-func EnableAll(r *envoy.Runtime) {
+// EnableAll enables all debug options and returns a possibly empty list of errors.
+func EnableAll(r *envoy.Runtime) []error {
+	var errs []error
 	for _, debug := range []func(*envoy.Runtime) error{
 		enableEnvoyAdminDataCollection,
 		enableEnvoyLogCollection,
@@ -33,9 +34,10 @@ func EnableAll(r *envoy.Runtime) {
 		enableOpenFilesDataCollection,
 	} {
 		if err := debug(r); err != nil {
-			r.LogDebug("failed to enable debug option: %v", err)
+			errs = append(errs, err)
 		}
 	}
+	return errs
 }
 
 // wrapError wraps an error from using "gopsutil" or returns nil on "not implemented yet".

@@ -15,28 +15,32 @@
 package manifest
 
 import (
-	"archive/tar"
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/ulikunitz/xz"
 
+	tar "github.com/tetratelabs/getenvoy/pkg/internal"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
+	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
-const archiveFormat = ".tar.gz"
+const archiveFormat = ".tar.xz"
+const buildsPath = "/builds/"
 
 // RequireManifestTestServer serves "/manifest.json", which contains download links a compressed archive of artifactDir
 func RequireManifestTestServer(t *testing.T, m *manifest.Manifest) *httptest.Server {
 	s := &server{t: t}
 	h := httptest.NewServer(s)
-	s.manifest = rewriteDownloadLocations(h.URL, *m)
+	s.rewriteDownloadLocations(h.URL, *m)
 	return h
 }
 
@@ -52,22 +56,18 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, err := w.Write(s.GetManifest())
 		require.NoError(s.t, err)
-	case strings.HasPrefix(r.RequestURI, "/builds/"):
-		uri := r.RequestURI[len("/builds/"):]
-		require.True(s.t, strings.HasSuffix(uri, archiveFormat),
-			"unexpected uri %q: expected archive suffix %q", uri, archiveFormat)
-		s.validateReference(uri)
+	case strings.HasPrefix(r.RequestURI, buildsPath):
+		reference := r.RequestURI[len(buildsPath):]
+		require.True(s.t, strings.HasSuffix(reference, archiveFormat),
+			"unexpected uri %q: expected archive suffix %q", reference, archiveFormat)
+		ref, err := manifest.ParseReference(reference)
+		require.NoError(s.t, err, "could not parse reference from uri %q", reference)
+		require.Regexpf(s.t, `^1\.[1-9][0-9]\.[0-9]+$`, ref.Version, "unsupported version in uri %q", reference)
 		w.WriteHeader(http.StatusOK)
-		writeFakeEnvoyTarGz(s.t, w)
+		s.writeFakeEnvoyTarXz(w, ref.Version)
 	default:
 		w.WriteHeader(http.StatusNotFound)
 	}
-}
-
-func (s *server) validateReference(uri string) {
-	ref, err := manifest.ParseReference(uri)
-	require.NoError(s.t, err, "could not parse reference from uri %q", uri)
-	require.Regexpf(s.t, `^1\.[1-9][0-9]\.[0-9]+$`, ref.Version, "unsupported version in uri %q", uri)
 }
 
 func (s *server) GetManifest() []byte {
@@ -76,11 +76,22 @@ func (s *server) GetManifest() []byte {
 	return data
 }
 
-// writeFakeEnvoyTarGz writes a tar.gz containing a "bin/envoy" that echos the commandline, output and stderr.
-// TODO: fake via exec.Run in unit tests because it is less complicated and error-prone than faking via shell scripts.
-func writeFakeEnvoyTarGz(t *testing.T, buf io.Writer) {
-	// Create script literal of $envoyHome/bin/envoy which copies the current directory to $envoyCapture when invoked.
-	// stdout and stderr are prefixed "envoy " to differentiate them from other command output.
+func (s *server) rewriteDownloadLocations(baseURL string, m manifest.Manifest) {
+	for _, flavor := range m.Flavors {
+		for _, version := range flavor.Versions {
+			for _, build := range version.Builds {
+				build.DownloadLocationURL = fmt.Sprintf("%s%s%s%s", baseURL, buildsPath, build.DownloadLocationURL, archiveFormat)
+			}
+		}
+	}
+	s.manifest = &m
+}
+
+func (s *server) writeFakeEnvoyTarXz(w io.Writer, version string) {
+	tempDir, removeTempDir := morerequire.RequireNewTempDir(s.t)
+	defer removeTempDir()
+	require.NoError(s.t, os.MkdirAll(filepath.Join(tempDir, version, "bin"), 0700)) //nolint:gosec
+	// go:embed doesn't allow us to retain execute bit, so it is simpler to inline this.
 	fakeEnvoy := []byte(`#!/bin/sh
 set -ue
 # Echo invocation context to stdout and fake stderr to ensure it is not combined into stdout.
@@ -89,26 +100,11 @@ echo envoy bin: $0
 echo envoy args: $@
 echo >&2 envoy stderr
 `)
-	gw := gzip.NewWriter(buf)
-	defer gw.Close() // nolint
-	tw := tar.NewWriter(gw)
-	defer tw.Close() // nolint
+	require.NoError(s.t, os.WriteFile(filepath.Join(tempDir, version, "bin", "envoy"), fakeEnvoy, 0700)) //nolint:gosec
 
-	err := tw.WriteHeader(&tar.Header{Name: "bin", Mode: 0750, Typeflag: tar.TypeDir})
-	require.NoError(t, err)
-	err = tw.WriteHeader(&tar.Header{Name: "bin/envoy", Mode: 0750, Size: int64(len(fakeEnvoy)), Typeflag: tar.TypeReg})
-	require.NoError(t, err)
-	_, err = tw.Write(fakeEnvoy)
-	require.NoError(t, err)
-}
-
-func rewriteDownloadLocations(baseURL string, m manifest.Manifest) *manifest.Manifest {
-	for _, flavor := range m.Flavors {
-		for _, version := range flavor.Versions {
-			for _, build := range version.Builds {
-				build.DownloadLocationURL = fmt.Sprintf("%s/builds/%s%s", baseURL, build.DownloadLocationURL, archiveFormat)
-			}
-		}
-	}
-	return &m
+	zw, err := xz.NewWriter(w)
+	require.NoError(s.t, err)
+	defer zw.Close() //nolint
+	err = tar.Tar(zw, tempDir, version)
+	require.NoError(s.t, err)
 }

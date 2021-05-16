@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package e2e_test
+package e2e
 
 import (
 	"io"
@@ -23,15 +23,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mholt/archiver/v3"
 	"github.com/stretchr/testify/require"
-
-	reference "github.com/tetratelabs/getenvoy/pkg"
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
-	e2e "github.com/tetratelabs/getenvoy/test/e2e/util"
-	utilenvoy "github.com/tetratelabs/getenvoy/test/e2e/util/envoy"
 )
 
 const terminateTimeout = 2 * time.Minute
+
+// reference holds the argument to 'getenvoy run'
+var reference string
 
 // TestGetEnvoyRun runs the equivalent of "getenvoy run"
 //
@@ -42,9 +41,9 @@ func TestGetEnvoyRun(t *testing.T) {
 	c := getEnvoy(`run`)
 	// Below is the minimal config needed to run envoy
 	// TODO allow implicit version #106
-	c.Args(reference.Latest, `--`, `--config-yaml`, `admin: {access_log_path: '/dev/stdout', address: {socket_address: {address: '127.0.0.1', port_value: 0}}}`)
+	c.args(reference, `--`, `--config-yaml`, `admin: {access_log_path: '/dev/stdout', address: {socket_address: {address: '127.0.0.1', port_value: 0}}}`)
 
-	stdout, stderr, terminate := c.Start(t, terminateTimeout)
+	stdout, stderr, terminate := c.start(t, terminateTimeout)
 
 	// The underlying call is conditional to ensure errors that raise before we stop the server, stop it.
 	deferredTerminate := terminate
@@ -65,16 +64,16 @@ func TestGetEnvoyRun(t *testing.T) {
 }
 
 func requireEnvoyWorkingDir(t *testing.T, stdout io.Reader, c interface{}) string {
-	stdoutLines := e2e.StreamLines(stdout).Named("stdout")
+	stdoutLines := streamLines(stdout).named("stdout")
 	log.Printf(`waiting for GetEnvoy to log working directory after running [%v]`, c)
-	workingDirectoryPattern := regexp.MustCompile(`cd (.*)`)
+	workingDirectoryPattern := regexp.MustCompile(`working directory: (.*)`)
 	line, err := stdoutLines.FirstMatch(workingDirectoryPattern).Wait(10 * time.Minute) // give time to compile the extension
 	require.NoError(t, err, `error parsing working directory from stdout of [%v]`, c)
 	return workingDirectoryPattern.FindStringSubmatch(line)[1]
 }
 
-func requireEnvoyReady(t *testing.T, envoyWorkingDir string, stderr io.Reader, c interface{}) utilenvoy.AdminAPI {
-	stderrLines := e2e.StreamLines(stderr).Named("stderr")
+func requireEnvoyReady(t *testing.T, envoyWorkingDir string, stderr io.Reader, c interface{}) adminAPI {
+	stderrLines := streamLines(stderr).named("stderr")
 
 	log.Printf(`waiting for Envoy start-up to complete after running [%v]`, c)
 	_, err := stderrLines.FirstMatch(regexp.MustCompile(`starting main dispatch loop`)).Wait(1 * time.Minute)
@@ -85,10 +84,10 @@ func requireEnvoyReady(t *testing.T, envoyWorkingDir string, stderr io.Reader, c
 	require.NoError(t, err, `error reading admin address file %q after running [%v]`, adminAddressPath, c)
 
 	log.Printf(`waiting for Envoy client to connect after running [%v]`, c)
-	envoyClient, err := utilenvoy.NewClient(string(adminAddress))
+	envoyClient, err := newClient(string(adminAddress))
 	require.NoError(t, err, `error from envoy client %s after running [%v]`, adminAddress, c)
 	require.Eventually(t, func() bool {
-		ready, e := envoyClient.IsReady()
+		ready, e := envoyClient.isReady()
 		return e == nil && ready
 	}, 1*time.Minute, 100*time.Millisecond, `envoy client %s never ready after running [%v]`, adminAddress, c)
 
@@ -96,7 +95,13 @@ func requireEnvoyReady(t *testing.T, envoyWorkingDir string, stderr io.Reader, c
 }
 
 func verifyDebugDump(t *testing.T, workingDir string, c interface{}) {
-	debugArchive := envoytest.RequireRestoreWorkingDir(t, workingDir, c)
+	// Run deletes the debug store directory after making a tar.gz with the same name.
+	// Restore it so assertions can read the contents later.
+	debugArchive := filepath.Join(workingDir + ".tar.gz")
+	defer os.Remove(debugArchive) //nolint
+
+	e := archiver.Unarchive(debugArchive, filepath.Dir(workingDir)) // Dir strips the RunID directory name
+	require.NoError(t, e, "error restoring %s from %s after stopping [%v]", workingDir, debugArchive, c)
 
 	// ensure the minimum contents exist
 	for _, filename := range []string{"config_dump.json", "stats.json"} {

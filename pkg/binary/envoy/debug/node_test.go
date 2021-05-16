@@ -23,15 +23,14 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
 	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
 func TestEnableNodeCollection(t *testing.T) {
-	debugDir, removeDebugDir := morerequire.RequireNewTempDir(t)
-	defer removeDebugDir()
+	workingDir, removeWorkingDir := morerequire.RequireNewTempDir(t)
+	defer removeWorkingDir()
 
-	workingDir := envoytest.RunAndTerminateWithDebug(t, debugDir, enableNodeCollection)
+	runAndTerminateWithDebug(t, workingDir, enableNodeCollection)
 
 	files := [...]string{"node/ps.txt", "node/network_interface.json", "node/connections.json"}
 	for _, file := range files {

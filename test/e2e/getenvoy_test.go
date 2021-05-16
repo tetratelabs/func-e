@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package e2e_test
+package e2e
 
 import (
 	"testing"
@@ -23,7 +23,7 @@ import (
 func TestGetEnvoyVersion(t *testing.T) {
 	t.Parallel()
 
-	stdout, stderr, err := getEnvoy("--version").Exec()
+	stdout, stderr, err := getEnvoy("--version").exec()
 
 	require.Regexp(t, `^getenvoy version ([^\s]+)\n$`, stdout)
 	require.Equal(t, ``, stderr)
@@ -33,7 +33,7 @@ func TestGetEnvoyVersion(t *testing.T) {
 func TestGetEnvoyList(t *testing.T) {
 	t.Parallel()
 
-	stdout, stderr, err := getEnvoy("list").Exec()
+	stdout, stderr, err := getEnvoy("list").exec()
 
 	require.Regexp(t, `REFERENCE +VERSION\n`, stdout)
 	require.Empty(t, stderr)

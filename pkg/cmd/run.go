@@ -16,7 +16,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -50,7 +49,9 @@ getenvoy run %[1]s -- --help
 			r.Out = c.OutOrStderr()
 			r.Err = c.ErrOrStderr()
 
-			debug.EnableAll(r)
+			for _, err := range debug.EnableAll(r) {
+				fmt.Fprintln(r.Out, "failed to enable option:", err) //nolint
+			}
 
 			envoyArgs := args[1:]
 			return r.Run(c.Context(), envoyArgs)
@@ -81,13 +82,6 @@ func initializeRunOpts(o *globals.GlobalOpts, reference string) error {
 			return newValidationError("unable to create working directory %q, so we cannot run envoy", workingDir)
 		}
 		runOpts.WorkingDir = workingDir
-	}
-	if runOpts.Log == nil { // not overridden for tests
-		runOpts.Log = log.New(os.Stdout, "run: ", log.LstdFlags)
-	}
-	if runOpts.DebugLog == nil { // not overridden for tests
-		// All debug features are optional. If there is any unexpected failure, log as "debug" to stdout.
-		runOpts.DebugLog = log.New(os.Stdout, "debug: ", log.LstdFlags)
 	}
 	return nil
 }

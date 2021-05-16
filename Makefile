@@ -42,7 +42,6 @@ COVERAGE_PKG_LIST ?= $(shell go list ./pkg/... | grep -v -e github.com/tetratela
 GO_COVERAGE_OPTS ?= -covermode=atomic -coverpkg=./...
 GO_COVERAGE_EXTRA_OPTS ?= -p 1
 
-E2E_PKG_LIST ?= ./test/e2e
 # Run only one test at a time, in verbose mode, so that failures are easy to diagnose.
 # Note: -failfast helps as it stops at the first error. However, it is not a cacheable flag, so runs won't cache.
 E2E_OPTS ?= -parallel 1 -v -failfast
@@ -77,7 +76,7 @@ test:
 
 .PHONY: e2e
 e2e: $(call GETENVOY_OUT_PATH,$(GOOS),$(GOARCH))
-	go test $(E2E_OPTS) $(E2E_EXTRA_OPTS) $(E2E_PKG_LIST)
+	(cd test/e2e && go test $(E2E_OPTS) $(E2E_EXTRA_OPTS))
 
 .PHONY: bin
 bin: $(foreach os,$(GOOSES), bin/$(os))
@@ -140,6 +139,7 @@ check:  ## CI blocks merge until this passes. If this fails, run "make check" lo
 	@$(MAKE) lint
 	@$(MAKE) format
 	@go mod tidy
+	@(cd test/e2e && go mod tidy)
 	@if [ ! -z "`git status -s`" ]; then \
 		echo "The following differences will fail CI until committed:"; \
 		git diff; \

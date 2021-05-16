@@ -26,7 +26,7 @@ import (
 )
 
 // Run execs the binary at the path with the args passed. It is a blocking function that can be terminated via SIGINT.
-func (r *Runtime) Run(ctx context.Context, args []string) error {
+func (r *Runtime) Run(ctx context.Context, args []string) (err error) {
 	// We can't use CommandContext even if that seems correct here. The reason is that we need to invoke preTerminate
 	// handlers, and they expect the process to still be running. For example, this allows admin API hooks.
 	cmd := exec.Command(r.opts.EnvoyPath, args...) // #nosec -> users can run whatever binary they like!
@@ -35,15 +35,25 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 	cmd.Stderr = r.Err
 	cmd.SysProcAttr = sysProcAttr()
 	r.cmd = cmd
+	// suppress any error and replace it with the envoy exit status when > 1
+	defer func() {
+		if cmd.ProcessState != nil && cmd.ProcessState.ExitCode() > 0 {
+			if err != nil {
+				fmt.Fprintln(r.Out, "warning:", err)
+			}
+			err = fmt.Errorf("envoy exited with status: %d", cmd.ProcessState.ExitCode())
+		}
+	}()
 
-	err := r.handlePreStart()
+	err = r.handlePreStart()
 	if err != nil {
 		return err
 	}
 
-	// Log for the information of users and also for us to have a reliable parsing in e2e tests.
-	r.opts.Log.Printf("cd %s\n", cmd.Dir)
-	r.opts.Log.Printf("%s %s\n", r.opts.EnvoyPath, strings.Join(args, " "))
+	// Print the process line to the console for user knowledge and parsing convenience
+	e := strings.Join(append([]string{r.opts.EnvoyPath}, args...), " ") // ensures no trailing space on empty args
+	fmt.Fprintln(r.Out, "starting:", e)                                 //nolint
+	fmt.Fprintln(r.Out, "working directory:", cmd.Dir)                  //nolint
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("unable to start Envoy process: %w", err)
 	}
@@ -53,13 +63,13 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 	defer waitCancel()
 	r.FakeInterrupt = sigCancel
 
-	go r.waitForExit(waitCancel) // waits in a goroutine. We may need to kill the process if a signal occurs first.
+	// wait in a goroutine. We may need to kill the process if a signal occurs first.
+	go r.waitForExit(waitCancel)
 
 	awaitAdminAddress(sigCtx, r)
 
 	// Block until we receive SIGINT or are canceled because Envoy has died
 	<-sigCtx.Done()
-
 	if cmd.ProcessState != nil {
 		return r.handlePostTermination()
 	}
@@ -78,7 +88,7 @@ func awaitAdminAddress(sigCtx context.Context, r *Runtime) {
 	for i := 0; i < 10 && sigCtx.Err() == nil; i++ {
 		adminAddress, adminErr := r.GetAdminAddress()
 		if adminErr == nil {
-			r.opts.Log.Printf("discovered admin address: %v", adminAddress)
+			fmt.Fprintln(r.Out, "discovered admin address:", adminAddress) //nolint
 			return
 		}
 		time.Sleep(200 * time.Millisecond)
@@ -102,11 +112,7 @@ func (r *Runtime) AppendArgs(args []string) {
 
 func (r *Runtime) waitForExit(cancel context.CancelFunc) {
 	defer cancel()
-	if err := r.cmd.Wait(); err != nil {
-		if r.cmd.ProcessState.ExitCode() == -1 {
-			r.opts.Log.Printf("Envoy process (PID=%d) terminated via %v", r.cmd.Process.Pid, err)
-		} else {
-			r.opts.Log.Printf("Envoy process (PID=%d) terminated with an error: %v", r.cmd.Process.Pid, err)
-		}
-	}
+	// We don't need to log anything because envoy already does. The only thing of interest is the exit code
+	_ = r.cmd.Wait()
+	// We don't need to log anything because envoy already does. The only thing of interest is the exit code
 }

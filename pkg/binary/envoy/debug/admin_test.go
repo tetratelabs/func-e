@@ -15,6 +15,7 @@
 package debug
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -23,13 +24,15 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
+	"github.com/tetratelabs/getenvoy/pkg/globals"
 	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
 func TestEnableEnvoyAdminDataCollection(t *testing.T) {
-	debugDir, removeDebugDir := morerequire.RequireNewTempDir(t)
-	defer removeDebugDir()
+	workingDir, removeWorkingDir := morerequire.RequireNewTempDir(t)
+	defer removeWorkingDir()
 
 	mockAdmin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -37,12 +40,11 @@ func TestEnableEnvoyAdminDataCollection(t *testing.T) {
 	}))
 	defer mockAdmin.Close()
 
-	adminPath := filepath.Join(debugDir, "admin-address.txt")
+	adminPath := filepath.Join(workingDir, "admin-address.txt")
 	err := os.WriteFile(adminPath, []byte(mockAdmin.Listener.Addr().String()), 0600)
 	require.NoError(t, err)
 
-	workingDir := envoytest.RunAndTerminateWithDebug(t, debugDir,
-		enableEnvoyAdminDataCollection, `--admin-address-path`, adminPath)
+	runAndTerminateWithDebug(t, workingDir, enableEnvoyAdminDataCollection, `--admin-address-path`, adminPath)
 
 	for _, filename := range adminAPIPaths {
 		path := filepath.Join(workingDir, filename)
@@ -50,4 +52,19 @@ func TestEnableEnvoyAdminDataCollection(t *testing.T) {
 		require.NoError(t, err, "error stating %v", path)
 		require.NotEmpty(t, f.Size(), "file %v was empty", path)
 	}
+}
+
+// runAndTerminateWithDebug is like RequireRunTerminate, except returns a directory populated by the debug plugin.
+func runAndTerminateWithDebug(t *testing.T, workingDir string, debug func(r *envoy.Runtime) error, args ...string) error {
+	fakeEnvoy, removeFakeEnvoy := morerequire.RequireCaptureScript(t, "envoy")
+	defer removeFakeEnvoy()
+
+	o := &globals.RunOpts{EnvoyPath: fakeEnvoy, WorkingDir: workingDir, DontArchiveWorkingDir: true}
+
+	r := envoy.NewRuntime(o)
+	r.Out = io.Discard
+	r.Err = io.Discard
+	require.NoError(t, debug(r))
+
+	return envoytest.RequireRunTerminate(t, nil, r, args...)
 }

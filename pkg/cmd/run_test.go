@@ -16,6 +16,7 @@ package cmd_test
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -101,10 +102,13 @@ func TestGetEnvoyRun(t *testing.T) {
 			// Verify the command invoked, passing the correct default commandline
 			require.NoError(t, err, `expected no error running [%v]`, c)
 
-			// We expect envoy to run from the expected path, and add the --admin-address-path flag
-			expectedStdout := fmt.Sprintf(`envoy wd: %s
-envoy bin: %s
-envoy args:%s --admin-address-path admin-address.txt`, o.WorkingDir, o.EnvoyPath, test.expectedEnvoyArgs)
+			// We expect getenvoy to print the context it will run, and Envoy to execute the same, except adding the
+			// --admin-address-path flag
+			expectedStdout := fmt.Sprintf(`starting: %[2]s%[3]s
+working directory: %[1]s
+envoy wd: %[1]s
+envoy bin: %[2]s
+envoy args:%[3]s --admin-address-path admin-address.txt`, o.WorkingDir, o.EnvoyPath, test.expectedEnvoyArgs)
 			require.Equal(t, expectedStdout+"\n", stdout.String(), `expected stdout running [%v]`, c)
 			require.Equal(t, "envoy stderr\n", stderr.String(), `expected stderr running [%v]`, c)
 		})
@@ -142,6 +146,7 @@ type testEnvoyExtensionConfig struct {
 // The tear-down functions reverts side-effects such as temp directories and a fake manifest server.
 func setupTest(t *testing.T) (*testEnvoyExtensionConfig, func()) {
 	result := testEnvoyExtensionConfig{}
+	result.Out = io.Discard // ignore logging
 	var tearDown []func()
 
 	tempDir, deleteTempDir := morerequire.RequireNewTempDir(t)

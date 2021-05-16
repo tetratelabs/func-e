@@ -14,9 +14,9 @@
 
 package globals
 
-import "log"
+import "io"
 
-// RunOpts support invocations of "getenvoy run" and "getenvoy extension run"
+// RunOpts support invocations of "getenvoy run"
 type RunOpts struct {
 	// EnvoyPath is the exec.Cmd path to "envoy". Defaults to "$HomeDir/builds/$flavor/$version/$platform/bin/envoy"
 	EnvoyPath string
@@ -24,10 +24,8 @@ type RunOpts struct {
 	// Upon termination, this directory is archived as "../$(basename $WorkingDir).tar.gz"
 	// Defaults to "$HomeDir/debug/$epochtime"
 	WorkingDir string
-	// Log generates output users should be aware of. Defaults to os.Stdout with "run: " prefix.
-	Log *log.Logger
-	// DebugLog generates output for debug features such as access logging. Defaults to os.Stdout with "debug: " prefix.
-	DebugLog *log.Logger
+	// DontArchiveWorkingDir is used in testing and prevents archiving the WorkingDir
+	DontArchiveWorkingDir bool
 }
 
 // GlobalOpts represents options that affect more than one getenvoy commands.
@@ -40,10 +38,12 @@ type RunOpts struct {
 type GlobalOpts struct {
 	// RunOpts are inlined to allow tests to override parameters without changing ENV variables or flags
 	RunOpts
-	// HomeDir most importantly contains envoy binaries fetched from ManifestURL. Defaults to $HOME/.getenvoy
-	HomeDir string
 	// ManifestURL is the path to the getenvoy manifest json
 	ManifestURL string
+	// HomeDir most importantly contains envoy binaries fetched from ManifestURL. Defaults to $HOME/.getenvoy
+	HomeDir string
+	// Out is where status messages are written. Commands should prefix "$name: ". Defaults to os.Stdout
+	Out io.Writer
 }
 
 // DefaultManifestURL is the default value for GlobalOpts.ManifestURL

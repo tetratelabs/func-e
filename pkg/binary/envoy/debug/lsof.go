@@ -50,7 +50,7 @@ func enableOpenFilesDataCollection(r *envoy.Runtime) error {
 	if err := os.MkdirAll(lsofDir, 0750); err != nil {
 		return fmt.Errorf("unable to create directory %q, so lsof will not be captured: %w", lsofDir, err)
 	}
-	o := openFilesDataCollection{r.GetPid, lsofDir}
+	o := openFilesDataCollection{r.GetEnvoyPid, lsofDir}
 	r.RegisterPreTermination(o.retrieveOpenFilesData)
 	return nil
 }

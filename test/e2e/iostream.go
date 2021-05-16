@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package util
+package e2e
 
 import (
 	"bufio"
@@ -60,8 +60,8 @@ func (e StreamError) Err() error {
 // Stream represents a stream of text lines.
 type Stream <-chan LineOrError
 
-// StreamLines returns a stream of lines of text read from a given source.
-func StreamLines(r io.Reader) Stream {
+// streamLines returns a stream of lines of text read from a given source.
+func streamLines(r io.Reader) Stream {
 	buf := bufio.NewReader(r)
 	lines := make(chan LineOrError, 100)
 	go func() {
@@ -86,8 +86,8 @@ type NamedStream struct {
 	Stream
 }
 
-// Named returns a new NamedStream.
-func (s Stream) Named(name string) *NamedStream {
+// named returns a new NamedStream.
+func (s Stream) named(name string) *NamedStream {
 	return &NamedStream{name, s}
 }
 
