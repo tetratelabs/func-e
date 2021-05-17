@@ -23,15 +23,14 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
 	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
 func TestEnableOpenFilesDataCollection(t *testing.T) {
-	debugDir, removeDebugDir := morerequire.RequireNewTempDir(t)
-	defer removeDebugDir()
+	workingDir, removeWorkingDir := morerequire.RequireNewTempDir(t)
+	defer removeWorkingDir()
 
-	workingDir := envoytest.RunAndTerminateWithDebug(t, debugDir, enableOpenFilesDataCollection)
+	runAndTerminateWithDebug(t, workingDir, enableOpenFilesDataCollection)
 
 	file := "lsof/lsof.json"
 	path := filepath.Join(workingDir, file)

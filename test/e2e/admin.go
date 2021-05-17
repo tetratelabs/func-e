@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package envoy
+package e2e
 
 import (
 	"encoding/json"
@@ -22,35 +22,25 @@ import (
 	"net/http"
 )
 
-// AdminAPI represents Envoy Admin API.
-type AdminAPI interface {
-	IsReady() (bool, error)
-	GetStats() (*Stats, error)
+// adminAPI represents Envoy Admin API.
+type adminAPI interface {
+	isReady() (bool, error)
+	getStats() (*stats, error)
 }
 
-// Stats represents Envoy response to `/stats?format=json` endpoint.
-type Stats struct {
-	Metrics []Metric `json:"stats"`
+// stats represents Envoy response to `/stats?format=json` endpoint.
+type stats struct {
+	Metrics []metric `json:"stats"`
 }
 
-// Metric represents recorded value of a single metric.
-type Metric struct {
+// metric represents recorded value of a single metric.
+type metric struct {
 	Name  string  `json:"name"`
 	Value float64 `json:"value"`
 }
 
-// GetMetric returns a metric by name.
-func (s *Stats) GetMetric(name string) *Metric {
-	for i := range s.Metrics {
-		if s.Metrics[i].Name == name {
-			return &s.Metrics[i]
-		}
-	}
-	return nil
-}
-
-// NewClient returns a new client for Envoy Admin API.
-func NewClient(address string) (AdminAPI, error) {
+// newClient returns a new client for Envoy Admin API.
+func newClient(address string) (adminAPI, error) {
 	host, port, err := net.SplitHostPort(address)
 	if err != nil {
 		return nil, err
@@ -62,7 +52,7 @@ type client struct {
 	baseURL string
 }
 
-func (c *client) IsReady() (bool, error) {
+func (c *client) isReady() (bool, error) {
 	resp, err := http.Get(c.baseURL + "/ready")
 	if err != nil {
 		return false, err
@@ -71,7 +61,7 @@ func (c *client) IsReady() (bool, error) {
 	return resp.StatusCode == http.StatusOK, nil
 }
 
-func (c *client) GetStats() (*Stats, error) {
+func (c *client) getStats() (*stats, error) {
 	resp, err := http.Get(c.baseURL + "/stats?format=json")
 	if err != nil {
 		return nil, err
@@ -84,10 +74,10 @@ func (c *client) GetStats() (*Stats, error) {
 	if err != nil {
 		return nil, err
 	}
-	var stats Stats
-	err = json.Unmarshal(body, &stats)
+	var s stats
+	err = json.Unmarshal(body, &s)
 	if err != nil {
 		return nil, err
 	}
-	return &stats, nil
+	return &s, nil
 }

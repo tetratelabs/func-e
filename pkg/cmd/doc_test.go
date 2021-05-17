@@ -15,14 +15,14 @@
 package cmd_test
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	reference "github.com/tetratelabs/getenvoy/pkg"
+	"github.com/tetratelabs/getenvoy/internal/reference"
 	"github.com/tetratelabs/getenvoy/pkg/globals"
 	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
@@ -39,9 +39,9 @@ func TestGetEnvoyDoc(t *testing.T) {
 		file := file // pin! see https://github.com/kyoh86/scopelint for why
 
 		t.Run(file, func(t *testing.T) {
-			want, err := ioutil.ReadFile(filepath.Join("testdata", file))
+			want, err := os.ReadFile(filepath.Join("testdata", file))
 			require.NoError(t, err)
-			have, err := ioutil.ReadFile(filepath.Join(tempDir, file))
+			have, err := os.ReadFile(filepath.Join(tempDir, file))
 			require.NoError(t, err)
 			require.Equal(t, strings.ReplaceAll(string(want), "VERSION", reference.Latest), string(have))
 		})

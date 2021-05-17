@@ -20,15 +20,14 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/pkg/binary/envoytest"
 	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
 func TestEnableEnvoyLogCollection(t *testing.T) {
-	debugDir, removeDebugDir := morerequire.RequireNewTempDir(t)
-	defer removeDebugDir()
+	workingDir, removeWorkingDir := morerequire.RequireNewTempDir(t)
+	defer removeWorkingDir()
 
-	workingDir := envoytest.RunAndTerminateWithDebug(t, debugDir, enableEnvoyLogCollection)
+	runAndTerminateWithDebug(t, workingDir, enableEnvoyLogCollection)
 
 	for _, filename := range []string{"logs/access.log", "logs/error.log"} {
 		require.FileExists(t, filepath.Join(workingDir, filename))

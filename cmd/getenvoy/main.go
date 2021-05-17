@@ -29,7 +29,7 @@ func main() {
 
 // run handles all error logging and coding so that no other place needs to.
 func run(stdout, stderr io.Writer, args []string) int {
-	app := cmdutil.NewApp(&globals.GlobalOpts{})
+	app := cmdutil.NewApp(&globals.GlobalOpts{Out: stdout})
 	app.SetArgs(args[1:])
 	app.SetOut(stdout)
 	app.SetErr(stderr)
@@ -37,7 +37,7 @@ func run(stdout, stderr io.Writer, args []string) int {
 		if _, ok := err.(*cmdutil.ValidationError); ok {
 			logUsageError(app.Name(), err, stderr)
 		} else {
-			_, _ = fmt.Fprintln(stderr, "error:", err)
+			fmt.Fprintln(stderr, "error:", err) //nolint
 		}
 		return 1
 	}
@@ -45,6 +45,6 @@ func run(stdout, stderr io.Writer, args []string) int {
 }
 
 func logUsageError(name string, err error, stderr io.Writer) {
-	_, _ = fmt.Fprintln(stderr, err)
-	_, _ = fmt.Fprintln(stderr, "show usage with:", name, "-h")
+	fmt.Fprintln(stderr, err)                            //nolint
+	fmt.Fprintln(stderr, "show usage with:", name, "-h") //nolint
 }

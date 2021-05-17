@@ -33,7 +33,7 @@ func FetchManifest(manifestURL string) (*Manifest, error) {
 	defer resp.Body.Close() //nolint
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("received %v response code from %v", resp.StatusCode, manifestURL)
+		return nil, fmt.Errorf("received %v status code from %v", resp.StatusCode, manifestURL)
 	}
 	body, err := io.ReadAll(resp.Body) // fully read the response
 	if err != nil {

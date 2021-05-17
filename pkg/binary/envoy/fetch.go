@@ -15,128 +15,101 @@
 package envoy
 
 import (
-	"archive/tar"
-	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
 
-	"github.com/mholt/archiver/v3"
 	"github.com/schollz/progressbar/v3"
 
+	"github.com/tetratelabs/getenvoy/internal/tar"
 	"github.com/tetratelabs/getenvoy/pkg/globals"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 	"github.com/tetratelabs/getenvoy/pkg/transport"
 )
 
-const envoyLocation = "bin/envoy"
+const binEnvoy = "bin/envoy"
 
 // FetchIfNeeded downloads an Envoy binary corresponding to the given reference and returns a path to it or an error.
 func FetchIfNeeded(o *globals.GlobalOpts, reference string) (string, error) {
-	ref, e := manifest.ParseReference(reference)
-	if e != nil {
-		return "", e
+	ref, err := manifest.ParseReference(reference)
+	if err != nil {
+		return "", err
 	}
 
-	platformDirectory := filepath.Join(o.HomeDir, "builds", ref.Flavor, ref.Version, ref.Platform)
-	envoyPath := filepath.Join(platformDirectory, envoyLocation)
-	stat, e := os.Stat(envoyPath)
+	platformPath := filepath.Join(o.HomeDir, "builds", ref.Flavor, ref.Version, ref.Platform)
+	envoyPath := filepath.Join(platformPath, binEnvoy)
+	_, err = os.Stat(envoyPath)
 	switch {
-	case os.IsNotExist(e):
-		m, err := manifest.FetchManifest(o.ManifestURL)
-		if err != nil {
-			return "", err
-		}
-		binaryLocation, err := manifest.LocateBuild(ref, m)
-		if err != nil {
-			return "", err
-		}
-		if err = os.MkdirAll(platformDirectory, 0750); err != nil {
-			return "", fmt.Errorf("unable to create directory %q: %w", platformDirectory, err)
+	case os.IsNotExist(err):
+		if e := os.MkdirAll(platformPath, 0750); e != nil {
+			return "", fmt.Errorf("unable to create directory %q: %w", platformPath, e)
 		}
 
-		err = fetchEnvoy(platformDirectory, binaryLocation)
-		if err != nil {
-			return "", err
+		m, e := manifest.FetchManifest(o.ManifestURL)
+		if e != nil {
+			return "", e
 		}
-	case e != nil:
-		return "", fmt.Errorf("invalid Envoy binary at %q: %w", envoyPath, e)
+
+		downloadLocationURL, e := manifest.LocateBuild(ref, m)
+		if e != nil {
+			return "", e
+		}
+
+		fmt.Fprintln(o.Out, "downloading", downloadLocationURL) //nolint
+		if e := untarEnvoy(platformPath, downloadLocationURL, o.Out); e != nil {
+			return "", e
+		}
+	case err == nil:
+		fmt.Fprintln(o.Out, ref, "is already downloaded") //nolint
 	default:
-		fmt.Printf("%v is already downloaded\n", ref)
-		if stat.Mode()&0111 == 0 {
-			return "", fmt.Errorf("envoy binary not executable: %s", envoyPath)
-		}
+		// TODO: figure out how to get a stat error that isn't file not exist so we can test this
+		return "", err
 	}
+	return verifyEnvoy(platformPath)
+}
 
+func verifyEnvoy(platformPath string) (string, error) {
+	envoyPath := filepath.Join(platformPath, binEnvoy)
+	stat, err := os.Stat(envoyPath)
+	if err != nil {
+		return "", err
+	}
+	if stat.Mode()&0111 == 0 {
+		return "", fmt.Errorf("envoy binary not executable at %q", envoyPath)
+	}
 	return envoyPath, nil
 }
 
-func fetchEnvoy(dst, src string) error {
-	tmpDir, err := ioutil.TempDir("", "getenvoy-")
+func untarEnvoy(dst, url string, out io.Writer) error { // dst, src order like io.Copy
+	// #nosec -> url can be anywhere by design
+	resp, err := transport.Get(url)
 	if err != nil {
 		return err
-	}
-	defer os.RemoveAll(tmpDir) //nolint
-	tarball, err := doDownload(tmpDir, src)
-	if err != nil {
-		return fmt.Errorf("unable to fetch envoy from %v: %w", src, err)
-	}
-	err = extractEnvoy(dst, tarball)
-	if err != nil {
-		return fmt.Errorf("unable to extract envoy to %v: %w", dst, err)
-	}
-	return nil
-}
-
-func doDownload(dst, src string) (string, error) {
-	// #nosec -> src can be anywhere by design
-	resp, err := transport.Get(src)
-	if err != nil {
-		return "", err
 	}
 	defer resp.Body.Close() //nolint
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("received %v status code from %q", resp.StatusCode, src)
+		return fmt.Errorf("received %v status code from %s", resp.StatusCode, url)
 	}
 
-	tarball := filepath.Join(dst, "envoy.tar"+filepath.Ext(src))
-	// #nosec -> dst can be anywhere by design
-	f, err := os.OpenFile(tarball, os.O_CREATE|os.O_WRONLY, 0600)
+	// Ensure there's a progress bar while extraction is taking place
+	bar := progressbar.NewOptions64(
+		resp.ContentLength,
+		progressbar.OptionSetWriter(out),
+		progressbar.OptionOnCompletion(func() {
+			fmt.Fprint(out, "\n")
+		}),
+	)
+	defer bar.Close() //nolint
+	src := progressbar.NewReader(resp.Body, bar)
+
+	zSrc, err := tar.NewDecompressor(url, &src)
 	if err != nil {
-		return "", err
-	}
-	defer f.Close() //nolint
-
-	bar := progressbar.NewOptions64(resp.ContentLength, progressbar.OptionSetDescription("[Fetching Envoy]"))
-	out := io.MultiWriter(f, bar)
-	_, err = io.Copy(out, resp.Body)
-	fmt.Println("") // append a newline to progressbar output
-	return tarball, err
-}
-
-func extractEnvoy(dst, tarball string) error {
-	// Walk the tarball until we find the bin and lib directories
-	if err := archiver.Walk(tarball, func(f archiver.File) error {
-		if (f.Name() == "bin" && f.IsDir()) || (f.Name() == "lib" && f.IsDir()) {
-			if f.Header != nil {
-				if header, ok := f.Header.(*tar.Header); ok {
-					if err := archiver.Extract(tarball, header.Name, dst); err != nil {
-						return fmt.Errorf("error extracting %v: %w", f.Name(), err)
-					}
-				}
-			}
-		}
-		return nil
-	}); err != nil {
 		return err
 	}
-	envoyFilepath := filepath.Join(dst, envoyLocation)
-	if _, err := os.Stat(envoyFilepath); os.IsNotExist(err) {
-		return errors.New("no Envoy binary in downloaded tarball")
-	}
-	return nil
+	defer zSrc.Close() //nolint
+
+	return tar.Untar(dst, zSrc)
 }

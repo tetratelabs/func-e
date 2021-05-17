@@ -21,5 +21,5 @@ import (
 
 // Latest includes the default version in manifest.NewKey format. This is embedded for re-use in build and CI
 // scripts.
-//go:embed reference.txt
+//go:embed latest.txt
 var Latest string

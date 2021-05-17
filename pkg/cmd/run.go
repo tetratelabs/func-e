@@ -16,7 +16,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -24,7 +23,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	defaultreference "github.com/tetratelabs/getenvoy/pkg"
+	internalreference "github.com/tetratelabs/getenvoy/internal/reference"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/debug"
 	"github.com/tetratelabs/getenvoy/pkg/globals"
@@ -40,7 +39,7 @@ getenvoy run %[1]s -- --config-path ./bootstrap.yaml
 
 # List available Envoy flags.
 getenvoy run %[1]s -- --help
-`, defaultreference.Latest),
+`, internalreference.Latest),
 		Args: validateReferenceArg,
 		RunE: func(c *cobra.Command, args []string) error {
 			if err := initializeRunOpts(o, args[0]); err != nil {
@@ -50,7 +49,9 @@ getenvoy run %[1]s -- --help
 			r.Out = c.OutOrStderr()
 			r.Err = c.ErrOrStderr()
 
-			debug.EnableAll(r)
+			for _, err := range debug.EnableAll(r) {
+				fmt.Fprintln(r.Out, "failed to enable debug option:", err) //nolint
+			}
 
 			envoyArgs := args[1:]
 			return r.Run(c.Context(), envoyArgs)
@@ -82,24 +83,5 @@ func initializeRunOpts(o *globals.GlobalOpts, reference string) error {
 		}
 		runOpts.WorkingDir = workingDir
 	}
-	if runOpts.Log == nil { // not overridden for tests
-		runOpts.Log = log.New(os.Stdout, "run: ", log.LstdFlags)
-	}
-	if runOpts.DebugLog == nil { // not overridden for tests
-		// All debug features are optional. If there is any unexpected failure, log as "debug" to stdout.
-		runOpts.DebugLog = log.New(os.Stdout, "debug: ", log.LstdFlags)
-	}
 	return nil
-}
-
-// Run enables debug and runs Envoy with the IO from the cobra.Command
-// This is exposed for re-use in "getenvoy extension run"
-func Run(o *globals.GlobalOpts, cmd *cobra.Command, args []string) error {
-	r := envoy.NewRuntime(&o.RunOpts)
-	r.Out = cmd.OutOrStdout()
-	r.Err = cmd.ErrOrStderr()
-
-	debug.EnableAll(r)
-
-	return r.Run(cmd.Context(), args)
 }

@@ -18,7 +18,7 @@
 # bingo manages go binaries needed for building the project
 include .bingo/Variables.mk
 
-ENVOY = $(shell cat pkg/reference.txt)
+ENVOY = $(shell cat internal/reference/latest.txt)
 GETENVOY_TAG ?= dev
 
 BUILD_DIR ?= build

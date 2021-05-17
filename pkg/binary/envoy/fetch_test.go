@@ -15,179 +15,231 @@
 package envoy
 
 import (
+	"bytes"
+	"compress/gzip"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/mholt/archiver/v3"
 	"github.com/stretchr/testify/require"
+	"github.com/ulikunitz/xz"
 
-	reference "github.com/tetratelabs/getenvoy/pkg"
+	"github.com/tetratelabs/getenvoy/internal/tar"
 	"github.com/tetratelabs/getenvoy/pkg/globals"
-	"github.com/tetratelabs/getenvoy/pkg/manifest"
 	manifesttest "github.com/tetratelabs/getenvoy/pkg/test/manifest"
 	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
-const envoyVersion = "1.17.2" // This is only for unit testing: we don't need to use latest.
-
-func TestFetchIfNeeded(t *testing.T) {
-	o := &globals.GlobalOpts{}
-	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
-	defer removeHomeDir()
-	o.HomeDir = homeDir
-
+const (
+	// This is only for unit testing: we don't need to use latest.
+	version = "1.17.2"
 	// Hard code even if the unit test env isn't darwin. This avoids drifts like linux vs linux-glibc
-	r := fmt.Sprintf("standard:%s/darwin", envoyVersion)
-	testManifest, err := manifesttest.NewSimpleManifest(r)
-	require.NoError(t, err, `error creating test manifest`)
+	platform = "darwin"
+)
 
-	manifestServer := manifesttest.RequireManifestTestServer(t, testManifest)
-	defer manifestServer.Close()
+func TestUntarEnvoyError(t *testing.T) {
+	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
+	dst := filepath.Join(tempDir, "dst")
+	defer removeTempDir()
 
+	var realHandler func(w http.ResponseWriter, r *http.Request)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if realHandler != nil {
+			realHandler(w, r)
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	url := server.URL + "/file.tar.xz"
 	t.Run("error on incorrect URL", func(t *testing.T) {
-		o.ManifestURL = manifestServer.URL + "/mannyfest.json"
-		_, e := FetchIfNeeded(o, r)
-		require.EqualError(t, e, "received 404 response code from "+o.ManifestURL)
+		e := untarEnvoy(dst, url, io.Discard)
+		require.EqualError(t, e, fmt.Sprintf(`received 404 status code from %s`, url))
 	})
 
-	o.ManifestURL = manifestServer.URL + "/manifest.json"
-
-	expectedPath := filepath.Join(homeDir, "builds", "standard", envoyVersion, "darwin", "bin", "envoy")
-	t.Run("downloads when doesn't exists", func(t *testing.T) {
-		envoyPath, e := FetchIfNeeded(o, r)
-		require.NoError(t, e)
-		require.Equal(t, expectedPath, envoyPath)
-		require.FileExists(t, envoyPath)
+	realHandler = func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(200)
+	}
+	t.Run("error on empty", func(t *testing.T) {
+		e := untarEnvoy(dst, url, io.Discard)
+		require.EqualError(t, e, fmt.Sprintf(`not a valid xz stream %s: unexpected EOF`, url))
 	})
 
-	envoyStat, err := os.Stat(expectedPath)
-	require.NoError(t, err)
-
-	t.Run("doesn't error when already exists", func(t *testing.T) {
-		envoyPath, e := FetchIfNeeded(o, r)
-		require.NoError(t, e)
-
-		newStat, e := os.Stat(envoyPath)
-		require.NoError(t, e)
-
-		// didn't overwrite
-		require.Equal(t, envoyStat, newStat)
+	realHandler = func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(200)
+		w.Write([]byte("mary had a little lamb")) //nolint
+	}
+	t.Run("error on not a tar", func(t *testing.T) {
+		e := untarEnvoy(dst, url, io.Discard)
+		require.EqualError(t, e, fmt.Sprintf(`not a valid xz stream %s: xz: invalid header magic bytes`, url))
 	})
 }
 
-func TestFetchIfNeededAlreadyExists(t *testing.T) {
-	// Hard code even if the unit test env isn't darwin. This avoids drifts like linux vs linux-glibc
-	r := fmt.Sprintf("standard:%s/darwin", envoyVersion)
-	testManifest, err := manifesttest.NewSimpleManifest(r)
-	require.NoError(t, err, `error creating test manifest`)
-
-	o := &globals.GlobalOpts{}
-	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
-	defer removeHomeDir()
-	o.HomeDir = homeDir
-
-	manifestServer := manifesttest.RequireManifestTestServer(t, testManifest)
-	defer manifestServer.Close()
-	o.ManifestURL = manifestServer.URL + "/manifest.json"
-
-	envoyPath, err := FetchIfNeeded(o, r)
-	require.NoError(t, err)
-	require.Equal(t, filepath.Join(homeDir, "builds", "standard", envoyVersion, "darwin", "bin", "envoy"), envoyPath)
-	require.FileExists(t, envoyPath)
-}
-
-// TODO: this whole test needs to be rewritten, possibly with the mock registry server
-func TestFetchEnvoy(t *testing.T) {
-	ref, err := manifest.ParseReference(reference.Latest)
-	require.NoError(t, err)
-
-	defaultDarwinRef := &manifest.Reference{Flavor: ref.Flavor, Version: ref.Version, Platform: "darwin"}
+func TestUntarEnvoy(t *testing.T) {
 	tests := []struct {
-		name             string
-		key              *manifest.Reference
-		tarballStructure string
-		tarExtension     string
-		responseStatus   int
-		wantErr          bool
-		wantServerCalled bool
+		extension string
+		path      string
 	}{
 		{
-			name:             "Downloads and untars envoy and runtime libs to store/key/bin and store/key/lib",
-			key:              defaultDarwinRef,
-			tarballStructure: "envoy",
-			tarExtension:     ".tar.gz",
-			responseStatus:   http.StatusOK,
-			wantServerCalled: true,
+			extension: "tar.xz", // As of May 2021 all releases were compressed using xz
+			path:      "getenvoy-envoy-1.17.1.p0.gd6a4496-1p74.gbb8060d-darwin-release-x86_64",
 		},
 		{
-			name:             "Downloads and untars envoy and runtime libs to store/key/bin and store/key/lib",
-			key:              defaultDarwinRef,
-			tarballStructure: "envoy",
-			tarExtension:     ".tar.xz",
-			responseStatus:   http.StatusOK,
-			wantServerCalled: true,
-		},
-		{
-			name:             "errors if it can't find an envoy binary in tarball",
-			key:              defaultDarwinRef,
-			tarballStructure: "envoy/lib",
-			tarExtension:     ".tar.gz",
-			responseStatus:   http.StatusOK,
-			wantErr:          true,
-			wantServerCalled: true,
-		},
-		{
-			name:             "errors if it gets !200 from download",
-			key:              defaultDarwinRef,
-			tarballStructure: "envoy/lib",
-			tarExtension:     ".tar.gz",
-			responseStatus:   http.StatusTeapot,
-			wantErr:          true,
-			wantServerCalled: true,
+			extension: "tar.gz", // The very first release of envoy was compressed with gz
+			path:      "getenvoy-1.11.0-bf169f9-af8a2e7-darwin-release-x86_64",
 		},
 	}
-	for _, tt := range tests {
-		tc := tt
-		t.Run(tc.name, func(t *testing.T) {
-			tempDir, cleanupTempDir := morerequire.RequireNewTempDir(t)
-			defer cleanupTempDir()
 
-			mock, gotCalled := mockServer(t, tc.responseStatus, tc.tarballStructure, tc.tarExtension, tempDir)
+	for _, test := range tests {
+		test := test // pin! see https://github.com/kyoh86/scopelint for why
+		t.Run(test.extension, func(t *testing.T) {
+			dstDir, removeDstDir := morerequire.RequireNewTempDir(t)
+			defer removeDstDir()
 
-			err = fetchEnvoy(tempDir, mock.URL+"/"+tc.tarballStructure+tc.tarExtension)
-			if tc.wantErr {
-				require.Error(t, err)
-			} else {
-				require.Nil(t, err)
-				for _, location := range []string{filepath.Join(tempDir, "lib/somelib"), filepath.Join(tempDir, "bin/envoy")} {
-					f, _ := os.Open(location)
-					bytes, _ := io.ReadAll(f)
-					require.Contains(t, string(bytes), "some c++")
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(200)
+				var zw io.WriteCloser
+				if test.extension == "tar.xz" {
+					zw, _ = xz.NewWriter(w)
+				} else {
+					zw = gzip.NewWriter(w)
 				}
-			}
-			require.Equal(t, tc.wantServerCalled, *gotCalled, "mismatch of expectations for calling of remote server")
+				defer zw.Close() //nolint
+
+				tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
+				defer removeTempDir()
+				binDir := filepath.Join(tempDir, test.path, "bin")
+				require.NoError(t, os.MkdirAll(binDir, 0700))
+				require.NoError(t, ioutil.WriteFile(filepath.Join(binDir, "envoy"), []byte("fake"), 0700))
+
+				require.NoError(t, tar.Tar(zw, tempDir, test.path))
+			}))
+			defer server.Close()
+
+			url := fmt.Sprintf(`%s/tetrate/getenvoy/%s.%s`, server.URL, test.path, test.extension)
+
+			dst := filepath.Join(dstDir, "dst")
+
+			out := new(bytes.Buffer)
+			e := untarEnvoy(dst, url, out)
+			require.NoError(t, e)
+			require.Contains(t, out.String(), `100% |████████████████████████████████████████|`)
+			require.FileExists(t, filepath.Join(dst, binEnvoy))
 		})
 	}
 }
 
-func mockServer(t *testing.T, responseStatusCode int, tarballStructure, tarExtension, tmpDir string) (*httptest.Server, *bool) {
-	called := false
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		called = true
-		w.WriteHeader(responseStatusCode)
-		if responseStatusCode == http.StatusOK {
-			tarball := filepath.Join(tmpDir, tarballStructure+tarExtension)
-			err := archiver.Archive([]string{filepath.Join("testdata", tarballStructure)}, tarball)
-			require.NoError(t, err)
-			bytes, err := os.ReadFile(tarball)
-			require.NoError(t, err)
-			_, err = w.Write(bytes)
-			require.NoError(t, err)
+func TestFetchIfNeeded_ErrorOnIncorrectURL(t *testing.T) {
+	o, cleanup := setupTest(t)
+	defer cleanup()
+
+	o.ManifestURL += "/mannyfest.json"
+	_, e := FetchIfNeeded(&o.GlobalOpts, o.reference)
+	require.EqualError(t, e, "received 404 status code from "+o.ManifestURL)
+	require.Empty(t, o.Out.(*bytes.Buffer))
+}
+
+func TestFetchIfNeeded(t *testing.T) {
+	o, cleanup := setupTest(t)
+	defer cleanup()
+	out := o.Out.(*bytes.Buffer)
+
+	envoyPath, e := FetchIfNeeded(&o.GlobalOpts, o.reference)
+	require.NoError(t, e)
+	require.Contains(t, out.String(), o.envoyURL)
+	require.Contains(t, out.String(), "100% |████████████████████████████████████████|")
+
+	require.Equal(t, o.EnvoyPath, envoyPath)
+	require.FileExists(t, envoyPath)
+}
+
+func TestFetchIfNeeded_AlreadyExists(t *testing.T) {
+	o, cleanup := setupTest(t)
+	defer cleanup()
+	out := o.Out.(*bytes.Buffer)
+
+	require.NoError(t, os.MkdirAll(filepath.Dir(o.EnvoyPath), 0700))
+	require.NoError(t, ioutil.WriteFile(o.EnvoyPath, []byte("fake"), 0700))
+
+	envoyStat, err := os.Stat(o.EnvoyPath)
+	require.NoError(t, err)
+
+	envoyPath, e := FetchIfNeeded(&o.GlobalOpts, o.reference)
+	require.NoError(t, e)
+	require.Equal(t, fmt.Sprintf("%s/%s is already downloaded\n", version, platform), out.String())
+
+	newStat, e := os.Stat(envoyPath)
+	require.NoError(t, e)
+
+	// didn't overwrite
+	require.Equal(t, envoyStat, newStat)
+}
+
+func TestVerifyEnvoy(t *testing.T) {
+	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
+	defer removeTempDir()
+
+	platformPath := filepath.Join(tempDir, "platform")
+	require.NoError(t, os.MkdirAll(filepath.Join(platformPath, "bin"), 0755))
+	t.Run("envoy binary doesn't exist", func(t *testing.T) {
+		EnvoyPath, e := verifyEnvoy(platformPath)
+		require.Empty(t, EnvoyPath)
+		require.Contains(t, e.Error(), "no such file or directory")
+	})
+
+	expectedEnvoyPath := filepath.Join(platformPath, "bin", "envoy")
+	require.NoError(t, os.WriteFile(expectedEnvoyPath, []byte{}, 0600))
+	t.Run("envoy binary not executable", func(t *testing.T) {
+		EnvoyPath, e := verifyEnvoy(platformPath)
+		require.Empty(t, EnvoyPath)
+		require.EqualError(t, e, fmt.Sprintf(`envoy binary not executable at %q`, expectedEnvoyPath))
+	})
+
+	require.NoError(t, os.Chmod(expectedEnvoyPath, 0750))
+	t.Run("envoy binary ok", func(t *testing.T) {
+		EnvoyPath, e := verifyEnvoy(platformPath)
+		require.Equal(t, expectedEnvoyPath, EnvoyPath)
+		require.Nil(t, e)
+	})
+}
+
+type manifestTest struct {
+	globals.GlobalOpts
+	reference, envoyURL string
+}
+
+func setupTest(t *testing.T) (*manifestTest, func()) {
+	var tearDown []func()
+
+	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
+	tearDown = append(tearDown, removeHomeDir)
+
+	ref := fmt.Sprintf("standard:%s/%s", version, platform)
+	m, err := manifesttest.NewSimpleManifest(ref)
+	require.NoError(t, err)
+	manifestServer := manifesttest.RequireManifestTestServer(t, m)
+	tearDown = append(tearDown, manifestServer.Close)
+
+	return &manifestTest{
+			reference: ref,
+			envoyURL:  fmt.Sprintf("%s/builds/%s/%s.tar.xz", manifestServer.URL, version, platform),
+			GlobalOpts: globals.GlobalOpts{
+				HomeDir:     homeDir,
+				ManifestURL: manifestServer.URL + "/manifest.json",
+				Out:         new(bytes.Buffer),
+				RunOpts: globals.RunOpts{
+					EnvoyPath: filepath.Join(homeDir, "builds", "standard", version, platform, "bin", "envoy"),
+				},
+			},
+		}, func() {
+			for i := len(tearDown) - 1; i >= 0; i-- {
+				tearDown[i]()
+			}
 		}
-	})), &called
 }

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package e2e_test
+package e2e
 
 import (
 	"fmt"
@@ -20,12 +20,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
-
-	e2e "github.com/tetratelabs/getenvoy/test/e2e/util"
 )
-
-// getEnvoy is the absolute path to the "getenvoy" binary used in all tests.
-var getEnvoy = e2e.GetEnvoy
 
 //nolint:golint
 const E2E_GETENVOY_BINARY = "E2E_GETENVOY_BINARY"
@@ -33,18 +28,19 @@ const E2E_GETENVOY_BINARY = "E2E_GETENVOY_BINARY"
 // TestMain ensures the "getenvoy" binary is valid.
 func TestMain(m *testing.M) {
 	// As this is an e2e test, we execute all tests with a binary compiled earlier.
-	path, err := getEnvoyPath()
+	path, err := readGetEnvoyPath()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, `failed to start e2e tests due to an invalid "getenvoy" binary: %v`, err)
 		os.Exit(1)
 	}
-	e2e.GetEnvoyPath = path
+	getEnvoyPath = path
+
 	os.Exit(m.Run())
 }
 
-// getEnvoyPath reads E2E_GETENVOY_BINARY or defaults to "$PWD/build/bin/$GOOS/$GOARCH/getenvoy"
+// readGetEnvoyPath reads E2E_GETENVOY_BINARY or defaults to "$PWD/build/bin/$GOOS/$GOARCH/getenvoy"
 // An error is returned if the value isn't an executable file.
-func getEnvoyPath() (string, error) {
+func readGetEnvoyPath() (string, error) {
 	path := os.Getenv(E2E_GETENVOY_BINARY)
 	if path == "" {
 		// Assemble the default created by "make bin"
@@ -55,6 +51,7 @@ func getEnvoyPath() (string, error) {
 		}
 		path = abs
 	}
+
 	stat, err := os.Stat(path)
 	if err != nil && os.IsNotExist(err) {
 		return "", fmt.Errorf("%s doesn't exist. Correct environment variable %s", path, E2E_GETENVOY_BINARY)

@@ -15,47 +15,58 @@
 package envoy
 
 import (
+	"compress/gzip"
 	"fmt"
 	"os"
 	"path/filepath"
 	"syscall"
 
-	"github.com/mholt/archiver/v3"
+	"github.com/tetratelabs/getenvoy/internal/tar"
 )
 
 func (r *Runtime) handleTermination() {
-	defer r.interrupt() // Ensure the SIGINT forwards to Envoy even if a pre-termination hook panics
+	defer r.interruptEnvoy() // Ensure the SIGINT forwards to Envoy even if a pre-termination hook panics
 
-	r.opts.Log.Printf("GetEnvoy process (PID=%d) received SIGINT", os.Getpid())
+	fmt.Fprintln(r.Out, "invoking pre-termination hooks") //nolint
 	// Execute all registered preTermination functions
 	for _, f := range r.preTermination {
 		if err := f(); err != nil {
-			r.LogDebug("failed to handle pre termination: %v", err)
+			fmt.Fprintln(r.Out, "failed pre-termination hook:", err) //nolint
 		}
 	}
 }
 
-func (r *Runtime) interrupt() {
+func (r *Runtime) interruptEnvoy() {
 	p := r.cmd.Process
-	r.opts.Log.Printf("Sending Envoy process (PID=%d) SIGINT", p.Pid)
+	fmt.Fprintln(r.Out, "stopping envoy") //nolint
 	_ = p.Signal(syscall.SIGINT)
 }
 
 func (r *Runtime) handlePostTermination() error {
 	for _, f := range r.postTermination {
 		if err := f(); err != nil {
-			r.LogDebug("failed to handle post termination: %v", err)
+			fmt.Fprintln(r.Out, "failed post-termination hook:", err) //nolint
 		}
 	}
 
-	// Tar up the debug data and clean up
-	debugDir := filepath.Join(filepath.Dir(r.GetWorkingDir()))
-	if err := os.MkdirAll(debugDir, 0750); err != nil {
-		return fmt.Errorf("unable to create directory %q: %w", debugDir, err)
+	if r.opts.DontArchiveWorkingDir {
+		return nil
 	}
 
-	archive := filepath.Join(r.GetWorkingDir() + ".tar.gz")
-	if err := archiver.Archive([]string{r.GetWorkingDir()}, archive); err != nil {
+	// Given ~/.getenvoy/debug/1620955405964267000
+	dirName := filepath.Dir(r.GetWorkingDir())              // ~/.getenvoy/debug
+	baseName := filepath.Base(r.GetWorkingDir())            // 1620955405964267000
+	targzName := filepath.Join(dirName, baseName+".tar.gz") // ~/.getenvoy/debug/1620955405964267000.tar.gz
+
+	targz, err := os.Create(targzName)
+	if err != nil {
+		return err
+	}
+	defer targz.Close() //nolint
+	zw := gzip.NewWriter(targz)
+	defer zw.Close() //nolint
+
+	if err = tar.Tar(zw, dirName, baseName); err != nil {
 		return fmt.Errorf("unable to archive run directory %v: %w", r.GetWorkingDir(), err)
 	}
 	return os.RemoveAll(r.GetWorkingDir())
