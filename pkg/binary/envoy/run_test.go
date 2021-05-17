@@ -20,7 +20,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"syscall"
 	"testing"
 	"time"
 
@@ -60,23 +59,8 @@ working directory: %s
 			expectedStderr: "started\ncaught SIGINT\n",
 			expectedHooks:  []string{"preStart", "preTermination", "postTermination"},
 		},
-		{
-			name: "Envoy interrupted externally",
-			terminate: func(r *envoy.Runtime) {
-				pid, e := r.GetEnvoyPid()
-				require.NoError(t, e)
-				proc, e := os.FindProcess(pid)
-				require.NoError(t, e)
-				e = proc.Signal(syscall.SIGTERM)
-				require.NoError(t, e)
-				proc.Wait() // nolint
-			},
-			expectedStdout: fmt.Sprintf(`starting: %s
-working directory: %s
-`, fakeEnvoy, workingDir),
-			expectedStderr: "started\ncaught ENVOY_SIGTERM\n",
-			expectedHooks:  []string{"preStart"},
-		},
+		// We don't test envoy dying from an external signal as it isn't reported back to the getenvoy process and
+		// Envoy returns exit status zero on anything except kill -9. We can't test kill -9 with a fake shell script.
 		{
 			name:      "Envoy exited with error",
 			terminate: func(r *envoy.Runtime) { time.Sleep(time.Millisecond * 100) },

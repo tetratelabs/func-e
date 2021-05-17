@@ -35,11 +35,12 @@ func (r *Runtime) Run(ctx context.Context, args []string) (err error) {
 	cmd.Stderr = r.Err
 	cmd.SysProcAttr = sysProcAttr()
 	r.cmd = cmd
+
 	// suppress any error and replace it with the envoy exit status when > 1
 	defer func() {
 		if cmd.ProcessState != nil && cmd.ProcessState.ExitCode() > 0 {
 			if err != nil {
-				fmt.Fprintln(r.Out, "warning:", err)
+				fmt.Fprintln(r.Out, "warning:", err) //nolint
 			}
 			err = fmt.Errorf("envoy exited with status: %d", cmd.ProcessState.ExitCode())
 		}
@@ -64,7 +65,10 @@ func (r *Runtime) Run(ctx context.Context, args []string) (err error) {
 	r.FakeInterrupt = sigCancel
 
 	// wait in a goroutine. We may need to kill the process if a signal occurs first.
-	go r.waitForExit(waitCancel)
+	go func() {
+		defer waitCancel()
+		_ = r.cmd.Wait() // Envoy logs like "caught SIGINT" or "caught ENVOY_SIGTERM", so we don't repeat logging here.
+	}()
 
 	awaitAdminAddress(sigCtx, r)
 
@@ -108,11 +112,4 @@ func (r *Runtime) SetStderr(fn func(io.Writer) io.Writer) {
 // AppendArgs appends the passed args to the child process' args
 func (r *Runtime) AppendArgs(args []string) {
 	r.cmd.Args = append(r.cmd.Args, args...)
-}
-
-func (r *Runtime) waitForExit(cancel context.CancelFunc) {
-	defer cancel()
-	// We don't need to log anything because envoy already does. The only thing of interest is the exit code
-	_ = r.cmd.Wait()
-	// We don't need to log anything because envoy already does. The only thing of interest is the exit code
 }
