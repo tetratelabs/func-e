@@ -43,11 +43,6 @@ func getEnvoy(arg0 string) *cmdBuilder { //nolint:golint
 	return &cmdBuilder{exec.Command(getEnvoyPath, arg0)} //nolint:gosec
 }
 
-func (b *cmdBuilder) workingDir(arg string) *cmdBuilder {
-	b.cmd.Dir = arg
-	return b
-}
-
 func (b *cmdBuilder) args(args ...string) *cmdBuilder {
 	b.cmd.Args = append(b.cmd.Args, args...)
 	return b

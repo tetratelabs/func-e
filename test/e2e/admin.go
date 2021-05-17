@@ -30,23 +30,13 @@ type adminAPI interface {
 
 // stats represents Envoy response to `/stats?format=json` endpoint.
 type stats struct {
-	metrics []metric `json:"stats"`
+	Metrics []metric `json:"stats"`
 }
 
 // metric represents recorded value of a single metric.
 type metric struct {
-	name  string  `json:"name"`
+	Name  string  `json:"name"`
 	Value float64 `json:"value"`
-}
-
-// getMetric returns a metric by name.
-func (s *stats) getMetric(name string) *metric {
-	for i := range s.metrics {
-		if s.metrics[i].name == name {
-			return &s.metrics[i]
-		}
-	}
-	return nil
 }
 
 // newClient returns a new client for Envoy Admin API.
@@ -84,10 +74,10 @@ func (c *client) getStats() (*stats, error) {
 	if err != nil {
 		return nil, err
 	}
-	var stats stats
-	err = json.Unmarshal(body, &stats)
+	var s stats
+	err = json.Unmarshal(body, &s)
 	if err != nil {
 		return nil, err
 	}
-	return &stats, nil
+	return &s, nil
 }

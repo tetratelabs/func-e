@@ -26,11 +26,6 @@ Run:
 make coverage
 ```
 
-### How to run e2e Tests
+### How to run end-to-end Tests
 
-End-to-end (e2e) tests rely on a `getenvoy` binary that defaults to what was built by `make bin`.
-
-Run:
-```shell
-make e2e
-```
+See [test/e2e](test/e2e) for how to develop or run end-to-end tests
