@@ -32,3 +32,6 @@ will think this is the same project as /pkg and suggest libraries with auto-comp
 
 For example, if /pkg used "archiver/v3" accidentally, it would bloat the binary by almost 3MB. For this reason, please
 be careful and only add dependencies absolutely needed.
+
+If go.mod ever supports test-only scope, this risk would go away, because IDEs could hide test dependencies from main
+auto-complete suggestions. However, it is unlikely go will allow a test scope: https://github.com/golang/go/issues/26913
