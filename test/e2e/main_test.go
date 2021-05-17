@@ -25,7 +25,7 @@ import (
 //nolint:golint
 const E2E_GETENVOY_BINARY = "E2E_GETENVOY_BINARY"
 
-// TestMain ensures the "getenvoy" binary is valid and we can read an Envoy reference (version) to run.
+// TestMain ensures the "getenvoy" binary is valid.
 func TestMain(m *testing.M) {
 	// As this is an e2e test, we execute all tests with a binary compiled earlier.
 	path, err := readGetEnvoyPath()
