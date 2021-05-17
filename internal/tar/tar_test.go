@@ -101,16 +101,13 @@ func TestUntar(t *testing.T) {
 
 // requireTestFiles ensures the given directory includes the testdata/foo directory
 func requireTestFiles(t *testing.T, tempDir string) {
-	require.FileExists(t, filepath.Join(tempDir, "bar.sh"))
-	require.FileExists(t, filepath.Join(tempDir, "bar.txt"))
-
-	s, e := os.Stat(filepath.Join(tempDir, "bar.sh"))
-	require.NoError(t, e)
-	require.Equal(t, int64(755), int64(s.Mode().Perm()))
-
-	s, e = os.Stat(filepath.Join(tempDir, "bar.txt"))
-	require.NoError(t, e)
-	require.Equal(t, int64(644), int64(s.Mode().Perm()))
+	for _, path := range []string{"bar.sh", "bar/baz.txt"} {
+		want, e := os.Stat(filepath.Join("testdata", "foo", path))
+		require.NoError(t, e)
+		have, e := os.Stat(filepath.Join(tempDir, path))
+		require.NoError(t, e)
+		require.Equal(t, want.Mode(), have.Mode())
+	}
 }
 
 func TestTar(t *testing.T) {
