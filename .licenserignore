@@ -11,3 +11,5 @@ go.sum
 .idea
 
 latest.txt
+
+testdata/

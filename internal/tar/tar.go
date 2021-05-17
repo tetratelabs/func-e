@@ -36,7 +36,7 @@ func NewDecompressor(src string, r io.Reader) (io.ReadCloser, error) {
 		if err != nil {
 			return nil, fmt.Errorf("not a valid xz stream %s: %w", src, err)
 		}
-		return ioutil.NopCloser(zr), nil
+		return io.NopCloser(zr), nil
 	}
 	zr, err := gzip.NewReader(r)
 	if err != nil {
