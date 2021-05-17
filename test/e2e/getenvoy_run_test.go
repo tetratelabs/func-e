@@ -67,7 +67,7 @@ func requireEnvoyWorkingDir(t *testing.T, stdout io.Reader, c interface{}) strin
 	stdoutLines := streamLines(stdout).named("stdout")
 	log.Printf(`waiting for GetEnvoy to log working directory after running [%v]`, c)
 	workingDirectoryPattern := regexp.MustCompile(`working directory: (.*)`)
-	line, err := stdoutLines.FirstMatch(workingDirectoryPattern).Wait(10 * time.Minute) // give time to compile the extension
+	line, err := stdoutLines.FirstMatch(workingDirectoryPattern).Wait(1 * time.Minute)
 	require.NoError(t, err, `error parsing working directory from stdout of [%v]`, c)
 	return workingDirectoryPattern.FindStringSubmatch(line)[1]
 }

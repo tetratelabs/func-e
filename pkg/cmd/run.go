@@ -50,7 +50,7 @@ getenvoy run %[1]s -- --help
 			r.Err = c.ErrOrStderr()
 
 			for _, err := range debug.EnableAll(r) {
-				fmt.Fprintln(r.Out, "failed to enable option:", err) //nolint
+				fmt.Fprintln(r.Out, "failed to enable debug option:", err) //nolint
 			}
 
 			envoyArgs := args[1:]
@@ -84,16 +84,4 @@ func initializeRunOpts(o *globals.GlobalOpts, reference string) error {
 		runOpts.WorkingDir = workingDir
 	}
 	return nil
-}
-
-// Run enables debug and runs Envoy with the IO from the cobra.Command
-// This is exposed for re-use in "getenvoy extension run"
-func Run(o *globals.GlobalOpts, cmd *cobra.Command, args []string) error {
-	r := envoy.NewRuntime(&o.RunOpts)
-	r.Out = cmd.OutOrStdout()
-	r.Err = cmd.ErrOrStderr()
-
-	debug.EnableAll(r)
-
-	return r.Run(cmd.Context(), args)
 }

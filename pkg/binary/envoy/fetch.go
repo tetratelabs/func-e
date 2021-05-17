@@ -40,7 +40,9 @@ func FetchIfNeeded(o *globals.GlobalOpts, reference string) (string, error) {
 
 	platformPath := filepath.Join(o.HomeDir, "builds", ref.Flavor, ref.Version, ref.Platform)
 	envoyPath := filepath.Join(platformPath, binEnvoy)
-	if _, err = os.Stat(envoyPath); os.IsNotExist(err) {
+	_, err = os.Stat(envoyPath)
+	switch {
+	case os.IsNotExist(err):
 		if e := os.MkdirAll(platformPath, 0750); e != nil {
 			return "", fmt.Errorf("unable to create directory %q: %w", platformPath, e)
 		}
@@ -59,8 +61,11 @@ func FetchIfNeeded(o *globals.GlobalOpts, reference string) (string, error) {
 		if e := untarEnvoy(platformPath, downloadLocationURL, o.Out); e != nil {
 			return "", e
 		}
-	} else {
+	case err == nil:
 		fmt.Fprintln(o.Out, ref, "is already downloaded") //nolint
+	default:
+		// TODO: figure out how to get a stat error that isn't file not exist so we can test this
+		return "", err
 	}
 	return verifyEnvoy(platformPath)
 }

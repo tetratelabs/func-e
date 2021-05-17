@@ -81,34 +81,6 @@ func TestUntarEnvoyError(t *testing.T) {
 	})
 }
 
-func TestVerifyEnvoy(t *testing.T) {
-	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
-	defer removeTempDir()
-
-	platformPath := filepath.Join(tempDir, "platform")
-	require.NoError(t, os.MkdirAll(filepath.Join(platformPath, "bin"), 0755))
-	t.Run("envoy binary doesn't exist", func(t *testing.T) {
-		EnvoyPath, e := verifyEnvoy(platformPath)
-		require.Empty(t, EnvoyPath)
-		require.Contains(t, e.Error(), "no such file or directory")
-	})
-
-	expectedEnvoyPath := filepath.Join(platformPath, "bin", "envoy")
-	require.NoError(t, os.WriteFile(expectedEnvoyPath, []byte{}, 0600))
-	t.Run("envoy binary not executable", func(t *testing.T) {
-		EnvoyPath, e := verifyEnvoy(platformPath)
-		require.Empty(t, EnvoyPath)
-		require.EqualError(t, e, fmt.Sprintf(`envoy binary not executable at %q`, expectedEnvoyPath))
-	})
-
-	require.NoError(t, os.Chmod(expectedEnvoyPath, 0750))
-	t.Run("envoy binary ok", func(t *testing.T) {
-		EnvoyPath, e := verifyEnvoy(platformPath)
-		require.Equal(t, expectedEnvoyPath, EnvoyPath)
-		require.Nil(t, e)
-	})
-}
-
 func TestUntarEnvoy(t *testing.T) {
 	tests := []struct {
 		extension string
@@ -207,6 +179,34 @@ func TestFetchIfNeeded_AlreadyExists(t *testing.T) {
 
 	// didn't overwrite
 	require.Equal(t, envoyStat, newStat)
+}
+
+func TestVerifyEnvoy(t *testing.T) {
+	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
+	defer removeTempDir()
+
+	platformPath := filepath.Join(tempDir, "platform")
+	require.NoError(t, os.MkdirAll(filepath.Join(platformPath, "bin"), 0755))
+	t.Run("envoy binary doesn't exist", func(t *testing.T) {
+		EnvoyPath, e := verifyEnvoy(platformPath)
+		require.Empty(t, EnvoyPath)
+		require.Contains(t, e.Error(), "no such file or directory")
+	})
+
+	expectedEnvoyPath := filepath.Join(platformPath, "bin", "envoy")
+	require.NoError(t, os.WriteFile(expectedEnvoyPath, []byte{}, 0600))
+	t.Run("envoy binary not executable", func(t *testing.T) {
+		EnvoyPath, e := verifyEnvoy(platformPath)
+		require.Empty(t, EnvoyPath)
+		require.EqualError(t, e, fmt.Sprintf(`envoy binary not executable at %q`, expectedEnvoyPath))
+	})
+
+	require.NoError(t, os.Chmod(expectedEnvoyPath, 0750))
+	t.Run("envoy binary ok", func(t *testing.T) {
+		EnvoyPath, e := verifyEnvoy(platformPath)
+		require.Equal(t, expectedEnvoyPath, EnvoyPath)
+		require.Nil(t, e)
+	})
 }
 
 type manifestTest struct {
