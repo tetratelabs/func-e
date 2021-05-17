@@ -117,7 +117,6 @@ func TestUntarEnvoy(t *testing.T) {
 				binDir := filepath.Join(tempDir, test.path, "bin")
 				require.NoError(t, os.MkdirAll(binDir, 0700))
 				require.NoError(t, ioutil.WriteFile(filepath.Join(binDir, "envoy"), []byte("fake"), 0700))
-
 				require.NoError(t, tar.Tar(zw, tempDir, test.path))
 			}))
 			defer server.Close()

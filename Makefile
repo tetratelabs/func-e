@@ -32,7 +32,7 @@ GOARCH := $(shell go env GOARCH)
 
 GO_LD_FLAGS := -ldflags="-s -w -X github.com/tetratelabs/getenvoy/pkg/version.version=$(GETENVOY_TAG)"
 
-TEST_PKG_LIST ?= ./pkg/...
+TEST_PKG_LIST ?= $(shell go list ./... | grep -v github.com/tetratelabs/getenvoy/test/e2e)
 GO_TEST_OPTS ?=
 GO_TEST_EXTRA_OPTS ?=
 
