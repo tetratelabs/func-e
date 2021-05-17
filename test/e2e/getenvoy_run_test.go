@@ -103,9 +103,7 @@ func verifyDebugDump(t *testing.T, workingDir string, c interface{}) {
 	require.NoError(t, err, "error opening %s after stopping [%v]", debugArchive, c)
 	zSrc, err := tar.NewDecompressor(debugArchive, src)
 	require.NoError(t, err, "error getting decompressor for %s after stopping [%v]", debugArchive, c)
-	if c, ok := zSrc.(io.Closer); ok {
-		defer c.Close() //nolint
-	}
+	defer zSrc.Close() //nolint
 
 	e := tar.Untar(workingDir, zSrc)
 	require.NoError(t, e, "error restoring %s from %s after stopping [%v]", workingDir, debugArchive, c)

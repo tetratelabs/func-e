@@ -30,13 +30,13 @@ import (
 
 // NewDecompressor returns a compression function based on the "src" filename.
 // NOTE: As of May 2021, all Envoy binaries except the first are tar.xz
-func NewDecompressor(src string, r io.Reader) (io.Reader, error) {
+func NewDecompressor(src string, r io.Reader) (io.ReadCloser, error) {
 	if strings.HasSuffix(src, "tar.xz") {
 		zr, err := xz.NewReader(r)
 		if err != nil {
 			return nil, fmt.Errorf("not a valid xz stream %s: %w", src, err)
 		}
-		return zr, nil
+		return ioutil.NopCloser(zr), nil
 	}
 	zr, err := gzip.NewReader(r)
 	if err != nil {

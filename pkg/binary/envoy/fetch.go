@@ -109,8 +109,7 @@ func untarEnvoy(dst, url string, out io.Writer) error { // dst, src order like i
 	if err != nil {
 		return err
 	}
-	if c, ok := zSrc.(io.Closer); ok {
-		defer c.Close() //nolint
-	}
+	defer zSrc.Close() //nolint
+
 	return tar.Untar(dst, zSrc)
 }

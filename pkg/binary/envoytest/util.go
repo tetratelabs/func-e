@@ -62,5 +62,5 @@ func RequireRunTerminate(t *testing.T, terminate func(r *envoy.Runtime), r *envo
 		t.Fatal("Run never completed")
 	case <-ctx.Done():
 	}
-	return
+	return //nolint
 }
