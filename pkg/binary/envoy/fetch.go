@@ -23,8 +23,8 @@ import (
 
 	"github.com/schollz/progressbar/v3"
 
+	"github.com/tetratelabs/getenvoy/internal/tar"
 	"github.com/tetratelabs/getenvoy/pkg/globals"
-	tar "github.com/tetratelabs/getenvoy/pkg/internal"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 	"github.com/tetratelabs/getenvoy/pkg/transport"
 )

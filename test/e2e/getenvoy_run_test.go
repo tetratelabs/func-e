@@ -23,14 +23,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mholt/archiver/v3"
 	"github.com/stretchr/testify/require"
+
+	internalreference "github.com/tetratelabs/getenvoy/internal/reference"
+	"github.com/tetratelabs/getenvoy/internal/tar"
 )
 
 const terminateTimeout = 2 * time.Minute
 
 // reference holds the argument to 'getenvoy run'
-var reference string
+var reference = internalreference.Latest
 
 // TestGetEnvoyRun runs the equivalent of "getenvoy run"
 //
@@ -100,7 +102,15 @@ func verifyDebugDump(t *testing.T, workingDir string, c interface{}) {
 	debugArchive := filepath.Join(workingDir + ".tar.gz")
 	defer os.Remove(debugArchive) //nolint
 
-	e := archiver.Unarchive(debugArchive, filepath.Dir(workingDir)) // Dir strips the RunID directory name
+	src, err := os.Open(debugArchive)
+	require.NoError(t, err, "error opening %s after stopping [%v]", debugArchive, c)
+	zSrc, err := tar.NewDecompressor(debugArchive, src)
+	require.NoError(t, err, "error getting decompressor for %s after stopping [%v]", debugArchive, c)
+	if c, ok := zSrc.(io.Closer); ok {
+		defer c.Close() //nolint
+	}
+
+	e := tar.Untar(workingDir, zSrc)
 	require.NoError(t, e, "error restoring %s from %s after stopping [%v]", workingDir, debugArchive, c)
 
 	// ensure the minimum contents exist

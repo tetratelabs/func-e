@@ -23,7 +23,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	defaultreference "github.com/tetratelabs/getenvoy/pkg"
+	internalreference "github.com/tetratelabs/getenvoy/internal/reference"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy/debug"
 	"github.com/tetratelabs/getenvoy/pkg/globals"
@@ -39,7 +39,7 @@ getenvoy run %[1]s -- --config-path ./bootstrap.yaml
 
 # List available Envoy flags.
 getenvoy run %[1]s -- --help
-`, defaultreference.Latest),
+`, internalreference.Latest),
 		Args: validateReferenceArg,
 		RunE: func(c *cobra.Command, args []string) error {
 			if err := initializeRunOpts(o, args[0]); err != nil {

@@ -29,8 +29,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/ulikunitz/xz"
 
+	"github.com/tetratelabs/getenvoy/internal/tar"
 	"github.com/tetratelabs/getenvoy/pkg/globals"
-	tar "github.com/tetratelabs/getenvoy/pkg/internal"
 	manifesttest "github.com/tetratelabs/getenvoy/pkg/test/manifest"
 	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )

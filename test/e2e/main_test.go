@@ -35,13 +35,6 @@ func TestMain(m *testing.M) {
 	}
 	getEnvoyPath = path
 
-	// Now, lookup the version we are to use
-	referenceTxt := "../../pkg/reference.txt"
-	r, err := os.ReadFile(referenceTxt)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, `failed to start e2e tests while reading %s: %v`, referenceTxt, err)
-	}
-	reference = string(r)
 	os.Exit(m.Run())
 }
 

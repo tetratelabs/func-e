@@ -19,7 +19,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	reference "github.com/tetratelabs/getenvoy/pkg"
+	"github.com/tetratelabs/getenvoy/internal/reference"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/globals"
 )
