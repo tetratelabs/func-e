@@ -112,7 +112,7 @@ working directory: %s
 }
 
 // This ensures functions are called in the correct order
-func newRuntimeWithMockHooks(t *testing.T, stdout, stderr io.Writer, o *globals.RunOpts) (*envoy.Runtime, *[]string) {
+func newRuntimeWithMockHooks(t *testing.T, stdout, stderr io.Writer, o *globals.RunOpts) (*envoy.Runtime, []string) {
 	r := envoy.NewRuntime(o)
 	r.Out = stdout
 	r.Err = stderr
