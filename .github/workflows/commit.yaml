@@ -71,4 +71,4 @@ jobs:
         if: runner.os == 'Linux'  # no need to do this per operating system
         with:
           name: coverage
-          path: build/coverage
+          path: coverage

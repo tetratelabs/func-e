@@ -3,3 +3,4 @@ dist
 /getenvoy
 /build/
 .idea
+/coverage/

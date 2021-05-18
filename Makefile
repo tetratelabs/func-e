@@ -18,14 +18,10 @@
 # bingo manages go binaries needed for building the project
 include .bingo/Variables.mk
 
-ENVOY = $(shell cat internal/reference/latest.txt)
 GETENVOY_TAG ?= dev
 
 BUILD_DIR ?= build
 BIN_DIR ?= $(BUILD_DIR)/bin
-COVERAGE_DIR ?= $(BUILD_DIR)/coverage
-COVERAGE_PROFILE := $(COVERAGE_DIR)/coverage.out
-COVERAGE_REPORT := $(COVERAGE_DIR)/coverage.html
 
 GOOS := $(shell go env GOOS)
 GOARCH := $(shell go env GOARCH)
@@ -35,12 +31,6 @@ GO_LD_FLAGS := -ldflags="-s -w -X github.com/tetratelabs/getenvoy/pkg/version.ve
 TEST_PKG_LIST ?= $(shell go list ./... | grep -v github.com/tetratelabs/getenvoy/test/e2e)
 GO_TEST_OPTS ?=
 GO_TEST_EXTRA_OPTS ?=
-
-# TODO(yskopets): include all packages into test run once blocking issues have been resolved, including
-# * https://github.com/tetratelabs/getenvoy/issues/87 `go test -race` fails
-COVERAGE_PKG_LIST ?= $(shell go list ./pkg/... | grep -v -e github.com/tetratelabs/getenvoy/pkg/binary/envoy/debug)
-GO_COVERAGE_OPTS ?= -covermode=atomic -coverpkg=./...
-GO_COVERAGE_EXTRA_OPTS ?= -p 1
 
 E2E_PKG_LIST ?= ./test/e2e
 # Run only one test at a time, in verbose mode, so that failures are easy to diagnose.
@@ -94,11 +84,12 @@ bin/$(1)/$(2): $(call GETENVOY_OUT_PATH,$(1),$(2))
 endef
 $(foreach os,$(GOOSES),$(foreach arch,$(GOARCHS),$(eval $(call GEN_BIN_GOOS_GOARCH_TARGET,$(os),$(arch)))))
 
+COVERAGE_PACKAGES ?= $(shell echo $(TEST_PKG_LIST)| tr -s " " ",")
 .PHONY: coverage
 coverage:
-	mkdir -p "$(shell dirname "$(COVERAGE_PROFILE)")"
-	go test $(GO_COVERAGE_OPTS) $(GO_COVERAGE_EXTRA_OPTS) -coverprofile="$(COVERAGE_PROFILE)" $(COVERAGE_PKG_LIST)
-	go tool cover -html="$(COVERAGE_PROFILE)" -o "$(COVERAGE_REPORT)"
+	mkdir coverage
+	go test -coverprofile=coverage/coverage.txt --coverpkg $(COVERAGE_PACKAGES) $(TEST_PKG_LIST)
+	go tool cover -html=coverage/coverage.txt -o coverage/coverage.html
 
 ##@ Code quality and integrity
 
@@ -149,6 +140,6 @@ check:  ## CI blocks merge until this passes. If this fails, run "make check" lo
 .PHONY: clean
 clean: $(GOLANGCI_LINT) ## Clean all binaries
 	@echo "--- $@ ---"
-	@rm -rf build
+	@rm -rf build coverage
 	@go clean -testcache
 	@$(GOLANGCI_LINT) cache clean
