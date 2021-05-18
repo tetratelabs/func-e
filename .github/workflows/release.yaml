@@ -29,13 +29,10 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
 
       - name: "Run GoReleaser"
-        uses: goreleaser/goreleaser-action@v2
-        with:
-          version: latest
-          args: release --rm-dist
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_GETENVOY_GITHUB_TOKEN: ${{ secrets.GETENVOY_CI_GITHUB_TOKEN }}
+        run: make release
 
   e2e:
     name: Run e2e tests (${{ matrix.runner.os }})
@@ -72,9 +69,9 @@ jobs:
           INPUT_VERSION: tags/${{ env.RELEASE_TAG }}
         run: |  # extract getenvoy to location used in `make e2e`. don't chmod because tar.gz should be correct.
           curl -s https://raw.githubusercontent.com/dsaltares/fetch-gh-release-asset/0.0.6/fetch_github_asset.sh | bash
-          GOOS=$(uname -s|tr '[:upper:]' '[:lower:]')
-          mkdir -p build/bin/${GOOS}/amd64
-          tar -C build/bin/${GOOS}/amd64 -xf ${INPUT_FILE} getenvoy
+          dir=dist/getenvoy_$(go env GOOS)_$(go env GOARCH)
+          mkdir -p $dir
+          tar -C $dir -xf ${INPUT_FILE} getenvoy
 
       - name: "Run e2e tests using released `getenvoy` binary"
         run: make e2e

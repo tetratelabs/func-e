@@ -38,13 +38,13 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// readGetEnvoyPath reads E2E_GETENVOY_BINARY or defaults to "$PWD/build/bin/$GOOS/$GOARCH/getenvoy"
+// readGetEnvoyPath reads E2E_GETENVOY_BINARY or defaults to "$PWD/dist/getenvoy_$GOOS_$GOARCH/getenvoy"
 // An error is returned if the value isn't an executable file.
 func readGetEnvoyPath() (string, error) {
 	path := os.Getenv(E2E_GETENVOY_BINARY)
 	if path == "" {
 		// Assemble the default created by "make bin"
-		relativePath := filepath.Join("..", "..", "build", "bin", runtime.GOOS, runtime.GOARCH, "getenvoy")
+		relativePath := filepath.Join("..", "..", "dist", fmt.Sprintf("getenvoy_%s_%s", runtime.GOOS, runtime.GOARCH), "getenvoy")
 		abs, err := filepath.Abs(relativePath)
 		if err != nil {
 			return "", fmt.Errorf("%s didn't resolve to a valid path. Correct environment variable %s", path, E2E_GETENVOY_BINARY)

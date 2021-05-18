@@ -18,71 +18,36 @@
 # bingo manages go binaries needed for building the project
 include .bingo/Variables.mk
 
-GETENVOY_TAG ?= dev
+##@ Binary distribution
 
-BUILD_DIR ?= build
-BIN_DIR ?= $(BUILD_DIR)/bin
+.PHONY: release
+release:
+	@echo "--- release ---"
+	@$(GORELEASER) release --rm-dist
 
 GOOS := $(shell go env GOOS)
 GOARCH := $(shell go env GOARCH)
+BIN := dist/getenvoy_$(GOOS)_$(GOARCH)
+bin $(BIN): $(GORELEASER)
+	@echo "--- bin ---"
+	@$(GORELEASER) build --snapshot --rm-dist
 
-GO_LD_FLAGS := -ldflags="-s -w -X github.com/tetratelabs/getenvoy/pkg/version.version=$(GETENVOY_TAG)"
+##@ Unit and End-to-End tests
 
 TEST_PACKAGES ?= $(shell go list ./... | grep -v github.com/tetratelabs/getenvoy/test/e2e)
-GO_TEST_OPTS ?=
-GO_TEST_EXTRA_OPTS ?=
-
-E2E_PKG_LIST ?= ./test/e2e
-# Run only one test at a time, in verbose mode, so that failures are easy to diagnose.
-# Note: -failfast helps as it stops at the first error. However, it is not a cacheable flag, so runs won't cache.
-E2E_OPTS ?= -parallel 1 -v -failfast
-E2E_EXTRA_OPTS ?=
-
-GOOSES := linux darwin
-GOARCHS := amd64
-
-GETENVOY_OUT_PATH = $(BIN_DIR)/$(1)/$(2)/getenvoy
-
-define GEN_GETENVOY_BUILD_TARGET
-.PHONY: $(call GETENVOY_OUT_PATH,$(1),$(2))
-$(call GETENVOY_OUT_PATH,$(1),$(2)):
-	CGO_ENABLED=0 GOOS=$(1) GOARCH=$(2) go build $(GO_LD_FLAGS) -o $(call GETENVOY_OUT_PATH,$(1),$(2)) ./cmd/getenvoy/main.go
-endef
-$(foreach os,$(GOOSES),$(foreach arch,$(GOARCHS),$(eval $(call GEN_GETENVOY_BUILD_TARGET,$(os),$(arch)))))
-
-.PHONY: deps
-deps:
-	go mod download
-
-.PHONY: build
-build: $(call GETENVOY_OUT_PATH,$(GOOS),$(GOARCH))
-
-.PHONY: release.dryrun
-release.dryrun:
-	goreleaser release --skip-publish --snapshot --rm-dist
-
 .PHONY: test
 test:
-	go test $(GO_TEST_OPTS) $(GO_TEST_EXTRA_OPTS) $(TEST_PACKAGES)
+	@echo "--- test ---"
+	@go test $(TEST_PACKAGES)
 
+# End-to-end (e2e) tests run against a compiled binary. That dist is lazy built if "make dist" wasn't yet called.
+#
+# For e2e, run only one test at a time, in verbose mode, so that failures are easy to diagnose.
+# Note: -failfast helps as it stops at the first error. However, it is not a cacheable flag, so runs won't cache.
 .PHONY: e2e
-e2e: $(call GETENVOY_OUT_PATH,$(GOOS),$(GOARCH))
-	go test $(E2E_OPTS) $(E2E_EXTRA_OPTS) $(E2E_PKG_LIST)
-
-.PHONY: bin
-bin: $(foreach os,$(GOOSES), bin/$(os))
-
-define GEN_BIN_GOOS_TARGET
-.PHONY: bin/$(1)
-bin/$(1): $(foreach arch,$(GOARCHS), bin/$(1)/$(arch))
-endef
-$(foreach os,$(GOOSES),$(eval $(call GEN_BIN_GOOS_TARGET,$(os))))
-
-define GEN_BIN_GOOS_GOARCH_TARGET
-.PHONY: bin/$(1)/$(2)
-bin/$(1)/$(2): $(call GETENVOY_OUT_PATH,$(1),$(2))
-endef
-$(foreach os,$(GOOSES),$(foreach arch,$(GOARCHS),$(eval $(call GEN_BIN_GOOS_GOARCH_TARGET,$(os),$(arch)))))
+e2e: $(BIN)
+	@echo "--- e2e ---"
+	@go test -parallel 1 -v -failfast ./test/e2e
 
 ##@ Code quality and integrity
 
@@ -93,12 +58,11 @@ coverage:
 	@go test -coverprofile=coverage.txt -covermode=atomic --coverpkg $(COVERAGE_PACKAGES) $(TEST_PACKAGES)
 	@go tool cover -func coverage.txt
 
-LINT_OPTS ?= --timeout 5m
 .PHONY: lint
 lint: $(GOLANGCI_LINT) $(LICENSER) $(GORELEASER) .golangci.yml .goreleaser.yaml ## Run the linters
 	@echo "--- lint ---"
 	@$(LICENSER) verify -r .
-	@$(GOLANGCI_LINT) run $(LINT_OPTS) --config .golangci.yml ./...
+	@$(GOLANGCI_LINT) run --timeout 5m --config .golangci.yml ./...
 # TODO: this is chatty until https://github.com/goreleaser/goreleaser/issues/2226
 	@$(GORELEASER) check
 
@@ -140,6 +104,6 @@ check:  ## CI blocks merge until this passes. If this fails, run "make check" lo
 .PHONY: clean
 clean: $(GOLANGCI_LINT) ## Clean all binaries
 	@echo "--- $@ ---"
-	@rm -rf build coverage.txt
+	@rm -rf dist coverage.txt
 	@go clean -testcache
 	@$(GOLANGCI_LINT) cache clean
