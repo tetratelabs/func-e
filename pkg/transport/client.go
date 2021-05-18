@@ -18,11 +18,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/tetratelabs/getenvoy/pkg/version"
+	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
 var (
-	cliUserAgent  = fmt.Sprintf("GetEnvoy/%s", version.Build.Version)
+	cliUserAgent  = fmt.Sprintf("GetEnvoy/%s", version.Current)
 	defaultClient = NewClient(AddUserAgent(cliUserAgent))
 )
 

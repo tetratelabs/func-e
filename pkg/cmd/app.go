@@ -22,9 +22,9 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/tetratelabs/getenvoy/internal/version"
 	"github.com/tetratelabs/getenvoy/pkg/globals"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
-	"github.com/tetratelabs/getenvoy/pkg/version"
 )
 
 // NewApp create a new root command. The globals.GlobalOpts parameter allows tests to scope overrides, which avoids
@@ -39,7 +39,7 @@ func NewApp(o *globals.GlobalOpts) *cobra.Command {
 		DisableAutoGenTag: true, // removes autogenerate on ___ from produced docs
 		Short:             "Fetch and run Envoy",
 		Long:              `Manage Envoy lifecycle including fetching binaries and collection of process state.`,
-		Version:           version.Build.Version, // TODO: Add version support on the command
+		Version:           version.Current,
 		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
 			if err := setHomeDir(o, homeDir); err != nil {
 				return err
