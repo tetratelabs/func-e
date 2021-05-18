@@ -15,7 +15,7 @@
 project_name: getenvoy
 builds:
 - binary: getenvoy
-  ldflags: "-s -w -X github.com/tetratelabs/getenvoy/pkg/version.version={{.Version}}"
+  ldflags: "-s -w -X github.com/tetratelabs/getenvoy/internal/version.Current={{.Version}}"
   main: ./cmd/getenvoy/main.go
   env:
   - CGO_ENABLED=0
