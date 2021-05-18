@@ -28,7 +28,7 @@ GOARCH := $(shell go env GOARCH)
 
 GO_LD_FLAGS := -ldflags="-s -w -X github.com/tetratelabs/getenvoy/pkg/version.version=$(GETENVOY_TAG)"
 
-TEST_PKG_LIST ?= $(shell go list ./... | grep -v github.com/tetratelabs/getenvoy/test/e2e)
+TEST_PACKAGES ?= $(shell go list ./... | grep -v github.com/tetratelabs/getenvoy/test/e2e)
 GO_TEST_OPTS ?=
 GO_TEST_EXTRA_OPTS ?=
 
@@ -63,7 +63,7 @@ release.dryrun:
 
 .PHONY: test
 test:
-	go test $(GO_TEST_OPTS) $(GO_TEST_EXTRA_OPTS) $(TEST_PKG_LIST)
+	go test $(GO_TEST_OPTS) $(GO_TEST_EXTRA_OPTS) $(TEST_PACKAGES)
 
 .PHONY: e2e
 e2e: $(call GETENVOY_OUT_PATH,$(GOOS),$(GOARCH))

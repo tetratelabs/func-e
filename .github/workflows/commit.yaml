@@ -69,4 +69,4 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/master' && runner.os == 'Linux'
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        run: bash <(curl -s https://codecov.io/bash) -f coverage/coverage.txt
+        run: bash <(curl -s https://codecov.io/bash)
