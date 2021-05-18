@@ -104,12 +104,12 @@ coverage:
 
 LINT_OPTS ?= --timeout 5m
 .PHONY: lint
-lint: $(GOLANGCI_LINT) $(LICENSER) .golangci.yml  ## Run the linters
+lint: $(GOLANGCI_LINT) $(LICENSER) $(GORELEASER) .golangci.yml .goreleaser.yaml ## Run the linters
 	@echo "--- lint ---"
 	@$(LICENSER) verify -r .
-# We skip tinygo templates which will fail lint. Since skip-dirs does not apply to go modules, we externally filter.
-# See https://github.com/golangci/golangci-lint/issues/301#issuecomment-441311986 for explanation.
-	@go list -f "{{.Dir}}" ./... | grep -v "/tinygo/" | xargs $(GOLANGCI_LINT) run $(LINT_OPTS) --config .golangci.yml
+	@$(GOLANGCI_LINT) run $(LINT_OPTS) --config .golangci.yml ./...
+# TODO: this is chatty until https://github.com/goreleaser/goreleaser/issues/2226
+	@$(GORELEASER) check
 
 # The goimports tool does not arrange imports in 3 blocks if there are already more than three blocks.
 # To avoid that, before running it, we collapse all imports in one block, then run the formatter.
