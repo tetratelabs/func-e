@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package tar avoids a large (~3MB) dependency on archiver/v3. These are special-cased to the needs of getenvoy.
+// Package tar avoids third-party dependencies (ex archiver/v3) and are special-cased to the needs of getenvoy.
 package tar
 
 import (
