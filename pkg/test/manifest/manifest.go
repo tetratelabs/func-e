@@ -15,8 +15,6 @@
 package manifest
 
 import (
-	"fmt"
-
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 )
 
@@ -53,7 +51,7 @@ func NewSimpleManifest(reference string) (*manifest.Manifest, error) {
 	for _, platform := range platforms {
 		version.Builds[platform] = &manifest.Build{
 			Platform:            platform,
-			DownloadLocationURL: fmt.Sprintf("%s.tar.xz", ref.String()),
+			DownloadLocationURL: ref.String(),
 		}
 	}
 	return m, nil

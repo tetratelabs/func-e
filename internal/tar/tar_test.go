@@ -12,9 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package tar_test
+package tar
 
 import (
+	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"path"
@@ -24,39 +26,46 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/internal/tar"
 	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
 func TestNewDecompressor_Validates(t *testing.T) {
-	tests := []struct{ name, src, path, expectedErr string }{
+	tests := []struct {
+		name        string
+		junk        []byte
+		expectedErr string
+	}{
 		{
-			name:        "not a gz",
-			src:         "empty.tar.gz",
-			path:        "testdata/empty.tar.xz",
-			expectedErr: "not a valid gz stream empty.tar.gz: gzip: invalid header",
+			name:        "empty",
+			junk:        []byte{},
+			expectedErr: "EOF",
 		},
 		{
-			name:        "not an xz",
-			src:         "empty.tar.xz",
-			path:        "testdata/empty.tar.gz",
-			expectedErr: "not a valid xz stream empty.tar.xz: xz: invalid header magic bytes",
+			name:        "short and invalid",
+			junk:        []byte{1, 2, 3, 4},
+			expectedErr: "EOF",
+		},
+		{
+			name:        "longer than xz header and invalid",
+			junk:        []byte("mary had a little lamb"),
+			expectedErr: "gzip: invalid header",
 		},
 	}
 
 	for _, tt := range tests {
 		tc := tt
 		t.Run(tc.name, func(t *testing.T) {
-			f, e := os.Open(tt.path)
-			require.NoError(t, e)
-			defer f.Close()
-
-			_, e = tar.NewDecompressor(tt.src, f)
-			require.EqualError(t, e, tt.expectedErr)
+			_, e := newDecompressor(bytes.NewReader(tc.junk))
+			require.EqualError(t, e, tc.expectedErr)
 		})
 	}
 }
 
+// TestNewDecompressor shows we can handle all compressed variants of Envoy, even accidentally empty files.
+//
+// As of May 2021, here are example values:
+// * "getenvoy-envoy-1.17.1.p0.gd6a4496-1p74.gbb8060d-darwin-release-x86_64.tar.xz"
+// * "getenvoy-1.11.0-bf169f9-af8a2e7-darwin-release-x86_64.tar.gz"
 func TestNewDecompressor(t *testing.T) {
 	for _, p := range []string{
 		"testdata/empty.tar.xz",
@@ -73,7 +82,7 @@ func TestNewDecompressor(t *testing.T) {
 			want, e := os.ReadFile(strings.TrimSuffix(p, path.Ext(p)))
 			require.NoError(t, e)
 
-			d, e := tar.NewDecompressor(p, f)
+			d, e := newDecompressor(f)
 			require.NoError(t, e)
 			defer d.Close()
 
@@ -85,51 +94,75 @@ func TestNewDecompressor(t *testing.T) {
 	}
 }
 
+// For simplicity, TestUntar only tests "xz" format. TestNewDecompressor already shows it handles "gz"
 func TestUntar(t *testing.T) {
-	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
-	defer removeTempDir()
+	for _, tt := range []struct {
+		dstExists bool
+		emptyTar  bool
+	}{{true, true}, {true, false}, {false, true}, {false, false}} {
+		tt := tt
+		t.Run(fmt.Sprintf("%+v", tt), func(t *testing.T) {
+			tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
+			defer removeTempDir()
 
-	f, e := os.Open(filepath.Join("testdata", "test.tar"))
-	require.NoError(t, e)
-	defer f.Close()
+			dst := tempDir
+			if !tt.dstExists {
+				dst = filepath.Join(tempDir, "new")
+			}
 
-	e = tar.Untar(tempDir, f)
-	require.NoError(t, e)
+			srcFile := filepath.Join("testdata", "test.tar.xz")
+			if tt.emptyTar {
+				srcFile = filepath.Join("testdata", "empty.tar.xz")
+			}
+			f, e := os.Open(srcFile)
+			require.NoError(t, e)
+			defer f.Close()
 
-	requireTestFiles(t, tempDir)
+			e = Untar(dst, f)
+			require.NoError(t, e)
+
+			if tt.emptyTar {
+				requireEmptyDirectory(t, dst)
+			} else {
+				requireTestFiles(t, dst)
+			}
+		})
+	}
 }
 
 // requireTestFiles ensures the given directory includes the testdata/foo directory
-func requireTestFiles(t *testing.T, tempDir string) {
+func requireTestFiles(t *testing.T, dst string) {
 	for _, path := range []string{"bar.sh", "bar/baz.txt"} {
 		want, e := os.Stat(filepath.Join("testdata", "foo", path))
 		require.NoError(t, e)
-		have, e := os.Stat(filepath.Join(tempDir, path))
+		have, e := os.Stat(filepath.Join(dst, path))
 		require.NoError(t, e)
 		require.Equal(t, want.Mode(), have.Mode())
 	}
 }
 
-func TestTar(t *testing.T) {
+// requireTestFiles ensures the given directory is empty
+func requireEmptyDirectory(t *testing.T, dst string) {
+	d, e := os.ReadDir(dst)
+	require.NoError(t, e)
+	require.Empty(t, d, e)
+}
+
+func TestTarGZ(t *testing.T) {
 	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
 	defer removeTempDir()
 
-	f, e := os.Open(requireTarTestData(t, tempDir))
+	src := filepath.Join("testdata", "foo")
+	dst := filepath.Join(tempDir, "test.tar.gz")
+	e := TarGz(dst, src)
 	require.NoError(t, e)
 
-	dst := filepath.Join(tempDir, "out")
-	e = tar.Untar(dst, f)
+	f, e := os.Open(dst)
+	require.NoError(t, e)
+	defer f.Close() //nolint
+
+	e = Untar(tempDir, f)
 	require.NoError(t, e)
 
-	requireTestFiles(t, dst)
-}
-
-func requireTarTestData(t *testing.T, tempDir string) string {
-	f, e := os.Create(filepath.Join(tempDir, "test.tar"))
-	require.NoError(t, e)
-	defer f.Close()
-
-	e = tar.Tar(f, os.DirFS("testdata"), "foo")
-	require.NoError(t, e)
-	return f.Name()
+	requireTestFiles(t, tempDir)
 }

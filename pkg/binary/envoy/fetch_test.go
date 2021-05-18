@@ -16,7 +16,6 @@ package envoy
 
 import (
 	"bytes"
-	"compress/gzip"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -27,9 +26,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/ulikunitz/xz"
 
-	"github.com/tetratelabs/getenvoy/internal/tar"
 	"github.com/tetratelabs/getenvoy/pkg/globals"
 	manifesttest "github.com/tetratelabs/getenvoy/pkg/test/manifest"
 	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
@@ -57,7 +54,7 @@ func TestUntarEnvoyError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	url := server.URL + "/file.tar.xz"
+	url := server.URL + "/file.tar.gz"
 	t.Run("error on incorrect URL", func(t *testing.T) {
 		e := untarEnvoy(dst, url, io.Discard)
 		require.EqualError(t, e, fmt.Sprintf(`received 404 status code from %s`, url))
@@ -68,7 +65,7 @@ func TestUntarEnvoyError(t *testing.T) {
 	}
 	t.Run("error on empty", func(t *testing.T) {
 		e := untarEnvoy(dst, url, io.Discard)
-		require.EqualError(t, e, fmt.Sprintf(`not a valid xz stream %s: unexpected EOF`, url))
+		require.EqualError(t, e, fmt.Sprintf(`error untarring %s: EOF`, url))
 	})
 
 	realHandler = func(w http.ResponseWriter, _ *http.Request) {
@@ -77,61 +74,20 @@ func TestUntarEnvoyError(t *testing.T) {
 	}
 	t.Run("error on not a tar", func(t *testing.T) {
 		e := untarEnvoy(dst, url, io.Discard)
-		require.EqualError(t, e, fmt.Sprintf(`not a valid xz stream %s: xz: invalid header magic bytes`, url))
+		require.EqualError(t, e, fmt.Sprintf(`error untarring %s: gzip: invalid header`, url))
 	})
 }
 
+// TestUntarEnvoy doesn't test compression formats because that logic is in tar.Tar
 func TestUntarEnvoy(t *testing.T) {
-	tests := []struct {
-		extension string
-		path      string
-	}{
-		{
-			extension: "tar.xz", // As of May 2021 all releases were compressed using xz
-			path:      "getenvoy-envoy-1.17.1.p0.gd6a4496-1p74.gbb8060d-darwin-release-x86_64",
-		},
-		{
-			extension: "tar.gz", // The very first release of envoy was compressed with gz
-			path:      "getenvoy-1.11.0-bf169f9-af8a2e7-darwin-release-x86_64",
-		},
-	}
+	o, cleanup := setupTest(t)
+	defer cleanup()
 
-	for _, test := range tests {
-		test := test // pin! see https://github.com/kyoh86/scopelint for why
-		t.Run(test.extension, func(t *testing.T) {
-			dstDir, removeDstDir := morerequire.RequireNewTempDir(t)
-			defer removeDstDir()
-
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-				w.WriteHeader(200)
-				var zw io.WriteCloser
-				if test.extension == "tar.xz" {
-					zw, _ = xz.NewWriter(w)
-				} else {
-					zw = gzip.NewWriter(w)
-				}
-				defer zw.Close() //nolint
-
-				tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
-				defer removeTempDir()
-				binDir := filepath.Join(tempDir, test.path, "bin")
-				require.NoError(t, os.MkdirAll(binDir, 0700))
-				require.NoError(t, ioutil.WriteFile(filepath.Join(binDir, "envoy"), []byte("fake"), 0700))
-				require.NoError(t, tar.Tar(zw, os.DirFS(tempDir), test.path))
-			}))
-			defer server.Close()
-
-			url := fmt.Sprintf(`%s/tetrate/getenvoy/%s.%s`, server.URL, test.path, test.extension)
-
-			dst := filepath.Join(dstDir, "dst")
-
-			out := new(bytes.Buffer)
-			e := untarEnvoy(dst, url, out)
-			require.NoError(t, e)
-			require.Contains(t, out.String(), `100% |████████████████████████████████████████|`)
-			require.FileExists(t, filepath.Join(dst, binEnvoy))
-		})
-	}
+	out := new(bytes.Buffer)
+	e := untarEnvoy(o.tempDir, o.envoyURL, out)
+	require.NoError(t, e)
+	require.FileExists(t, filepath.Join(o.tempDir, binEnvoy))
+	require.Contains(t, out.String(), `100% |████████████████████████████████████████|`)
 }
 
 func TestFetchIfNeeded_ErrorOnIncorrectURL(t *testing.T) {
@@ -144,6 +100,28 @@ func TestFetchIfNeeded_ErrorOnIncorrectURL(t *testing.T) {
 	require.Empty(t, o.Out.(*bytes.Buffer))
 }
 
+// progressReader emits a progress bar, when the length is known
+func TestProgressReader(t *testing.T) {
+	var out bytes.Buffer
+	b := []byte{1, 2, 3, 4}
+	br := progressReader(&out, bytes.NewReader(b), int64(len(b)))
+	_, e := io.ReadAll(br)
+
+	require.NoError(t, e)
+	require.Contains(t, out.String(), "100% |████████████████████████████████████████|")
+}
+
+// progressReader emits a spinner with download rate when it doesn't know the length
+func TestProgressReader_UnknownLength(t *testing.T) {
+	var out bytes.Buffer
+	b := []byte{1, 2, 3, 4}
+	br := progressReader(&out, bytes.NewReader(b), -1)
+	_, e := io.ReadAll(br)
+
+	require.NoError(t, e)
+	require.NotContains(t, out.String(), "100% |████████████████████████████████████████|")
+}
+
 func TestFetchIfNeeded(t *testing.T) {
 	o, cleanup := setupTest(t)
 	defer cleanup()
@@ -151,11 +129,11 @@ func TestFetchIfNeeded(t *testing.T) {
 
 	envoyPath, e := FetchIfNeeded(&o.GlobalOpts, o.reference)
 	require.NoError(t, e)
-	require.Contains(t, out.String(), o.envoyURL)
-	require.Contains(t, out.String(), "100% |████████████████████████████████████████|")
-
 	require.Equal(t, o.EnvoyPath, envoyPath)
 	require.FileExists(t, envoyPath)
+
+	require.Contains(t, out.String(), o.envoyURL)
+	require.Contains(t, out.String(), "100% |████████████████████████████████████████|")
 }
 
 func TestFetchIfNeeded_AlreadyExists(t *testing.T) {
@@ -210,14 +188,14 @@ func TestVerifyEnvoy(t *testing.T) {
 
 type manifestTest struct {
 	globals.GlobalOpts
-	reference, envoyURL string
+	tempDir, reference, envoyURL string
 }
 
 func setupTest(t *testing.T) (*manifestTest, func()) {
 	var tearDown []func()
 
-	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
-	tearDown = append(tearDown, removeHomeDir)
+	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
+	tearDown = append(tearDown, removeTempDir)
 
 	ref := fmt.Sprintf("standard:%s/%s", version, platform)
 	m, err := manifesttest.NewSimpleManifest(ref)
@@ -226,14 +204,15 @@ func setupTest(t *testing.T) (*manifestTest, func()) {
 	tearDown = append(tearDown, manifestServer.Close)
 
 	return &manifestTest{
+			tempDir:   tempDir,
 			reference: ref,
-			envoyURL:  fmt.Sprintf("%s/builds/%s/%s.tar.xz", manifestServer.URL, version, platform),
+			envoyURL:  fmt.Sprintf("%s/builds/%s/%s.tar.gz", manifestServer.URL, version, platform),
 			GlobalOpts: globals.GlobalOpts{
-				HomeDir:     homeDir,
+				HomeDir:     tempDir,
 				ManifestURL: manifestServer.URL + "/manifest.json",
 				Out:         new(bytes.Buffer),
 				RunOpts: globals.RunOpts{
-					EnvoyPath: filepath.Join(homeDir, "builds", "standard", version, platform, "bin", "envoy"),
+					EnvoyPath: filepath.Join(tempDir, "builds", "standard", version, platform, "bin", "envoy"),
 				},
 			},
 		}, func() {

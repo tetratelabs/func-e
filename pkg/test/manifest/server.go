@@ -26,14 +26,15 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/ulikunitz/xz"
 
 	"github.com/tetratelabs/getenvoy/internal/tar"
 	"github.com/tetratelabs/getenvoy/pkg/manifest"
 	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
-const archiveFormat = ".tar.xz"
+// Even though currently binaries are compressed with "xz" more than "gz", using "gz" in tests allows us to re-use
+// tar.TarGz instead of complicating internal utilities or adding dependencies only for tests.
+const archiveFormat = ".tar.gz"
 const buildsPath = "/builds/"
 
 // RequireManifestTestServer serves "/manifest.json", which contains download links a compressed archive of artifactDir
@@ -63,8 +64,10 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		ref, err := manifest.ParseReference(reference)
 		require.NoError(s.t, err, "could not parse reference from uri %q", reference)
 		require.Regexpf(s.t, `^1\.[1-9][0-9]\.[0-9]+$`, ref.Version, "unsupported version in uri %q", reference)
+
 		w.WriteHeader(http.StatusOK)
-		s.writeFakeEnvoyTarXz(w, ref.Version)
+		_, e := w.Write(requireFakeEnvoyTarGz(s.t, ref.Version))
+		require.NoError(s.t, e)
 	default:
 		w.WriteHeader(http.StatusNotFound)
 	}
@@ -87,10 +90,13 @@ func (s *server) rewriteDownloadLocations(baseURL string, m manifest.Manifest) {
 	s.manifest = &m
 }
 
-func (s *server) writeFakeEnvoyTarXz(w io.Writer, version string) {
-	tempDir, removeTempDir := morerequire.RequireNewTempDir(s.t)
+func requireFakeEnvoyTarGz(t *testing.T, version string) []byte {
+	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
 	defer removeTempDir()
-	require.NoError(s.t, os.MkdirAll(filepath.Join(tempDir, version, "bin"), 0700)) //nolint:gosec
+
+	// construct the platform directory based on the input version
+	platformDir := filepath.Join(tempDir, version)
+	require.NoError(t, os.MkdirAll(filepath.Join(platformDir, "bin"), 0700)) //nolint:gosec
 	// go:embed doesn't allow us to retain execute bit, so it is simpler to inline this.
 	fakeEnvoy := []byte(`#!/bin/sh
 set -ue
@@ -100,11 +106,18 @@ echo envoy bin: $0
 echo envoy args: $@
 echo >&2 envoy stderr
 `)
-	require.NoError(s.t, os.WriteFile(filepath.Join(tempDir, version, "bin", "envoy"), fakeEnvoy, 0700)) //nolint:gosec
+	require.NoError(t, os.WriteFile(filepath.Join(platformDir, "bin", "envoy"), fakeEnvoy, 0700)) //nolint:gosec
 
-	zw, err := xz.NewWriter(w)
-	require.NoError(s.t, err)
-	defer zw.Close() //nolint
-	err = tar.Tar(zw, os.DirFS(tempDir), version)
-	require.NoError(s.t, err)
+	// tar.gz the platform dir
+	tempGz := filepath.Join(tempDir, "envoy.tar.gz")
+	e := tar.TarGz(tempGz, platformDir)
+	require.NoError(t, e)
+
+	// Read the tar.gz into a byte array. This allows the mock server to set content length correctly
+	f, e := os.Open(tempGz) //nolint:gosec
+	require.NoError(t, e)
+	defer f.Close() // nolint
+	b, e := io.ReadAll(f)
+	require.NoError(t, e)
+	return b
 }

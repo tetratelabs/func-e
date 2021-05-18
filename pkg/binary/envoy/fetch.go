@@ -84,9 +84,9 @@ func verifyEnvoy(platformPath string) (string, error) {
 
 func untarEnvoy(dst, url string, out io.Writer) error { // dst, src order like io.Copy
 	// #nosec -> url can be anywhere by design
-	resp, err := transport.Get(url)
-	if err != nil {
-		return err
+	resp, e := transport.Get(url)
+	if e != nil {
+		return e
 	}
 	defer resp.Body.Close() //nolint
 
@@ -94,22 +94,24 @@ func untarEnvoy(dst, url string, out io.Writer) error { // dst, src order like i
 		return fmt.Errorf("received %v status code from %s", resp.StatusCode, url)
 	}
 
-	// Ensure there's a progress bar while extraction is taking place
-	bar := progressbar.NewOptions64(
-		resp.ContentLength,
-		progressbar.OptionSetWriter(out),
+	// Ensure there's a progress while extraction is taking place
+	src := progressReader(out, resp.Body, resp.ContentLength)
+	defer src.Close() //nolint
+
+	if e = tar.Untar(dst, src); e != nil {
+		return fmt.Errorf("error untarring %s: %w", url, e)
+	}
+	return nil
+}
+
+// progressReader will show a spinner or progress bar, depending on if max == -1
+func progressReader(dst io.Writer, src io.Reader, max int64) io.ReadCloser {
+	b := progressbar.NewOptions64(max,
+		progressbar.OptionSetWriter(dst),
 		progressbar.OptionOnCompletion(func() {
-			fmt.Fprint(out, "\n")
+			fmt.Fprint(dst, "\n")
 		}),
 	)
-	defer bar.Close() //nolint
-	src := progressbar.NewReader(resp.Body, bar)
-
-	zSrc, err := tar.NewDecompressor(url, &src)
-	if err != nil {
-		return err
-	}
-	defer zSrc.Close() //nolint
-
-	return tar.Untar(dst, zSrc)
+	br := progressbar.NewReader(src, b)
+	return &br
 }

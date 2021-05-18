@@ -15,7 +15,6 @@
 package envoy
 
 import (
-	"compress/gzip"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -58,15 +57,7 @@ func (r *Runtime) handlePostTermination() error {
 	baseName := filepath.Base(r.GetWorkingDir())            // 1620955405964267000
 	targzName := filepath.Join(dirName, baseName+".tar.gz") // ~/.getenvoy/debug/1620955405964267000.tar.gz
 
-	targz, err := os.Create(targzName)
-	if err != nil {
-		return err
-	}
-	defer targz.Close() //nolint
-	zw := gzip.NewWriter(targz)
-	defer zw.Close() //nolint
-
-	if err = tar.Tar(zw, os.DirFS(dirName), baseName); err != nil {
+	if err := tar.TarGz(targzName, r.GetWorkingDir()); err != nil {
 		return fmt.Errorf("unable to archive run directory %v: %w", r.GetWorkingDir(), err)
 	}
 	return os.RemoveAll(r.GetWorkingDir())
