@@ -1,4 +1,4 @@
-# Auto generated binary variables helper managed by https://github.com/bwplotka/bingo v0.4.0. DO NOT EDIT.
+# Auto generated binary variables helper managed by https://github.com/bwplotka/bingo v0.4.3. DO NOT EDIT.
 # All tools are designed to be build inside $GOBIN.
 BINGO_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
 GOPATH ?= $(shell go env GOPATH)
@@ -15,13 +15,13 @@ GO     ?= $(shell which go)
 #
 #command: $(GOIMPORTS)
 #	@echo "Running goimports"
-#	@$(BUF) <flags/args..>
+#	@$(GOIMPORTS) <flags/args..>
 #
-GOIMPORTS := $(GOBIN)/goimports-v0.1.0
+GOIMPORTS := $(GOBIN)/goimports-v0.1.1
 $(GOIMPORTS): $(BINGO_DIR)/goimports.mod
 	@# Install binary/ries using Go 1.14+ build command. This is using bwplotka/bingo-controlled, separate go module with pinned dependencies.
-	@echo "(re)installing $(GOBIN)/goimports-v0.1.0"
-	@cd $(BINGO_DIR) && $(GO) build -mod=mod -modfile=goimports.mod -o=$(GOBIN)/goimports-v0.1.0 "golang.org/x/tools/cmd/goimports"
+	@echo "(re)installing $(GOBIN)/goimports-v0.1.1"
+	@cd $(BINGO_DIR) && $(GO) build -mod=mod -modfile=goimports.mod -o=$(GOBIN)/goimports-v0.1.1 "golang.org/x/tools/cmd/goimports"
 
 GOLANGCI_LINT := $(GOBIN)/golangci-lint-v1.40.0
 $(GOLANGCI_LINT): $(BINGO_DIR)/golangci-lint.mod
@@ -29,8 +29,15 @@ $(GOLANGCI_LINT): $(BINGO_DIR)/golangci-lint.mod
 	@echo "(re)installing $(GOBIN)/golangci-lint-v1.40.0"
 	@cd $(BINGO_DIR) && $(GO) build -mod=mod -modfile=golangci-lint.mod -o=$(GOBIN)/golangci-lint-v1.40.0 "github.com/golangci/golangci-lint/cmd/golangci-lint"
 
+GORELEASER := $(GOBIN)/goreleaser-v0.164.0
+$(GORELEASER): $(BINGO_DIR)/goreleaser.mod
+	@# Install binary/ries using Go 1.14+ build command. This is using bwplotka/bingo-controlled, separate go module with pinned dependencies.
+	@echo "(re)installing $(GOBIN)/goreleaser-v0.164.0"
+	@cd $(BINGO_DIR) && $(GO) build -mod=mod -modfile=goreleaser.mod -o=$(GOBIN)/goreleaser-v0.164.0 "github.com/goreleaser/goreleaser"
+
 LICENSER := $(GOBIN)/licenser-v0.6.0
 $(LICENSER): $(BINGO_DIR)/licenser.mod
 	@# Install binary/ries using Go 1.14+ build command. This is using bwplotka/bingo-controlled, separate go module with pinned dependencies.
 	@echo "(re)installing $(GOBIN)/licenser-v0.6.0"
 	@cd $(BINGO_DIR) && $(GO) build -mod=mod -modfile=licenser.mod -o=$(GOBIN)/licenser-v0.6.0 "github.com/liamawhite/licenser"
+
