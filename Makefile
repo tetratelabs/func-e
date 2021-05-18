@@ -87,9 +87,11 @@ $(foreach os,$(GOOSES),$(foreach arch,$(GOARCHS),$(eval $(call GEN_BIN_GOOS_GOAR
 COVERAGE_PACKAGES ?= $(shell echo $(TEST_PKG_LIST)| tr -s " " ",")
 .PHONY: coverage
 coverage:
-	mkdir coverage
-	go test -coverprofile=coverage/coverage.txt --coverpkg $(COVERAGE_PACKAGES) $(TEST_PKG_LIST)
-	go tool cover -html=coverage/coverage.txt -o coverage/coverage.html
+	@echo "--- coverage ---"
+	@rm -rf coverage
+	@mkdir coverage
+	@go test -coverprofile=coverage/coverage.txt -covermode=atomic --coverpkg $(COVERAGE_PACKAGES) $(TEST_PKG_LIST)
+	@go tool cover -html=coverage/coverage.txt -o coverage/coverage.html
 
 ##@ Code quality and integrity
 
