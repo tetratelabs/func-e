@@ -12,82 +12,153 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package tar avoids third-party dependencies (ex archiver/v3) and are special-cased to the needs of getenvoy.
 package tar
 
 import (
+	"archive/tar"
+	"bufio"
 	"compress/gzip"
-	"errors"
-	"fmt"
 	"io"
-	"io/ioutil"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/mholt/archiver/v3"
 	"github.com/ulikunitz/xz"
 )
 
-// NewDecompressor returns a compression function based on the "src" filename.
-// NOTE: As of May 2021, all Envoy binaries except the first are tar.xz
-func NewDecompressor(src string, r io.Reader) (io.ReadCloser, error) {
-	if strings.HasSuffix(src, "tar.xz") {
-		zr, err := xz.NewReader(r)
-		if err != nil {
-			return nil, fmt.Errorf("not a valid xz stream %s: %w", src, err)
-		}
-		return io.NopCloser(zr), nil
-	}
-	zr, err := gzip.NewReader(r)
-	if err != nil {
-		return nil, fmt.Errorf("not a valid gz stream %s: %w", src, err)
-	}
-	return zr, nil
-}
-
-// Untar unarchives, stripping the base directory inside the "src" archive. Ex on "/foo/bar", "dst" will have "bar/**"
+// Untar unarchives the compressed "src" which is either a "tar.xz" or "tar.gz" stream.
+// This strips the base directory inside the "src" archive. Ex on "/foo/bar", "dst" will have "bar/**"
+//
+// This is used to decompress Envoy distributions in the "downloadLocationURL" field of "manifest.json".
+// To keep the binary size small, only supports compression formats used in practice. As of May 2021, all
+// "downloadLocationURL" values were "tar.xz", except the first (1.11.0), which was "tar.gz".
 func Untar(dst string, src io.Reader) error { // dst, src order like io.Copy
-	// No support for streaming https://github.com/mholt/archiver/pull/199
-	tmpDir, err := ioutil.TempDir("", "getenvoy-")
-	if err != nil {
-		return err
-	}
-	defer os.RemoveAll(tmpDir) //nolint
-
-	archive := filepath.Join(tmpDir, "archive.tar")
-	tarball, err := os.OpenFile(archive, os.O_CREATE|os.O_WRONLY, 0600) //nolint:gosec
-	if err != nil {
-		return err
-	}
-	defer tarball.Close() //nolint
-	if _, err = io.Copy(tarball, src); err != nil {
-		return err
+	if e := os.MkdirAll(dst, 0750); e != nil {
+		return e
 	}
 
-	tar := &archiver.Tar{MkdirAll: true, StripComponents: 1}
-	defer tar.Close() //nolint
-	return tar.Unarchive(archive, dst)
+	zSrc, e := newDecompressor(src)
+	if e != nil {
+		return e
+	}
+	defer zSrc.Close() //nolint
+
+	tr := tar.NewReader(zSrc)
+	for {
+		header, err := tr.Next()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return err
+		}
+
+		srcPath := filepath.Clean(header.Name)
+		slash := strings.Index(srcPath, "/")
+		if slash == -1 { // strip leading path
+			continue
+		}
+		srcPath = srcPath[slash+1:]
+
+		dstPath := filepath.Join(dst, srcPath)
+		info := header.FileInfo()
+		if info.IsDir() {
+			if e := os.MkdirAll(dstPath, info.Mode()); e != nil {
+				return e
+			}
+			continue
+		}
+
+		if e := extractFile(dstPath, tr, info.Mode()); e != nil {
+			return e
+		}
+	}
+	return nil
 }
 
-// Tar archives the source, rooted at the given directory.
-// Ex Given "src" includes "envoy-2/bin" and "build/bin". If "root" is "envoy-2", the archive includes "envoy-2/bin".
-func Tar(dst io.Writer, src, root string) error { // dst, src order like io.Copy
-	if root == "" {
-		return errors.New("root must not be empty")
+// newDecompressor returns an "xz" or "gzip" decompression function based on bytes in the stream.
+func newDecompressor(r io.Reader) (io.ReadCloser, error) {
+	br := bufio.NewReader(r)
+	h, err := br.Peek(xz.HeaderLen)
+	if err != nil { // This is only used to decompress Envoy, so a valid stream will never be this short.
+		return nil, err
 	}
+	if xz.ValidHeader(h) {
+		xzr, e := xz.NewReader(br)
+		if e != nil {
+			return nil, err
+		}
+		return io.NopCloser(xzr), nil
+	}
+	return gzip.NewReader(br)
+}
 
-	// No support for streaming https://github.com/mholt/archiver/pull/199
-	archive := filepath.Join(src, "archive.tar")
-	err := archiver.DefaultTar.Archive([]string{filepath.Join(src, root)}, archive)
+func extractFile(dst string, src io.Reader, perm os.FileMode) error {
+	file, err := os.OpenFile(dst, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, perm) //nolint:gosec
 	if err != nil {
 		return err
 	}
-	defer os.Remove(archive) //nolint
+	defer file.Close() //nolint
+	_, err = io.Copy(file, src)
+	return err
+}
 
-	archiveFile, err := os.Open(archive) //nolint:gosec
+// TarGz tars and gzips "src", rooted at the last directory, into the file named "dst"
+// Ex If "src" includes "/tmp/envoy/bin" and "/tmp/build/bin". If "src" is "/tmp/envoy", "dst" includes "envoy/bin".
+//
+// This is used to compress the working directory of Envoy after it is stopped.
+func TarGz(dst, src string) error { //nolint dst, src order like io.Copy
+	srcFS := os.DirFS(filepath.Dir(src))
+	basePath := filepath.Base(src)
+
+	// create the tar.gz file
+	file, err := os.OpenFile(dst, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600) //nolint:gosec
 	if err != nil {
 		return err
 	}
-	_, err = io.Copy(dst, archiveFile)
+	defer file.Close() //nolint
+	gzw := gzip.NewWriter(file)
+	defer gzw.Close() //nolint
+	tw := tar.NewWriter(gzw)
+	defer tw.Close() //nolint
+
+	// Recurse through the path including all files and directories
+	return fs.WalkDir(srcFS, basePath, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		info, err := d.Info()
+		if err != nil {
+			return err
+		}
+
+		// Make a header for the file or directory based on the current file
+		header, err := tar.FileInfoHeader(info, info.Name())
+		if err != nil {
+			return err
+		}
+
+		// Ensure the destination file starts at the intended path
+		header.Name = path
+		if err := tw.WriteHeader(header); err != nil {
+			return err
+		}
+
+		if info.IsDir() {
+			return nil // nothing to write
+		}
+		return copy(tw, srcFS, path)
+	})
+}
+
+// Copy the contents of the file into the tar without buffering
+func copy(dst io.Writer, src fs.FS, path string) error { // dst, src order like io.Copy
+	f, err := src.Open(path) //nolint:gosec
+	if err != nil {
+		return err
+	}
+	defer f.Close() //nolint
+	_, err = io.Copy(dst, f)
 	return err
 }
