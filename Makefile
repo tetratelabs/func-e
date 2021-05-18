@@ -84,16 +84,14 @@ bin/$(1)/$(2): $(call GETENVOY_OUT_PATH,$(1),$(2))
 endef
 $(foreach os,$(GOOSES),$(foreach arch,$(GOARCHS),$(eval $(call GEN_BIN_GOOS_GOARCH_TARGET,$(os),$(arch)))))
 
-COVERAGE_PACKAGES ?= $(shell echo $(TEST_PKG_LIST)| tr -s " " ",")
+##@ Code quality and integrity
+
+COVERAGE_PACKAGES ?= $(shell echo $(TEST_PACKAGES)| tr -s " " ",")
 .PHONY: coverage
 coverage:
 	@echo "--- coverage ---"
-	@rm -rf coverage
-	@mkdir coverage
-	@go test -coverprofile=coverage/coverage.txt -covermode=atomic --coverpkg $(COVERAGE_PACKAGES) $(TEST_PKG_LIST)
-	@go tool cover -html=coverage/coverage.txt -o coverage/coverage.html
-
-##@ Code quality and integrity
+	@go test -coverprofile=coverage.txt -covermode=atomic --coverpkg $(COVERAGE_PACKAGES) $(TEST_PACKAGES)
+	@go tool cover -func coverage.txt
 
 LINT_OPTS ?= --timeout 5m
 .PHONY: lint
@@ -142,6 +140,6 @@ check:  ## CI blocks merge until this passes. If this fails, run "make check" lo
 .PHONY: clean
 clean: $(GOLANGCI_LINT) ## Clean all binaries
 	@echo "--- $@ ---"
-	@rm -rf build coverage
+	@rm -rf build coverage.txt
 	@go clean -testcache
 	@$(GOLANGCI_LINT) cache clean

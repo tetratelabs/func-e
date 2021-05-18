@@ -1,6 +1,4 @@
-vendor
-dist
-/getenvoy
-/build/
 .idea
-/coverage/
+/build/
+/coverage.txt
+/dist/
