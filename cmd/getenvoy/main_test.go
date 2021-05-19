@@ -51,7 +51,7 @@ func TestRunErrors(t *testing.T) {
 		},
 		{
 			name:           "incorrect global flag value",
-			args:           []string{"getenvoy", "--manifest", ".", "help"},
+			args:           []string{"getenvoy", "--manifest", ".", "list"},
 			expectedStatus: 1,
 			expectedStderr: `"." is not a valid manifest URL
 show usage with: getenvoy -h

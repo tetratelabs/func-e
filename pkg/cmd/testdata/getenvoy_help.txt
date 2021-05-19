@@ -5,12 +5,12 @@ Usage:
 
 Available Commands:
   fetch       Downloads a version of Envoy. Available builds can be retrieved using `getenvoy list`.
-  help        Help about any command
   list        List available Envoy version references you can run
   run         Runs Envoy and collects process state on exit. Available builds can be retrieved using `getenvoy list`.
 
 Flags:
   -h, --help              help for getenvoy
       --home-dir string   GetEnvoy home directory (location of downloaded artifacts, caches, etc)
+  -v, --version           version for getenvoy
 
 Use "getenvoy [command] --help" for more information about a command.

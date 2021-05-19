@@ -16,10 +16,10 @@ getenvoy fetch <reference> [flags]
 
 ```
 # Fetch using a partial manifest reference to retrieve a build suitable for your operating system.
-getenvoy fetch VERSION
+getenvoy fetch ENVOY_VERSION
 
 # Fetch using a full manifest reference to retrieve a specific build for Linux.
-getenvoy fetch VERSION/linux-glibc
+getenvoy fetch ENVOY_VERSION/linux-glibc
 ```
 
 ### Options

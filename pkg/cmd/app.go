@@ -52,6 +52,7 @@ func NewApp(o *globals.GlobalOpts) *cobra.Command {
 	rootCmd.AddCommand(NewListCmd(o))
 	rootCmd.AddCommand(NewFetchCmd(o))
 	rootCmd.AddCommand(NewDocCmd())
+	rootCmd.SetHelpCommand(&cobra.Command{Hidden: true}) // only support -h
 
 	rootCmd.PersistentFlags().StringVar(&homeDir, "home-dir", homeDir,
 		"GetEnvoy home directory (location of downloaded artifacts, caches, etc)")
