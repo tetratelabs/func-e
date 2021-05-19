@@ -16,10 +16,10 @@ getenvoy run reference [flags] [-- <envoy-args>]
 
 ```
 # Run using a manifest reference.
-getenvoy run VERSION -- --config-path ./bootstrap.yaml
+getenvoy run ENVOY_VERSION -- --config-path ./bootstrap.yaml
 
 # List available Envoy flags.
-getenvoy run VERSION -- --help
+getenvoy run ENVOY_VERSION -- --help
 
 ```
 

@@ -1,17 +1,16 @@
-Downloads a version of Envoy. Available builds can be retrieved using `getenvoy list`.
+Manage Envoy lifecycle including fetching binaries and collection of process state.
 
 Usage:
-  getenvoy fetch <reference> [flags]
+  getenvoy [command]
 
-Examples:
-# Fetch using a partial manifest reference to retrieve a build suitable for your operating system.
-getenvoy fetch VERSION
-
-# Fetch using a full manifest reference to retrieve a specific build for Linux.
-getenvoy fetch VERSION/linux-glibc
+Available Commands:
+  fetch       Downloads a version of Envoy. Available builds can be retrieved using `getenvoy list`.
+  list        List available Envoy version references you can run
+  run         Runs Envoy and collects process state on exit. Available builds can be retrieved using `getenvoy list`.
 
 Flags:
-  -h, --help   help for fetch
-
-Global Flags:
+  -h, --help              help for getenvoy
       --home-dir string   GetEnvoy home directory (location of downloaded artifacts, caches, etc)
+  -v, --version           version for getenvoy
+
+Use "getenvoy [command] --help" for more information about a command.

@@ -32,7 +32,7 @@ func TestGetEnvoyHelp(t *testing.T) {
 		command := command
 		t.Run(command, func(t *testing.T) {
 			c, stdout, _ := newApp(&globals.GlobalOpts{})
-			args := []string{"help"}
+			args := []string{"-h"}
 			if command != "" {
 				args = append(args, command)
 			}
