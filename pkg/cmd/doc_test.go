@@ -43,7 +43,7 @@ func TestGetEnvoyDoc(t *testing.T) {
 			require.NoError(t, err)
 			have, err := os.ReadFile(filepath.Join(tempDir, file))
 			require.NoError(t, err)
-			require.Equal(t, strings.Replace(string(want), "VERSION", reference.Latest, -1), string(have))
+			require.Equal(t, strings.ReplaceAll(string(want), "VERSION", reference.Latest), string(have))
 		})
 	}
 }

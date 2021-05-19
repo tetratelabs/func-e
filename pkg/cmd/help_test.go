@@ -46,7 +46,7 @@ func TestGetEnvoyHelp(t *testing.T) {
 
 			want, err := os.ReadFile(filepath.Join("testdata", expected))
 			require.NoError(t, err)
-			require.Equal(t, strings.Replace(string(want), "VERSION", reference.Latest, -1), stdout.String())
+			require.Equal(t, strings.ReplaceAll(string(want), "VERSION", reference.Latest), stdout.String())
 		})
 	}
 }
