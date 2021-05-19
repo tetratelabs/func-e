@@ -34,7 +34,7 @@ func TestGetEnvoyHelp(t *testing.T) {
 			c, stdout, _ := newApp(&globals.GlobalOpts{})
 			args := []string{"-h"}
 			if command != "" {
-				args = append(args, command)
+				args = []string{command, "-h"}
 			}
 			c.SetArgs(args)
 			require.NoError(t, c.Execute())
@@ -46,7 +46,7 @@ func TestGetEnvoyHelp(t *testing.T) {
 
 			want, err := os.ReadFile(filepath.Join("testdata", expected))
 			require.NoError(t, err)
-			require.Equal(t, strings.ReplaceAll(string(want), "VERSION", reference.Latest), stdout.String())
+			require.Equal(t, strings.ReplaceAll(string(want), "ENVOY_VERSION", reference.Latest), stdout.String())
 		})
 	}
 }
