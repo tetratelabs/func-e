@@ -31,8 +31,8 @@ func NewFetchCmd(o *globals.GlobalOpts) *cobra.Command {
 		Short: "Downloads a version of Envoy. Available builds can be retrieved using `getenvoy list`.",
 		Example: fmt.Sprintf(`# Fetch using a partial manifest reference to retrieve a build suitable for your operating system.
 getenvoy fetch %[1]s
-		
-# Fetch using a full manifest reference to retrieve a specific build for Linux. 
+
+# Fetch using a full manifest reference to retrieve a specific build for Linux.
 getenvoy fetch %[1]s/linux-glibc`, reference.Latest),
 		Args: validateReferenceArg,
 		RunE: func(cmd *cobra.Command, args []string) error {
