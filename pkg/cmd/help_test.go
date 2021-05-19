@@ -15,6 +15,7 @@
 package cmd_test
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -24,26 +25,28 @@ import (
 
 	"github.com/tetratelabs/getenvoy/internal/reference"
 	"github.com/tetratelabs/getenvoy/pkg/globals"
-	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
 )
 
-func TestGetEnvoyDoc(t *testing.T) {
-	tempDir, deleteTempDir := morerequire.RequireNewTempDir(t)
-	defer deleteTempDir()
+func TestGetEnvoyHelp(t *testing.T) {
+	for _, command := range []string{"", "fetch", "list", "run"} {
+		command := command
+		t.Run(command, func(t *testing.T) {
+			c, stdout, _ := newApp(&globals.GlobalOpts{})
+			args := []string{"help"}
+			if command != "" {
+				args = append(args, command)
+			}
+			c.SetArgs(args)
+			require.NoError(t, c.Execute())
 
-	c, _, _ := newApp(&globals.GlobalOpts{})
-	c.SetArgs([]string{"doc", "-o", tempDir, "-l", "/reference/"})
-	require.NoError(t, c.Execute())
+			expected := "getenvoy_help.txt"
+			if command != "" {
+				expected = fmt.Sprintf("getenvoy_%s_help.txt", command)
+			}
 
-	for _, file := range []string{"getenvoy.md", "getenvoy_list.md", "getenvoy_fetch.md", "getenvoy_run.md"} {
-		file := file // pin! see https://github.com/kyoh86/scopelint for why
-
-		t.Run(file, func(t *testing.T) {
-			want, err := os.ReadFile(filepath.Join("testdata", file))
+			want, err := os.ReadFile(filepath.Join("testdata", expected))
 			require.NoError(t, err)
-			have, err := os.ReadFile(filepath.Join(tempDir, file))
-			require.NoError(t, err)
-			require.Equal(t, strings.Replace(string(want), "VERSION", reference.Latest, -1), string(have))
+			require.Equal(t, strings.Replace(string(want), "VERSION", reference.Latest, -1), stdout.String())
 		})
 	}
 }

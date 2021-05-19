@@ -1,0 +1,10 @@
+List available Envoy version references you can run
+
+Usage:
+  getenvoy list [flags]
+
+Flags:
+  -h, --help   help for list
+
+Global Flags:
+      --home-dir string   GetEnvoy home directory (location of downloaded artifacts, caches, etc)
