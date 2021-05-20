@@ -35,7 +35,7 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 	app.Name = "getenvoy"
 	app.HelpName = "getenvoy"
 	app.HideHelpCommand = true
-	app.Usage = `Manage Envoy lifecycle including fetching binaries and collection of process state.`
+	app.Usage = `Download and run Envoy`
 	app.Version = version.Current
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{

@@ -1,5 +1,5 @@
 NAME:
-   getenvoy list - List available Envoy version references you can run
+   getenvoy list - List available Envoy builds
 
 USAGE:
    getenvoy list [command options] [arguments...]

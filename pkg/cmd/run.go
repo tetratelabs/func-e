@@ -33,14 +33,15 @@ import (
 func NewRunCmd(o *globals.GlobalOpts) *cli.Command {
 	cmd := &cli.Command{
 		Name:      "run",
-		Usage:     "Runs Envoy and collects process state on exit. Available builds can be retrieved using `getenvoy list`.",
-		ArgsUsage: "<reference> [-- <envoy-args>]",
-		Description: fmt.Sprintf(`# Run using a manifest reference.
-getenvoy run %[1]s -- --config-path ./bootstrap.yaml
+		Usage:     "Run Envoy and collect process state on exit",
+		ArgsUsage: "<reference> -- <envoy-args>",
+		Description: fmt.Sprintf(`The '<reference>' minimally includes the Envoy version.
+The '<envoy-args>' are interpreted by Envoy.
 
-# List available Envoy flags.
-getenvoy run %[1]s -- --help
-`, internalreference.Latest),
+Example:
+$ getenvoy run %[1]s -- --config-path ./bootstrap.yaml
+
+To view all available builds, invoke the "list" command.`, internalreference.Latest),
 		Before: validateReferenceArg,
 		Action: func(c *cli.Context) error {
 			args := c.Args().Slice()

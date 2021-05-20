@@ -1,5 +1,5 @@
 NAME:
-   getenvoy - Manage Envoy lifecycle including fetching binaries and collection of process state.
+   getenvoy - Download and run Envoy
 
 USAGE:
    getenvoy [global options] command [command options] [arguments...]
@@ -8,9 +8,9 @@ VERSION:
    dev
 
 COMMANDS:
-   run    Runs Envoy and collects process state on exit. Available builds can be retrieved using `getenvoy list`.
-   list   List available Envoy version references you can run
-   fetch  Downloads a version of Envoy. Available builds can be retrieved using `getenvoy list`.
+   run    Run Envoy and collect process state on exit
+   list   List available Envoy builds
+   fetch  Download a build of Envoy
 
 GLOBAL OPTIONS:
    --home-dir value  GetEnvoy home directory (location of downloaded artifacts, caches, etc) (default: ${HOME}/.getenvoy) [$GETENVOY_HOME]

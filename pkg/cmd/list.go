@@ -27,7 +27,7 @@ import (
 func NewListCmd(o *globals.GlobalOpts) *cli.Command {
 	return &cli.Command{
 		Name:  "list",
-		Usage: "List available Envoy version references you can run",
+		Usage: "List available Envoy builds",
 		Action: func(c *cli.Context) error {
 			m, err := manifest.FetchManifest(o.ManifestURL)
 			if err != nil {

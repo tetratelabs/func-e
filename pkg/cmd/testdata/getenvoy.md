@@ -2,7 +2,7 @@
 
 # NAME
 
-getenvoy - Manage Envoy lifecycle including fetching binaries and collection of process state.
+getenvoy - Download and run Envoy
 
 # SYNOPSIS
 
@@ -33,13 +33,13 @@ getenvoy [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 ## run
 
-Runs Envoy and collects process state on exit. Available builds can be retrieved using `getenvoy list`.
+Run Envoy and collect process state on exit
 
 ## list
 
-List available Envoy version references you can run
+List available Envoy builds
 
 ## fetch
 
-Downloads a version of Envoy. Available builds can be retrieved using `getenvoy list`.
+Download a build of Envoy
 

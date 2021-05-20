@@ -93,7 +93,7 @@ func TestGetEnvoyRun(t *testing.T) {
 			o, cleanup := setupTest(t)
 			defer cleanup()
 
-			// Run "getenvoy run standard:1.17.1 -- -c envoy.yaml"
+			// Run "getenvoy run 1.17.1 -- -c envoy.yaml"
 			c, stdout, stderr := newApp(&o.GlobalOpts)
 			err := c.Run(test.args)
 
