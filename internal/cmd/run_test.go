@@ -25,9 +25,9 @@ import (
 
 	"github.com/tetratelabs/getenvoy/internal/globals"
 	"github.com/tetratelabs/getenvoy/internal/manifest"
-	"github.com/tetratelabs/getenvoy/internal/reference"
 	manifesttest "github.com/tetratelabs/getenvoy/internal/test/manifest"
 	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
+	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
 func TestGetEnvoyRunValidateFlag(t *testing.T) {
@@ -73,15 +73,15 @@ func TestGetEnvoyRun(t *testing.T) {
 	}{
 		{
 			name: "no envoy args",
-			args: []string{"getenvoy", "run", reference.Latest},
+			args: []string{"getenvoy", "run", version.Envoy},
 		},
 		{
 			name: "empty envoy args",
-			args: []string{"getenvoy", "run", reference.Latest, "--"},
+			args: []string{"getenvoy", "run", version.Envoy, "--"},
 		},
 		{
 			name:              "envoy args",
-			args:              []string{"getenvoy", "run", reference.Latest, "--", "-c", "envoy.yaml"},
+			args:              []string{"getenvoy", "run", version.Envoy, "--", "-c", "envoy.yaml"},
 			expectedEnvoyArgs: ` -c envoy.yaml`,
 		},
 	}
@@ -117,16 +117,15 @@ func TestGetEnvoyRunFailWithUnknownVersion(t *testing.T) {
 	o, cleanup := setupTest(t)
 	defer cleanup()
 
-	o.EnvoyPath = "" // force lookup of version flag
+	o.EnvoyPath = "" // force lookup of reference flag
 	c, stdout, stderr := newApp(&o.GlobalOpts)
 
 	// Run "getenvoy run unknown"
-	version := "unknown"
-	err := c.Run([]string{"getenvoy", "run", version})
+	err := c.Run([]string{"getenvoy", "run", "unknown"})
 
 	// Verify the command failed with the expected error.
-	r := version + "/" + o.platform
-	expectedErr := fmt.Sprintf(`unable to find matching GetEnvoy build for reference "%s"`, r)
+	reference := "unknown/" + o.platform
+	expectedErr := fmt.Sprintf(`unable to find matching GetEnvoy build for reference "%s"`, reference)
 	require.EqualError(t, err, expectedErr)
 	// Main handles logging of errors, so we expect nothing in stdout or stderr
 	require.Empty(t, stdout)
@@ -153,7 +152,7 @@ func setupTest(t *testing.T) (*testEnvoyExtensionConfig, func()) {
 	err := os.Mkdir(result.HomeDir, 0700)
 	require.NoError(t, err, `error creating directory: %s`, result.HomeDir)
 
-	ref, err := manifest.ParseReference(reference.Latest)
+	ref, err := manifest.ParseReference(version.Envoy)
 	require.NoError(t, err, `error resolving manifest for reference: %s`, ref)
 	result.platform = ref.Platform
 

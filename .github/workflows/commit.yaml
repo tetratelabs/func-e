@@ -47,7 +47,7 @@ jobs:
             ~/go/pkg/mod
             ~/go/bin/*-v*
           # '.bingo/*.sum' files generate inconsistently when building `~/go/bin/*-v*`. We key '.bingo/*.mod' instead.
-          key: test-${{ runner.os }}-${{ env.GO_VERSION }}-go-${{ hashFiles('internal/reference/latest.txt', 'go.sum', '.bingo/*.mod') }}
+          key: test-${{ runner.os }}-${{ env.GO_VERSION }}-go-${{ hashFiles('internal/version/envoy.txt', 'go.sum', '.bingo/*.mod') }}
           restore-keys: test-${{ runner.os }}-${{ env.GO_VERSION }}-go-
 
       - name: "Verify clean check-in"
