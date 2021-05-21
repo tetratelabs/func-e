@@ -16,11 +16,10 @@ package cmd
 
 import (
 	"net/url"
-	"os"
 	"os/user"
 	"path/filepath"
 
-	"github.com/spf13/cobra"
+	"github.com/urfave/cli/v2"
 
 	"github.com/tetratelabs/getenvoy/internal/version"
 	"github.com/tetratelabs/getenvoy/pkg/globals"
@@ -29,59 +28,57 @@ import (
 
 // NewApp create a new root command. The globals.GlobalOpts parameter allows tests to scope overrides, which avoids
 // having to define a flag for everything needed in tests.
-func NewApp(o *globals.GlobalOpts) *cobra.Command {
-	homeDir, manifestURL := initializeGlobalOpts(o)
+func NewApp(o *globals.GlobalOpts) *cli.App {
+	var homeDir, manifestURL string
 
-	rootCmd := &cobra.Command{
-		Use:               "getenvoy",
-		SilenceErrors:     true, // We can't adjust the error message on Ctrl+C, so we redo error logging in Execute
-		SilenceUsage:      true, // We decided to return short usage form on error in Execute
-		DisableAutoGenTag: true, // removes autogenerate on ___ from produced docs
-		Short:             "Fetch and run Envoy",
-		Long:              `Manage Envoy lifecycle including fetching binaries and collection of process state.`,
-		Version:           version.Current,
-		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
-			if err := setHomeDir(o, homeDir); err != nil {
-				return err
-			}
-			return setManifestURL(o, manifestURL)
+	app := cli.NewApp()
+	app.Name = "getenvoy"
+	app.HelpName = "getenvoy"
+	app.HideHelpCommand = true
+	app.Usage = `Download and run Envoy`
+	app.Version = version.Current
+	app.Flags = []cli.Flag{
+		&cli.StringFlag{
+			Name:        "home-dir",
+			Usage:       "GetEnvoy home directory (location of downloaded artifacts, caches, etc)",
+			DefaultText: globals.DefaultHomeDir,
+			Destination: &homeDir,
+			EnvVars:     []string{"GETENVOY_HOME"},
 		},
+		&cli.StringFlag{
+			Name:        "manifest",
+			Usage:       "GetEnvoy manifest URL (list of available Envoy builds)",
+			Hidden:      true,
+			DefaultText: globals.DefaultManifestURL,
+			Destination: &manifestURL,
+			EnvVars:     []string{"GETENVOY_MANIFEST_URL"},
+		}}
+	app.Before = func(c *cli.Context) error {
+		if err := setHomeDir(o, homeDir); err != nil {
+			return err
+		}
+		return setManifestURL(o, manifestURL)
 	}
 
-	rootCmd.AddCommand(NewRunCmd(o))
-	rootCmd.AddCommand(NewListCmd(o))
-	rootCmd.AddCommand(NewFetchCmd(o))
-	rootCmd.AddCommand(NewDocCmd())
-	rootCmd.SetHelpCommand(&cobra.Command{Hidden: true}) // only support -h
-
-	rootCmd.PersistentFlags().StringVar(&homeDir, "home-dir", homeDir,
-		"GetEnvoy home directory (location of downloaded artifacts, caches, etc)")
-
-	rootCmd.PersistentFlags().StringVar(&manifestURL, "manifest", manifestURL,
-		"GetEnvoy manifest URL (source of information about available Envoy builds)")
-	rootCmd.PersistentFlags().MarkHidden("manifest") // nolint
-	return rootCmd
-}
-
-func initializeGlobalOpts(o *globals.GlobalOpts) (homeDir, manifestURL string) {
-	if o.HomeDir == "" { // don't lookup homedir when overridden for tests
-		homeDir = os.Getenv("GETENVOY_HOME")
+	app.Commands = []*cli.Command{
+		NewRunCmd(o),
+		NewListCmd(o),
+		NewFetchCmd(o),
+		NewDocCmd(),
 	}
-
-	if o.ManifestURL == "" {
-		manifestURL = os.Getenv("GETENVOY_MANIFEST_URL")
-	}
-	return
+	return app
 }
 
 func setManifestURL(o *globals.GlobalOpts, manifestURL string) error {
-	if o.ManifestURL == "" { // not overridden for tests
-		if manifestURL == "" {
-			manifestURL = globals.DefaultManifestURL
-		}
+	if o.ManifestURL != "" { // overridden for tests
+		return nil
+	}
+	if manifestURL == "" {
+		o.ManifestURL = globals.DefaultManifestURL
+	} else {
 		otherURL, err := url.Parse(manifestURL)
 		if err != nil || otherURL.Host == "" || otherURL.Scheme == "" {
-			return newValidationError("%q is not a valid manifest URL", manifestURL)
+			return NewValidationError("%q is not a valid manifest URL", manifestURL)
 		}
 		o.ManifestURL = manifestURL
 	}
@@ -89,29 +86,31 @@ func setManifestURL(o *globals.GlobalOpts, manifestURL string) error {
 }
 
 func setHomeDir(o *globals.GlobalOpts, homeDir string) error {
-	if o.HomeDir == "" { // not overridden for tests
-		if homeDir == "" {
-			u, err := user.Current()
-			if err != nil || u.HomeDir == "" {
-				return newValidationError("unable to determine home directory. Set GETENVOY_HOME instead: %v", err)
-			}
-			homeDir = filepath.Join(u.HomeDir, ".getenvoy")
+	if o.HomeDir != "" { // overridden for tests
+		return nil
+	}
+	if homeDir == "" {
+		u, err := user.Current()
+		if err != nil || u.HomeDir == "" {
+			return NewValidationError("unable to determine home directory. Set GETENVOY_HOME instead: %v", err)
 		}
+		o.HomeDir = filepath.Join(u.HomeDir, ".getenvoy")
+	} else {
 		abs, err := filepath.Abs(homeDir)
 		if err != nil {
-			return newValidationError(err.Error())
+			return NewValidationError(err.Error())
 		}
 		o.HomeDir = abs
 	}
 	return nil
 }
 
-func validateReferenceArg(_ *cobra.Command, args []string) error {
-	if len(args) == 0 {
-		return newValidationError("missing reference parameter")
+func validateReferenceArg(c *cli.Context) error {
+	if c.NArg() == 0 {
+		return NewValidationError("missing reference parameter")
 	}
-	if _, e := manifest.ParseReference(args[0]); e != nil {
-		return newValidationError(e.Error())
+	if _, e := manifest.ParseReference(c.Args().First()); e != nil {
+		return NewValidationError(e.Error())
 	}
 	return nil
 }

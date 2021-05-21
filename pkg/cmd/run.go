@@ -21,7 +21,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/spf13/cobra"
+	"github.com/urfave/cli/v2"
 
 	internalreference "github.com/tetratelabs/getenvoy/internal/reference"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
@@ -30,34 +30,52 @@ import (
 )
 
 // NewRunCmd create a command responsible for starting an Envoy process
-func NewRunCmd(o *globals.GlobalOpts) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "run reference [flags] [-- <envoy-args>]",
-		Short: "Runs Envoy and collects process state on exit. Available builds can be retrieved using `getenvoy list`.",
-		Example: fmt.Sprintf(`# Run using a manifest reference.
-getenvoy run %[1]s -- --config-path ./bootstrap.yaml
+func NewRunCmd(o *globals.GlobalOpts) *cli.Command {
+	cmd := &cli.Command{
+		Name:      "run",
+		Usage:     "Run Envoy and collect process state on exit",
+		ArgsUsage: "<reference> -- <envoy-args>",
+		Description: fmt.Sprintf(`The '<reference>' minimally includes the Envoy version.
+The '<envoy-args>' are interpreted by Envoy.
 
-# List available Envoy flags.
-getenvoy run %[1]s -- --help
-`, internalreference.Latest),
-		Args: validateReferenceArg,
-		RunE: func(c *cobra.Command, args []string) error {
+Example:
+$ getenvoy run %[1]s -- --config-path ./bootstrap.yaml
+
+To view all available builds, invoke the "list" command.`, internalreference.Latest),
+		Before: validateReferenceArg,
+		Action: func(c *cli.Context) error {
+			args := c.Args().Slice()
 			if err := initializeRunOpts(o, args[0]); err != nil {
 				return err
 			}
 			r := envoy.NewRuntime(&o.RunOpts)
-			r.Out = c.OutOrStderr()
-			r.Err = c.ErrOrStderr()
+
+			r.Out = c.App.Writer
+			r.Err = c.App.ErrWriter
 
 			for _, err := range debug.EnableAll(r) {
 				fmt.Fprintln(r.Out, "failed to enable debug option:", err) //nolint
 			}
 
-			envoyArgs := args[1:]
-			return r.Run(c.Context(), envoyArgs)
+			envoyArgs := findEnvoyArgs(args)
+			return r.Run(c.Context, envoyArgs)
 		},
 	}
 	return cmd
+}
+
+// findEnvoyArgs returns any args after "--"
+func findEnvoyArgs(args []string) []string {
+	var envoyArgs []string
+	for i, v := range args {
+		if v == "--" {
+			if len(args) > i+1 {
+				return args[i+1:]
+			}
+			break
+		}
+	}
+	return envoyArgs
 }
 
 // initializeRunOpts allows us to default values when not overridden for tests.
@@ -68,7 +86,7 @@ func initializeRunOpts(o *globals.GlobalOpts, reference string) error {
 	if o.EnvoyPath == "" { // not overridden for tests
 		envoyPath, err := envoy.FetchIfNeeded(o, reference)
 		if err != nil {
-			return newValidationError(err.Error())
+			return NewValidationError(err.Error())
 		}
 		o.EnvoyPath = envoyPath
 	}
@@ -79,7 +97,7 @@ func initializeRunOpts(o *globals.GlobalOpts, reference string) error {
 
 		// When the directory is implicitly generated, we should create it to avoid late errors.
 		if err := os.MkdirAll(workingDir, 0750); err != nil {
-			return newValidationError("unable to create working directory %q, so we cannot run envoy", workingDir)
+			return NewValidationError("unable to create working directory %q, so we cannot run envoy", workingDir)
 		}
 		runOpts.WorkingDir = workingDir
 	}

@@ -1,27 +1,43 @@
-+++
-title = "getenvoy"
-type = "reference"
-parent = "root"
-command = "getenvoy"
-+++
-## getenvoy
+# NAME
 
-Fetch and run Envoy
+getenvoy - Download and run Envoy
 
-### Synopsis
+# SYNOPSIS
 
-Manage Envoy lifecycle including fetching binaries and collection of process state.
-
-### Options
+getenvoy
 
 ```
-  -h, --help              help for getenvoy
-      --home-dir string   GetEnvoy home directory (location of downloaded artifacts, caches, etc)
+[--help|-h]
+[--home-dir]=[value]
+[--version|-v]
 ```
 
-### SEE ALSO
+**Usage**:
 
-* [getenvoy fetch](/reference/getenvoy_fetch)	 - Downloads a version of Envoy. Available builds can be retrieved using `getenvoy list`.
-* [getenvoy list](/reference/getenvoy_list)	 - List available Envoy version references you can run
-* [getenvoy run](/reference/getenvoy_run)	 - Runs Envoy and collects process state on exit. Available builds can be retrieved using `getenvoy list`.
+```
+getenvoy [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
+```
+
+# GLOBAL OPTIONS
+
+**--help, -h**: show help
+
+**--home-dir**="": GetEnvoy home directory (location of downloaded artifacts, caches, etc)
+
+**--version, -v**: print the version
+
+
+# COMMANDS
+
+## run
+
+Run Envoy and collect process state on exit
+
+## list
+
+List available Envoy builds
+
+## fetch
+
+Download a build of Envoy
 

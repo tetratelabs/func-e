@@ -1,10 +1,9 @@
-List available Envoy version references you can run
+NAME:
+   getenvoy list - List available Envoy builds
 
-Usage:
-  getenvoy list [flags]
+USAGE:
+   getenvoy list [command options] [arguments...]
 
-Flags:
-  -h, --help   help for list
-
-Global Flags:
-      --home-dir string   GetEnvoy home directory (location of downloaded artifacts, caches, etc)
+OPTIONS:
+   --help, -h  show help (default: false)
+   

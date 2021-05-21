@@ -1,17 +1,20 @@
-Downloads a version of Envoy. Available builds can be retrieved using `getenvoy list`.
+NAME:
+   getenvoy fetch - Download a build of Envoy
 
-Usage:
-  getenvoy fetch <reference> [flags]
+USAGE:
+   getenvoy fetch [command options] <reference>
 
-Examples:
-# Fetch using a partial manifest reference to retrieve a build suitable for your operating system.
-getenvoy fetch ENVOY_VERSION
+DESCRIPTION:
+   The '<reference>' minimally includes the Envoy version.
+   
+   Example: Prefetch Envoy prior to invoking `getenvoy run`
+   $ getenvoy fetch 1.17.1
+   
+   Example: Fetch Envoy to run on a specific platform
+   $ getenvoy fetch 1.17.1/linux-glibc
+   
+   To view all available builds, invoke the "list" command.
 
-# Fetch using a full manifest reference to retrieve a specific build for Linux.
-getenvoy fetch ENVOY_VERSION/linux-glibc
-
-Flags:
-  -h, --help   help for fetch
-
-Global Flags:
-      --home-dir string   GetEnvoy home directory (location of downloaded artifacts, caches, etc)
+OPTIONS:
+   --help, -h  show help (default: false)
+   

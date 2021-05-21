@@ -1,18 +1,18 @@
-Runs Envoy and collects process state on exit. Available builds can be retrieved using `getenvoy list`.
+NAME:
+   getenvoy run - Run Envoy and collect process state on exit
 
-Usage:
-  getenvoy run reference [flags] [-- <envoy-args>]
+USAGE:
+   getenvoy run [command options] <reference> -- <envoy-args>
 
-Examples:
-# Run using a manifest reference.
-getenvoy run ENVOY_VERSION -- --config-path ./bootstrap.yaml
+DESCRIPTION:
+   The '<reference>' minimally includes the Envoy version.
+   The '<envoy-args>' are interpreted by Envoy.
+   
+   Example:
+   $ getenvoy run 1.17.1 -- --config-path ./bootstrap.yaml
+   
+   To view all available builds, invoke the "list" command.
 
-# List available Envoy flags.
-getenvoy run ENVOY_VERSION -- --help
-
-
-Flags:
-  -h, --help   help for run
-
-Global Flags:
-      --home-dir string   GetEnvoy home directory (location of downloaded artifacts, caches, etc)
+OPTIONS:
+   --help, -h  show help (default: false)
+   

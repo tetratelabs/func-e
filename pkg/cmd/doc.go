@@ -16,56 +16,26 @@ package cmd
 
 import (
 	"fmt"
-	"path"
-	"path/filepath"
 	"strings"
 
-	"github.com/spf13/cobra"
-	"github.com/spf13/cobra/doc"
-)
-
-var (
-	outputDir string
-	linkDir   string
+	"github.com/urfave/cli/v2"
 )
 
 // NewDocCmd returns command that generates documentation
-func NewDocCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:    "doc",
-		Short:  "Generates Markdown documentation for the CLI.",
+func NewDocCmd() *cli.Command {
+	cmd := &cli.Command{
+		Name:   "doc",
+		Usage:  "Generates Markdown documentation for the CLI.",
 		Hidden: true,
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			getenvoy := cmd.Parent()
-			return doc.GenMarkdownTreeCustom(getenvoy, outputDir, filePrepender, linkHandler)
+		Action: func(c *cli.Context) error {
+			m, err := c.App.ToMarkdown()
+			m = strings.ReplaceAll(m, "% getenvoy 8\n\n", "") // remove man header until urfave/cli#1275
+			if err != nil {
+				return err
+			}
+			_, err = fmt.Fprintln(c.App.Writer, m)
+			return err
 		},
 	}
-	cmd.PersistentFlags().StringVarP(&outputDir, "output", "o", "", "directory to create generated docs")
-	cmd.PersistentFlags().StringVarP(&linkDir, "link", "l", "", "directory to prepend to filename in links")
 	return cmd
-}
-
-func filePrepender(filename string) string {
-	name := filepath.Base(filename)
-	base := strings.TrimSuffix(name, path.Ext(name))
-	split := strings.Split(base, "_")
-	parent := "root"
-	if len(split) > 1 {
-		parent = split[len(split)-2]
-	}
-	command := split[len(split)-1]
-	return fmt.Sprintf(fmTemplate, strings.Join(split, " "), parent, command)
-}
-
-const fmTemplate = `+++
-title = "%s"
-type = "reference"
-parent = "%s"
-command = "%s"
-+++
-`
-
-func linkHandler(name string) string {
-	base := strings.TrimSuffix(name, path.Ext(name))
-	return filepath.Join(linkDir, strings.ToLower(base))
 }

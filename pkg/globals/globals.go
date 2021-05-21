@@ -34,17 +34,21 @@ type RunOpts struct {
 //  1) value that precedes flag parsing, used in tests
 //  2) to a value of the command line argument, e.g. `--home-dir`
 //  3) optional mapping to an environment variable, e.g. `GETENVOY_HOME` (not all flags are mapped to ENV)
-//  4) otherwise, to the default value, e.g. `${HOME}/.getenvoy`
+//  4) otherwise, to the default value, e.g. DefaultHomeDir
 type GlobalOpts struct {
 	// RunOpts are inlined to allow tests to override parameters without changing ENV variables or flags
 	RunOpts
-	// ManifestURL is the path to the getenvoy manifest json
+	// ManifestURL is the path to the getenvoy manifest json. Defaults to DefaultManifestURL
 	ManifestURL string
-	// HomeDir most importantly contains envoy binaries fetched from ManifestURL. Defaults to $HOME/.getenvoy
+	// HomeDir most importantly contains envoy binaries fetched from ManifestURL. Defaults to DefaultHomeDir
 	HomeDir string
-	// Out is where status messages are written. Commands should prefix "$name: ". Defaults to os.Stdout
+	// Out is where status messages are written. Defaults to os.Stdout
 	Out io.Writer
 }
 
-// DefaultManifestURL is the default value for GlobalOpts.ManifestURL
-const DefaultManifestURL = "https://dl.getenvoy.io/public/raw/files/manifest.json"
+const (
+	// DefaultHomeDir is the default value for GlobalOpts.HomeDir
+	DefaultHomeDir = "${HOME}/.getenvoy"
+	// DefaultManifestURL is the default value for GlobalOpts.ManifestURL
+	DefaultManifestURL = "https://dl.getenvoy.io/public/raw/files/manifest.json"
+)

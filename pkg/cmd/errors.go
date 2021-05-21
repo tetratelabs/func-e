@@ -16,7 +16,8 @@ package cmd
 
 import "fmt"
 
-func newValidationError(format string, a ...interface{}) error {
+// NewValidationError generates an error with a given format string.
+func NewValidationError(format string, a ...interface{}) error {
 	return &ValidationError{fmt.Sprintf(format, a...)}
 }
 

@@ -54,14 +54,13 @@ func TestGetEnvoyRunValidateFlag(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			// Run "getenvoy run"
 			c, stdout, stderr := newApp(&globals.GlobalOpts{})
-			c.SetArgs(test.args[1:])
-			err := c.Execute()
+			err := c.Run(test.args)
 
 			// Verify the command failed with the expected error
-			require.EqualError(t, err, test.expectedErr, `expected an error running [%v]`, c)
+			require.EqualError(t, err, test.expectedErr)
 			// Main handles logging of errors, so we expect nothing in stdout or stderr
-			require.Empty(t, stdout, `expected no stdout running [%v]`, c)
-			require.Empty(t, stderr, `expected no stderr running [%v]`, c)
+			require.Empty(t, stdout)
+			require.Empty(t, stderr)
 		})
 	}
 }
@@ -94,13 +93,12 @@ func TestGetEnvoyRun(t *testing.T) {
 			o, cleanup := setupTest(t)
 			defer cleanup()
 
-			// Run "getenvoy run standard:1.17.1 -- -c envoy.yaml"
+			// Run "getenvoy run 1.17.1 -- -c envoy.yaml"
 			c, stdout, stderr := newApp(&o.GlobalOpts)
-			c.SetArgs(test.args[1:])
-			err := c.Execute()
+			err := c.Run(test.args)
 
 			// Verify the command invoked, passing the correct default commandline
-			require.NoError(t, err, `expected no error running [%v]`, c)
+			require.NoError(t, err)
 
 			// We expect getenvoy to print the context it will run, and Envoy to execute the same, except adding the
 			// --admin-address-path flag
@@ -109,8 +107,8 @@ working directory: %[1]s
 envoy wd: %[1]s
 envoy bin: %[2]s
 envoy args:%[3]s --admin-address-path admin-address.txt`, o.WorkingDir, o.EnvoyPath, test.expectedEnvoyArgs)
-			require.Equal(t, expectedStdout+"\n", stdout.String(), `expected stdout running [%v]`, c)
-			require.Equal(t, "envoy stderr\n", stderr.String(), `expected stderr running [%v]`, c)
+			require.Equal(t, expectedStdout+"\n", stdout.String())
+			require.Equal(t, "envoy stderr\n", stderr.String())
 		})
 	}
 }
@@ -124,16 +122,15 @@ func TestGetEnvoyRunFailWithUnknownVersion(t *testing.T) {
 
 	// Run "getenvoy run unknown"
 	version := "unknown"
-	c.SetArgs([]string{"run", version})
-	err := c.Execute()
+	err := c.Run([]string{"getenvoy", "run", version})
 
 	// Verify the command failed with the expected error.
 	r := version + "/" + o.platform
 	expectedErr := fmt.Sprintf(`unable to find matching GetEnvoy build for reference "%s"`, r)
-	require.EqualError(t, err, expectedErr, `expected an error running [%v]`, c)
+	require.EqualError(t, err, expectedErr)
 	// Main handles logging of errors, so we expect nothing in stdout or stderr
-	require.Empty(t, stdout, `expected no stdout running [%v]`, c)
-	require.Empty(t, stderr, `expected no stderr running [%v]`, c)
+	require.Empty(t, stdout)
+	require.Empty(t, stderr)
 }
 
 type testEnvoyExtensionConfig struct {
