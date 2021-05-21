@@ -16,9 +16,9 @@ package version
 
 import _ "embed" // We embed the Envoy version so that we can cache it in CI
 
-// Main is the version of GetEnvoy, used in help statements and HTTP requests via "User-Agent".
-// Override this via "-X github.com/tetratelabs/getenvoy/internal/version.Main=XXX"
-var Main = "dev"
+// GetEnvoy is the version of the CLI, used in help statements and HTTP requests via "User-Agent".
+// Override this via "-X github.com/tetratelabs/getenvoy/internal/version.GetEnvoy=XXX"
+var GetEnvoy = "dev"
 
 // Envoy is the default version to download. This is embedded for re-use in build and CI scripts.
 //go:embed envoy.txt

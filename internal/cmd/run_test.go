@@ -58,7 +58,7 @@ func TestGetEnvoyRunValidateFlag(t *testing.T) {
 
 			// Verify the command failed with the expected error
 			require.EqualError(t, err, test.expectedErr)
-			// Main handles logging of errors, so we expect nothing in stdout or stderr
+			// GetEnvoy handles logging of errors, so we expect nothing in stdout or stderr
 			require.Empty(t, stdout)
 			require.Empty(t, stderr)
 		})
@@ -127,7 +127,7 @@ func TestGetEnvoyRunFailWithUnknownVersion(t *testing.T) {
 	reference := "unknown/" + o.platform
 	expectedErr := fmt.Sprintf(`unable to find matching GetEnvoy build for reference "%s"`, reference)
 	require.EqualError(t, err, expectedErr)
-	// Main handles logging of errors, so we expect nothing in stdout or stderr
+	// GetEnvoy handles logging of errors, so we expect nothing in stdout or stderr
 	require.Empty(t, stdout)
 	require.Empty(t, stderr)
 }
