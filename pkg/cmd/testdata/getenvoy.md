@@ -1,5 +1,3 @@
-% getenvoy 8
-
 # NAME
 
 getenvoy - Download and run Envoy

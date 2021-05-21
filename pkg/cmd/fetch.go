@@ -16,10 +16,10 @@ package cmd
 
 import (
 	"fmt"
-	internalreference "github.com/tetratelabs/getenvoy/internal/reference"
 
 	"github.com/urfave/cli/v2"
 
+	internalreference "github.com/tetratelabs/getenvoy/internal/reference"
 	"github.com/tetratelabs/getenvoy/pkg/binary/envoy"
 	"github.com/tetratelabs/getenvoy/pkg/globals"
 )

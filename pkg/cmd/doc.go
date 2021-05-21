@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/urfave/cli/v2"
 )
@@ -28,6 +29,7 @@ func NewDocCmd() *cli.Command {
 		Hidden: true,
 		Action: func(c *cli.Context) error {
 			m, err := c.App.ToMarkdown()
+			m = strings.ReplaceAll(m, "% getenvoy 8\n\n", "") // remove man header until urfave/cli#1275
 			if err != nil {
 				return err
 			}
