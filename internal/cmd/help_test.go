@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/getenvoy/internal/globals"
-	"github.com/tetratelabs/getenvoy/internal/reference"
+	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
 func TestGetEnvoyHelp(t *testing.T) {
@@ -45,7 +45,7 @@ func TestGetEnvoyHelp(t *testing.T) {
 
 			want, err := os.ReadFile(filepath.Join("testdata", expected))
 			require.NoError(t, err)
-			require.Equal(t, strings.ReplaceAll(string(want), "ENVOY_VERSION", reference.Latest), stdout.String())
+			require.Equal(t, strings.ReplaceAll(string(want), "ENVOY_VERSION", version.Envoy), stdout.String())
 		})
 	}
 }

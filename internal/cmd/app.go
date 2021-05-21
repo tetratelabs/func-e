@@ -36,7 +36,7 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 	app.HelpName = "getenvoy"
 	app.HideHelpCommand = true
 	app.Usage = `Download and run Envoy`
-	app.Version = version.Current
+	app.Version = version.GetEnvoy
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
 			Name:        "home-dir",

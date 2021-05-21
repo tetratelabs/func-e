@@ -26,7 +26,7 @@ import (
 	"github.com/tetratelabs/getenvoy/internal/binary/envoy"
 	"github.com/tetratelabs/getenvoy/internal/binary/envoy/debug"
 	"github.com/tetratelabs/getenvoy/internal/globals"
-	"github.com/tetratelabs/getenvoy/internal/reference"
+	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
 // NewRunCmd create a command responsible for starting an Envoy process
@@ -41,7 +41,7 @@ The '<envoy-args>' are interpreted by Envoy.
 Example:
 $ getenvoy run %[1]s -- --config-path ./bootstrap.yaml
 
-To view all available builds, invoke the "list" command.`, reference.Latest),
+To view all available builds, invoke the "list" command.`, version.Envoy),
 		Before: validateReferenceArg,
 		Action: func(c *cli.Context) error {
 			args := c.Args().Slice()
@@ -81,10 +81,10 @@ func findEnvoyArgs(args []string) []string {
 // initializeRunOpts allows us to default values when not overridden for tests.
 // The reference parameter corresponds to the globals.GlobalOpts EnvoyPath which is fetched if needed.
 // Notably, this creates and sets a globals.GlobalOpts WorkingDirectory for Envoy, and any files that precede it.
-func initializeRunOpts(o *globals.GlobalOpts, ref string) error {
+func initializeRunOpts(o *globals.GlobalOpts, reference string) error {
 	runOpts := &o.RunOpts
 	if o.EnvoyPath == "" { // not overridden for tests
-		envoyPath, err := envoy.FetchIfNeeded(o, ref)
+		envoyPath, err := envoy.FetchIfNeeded(o, reference)
 		if err != nil {
 			return NewValidationError(err.Error())
 		}
