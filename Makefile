@@ -34,7 +34,7 @@ bin $(BIN): $(GORELEASER)
 
 ##@ Unit and End-to-End tests
 
-TEST_PACKAGES ?= $(shell go list ./... | grep -v github.com/tetratelabs/getenvoy/test/e2e)
+TEST_PACKAGES ?= $(shell go list ./... | grep -v github.com/tetratelabs/getenvoy/e2e)
 .PHONY: test
 test:
 	@echo "--- test ---"
@@ -47,7 +47,7 @@ test:
 .PHONY: e2e
 e2e: $(BIN)
 	@echo "--- e2e ---"
-	@go test -parallel 1 -v -failfast ./test/e2e
+	@go test -parallel 1 -v -failfast ./e2e
 
 ##@ Code quality and integrity
 
