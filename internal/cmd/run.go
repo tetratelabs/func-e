@@ -26,7 +26,7 @@ import (
 	"github.com/tetratelabs/getenvoy/internal/binary/envoy"
 	"github.com/tetratelabs/getenvoy/internal/binary/envoy/debug"
 	"github.com/tetratelabs/getenvoy/internal/globals"
-	internalreference "github.com/tetratelabs/getenvoy/internal/reference"
+	"github.com/tetratelabs/getenvoy/internal/reference"
 )
 
 // NewRunCmd create a command responsible for starting an Envoy process
