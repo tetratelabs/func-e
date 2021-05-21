@@ -190,7 +190,7 @@ func newApp(o *globals.GlobalOpts) (c *cli.App, stdout, stderr *bytes.Buffer) {
 
 func runTestCommand(t *testing.T, o *globals.GlobalOpts, args []string) error {
 	c, stdout, stderr := newApp(o)
-	c.Commands = append(c.Commands, &cli.Command{Name: "test", Action: func(cli.Context) error {
+	c.Commands = append(c.Commands, &cli.Command{Name: "test", Action: func(_ *cli.Context) error {
 		return nil
 	}})
 
