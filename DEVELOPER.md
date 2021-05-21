@@ -28,4 +28,4 @@ make coverage
 
 ### How to run end-to-end Tests
 
-See [test/e2e](test/e2e) for how to develop or run end-to-end tests
+See [test/e2e](e2e) for how to develop or run end-to-end tests

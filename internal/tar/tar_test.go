@@ -26,7 +26,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/pkg/test/morerequire"
+	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
 )
 
 func TestNewDecompressor_Validates(t *testing.T) {
