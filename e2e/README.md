@@ -27,7 +27,7 @@ We historically added functions into main only for e2e and left them after they 
 ### Be careful when adding dependencies
 Currently, e2e shares [go.mod](../go.mod) with [/internal](../internal). This is for simplification in build config and
 details such as linters. However, we carry a risk of dependencies used here ending up accidentally used in /internal.
-The IDE  will think this is the same project as /internal and suggest libraries with auto-complete.
+The IDE will think this is the same project as /internal and suggest libraries with auto-complete.
 
 For example, if /internal used "archiver/v3" accidentally, it would bloat the binary by almost 3MB. For this reason,
 please be careful and only add dependencies absolutely needed.
