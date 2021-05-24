@@ -40,7 +40,7 @@ func TestGetEnvoyRun(t *testing.T) {
 	c := getEnvoy(`run`)
 	// Below is the minimal config needed to run envoy
 	// TODO allow implicit version #106
-	c.args(version.Envoy, `--`, `--config-yaml`, `admin: {access_log_path: '/dev/stdout', address: {socket_address: {address: '127.0.0.1', port_value: 0}}}`)
+	c.args(version.Envoy, `--config-yaml`, `admin: {access_log_path: '/dev/stdout', address: {socket_address: {address: '127.0.0.1', port_value: 0}}}`)
 
 	stdout, stderr, terminate := c.start(t, terminateTimeout)
 
@@ -94,21 +94,21 @@ func requireEnvoyReady(t *testing.T, envoyWorkingDir string, stderr io.Reader, c
 }
 
 func verifyDebugDump(t *testing.T, workingDir string, c interface{}) {
-	// Run deletes the debug store directory after making a tar.gz with the same name.
+	// Run deletes the working directory after making a tar.gz with the same name.
 	// Restore it so assertions can read the contents later.
-	debugArchive := filepath.Join(workingDir + ".tar.gz")
-	defer os.Remove(debugArchive) //nolint
+	runArchive := filepath.Join(workingDir + ".tar.gz")
+	defer os.Remove(runArchive) //nolint
 
-	src, err := os.Open(debugArchive)
-	require.NoError(t, err, "error opening %s after stopping [%v]", debugArchive, c)
+	src, err := os.Open(runArchive)
+	require.NoError(t, err, "error opening %s after stopping [%v]", runArchive, c)
 	e := tar.Untar(workingDir, src)
-	require.NoError(t, e, "error restoring %s from %s after stopping [%v]", workingDir, debugArchive, c)
+	require.NoError(t, e, "error restoring %s from %s after stopping [%v]", workingDir, runArchive, c)
 
 	// ensure the minimum contents exist
 	for _, filename := range []string{"config_dump.json", "stats.json"} {
 		path := filepath.Join(workingDir, filename)
 		f, err := os.Stat(path)
-		require.NoError(t, err, `debug archive %s doesn't contain %s after stopping [%v]`, debugArchive, filename, c)
+		require.NoError(t, err, `run archive %s doesn't contain %s after stopping [%v]`, runArchive, filename, c)
 		require.NotEmpty(t, f.Size(), `%s was empty after stopping [%v]`, filename, c)
 	}
 }

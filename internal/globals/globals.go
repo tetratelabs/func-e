@@ -18,11 +18,11 @@ import "io"
 
 // RunOpts support invocations of "getenvoy run"
 type RunOpts struct {
-	// EnvoyPath is the exec.Cmd path to "envoy". Defaults to "$HomeDir/builds/$flavor/$version/$platform/bin/envoy"
+	// EnvoyPath is the exec.Cmd path to "envoy". Defaults to "$HomeDir/versions/$version/bin/envoy"
 	EnvoyPath string
 	// WorkingDir is the working directory of EnvoyPath and includes any generated configuration or debug files.
 	// Upon termination, this directory is archived as "../$(basename $WorkingDir).tar.gz"
-	// Defaults to "$HomeDir/debug/$epochtime"
+	// Defaults to "$HomeDir/runs/$epochtime"
 	WorkingDir string
 	// DontArchiveWorkingDir is used in testing and prevents archiving the WorkingDir
 	DontArchiveWorkingDir bool
@@ -40,7 +40,7 @@ type GlobalOpts struct {
 	RunOpts
 	// ManifestURL is the path to the getenvoy manifest json. Defaults to DefaultManifestURL
 	ManifestURL string
-	// HomeDir most importantly contains envoy binaries fetched from ManifestURL. Defaults to DefaultHomeDir
+	// HomeDir most importantly contains Envoy versions installed from ManifestURL. Defaults to DefaultHomeDir
 	HomeDir string
 	// Out is where status messages are written. Defaults to os.Stdout
 	Out io.Writer

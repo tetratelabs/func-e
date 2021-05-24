@@ -22,6 +22,7 @@ import (
 	"github.com/urfave/cli/v2"
 
 	cmdutil "github.com/tetratelabs/getenvoy/internal/cmd"
+	"github.com/tetratelabs/getenvoy/internal/errors"
 	"github.com/tetratelabs/getenvoy/internal/globals"
 )
 
@@ -39,13 +40,13 @@ func run(stdout, stderr io.Writer, args []string) int {
 		if command == "" { // Show help by default
 			return cli.ShowSubcommandHelp(c)
 		}
-		return cmdutil.NewValidationError("unknown command %q", command)
+		return errors.NewValidationError("unknown command %q", command)
 	}
 	app.OnUsageError = func(c *cli.Context, err error, isSub bool) error {
-		return cmdutil.NewValidationError(err.Error())
+		return errors.NewValidationError(err.Error())
 	}
 	if err := app.Run(args); err != nil {
-		if _, ok := err.(*cmdutil.ValidationError); ok {
+		if _, ok := err.(*errors.ValidationError); ok {
 			fmt.Fprintln(stderr, err) //nolint
 			logUsageError(app.Name, stderr)
 		} else {

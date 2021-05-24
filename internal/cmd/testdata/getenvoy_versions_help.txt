@@ -1,0 +1,9 @@
+NAME:
+   getenvoy versions - List available Envoy versions
+
+USAGE:
+   getenvoy versions [command options] [arguments...]
+
+OPTIONS:
+   --help, -h  show help (default: false)
+   

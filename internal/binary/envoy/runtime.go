@@ -32,7 +32,7 @@ func NewRuntime(opts *globals.RunOpts) *Runtime {
 	return &Runtime{opts: opts}
 }
 
-// Runtime manages an Envoy lifecycle including fetching (if necessary) and running
+// Runtime manages an Envoy lifecycle
 type Runtime struct {
 	opts *globals.RunOpts
 

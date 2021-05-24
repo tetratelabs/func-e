@@ -1,4 +1,4 @@
-// Copyright 2019 Tetrate
+// Copyright 2021 Tetrate
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,28 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package errors
 
-import (
-	"os"
+import "fmt"
 
-	"github.com/urfave/cli/v2"
+// NewValidationError generates an error with a given format string.
+func NewValidationError(format string, a ...interface{}) error {
+	return &ValidationError{fmt.Sprintf(format, a...)}
+}
 
-	"github.com/tetratelabs/getenvoy/internal/globals"
-	"github.com/tetratelabs/getenvoy/internal/manifest"
-)
+// ValidationError is a marker of a validation error vs an execution one.
+type ValidationError struct {
+	string
+}
 
-// NewListCmd returns command that lists available Envoy binaries
-func NewListCmd(o *globals.GlobalOpts) *cli.Command {
-	return &cli.Command{
-		Name:  "list",
-		Usage: "List available Envoy builds",
-		Action: func(c *cli.Context) error {
-			m, err := manifest.FetchManifest(o.ManifestURL)
-			if err != nil {
-				return err
-			}
-			return manifest.Print(m, os.Stdout)
-		},
-	}
+// Error implements the error interface.
+func (e *ValidationError) Error() string {
+	return e.string
 }

@@ -21,8 +21,8 @@ import (
 
 	"github.com/urfave/cli/v2"
 
+	"github.com/tetratelabs/getenvoy/internal/errors"
 	"github.com/tetratelabs/getenvoy/internal/globals"
-	"github.com/tetratelabs/getenvoy/internal/manifest"
 	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
@@ -47,7 +47,7 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 		},
 		&cli.StringFlag{
 			Name:        "manifest",
-			Usage:       "GetEnvoy manifest URL (list of available Envoy builds)",
+			Usage:       "GetEnvoy manifest URL (list of available Envoy versions)",
 			Hidden:      true,
 			DefaultText: globals.DefaultManifestURL,
 			Destination: &manifestURL,
@@ -62,8 +62,8 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 
 	app.Commands = []*cli.Command{
 		NewRunCmd(o),
-		NewListCmd(o),
-		NewFetchCmd(o),
+		NewVersionsCmd(o),
+		NewInstallCmd(o),
 		NewDocCmd(),
 	}
 	return app
@@ -78,7 +78,7 @@ func setManifestURL(o *globals.GlobalOpts, manifestURL string) error {
 	} else {
 		otherURL, err := url.Parse(manifestURL)
 		if err != nil || otherURL.Host == "" || otherURL.Scheme == "" {
-			return NewValidationError("%q is not a valid manifest URL", manifestURL)
+			return errors.NewValidationError("%q is not a valid manifest URL", manifestURL)
 		}
 		o.ManifestURL = manifestURL
 	}
@@ -92,25 +92,22 @@ func setHomeDir(o *globals.GlobalOpts, homeDir string) error {
 	if homeDir == "" {
 		u, err := user.Current()
 		if err != nil || u.HomeDir == "" {
-			return NewValidationError("unable to determine home directory. Set GETENVOY_HOME instead: %v", err)
+			return errors.NewValidationError("unable to determine home directory. Set GETENVOY_HOME instead: %v", err)
 		}
 		o.HomeDir = filepath.Join(u.HomeDir, ".getenvoy")
 	} else {
 		abs, err := filepath.Abs(homeDir)
 		if err != nil {
-			return NewValidationError(err.Error())
+			return errors.NewValidationError(err.Error())
 		}
 		o.HomeDir = abs
 	}
 	return nil
 }
 
-func validateReferenceArg(c *cli.Context) error {
+func validateVersionArg(c *cli.Context) error {
 	if c.NArg() == 0 {
-		return NewValidationError("missing reference parameter")
-	}
-	if _, e := manifest.ParseReference(c.Args().First()); e != nil {
-		return NewValidationError(e.Error())
+		return errors.NewValidationError("missing version parameter")
 	}
 	return nil
 }

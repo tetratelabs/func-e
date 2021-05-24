@@ -43,7 +43,7 @@ jobs:
           # This combines unrelated caches because actions/cache@v2 doesn't support multiple
           # instances, rather a combined path. https://github.com/actions/cache/issues/16
           path: |
-            ~/.getenvoy/builds
+            ~/.getenvoy/versions
             ~/go/pkg/mod
             ~/go/bin/*-v*
           # '.bingo/*.sum' files generate inconsistently when building `~/go/bin/*-v*`. We key '.bingo/*.mod' instead.

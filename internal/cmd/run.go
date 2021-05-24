@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -25,27 +26,27 @@ import (
 
 	"github.com/tetratelabs/getenvoy/internal/binary/envoy"
 	"github.com/tetratelabs/getenvoy/internal/binary/envoy/debug"
+	"github.com/tetratelabs/getenvoy/internal/errors"
 	"github.com/tetratelabs/getenvoy/internal/globals"
-	"github.com/tetratelabs/getenvoy/internal/version"
+	latestversion "github.com/tetratelabs/getenvoy/internal/version"
 )
 
 // NewRunCmd create a command responsible for starting an Envoy process
 func NewRunCmd(o *globals.GlobalOpts) *cli.Command {
 	cmd := &cli.Command{
 		Name:      "run",
-		Usage:     "Run Envoy and collect process state on exit",
-		ArgsUsage: "<reference> -- <envoy-args>",
-		Description: fmt.Sprintf(`The '<reference>' minimally includes the Envoy version.
-The '<envoy-args>' are interpreted by Envoy.
+		Usage:     "Run Envoy as <version> with <args> as arguments, collecting process state on termination",
+		ArgsUsage: "<version> <args>",
+		Description: fmt.Sprintf(`The '<version>' is from the "versions" command and installed if necessary.
+The '<args>' are interpreted by Envoy.
+The Envoy working directory is archived as $GETENVOY_HOME/runs/$epochtime.tar.gz upon termination.
 
 Example:
-$ getenvoy run %[1]s -- --config-path ./bootstrap.yaml
-
-To view all available builds, invoke the "list" command.`, version.Envoy),
-		Before: validateReferenceArg,
+$ getenvoy run %s --config-path ./bootstrap.yaml`, latestversion.Envoy),
+		Before: validateVersionArg,
 		Action: func(c *cli.Context) error {
 			args := c.Args().Slice()
-			if err := initializeRunOpts(o, args[0]); err != nil {
+			if err := initializeRunOpts(o, runtime.GOOS, args[0]); err != nil {
 				return err
 			}
 			r := envoy.NewRuntime(&o.RunOpts)
@@ -57,47 +58,32 @@ To view all available builds, invoke the "list" command.`, version.Envoy),
 				fmt.Fprintln(r.Out, "failed to enable debug option:", err) //nolint
 			}
 
-			envoyArgs := findEnvoyArgs(args)
-			return r.Run(c.Context, envoyArgs)
+			return r.Run(c.Context, args[1:])
 		},
 	}
 	return cmd
 }
 
-// findEnvoyArgs returns any args after "--"
-func findEnvoyArgs(args []string) []string {
-	var envoyArgs []string
-	for i, v := range args {
-		if v == "--" {
-			if len(args) > i+1 {
-				return args[i+1:]
-			}
-			break
-		}
-	}
-	return envoyArgs
-}
-
 // initializeRunOpts allows us to default values when not overridden for tests.
-// The reference parameter corresponds to the globals.GlobalOpts EnvoyPath which is fetched if needed.
+// The version parameter correlates with the globals.GlobalOpts EnvoyPath which is installed if needed.
 // Notably, this creates and sets a globals.GlobalOpts WorkingDirectory for Envoy, and any files that precede it.
-func initializeRunOpts(o *globals.GlobalOpts, reference string) error {
+func initializeRunOpts(o *globals.GlobalOpts, goos, version string) error {
 	runOpts := &o.RunOpts
 	if o.EnvoyPath == "" { // not overridden for tests
-		envoyPath, err := envoy.FetchIfNeeded(o, reference)
+		envoyPath, err := envoy.InstallIfNeeded(o, goos, version)
 		if err != nil {
-			return NewValidationError(err.Error())
+			return err
 		}
 		o.EnvoyPath = envoyPath
 	}
 	if runOpts.WorkingDir == "" { // not overridden for tests
 		// Historically, the directory run files wrote to was called DebugStore
 		runID := strconv.FormatInt(time.Now().UnixNano(), 10)
-		workingDir := filepath.Join(filepath.Join(o.HomeDir, "debug"), runID)
+		workingDir := filepath.Join(filepath.Join(o.HomeDir, "runs"), runID)
 
 		// When the directory is implicitly generated, we should create it to avoid late errors.
 		if err := os.MkdirAll(workingDir, 0750); err != nil {
-			return NewValidationError("unable to create working directory %q, so we cannot run envoy", workingDir)
+			return errors.NewValidationError("unable to create working directory %q, so we cannot run envoy", workingDir)
 		}
 		runOpts.WorkingDir = workingDir
 	}

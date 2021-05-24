@@ -8,9 +8,9 @@ VERSION:
    dev
 
 COMMANDS:
-   run    Run Envoy and collect process state on exit
-   list   List available Envoy builds
-   fetch  Download a build of Envoy
+   run       Run Envoy as <version> with <args> as arguments, collecting process state on termination
+   versions  List available Envoy versions
+   install   Download and install a <version> of Envoy
 
 GLOBAL OPTIONS:
    --home-dir value  GetEnvoy home directory (location of downloaded artifacts, caches, etc) (default: ${HOME}/.getenvoy) [$GETENVOY_HOME]

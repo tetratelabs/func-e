@@ -1,0 +1,16 @@
+NAME:
+   getenvoy install - Download and install a <version> of Envoy
+
+USAGE:
+   getenvoy install [command options] <version>
+
+DESCRIPTION:
+   The '<version>' is from the "versions" command.
+   The Envoy <version> will be installed into $GETENVOY_HOME/versions/<version>
+   
+   Example:
+   $ getenvoy install ENVOY_VERSION
+
+OPTIONS:
+   --help, -h  show help (default: false)
+   

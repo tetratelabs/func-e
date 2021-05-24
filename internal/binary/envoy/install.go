@@ -23,6 +23,7 @@ import (
 
 	"github.com/schollz/progressbar/v3"
 
+	"github.com/tetratelabs/getenvoy/internal/errors"
 	"github.com/tetratelabs/getenvoy/internal/globals"
 	"github.com/tetratelabs/getenvoy/internal/manifest"
 	"github.com/tetratelabs/getenvoy/internal/tar"
@@ -31,47 +32,64 @@ import (
 
 const binEnvoy = "bin/envoy"
 
-// FetchIfNeeded downloads an Envoy binary corresponding to the given reference and returns a path to it or an error.
-func FetchIfNeeded(o *globals.GlobalOpts, reference string) (string, error) {
-	ref, err := manifest.ParseReference(reference)
-	if err != nil {
-		return "", err
-	}
-
-	platformPath := filepath.Join(o.HomeDir, "builds", ref.Flavor, ref.Version, ref.Platform)
-	envoyPath := filepath.Join(platformPath, binEnvoy)
-	_, err = os.Stat(envoyPath)
+// InstallIfNeeded downloads an Envoy binary corresponding to the given version and returns a path to it or an error.
+func InstallIfNeeded(o *globals.GlobalOpts, goos, version string) (string, error) {
+	installPath := filepath.Join(o.HomeDir, "versions", version)
+	envoyPath := filepath.Join(installPath, binEnvoy)
+	_, err := os.Stat(envoyPath)
 	switch {
 	case os.IsNotExist(err):
-		if e := os.MkdirAll(platformPath, 0750); e != nil {
-			return "", fmt.Errorf("unable to create directory %q: %w", platformPath, e)
+		if e := os.MkdirAll(installPath, 0750); e != nil {
+			return "", fmt.Errorf("unable to create directory %q: %w", installPath, e)
 		}
 
-		m, e := manifest.FetchManifest(o.ManifestURL)
+		m, e := manifest.GetManifest(o.ManifestURL)
 		if e != nil {
 			return "", e
 		}
 
-		downloadLocationURL, e := manifest.LocateBuild(ref, m)
+		downloadLocationURL, e := downloadURL(m, goos, version)
 		if e != nil {
 			return "", e
 		}
 
 		fmt.Fprintln(o.Out, "downloading", downloadLocationURL) //nolint
-		if e := untarEnvoy(platformPath, downloadLocationURL, o.Out); e != nil {
+		if e := untarEnvoy(installPath, downloadLocationURL, o.Out); e != nil {
 			return "", e
 		}
 	case err == nil:
-		fmt.Fprintln(o.Out, ref, "is already downloaded") //nolint
+		fmt.Fprintln(o.Out, version, "is already downloaded") //nolint
 	default:
 		// TODO: figure out how to get a stat error that isn't file not exist so we can test this
 		return "", err
 	}
-	return verifyEnvoy(platformPath)
+	return verifyEnvoy(installPath)
 }
 
-func verifyEnvoy(platformPath string) (string, error) {
-	envoyPath := filepath.Join(platformPath, binEnvoy)
+// LocateBuild returns the downloadLocationURL of the associated envoy binary in the manifest using the input key
+func downloadURL(m *manifest.Manifest, goos, version string) (string, error) {
+	errorNoVersions := errors.NewValidationError("couldn't find version %q for platform %q", version, goos)
+	platform := manifest.BuildPlatform(goos)
+	if platform == "" {
+		return "", errorNoVersions
+	}
+
+	// Error if the only released "flavor" or it has no version
+	if m.Flavors["standard"] == nil || len(m.Flavors["standard"].Versions) == 0 {
+		return "", errorNoVersions
+	}
+
+	// Error if the version doesn't exist or has no builds for this platform
+	builds := m.Flavors["standard"].Versions[version]
+	if builds == nil || builds.Builds == nil || builds.Builds[platform] == nil {
+		return "", errorNoVersions
+	}
+
+	return builds.Builds[platform].DownloadLocationURL, nil
+}
+
+func verifyEnvoy(installPath string) (string, error) {
+	envoyPath := filepath.Join(installPath, binEnvoy)
 	stat, err := os.Stat(envoyPath)
 	if err != nil {
 		return "", err

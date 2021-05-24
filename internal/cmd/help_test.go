@@ -28,7 +28,7 @@ import (
 )
 
 func TestGetEnvoyHelp(t *testing.T) {
-	for _, command := range []string{"", "fetch", "list", "run"} {
+	for _, command := range []string{"", "install", "versions", "run"} {
 		command := command
 		t.Run(command, func(t *testing.T) {
 			c, stdout, _ := newApp(&globals.GlobalOpts{})

@@ -35,9 +35,9 @@ func TestRuntime_Run(t *testing.T) {
 	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
 	defer removeTempDir()
 
-	debugDir := filepath.Join(tempDir, "debug")
+	runsDir := filepath.Join(tempDir, "runs")
 	fakeTimestamp := "1619574747231823000"
-	workingDir := filepath.Join(debugDir, fakeTimestamp)
+	workingDir := filepath.Join(runsDir, fakeTimestamp)
 
 	// "quiet" as we aren't testing the environment envoy runs in
 	fakeEnvoy := filepath.Join(tempDir, "quiet")
@@ -100,12 +100,12 @@ working directory: %s
 			require.Equal(t, tc.expectedStdout, stdout.String())
 			require.Equal(t, tc.expectedStderr, stderr.String())
 
-			// Ensure the working directory was deleted, and the debug directory only contains the archive
-			files, err := os.ReadDir(debugDir)
+			// Ensure the working directory was deleted, and the "run" directory only contains the archive
+			files, err := os.ReadDir(runsDir)
 			require.NoError(t, err)
 			require.Equal(t, 1, len(files))
-			archive := filepath.Join(debugDir, files[0].Name())
-			require.Equal(t, filepath.Join(debugDir, fakeTimestamp+".tar.gz"), archive)
+			archive := filepath.Join(runsDir, files[0].Name())
+			require.Equal(t, filepath.Join(runsDir, fakeTimestamp+".tar.gz"), archive)
 
 			// Cleanup for the next run
 			require.NoError(t, os.Remove(archive))

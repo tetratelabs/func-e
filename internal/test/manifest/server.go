@@ -35,14 +35,41 @@ import (
 // Even though currently binaries are compressed with "xz" more than "gz", using "gz" in tests allows us to re-use
 // tar.TarGz instead of complicating internal utilities or adding dependencies only for tests.
 const archiveFormat = ".tar.gz"
-const buildsPath = "/builds/"
+const versionsPath = "/versions/"
 
 // RequireManifestTestServer serves "/manifest.json", which contains download links a compressed archive of artifactDir
-func RequireManifestTestServer(t *testing.T, m *manifest.Manifest) *httptest.Server {
+func RequireManifestTestServer(t *testing.T, version string) *httptest.Server {
 	s := &server{t: t}
 	h := httptest.NewServer(s)
-	s.rewriteDownloadLocations(h.URL, *m)
+	s.manifest = &manifest.Manifest{
+		ManifestVersion: "v0.1.0",
+		Flavors: map[string]*manifest.Flavor{
+			"standard": {
+				Name: "standard",
+				Versions: map[string]*manifest.Version{
+					version: {
+						Name: version,
+						Builds: map[string]*manifest.Build{
+							"LINUX_GLIBC": {
+								Platform:            "LINUX_GLIBC",
+								DownloadLocationURL: DownloadURL(h.URL, "linux", version),
+							},
+							"DARWIN": {
+								Platform:            "DARWIN",
+								DownloadLocationURL: DownloadURL(h.URL, "darwin", version),
+							},
+						},
+					},
+				},
+			},
+		},
+	}
 	return h
+}
+
+// DownloadURL gives the expected download URL for the given runtime.GOOS and Envoy version.
+func DownloadURL(baseURL, goos, version string) string {
+	return fmt.Sprintf("%s%s%s/envoy-%s-%s-x86_64%s", baseURL, versionsPath, version, version, goos, archiveFormat)
 }
 
 // server represents an HTTP server serving GetEnvoy manifest.
@@ -57,16 +84,16 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, err := w.Write(s.GetManifest())
 		require.NoError(s.t, err)
-	case strings.HasPrefix(r.RequestURI, buildsPath):
-		reference := r.RequestURI[len(buildsPath):]
-		require.True(s.t, strings.HasSuffix(reference, archiveFormat),
-			"unexpected uri %q: expected archive suffix %q", reference, archiveFormat)
-		ref, err := manifest.ParseReference(reference)
-		require.NoError(s.t, err, "could not parse reference from uri %q", reference)
-		require.Regexpf(s.t, `^1\.[1-9][0-9]\.[0-9]+$`, ref.Version, "unsupported version in uri %q", reference)
+	case strings.HasPrefix(r.RequestURI, versionsPath):
+		subpath := r.RequestURI[len(versionsPath):]
+		require.True(s.t, strings.HasSuffix(subpath, archiveFormat),
+			"unexpected uri %q: expected archive suffix %q", subpath, archiveFormat)
+
+		version := strings.Split(subpath, "/")[0]
+		require.Regexpf(s.t, `^1\.[1-9][0-9]\.[0-9]+$`, version, "unsupported version in uri %q", subpath)
 
 		w.WriteHeader(http.StatusOK)
-		_, e := w.Write(requireFakeEnvoyTarGz(s.t, ref.Version))
+		_, e := w.Write(requireFakeEnvoyTarGz(s.t, version))
 		require.NoError(s.t, e)
 	default:
 		w.WriteHeader(http.StatusNotFound)
@@ -79,24 +106,13 @@ func (s *server) GetManifest() []byte {
 	return data
 }
 
-func (s *server) rewriteDownloadLocations(baseURL string, m manifest.Manifest) {
-	for _, flavor := range m.Flavors {
-		for _, version := range flavor.Versions {
-			for _, build := range version.Builds {
-				build.DownloadLocationURL = fmt.Sprintf("%s%s%s%s", baseURL, buildsPath, build.DownloadLocationURL, archiveFormat)
-			}
-		}
-	}
-	s.manifest = &m
-}
-
 func requireFakeEnvoyTarGz(t *testing.T, version string) []byte {
 	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
 	defer removeTempDir()
 
 	// construct the platform directory based on the input version
-	platformDir := filepath.Join(tempDir, version)
-	require.NoError(t, os.MkdirAll(filepath.Join(platformDir, "bin"), 0700)) //nolint:gosec
+	installDir := filepath.Join(tempDir, version)
+	require.NoError(t, os.MkdirAll(filepath.Join(installDir, "bin"), 0700)) //nolint:gosec
 	// go:embed doesn't allow us to retain execute bit, so it is simpler to inline this.
 	fakeEnvoy := []byte(`#!/bin/sh
 set -ue
@@ -106,11 +122,11 @@ echo envoy bin: $0
 echo envoy args: $@
 echo >&2 envoy stderr
 `)
-	require.NoError(t, os.WriteFile(filepath.Join(platformDir, "bin", "envoy"), fakeEnvoy, 0700)) //nolint:gosec
+	require.NoError(t, os.WriteFile(filepath.Join(installDir, "bin", "envoy"), fakeEnvoy, 0700)) //nolint:gosec
 
 	// tar.gz the platform dir
 	tempGz := filepath.Join(tempDir, "envoy.tar.gz")
-	e := tar.TarGz(tempGz, platformDir)
+	e := tar.TarGz(tempGz, installDir)
 	require.NoError(t, e)
 
 	// Read the tar.gz into a byte array. This allows the mock server to set content length correctly

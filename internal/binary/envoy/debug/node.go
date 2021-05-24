@@ -187,7 +187,7 @@ func printProcessTable(out io.Writer, parsed []*proc) error {
 func (n *nodeCollection) networkInterfaces() error {
 	result, err := net.Interfaces()
 	if err != nil {
-		return fmt.Errorf("unable to fetch network Interfaces: %w", err)
+		return fmt.Errorf("unable to read network Interfaces: %w", err)
 	}
 
 	if len(result) == 0 {
@@ -221,7 +221,7 @@ var typeMap = map[uint32]string{
 func (n *nodeCollection) activeConnections() error {
 	cs, err := net.Connections("all")
 	if err != nil {
-		return fmt.Errorf("unable to fetch network interfaces: %w", err)
+		return fmt.Errorf("unable to read network interfaces: %w", err)
 	}
 
 	result := make([]connStat, 0, len(cs))

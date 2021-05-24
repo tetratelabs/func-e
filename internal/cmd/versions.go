@@ -15,34 +15,27 @@
 package cmd
 
 import (
-	"fmt"
+	"runtime"
 
 	"github.com/urfave/cli/v2"
 
 	"github.com/tetratelabs/getenvoy/internal/binary/envoy"
 	"github.com/tetratelabs/getenvoy/internal/globals"
-	"github.com/tetratelabs/getenvoy/internal/version"
+	"github.com/tetratelabs/getenvoy/internal/manifest"
 )
 
-// NewFetchCmd create a command responsible for retrieving Envoy binaries
-func NewFetchCmd(o *globals.GlobalOpts) *cli.Command {
+// NewVersionsCmd returns command that lists available Envoy versions for the current platform.
+func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 	return &cli.Command{
-		Name:      "fetch",
-		Usage:     "Download a build of Envoy",
-		ArgsUsage: "<reference>",
-		Description: fmt.Sprintf(`The '<reference>' minimally includes the Envoy version.
-
-Example: Prefetch Envoy prior to invoking `+"`getenvoy run`"+`
-$ getenvoy fetch %[1]s
-
-Example: Fetch Envoy to run on a specific platform
-$ getenvoy fetch %[1]s/linux-glibc
-
-To view all available builds, invoke the "list" command.`, version.Envoy),
-		Before: validateReferenceArg,
+		Name:  "versions",
+		Usage: "List available Envoy versions",
 		Action: func(c *cli.Context) error {
-			_, err := envoy.FetchIfNeeded(o, c.Args().First())
-			return err
+			m, err := manifest.GetManifest(o.ManifestURL)
+			if err != nil {
+				return err
+			}
+			envoy.PrintVersions(m, runtime.GOOS, c.App.Writer)
+			return nil
 		},
 	}
 }

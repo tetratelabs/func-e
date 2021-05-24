@@ -31,13 +31,13 @@ getenvoy [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 ## run
 
-Run Envoy and collect process state on exit
+Run Envoy as <version> with <args> as arguments, collecting process state on termination
 
-## list
+## versions
 
-List available Envoy builds
+List available Envoy versions
 
-## fetch
+## install
 
-Download a build of Envoy
+Download and install a <version> of Envoy
 

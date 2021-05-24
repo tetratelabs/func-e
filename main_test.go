@@ -16,8 +16,10 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -52,7 +54,7 @@ show usage with: getenvoy -h
 		},
 		{
 			name:           "incorrect global flag value",
-			args:           []string{"getenvoy", "--manifest", ".", "list"},
+			args:           []string{"getenvoy", "--manifest", ".", "versions"},
 			expectedStatus: 1,
 			expectedStderr: `"." is not a valid manifest URL
 show usage with: getenvoy -h
@@ -68,15 +70,15 @@ show usage with: getenvoy -h
 		},
 		{
 			name:           "invalid command arg",
-			args:           []string{"getenvoy", "fetch", "/"},
+			args:           []string{"getenvoy", "install", "unknown"},
 			expectedStatus: 1,
-			expectedStderr: `"/" is not a valid GetEnvoy reference. Expected format: [<flavor>:]<version>[/<platform>]
+			expectedStderr: fmt.Sprintf(`couldn't find version "unknown" for platform "%s"
 show usage with: getenvoy -h
-`,
+`, runtime.GOOS),
 		},
 		{
 			name:           "execution error",
-			args:           []string{"getenvoy", "--manifest", server.URL, "list"},
+			args:           []string{"getenvoy", "--manifest", server.URL, "versions"},
 			expectedStatus: 1,
 			expectedStderr: `error: error unmarshalling manifest: unexpected end of JSON input
 `,
