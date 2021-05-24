@@ -75,12 +75,13 @@ func tarballURL(m *manifest.Manifest, goos, version string) (string, error) {
 	}
 
 	// Error if the only released "flavor" or it has no version
-	if m.Flavors["standard"] == nil || len(m.Flavors["standard"].Versions) == 0 {
+	f, ok := m.Flavors["standard"]
+	if !ok || len(f.Versions) == 0 {
 		return "", errorNoVersions
 	}
 
 	// Error if the version doesn't exist or has no builds for this platform
-	builds := m.Flavors["standard"].Versions[version]
+	builds := f.Versions[version]
 	if builds == nil || builds.Builds == nil || builds.Builds[platform] == nil {
 		return "", errorNoVersions
 	}
