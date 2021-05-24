@@ -38,9 +38,9 @@ type RunOpts struct {
 type GlobalOpts struct {
 	// RunOpts are inlined to allow tests to override parameters without changing ENV variables or flags
 	RunOpts
-	// ManifestURL is the path to the getenvoy manifest json. Defaults to DefaultManifestURL
-	ManifestURL string
-	// HomeDir most importantly contains Envoy versions installed from ManifestURL. Defaults to DefaultHomeDir
+	// EnvoyVersionsURL is the path to the envoy_versions.json. Defaults to DefaultEnvoyVersionsURL
+	EnvoyVersionsURL string
+	// HomeDir most importantly contains Envoy versions installed from EnvoyVersionsURL. Defaults to DefaultHomeDir
 	HomeDir string
 	// Out is where status messages are written. Defaults to os.Stdout
 	Out io.Writer
@@ -49,6 +49,6 @@ type GlobalOpts struct {
 const (
 	// DefaultHomeDir is the default value for GlobalOpts.HomeDir
 	DefaultHomeDir = "${HOME}/.getenvoy"
-	// DefaultManifestURL is the default value for GlobalOpts.ManifestURL
-	DefaultManifestURL = "https://dl.getenvoy.io/public/raw/files/manifest.json"
+	// DefaultEnvoyVersionsURL is the default value for GlobalOpts.EnvoyVersionsURL
+	DefaultEnvoyVersionsURL = "https://raw.githubusercontent.com/tetratelabs/getenvoy/new-json/site/envoy_versions.json"
 )

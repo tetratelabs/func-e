@@ -13,3 +13,4 @@ go.sum
 envoy.txt
 
 testdata/
+site/*.json

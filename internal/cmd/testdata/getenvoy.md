@@ -7,6 +7,7 @@ getenvoy - Download and run Envoy
 getenvoy
 
 ```
+[--envoy-versions-url]=[value]
 [--help|-h]
 [--home-dir]=[value]
 [--version|-v]
@@ -20,9 +21,11 @@ getenvoy [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 # GLOBAL OPTIONS
 
+**--envoy-versions-url**="": URL of Envoy versions JSON
+
 **--help, -h**: show help
 
-**--home-dir**="": GetEnvoy home directory (location of downloaded artifacts, caches, etc)
+**--home-dir**="": GetEnvoy home directory (location of downloaded versions and run archives)
 
 **--version, -v**: print the version
 

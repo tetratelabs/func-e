@@ -32,13 +32,20 @@ bin $(BIN): $(GORELEASER)
 	@echo "--- bin ---"
 	@$(GORELEASER) build --snapshot --rm-dist
 
-##@ Unit and End-to-End tests
+##@ Unit, Site and End-to-End tests
 
-TEST_PACKAGES ?= $(shell go list ./... | grep -v github.com/tetratelabs/getenvoy/e2e)
+TEST_PACKAGES ?= $(shell go list ./... | grep -v -e github.com/tetratelabs/getenvoy/e2e -e github.com/tetratelabs/getenvoy/site)
 .PHONY: test
 test:
 	@echo "--- test ---"
 	@go test $(TEST_PACKAGES)
+
+# Site tests check the contents of the site directory
+
+.PHONY: test.site
+test.site:
+	@echo "--- test.site ---"
+	@go test -v ./site
 
 # End-to-end (e2e) tests run against a compiled binary. That dist is lazy built if "make dist" wasn't yet called.
 #

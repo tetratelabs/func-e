@@ -21,7 +21,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/tetratelabs/getenvoy/internal/binary/envoy"
+	envoy2 "github.com/tetratelabs/getenvoy/internal/envoy"
 )
 
 var adminAPIPaths = map[string]string{
@@ -37,7 +37,7 @@ var adminAPIPaths = map[string]string{
 }
 
 // enableEnvoyAdminDataCollection is a preset option that registers collection of Envoy Admin API information
-func enableEnvoyAdminDataCollection(r *envoy.Runtime) error {
+func enableEnvoyAdminDataCollection(r *envoy2.Runtime) error {
 	e := envoyAdminDataCollection{r.GetAdminAddress, r.GetWorkingDir()}
 	r.RegisterPreTermination(e.retrieveAdminAPIData)
 	return nil

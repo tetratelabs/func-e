@@ -16,11 +16,10 @@ package cmd
 
 import (
 	"fmt"
-	"runtime"
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/tetratelabs/getenvoy/internal/binary/envoy"
+	envoy2 "github.com/tetratelabs/getenvoy/internal/envoy"
 	"github.com/tetratelabs/getenvoy/internal/globals"
 	"github.com/tetratelabs/getenvoy/internal/version"
 )
@@ -38,7 +37,7 @@ Example:
 $ getenvoy install %s`, version.Envoy),
 		Before: validateVersionArg,
 		Action: func(c *cli.Context) error {
-			_, err := envoy.InstallIfNeeded(o, runtime.GOOS, c.Args().First())
+			_, err := envoy2.InstallIfNeeded(o, envoy2.CurrentPlatform(), c.Args().First())
 			return err
 		},
 	}

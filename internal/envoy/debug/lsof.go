@@ -23,7 +23,7 @@ import (
 
 	"github.com/shirou/gopsutil/v3/process"
 
-	"github.com/tetratelabs/getenvoy/internal/binary/envoy"
+	envoy2 "github.com/tetratelabs/getenvoy/internal/envoy"
 )
 
 // OpenFileStat defines the structure of statistics about a single opened file
@@ -45,7 +45,7 @@ type OpenFileStat struct {
 
 // enableOpenFilesDataCollection is a preset option that registers collection of statistics of files opened by envoy
 // instance(s).
-func enableOpenFilesDataCollection(r *envoy.Runtime) error {
+func enableOpenFilesDataCollection(r *envoy2.Runtime) error {
 	lsofDir := filepath.Join(r.GetWorkingDir(), "lsof")
 	if err := os.MkdirAll(lsofDir, 0750); err != nil {
 		return fmt.Errorf("unable to create directory %q, so lsof will not be captured: %w", lsofDir, err)

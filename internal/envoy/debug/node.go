@@ -27,11 +27,11 @@ import (
 	"github.com/shirou/gopsutil/v3/net"
 	"github.com/shirou/gopsutil/v3/process"
 
-	"github.com/tetratelabs/getenvoy/internal/binary/envoy"
+	envoy2 "github.com/tetratelabs/getenvoy/internal/envoy"
 )
 
 // enableNodeCollection is a preset option that registers collection of node level information for debugging
-func enableNodeCollection(r *envoy.Runtime) error {
+func enableNodeCollection(r *envoy2.Runtime) error {
 	nodeDir := filepath.Join(r.GetWorkingDir(), "node")
 	if err := os.MkdirAll(nodeDir, 0750); err != nil {
 		return fmt.Errorf("unable to create directory %q, so node data will not be captured: %w", nodeDir, err)

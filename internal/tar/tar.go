@@ -31,9 +31,9 @@ import (
 // Untar unarchives the compressed "src" which is either a "tar.xz" or "tar.gz" stream.
 // This strips the base directory inside the "src" archive. Ex on "/foo/bar", "dst" will have "bar/**"
 //
-// This is used to decompress Envoy distributions in the "downloadLocationURL" field of "manifest.json".
+// This is used to decompress Envoy distributions in the "tarballURL" field of "envoy_versions.json".
 // To keep the binary size small, only supports compression formats used in practice. As of May 2021, all
-// "downloadLocationURL" values were "tar.xz", except the first (1.11.0), which was "tar.gz".
+// "tarballURL" from stable releases were "tar.xz".
 func Untar(dst string, src io.Reader) error { // dst, src order like io.Copy
 	if e := os.MkdirAll(dst, 0750); e != nil {
 		return e

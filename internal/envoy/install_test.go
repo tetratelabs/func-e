@@ -29,7 +29,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/getenvoy/internal/globals"
-	manifesttest "github.com/tetratelabs/getenvoy/internal/test/manifest"
+	"github.com/tetratelabs/getenvoy/internal/test"
 	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
 	"github.com/tetratelabs/getenvoy/internal/version"
 )
@@ -89,10 +89,10 @@ func TestInstallIfNeeded_ErrorOnIncorrectURL(t *testing.T) {
 	o, cleanup := setupInstallTest(t)
 	defer cleanup()
 
-	o.ManifestURL += "/mannyfest.json"
+	o.EnvoyVersionsURL += "/varsionz.json"
 
 	_, e := InstallIfNeeded(&o.GlobalOpts, runtime.GOOS, version.Envoy)
-	require.EqualError(t, e, "received 404 status code from "+o.ManifestURL)
+	require.EqualError(t, e, "received 404 status code from "+o.EnvoyVersionsURL)
 	require.Empty(t, o.Out.(*bytes.Buffer))
 }
 
@@ -153,7 +153,7 @@ func TestInstallIfNeeded(t *testing.T) {
 	defer cleanup()
 	out := o.Out.(*bytes.Buffer)
 
-	envoyPath, e := InstallIfNeeded(&o.GlobalOpts, runtime.GOOS, version.Envoy)
+	envoyPath, e := InstallIfNeeded(&o.GlobalOpts, CurrentPlatform(), version.Envoy)
 	require.NoError(t, e)
 	require.Equal(t, o.EnvoyPath, envoyPath)
 	require.FileExists(t, envoyPath)
@@ -223,16 +223,16 @@ func setupInstallTest(t *testing.T) (*installTest, func()) {
 	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
 	tearDown = append(tearDown, removeTempDir)
 
-	manifestServer := manifesttest.RequireManifestTestServer(t, version.Envoy)
-	tearDown = append(tearDown, manifestServer.Close)
+	versionsServer := test.RequireEnvoyVersionsTestServer(t, version.Envoy)
+	tearDown = append(tearDown, versionsServer.Close)
 
 	return &installTest{
 			tempDir:    tempDir,
-			tarballURL: manifesttest.TarballURL(manifestServer.URL, runtime.GOOS, version.Envoy),
+			tarballURL: test.TarballURL(versionsServer.URL, runtime.GOOS, runtime.GOARCH, version.Envoy),
 			GlobalOpts: globals.GlobalOpts{
-				HomeDir:     tempDir,
-				ManifestURL: manifestServer.URL + "/manifest.json",
-				Out:         new(bytes.Buffer),
+				HomeDir:          tempDir,
+				EnvoyVersionsURL: versionsServer.URL + "/envoy_versions.json",
+				Out:              new(bytes.Buffer),
 				RunOpts: globals.RunOpts{
 					EnvoyPath: filepath.Join(tempDir, "versions", version.Envoy, "bin", "envoy"),
 				},

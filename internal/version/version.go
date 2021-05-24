@@ -23,3 +23,23 @@ var GetEnvoy = "dev"
 // Envoy is the default version to download. This is embedded for re-use in build and CI scripts.
 //go:embed envoy.txt
 var Envoy string
+
+// EnvoyVersions include metadata about the latest version and all available tarball URLs
+type EnvoyVersions struct {
+	// LatestVersion is the latest stable version. See https://github.com/envoyproxy/envoy/blob/main/RELEASES.md
+	LatestVersion string
+	// Versions are all stable versions of Envoy keyed on version number (without a 'v' prefix)
+	Versions map[string]EnvoyVersion
+}
+
+// EnvoyVersion is the release date and tarballs for this version, keyed on platform
+type EnvoyVersion struct {
+	// ReleaseDate is the date of the version tag https://github.com/envoyproxy/envoy/versions. Ex. "2021-04-16"
+	ReleaseDate string `json:"releaseDate"`
+
+	// Tarballs is a map of platform to tarball URL
+	// platform is '$os/$arch' where $os is the supported operating system (runtime.GOOS) and $arch
+	// is the supported architecture (runtime.GOARCH). Ex "darwin/amd64"
+	// tarball URL is the URL of the tar.gz or tar.xz that bundles Envoy. Minimum contents are "$version/bin/envoy".
+	Tarballs map[string]string `json:"tarballs,omitempty"`
+}

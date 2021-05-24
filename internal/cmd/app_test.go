@@ -27,7 +27,7 @@ import (
 
 	rootcmd "github.com/tetratelabs/getenvoy/internal/cmd"
 	"github.com/tetratelabs/getenvoy/internal/globals"
-	manifesttest "github.com/tetratelabs/getenvoy/internal/test/manifest"
+	"github.com/tetratelabs/getenvoy/internal/test"
 	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
 	"github.com/tetratelabs/getenvoy/internal/version"
 )
@@ -39,18 +39,18 @@ func TestGetEnvoyValidateArgs(t *testing.T) {
 		expectedErr string
 	}{
 		{
-			name:        "--manifest not a URL",
-			args:        []string{"getenvoy", "--manifest", "/not/url"},
-			expectedErr: `"/not/url" is not a valid manifest URL`,
+			name:        "--envoy-versions-url not a URL",
+			args:        []string{"getenvoy", "--envoy-versions-url", "/not/url"},
+			expectedErr: `"/not/url" is not a valid Envoy versions URL`,
 		},
 	}
 
-	for _, test := range tests {
-		test := test // pin! see https://github.com/kyoh86/scopelint for why
+	for _, tc := range tests {
+		tc := tc // pin! see https://github.com/kyoh86/scopelint for why
 
-		t.Run(test.name, func(t *testing.T) {
-			err := runTestCommand(t, &globals.GlobalOpts{}, test.args)
-			require.EqualError(t, err, test.expectedErr)
+		t.Run(tc.name, func(t *testing.T) {
+			err := runTestCommand(t, &globals.GlobalOpts{}, tc.args)
+			require.EqualError(t, err, tc.expectedErr)
 		})
 	}
 }
@@ -96,25 +96,25 @@ func TestGetEnvoyHomeDir(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		test := test // pin! see https://github.com/kyoh86/scopelint for why
+	for _, tc := range tests {
+		tc := tc // pin! see https://github.com/kyoh86/scopelint for why
 
-		t.Run(test.name, func(t *testing.T) {
-			if test.setup != nil {
-				tearDown := test.setup()
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.setup != nil {
+				tearDown := tc.setup()
 				defer tearDown()
 			}
 
 			o := &globals.GlobalOpts{}
-			err := runTestCommand(t, o, test.args)
+			err := runTestCommand(t, o, tc.args)
 
 			require.NoError(t, err)
-			require.Equal(t, test.expected, o.HomeDir)
+			require.Equal(t, tc.expected, o.HomeDir)
 		})
 	}
 }
 
-func TestGetEnvoyManifest(t *testing.T) {
+func TestEnvoyVersionsURL(t *testing.T) {
 	type testCase struct {
 		name string
 		args []string
@@ -125,47 +125,47 @@ func TestGetEnvoyManifest(t *testing.T) {
 
 	tests := []testCase{ // we don't test default as that depends on the runtime env
 		{
-			name:     "default is https://dl.getenvoy.io/public/raw/files/manifest.json",
+			name:     "TODO: default is https://getenvoy.io/envoy_versions.json",
 			args:     []string{"getenvoy"},
-			expected: "https://dl.getenvoy.io/public/raw/files/manifest.json",
+			expected: globals.DefaultEnvoyVersionsURL,
 		},
 		{
-			name: "GETENVOY_MANIFEST_URL env",
+			name: "ENVOY_VERSIONS_URL env",
 			args: []string{"getenvoy"},
 			setup: func() func() {
-				return requireSetenv(t, "GETENVOY_MANIFEST_URL", "http://GETENVOY_MANIFEST_URL/env")
+				return requireSetenv(t, "ENVOY_VERSIONS_URL", "http://ENVOY_VERSIONS_URL/env")
 			},
-			expected: "http://GETENVOY_MANIFEST_URL/env",
+			expected: "http://ENVOY_VERSIONS_URL/env",
 		},
 		{
-			name:     "--manifest arg",
-			args:     []string{"getenvoy", "--manifest", "http://manifest/arg"},
-			expected: "http://manifest/arg",
+			name:     "--envoy-versions-url flag",
+			args:     []string{"getenvoy", "--envoy-versions-url", "http://versions/arg"},
+			expected: "http://versions/arg",
 		},
 		{
-			name: "prioritizes --manifest arg over GETENVOY_MANIFEST_URL env",
-			args: []string{"getenvoy", "--manifest", "http://manifest/arg"},
+			name: "prioritizes --envoy-versions-url arg over ENVOY_VERSIONS_URL env",
+			args: []string{"getenvoy", "--envoy-versions-url", "http://versions/arg"},
 			setup: func() func() {
-				return requireSetenv(t, "GETENVOY_MANIFEST_URL", "http://GETENVOY_MANIFEST_URL/env")
+				return requireSetenv(t, "ENVOY_VERSIONS_URL", "http://ENVOY_VERSIONS_URL/env")
 			},
-			expected: "http://manifest/arg",
+			expected: "http://versions/arg",
 		},
 	}
 
-	for _, test := range tests {
-		test := test // pin! see https://github.com/kyoh86/scopelint for why
+	for _, tc := range tests {
+		tc := tc // pin! see https://github.com/kyoh86/scopelint for why
 
-		t.Run(test.name, func(t *testing.T) {
-			if test.setup != nil {
-				tearDown := test.setup()
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.setup != nil {
+				tearDown := tc.setup()
 				defer tearDown()
 			}
 
 			o := &globals.GlobalOpts{}
-			err := runTestCommand(t, o, test.args)
+			err := runTestCommand(t, o, tc.args)
 
 			require.NoError(t, err)
-			require.Equal(t, test.expected, o.ManifestURL)
+			require.Equal(t, tc.expected, o.EnvoyVersionsURL)
 		})
 	}
 }
@@ -207,7 +207,7 @@ func runTestCommand(t *testing.T, o *globals.GlobalOpts, args []string) error {
 }
 
 // setupTest returns globals.GlobalOpts and a tear-down function.
-// The tear-down functions reverts side-effects such as temp directories and a fake manifest server.
+// The tear-down functions reverts side-effects such as temp directories and a fake Envoy versions server.
 func setupTest(t *testing.T) (*globals.GlobalOpts, func()) {
 	result := globals.GlobalOpts{}
 	result.Out = io.Discard // ignore logging by default
@@ -220,9 +220,9 @@ func setupTest(t *testing.T) (*globals.GlobalOpts, func()) {
 	err := os.Mkdir(result.HomeDir, 0700)
 	require.NoError(t, err, `error creating directory: %s`, result.HomeDir)
 
-	manifestServer := manifesttest.RequireManifestTestServer(t, version.Envoy)
-	result.ManifestURL = manifestServer.URL + "/manifest.json"
-	tearDown = append(tearDown, manifestServer.Close)
+	versionsServer := test.RequireEnvoyVersionsTestServer(t, version.Envoy)
+	result.EnvoyVersionsURL = versionsServer.URL + "/envoy_versions.json"
+	tearDown = append(tearDown, versionsServer.Close)
 
 	return &result, func() {
 		for i := len(tearDown) - 1; i >= 0; i-- {

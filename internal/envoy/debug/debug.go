@@ -21,13 +21,13 @@ import (
 	"os"
 	"strings"
 
-	"github.com/tetratelabs/getenvoy/internal/binary/envoy"
+	envoy2 "github.com/tetratelabs/getenvoy/internal/envoy"
 )
 
 // EnableAll enables all debug options and returns a possibly empty list of errors.
-func EnableAll(r *envoy.Runtime) []error {
+func EnableAll(r *envoy2.Runtime) []error {
 	var errs []error
-	for _, debug := range []func(*envoy.Runtime) error{
+	for _, debug := range []func(*envoy2.Runtime) error{
 		enableEnvoyAdminDataCollection,
 		enableEnvoyLogCollection,
 		enableNodeCollection,

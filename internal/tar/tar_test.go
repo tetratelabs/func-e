@@ -64,7 +64,7 @@ func TestNewDecompressor_Validates(t *testing.T) {
 // TestNewDecompressor shows we can handle all compressed variants of Envoy, even accidentally empty files.
 //
 // As of May 2021, here are example values:
-// * "getenvoy-envoy-1.17.1.p0.gd6a4496-1p74.gbb8060d-darwin-release-x86_64.tar.xz"
+// * "getenvoy-envoy-1.17.3.p0.g46bf743-1p74.gbb8060d-darwin-release-x86_64.tar.xz"
 // * "getenvoy-1.11.0-bf169f9-af8a2e7-darwin-release-x86_64.tar.gz"
 func TestNewDecompressor(t *testing.T) {
 	for _, p := range []string{
