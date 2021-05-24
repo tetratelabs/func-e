@@ -56,8 +56,8 @@ func TestEnableEnvoyAdminDataCollection(t *testing.T) {
 
 // runAndTerminateWithDebug is like RequireRunTerminate, except returns a directory populated by the debug plugin.
 func runAndTerminateWithDebug(t *testing.T, workingDir string, debug func(r *envoy.Runtime) error, args ...string) error {
-	fakeEnvoy, removeFakeEnvoy := morerequire.RequireCaptureScript(t, "envoy")
-	defer removeFakeEnvoy()
+	fakeEnvoy := filepath.Join(workingDir, "envoy")
+	morerequire.RequireCaptureScript(t, fakeEnvoy)
 
 	o := &globals.RunOpts{EnvoyPath: fakeEnvoy, WorkingDir: workingDir, DontArchiveWorkingDir: true}
 

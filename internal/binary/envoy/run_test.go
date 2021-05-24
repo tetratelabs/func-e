@@ -32,14 +32,16 @@ import (
 )
 
 func TestRuntime_Run(t *testing.T) {
-	debugDir, removeDebugDir := morerequire.RequireNewTempDir(t)
-	defer removeDebugDir()
+	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
+	defer removeTempDir()
+
+	debugDir := filepath.Join(tempDir, "debug")
 	fakeTimestamp := "1619574747231823000"
 	workingDir := filepath.Join(debugDir, fakeTimestamp)
 
 	// "quiet" as we aren't testing the environment envoy runs in
-	fakeEnvoy, removeFakeEnvoy := morerequire.RequireCaptureScript(t, "quiet")
-	defer removeFakeEnvoy()
+	fakeEnvoy := filepath.Join(tempDir, "quiet")
+	morerequire.RequireCaptureScript(t, fakeEnvoy)
 
 	tests := []struct {
 		name                           string

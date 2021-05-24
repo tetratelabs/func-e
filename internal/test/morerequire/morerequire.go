@@ -30,15 +30,11 @@ import (
 // RequireNewTempDir creates a new directory. The function returned cleans it up.
 func RequireNewTempDir(t *testing.T) (string, func()) {
 	d, err := ioutil.TempDir("", "")
-	if err != nil {
-		require.NoError(t, err, `ioutil.TempDir("", "") erred`)
-	}
+	require.NoError(t, err, `ioutil.TempDir("", "") erred`)
 	d, err = filepath.EvalSymlinks(d)
 	require.NoError(t, err, `filepath.EvalSymlinks(%s) erred`, d)
-	require.NotEmpty(t, d, `filepath.EvalSymlinks(%s) returned ""`)
 	return d, func() {
-		e := os.RemoveAll(d)
-		require.NoError(t, e, `error removing directory: %v`, d)
+		os.RemoveAll(d) //nolint
 	}
 }
 
@@ -49,14 +45,7 @@ var (
 	captureScript []byte
 )
 
-// RequireCaptureScript creates a copy of cmd.CaptureScript with the given basename. The function returned cleans it up.
-func RequireCaptureScript(t *testing.T, name string) (string, func()) {
-	d, cleanup := RequireNewTempDir(t)
-	path := filepath.Join(d, name)
-	err := ioutil.WriteFile(path, captureScript, 0700) //nolint:gosec
-	if err != nil {
-		cleanup()
-		t.Fatalf(`expected no creating capture script %q: %v`, path, err)
-	}
-	return path, cleanup
+// RequireCaptureScript writes captureScript to the given path
+func RequireCaptureScript(t *testing.T, path string) {
+	require.NoError(t, os.WriteFile(path, captureScript, 0700)) //nolint:gosec
 }
