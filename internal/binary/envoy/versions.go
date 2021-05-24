@@ -26,13 +26,14 @@ import (
 func PrintVersions(m *manifest.Manifest, goos string, w io.Writer) {
 	p := manifest.BuildPlatform(goos)
 	// print nothing if the only released "flavor" or the platform doesn't exist
-	if m.Flavors["standard"] == nil || p == "" {
+	f, ok := m.Flavors["standard"]
+	if !ok {
 		return
 	}
 
 	// Build a list of versions for this platform
 	var versions []string
-	for _, v := range m.Flavors["standard"].Versions {
+	for _, v := range f.Versions {
 		for _, b := range v.Builds {
 			if p == b.Platform {
 				versions = append(versions, v.Name)

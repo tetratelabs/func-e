@@ -66,7 +66,7 @@ func InstallIfNeeded(o *globals.GlobalOpts, p, v string) (string, error) {
 	return verifyEnvoy(installPath)
 }
 
-// LocateBuild returns the downloadLocationURL of the associated envoy binary in the manifest using the input key
+// tarballURL returns the downloadLocationURL of a tarball for the given runtime.GOOS and Envoy Versionunable to read
 func tarballURL(m *manifest.Manifest, goos, version string) (string, error) {
 	errorNoVersions := errors.NewValidationError("couldn't find version %q for platform %q", version, goos)
 	platform := manifest.BuildPlatform(goos)

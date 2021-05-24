@@ -75,7 +75,7 @@ func TestUntarEnvoyError(t *testing.T) {
 
 // TestUntarEnvoy doesn't test compression formats because that logic is in tar.Tar
 func TestUntarEnvoy(t *testing.T) {
-	o, cleanup := setupTest(t)
+	o, cleanup := setupInstallTest(t)
 	defer cleanup()
 
 	out := new(bytes.Buffer)
@@ -86,7 +86,7 @@ func TestUntarEnvoy(t *testing.T) {
 }
 
 func TestInstallIfNeeded_ErrorOnIncorrectURL(t *testing.T) {
-	o, cleanup := setupTest(t)
+	o, cleanup := setupInstallTest(t)
 	defer cleanup()
 
 	o.ManifestURL += "/mannyfest.json"
@@ -97,7 +97,7 @@ func TestInstallIfNeeded_ErrorOnIncorrectURL(t *testing.T) {
 }
 
 func TestInstallIfNeeded_Validates(t *testing.T) {
-	o, cleanup := setupTest(t)
+	o, cleanup := setupInstallTest(t)
 	defer cleanup()
 
 	tests := []struct{ name, goos, version, expectedErr string }{
@@ -149,7 +149,7 @@ func TestProgressReader_UnknownLength(t *testing.T) {
 }
 
 func TestInstallIfNeeded(t *testing.T) {
-	o, cleanup := setupTest(t)
+	o, cleanup := setupInstallTest(t)
 	defer cleanup()
 	out := o.Out.(*bytes.Buffer)
 
@@ -163,7 +163,7 @@ func TestInstallIfNeeded(t *testing.T) {
 }
 
 func TestInstallIfNeeded_AlreadyExists(t *testing.T) {
-	o, cleanup := setupTest(t)
+	o, cleanup := setupInstallTest(t)
 	defer cleanup()
 	out := o.Out.(*bytes.Buffer)
 
@@ -217,7 +217,7 @@ type installTest struct {
 	tempDir, tarballURL string
 }
 
-func setupTest(t *testing.T) (*installTest, func()) {
+func setupInstallTest(t *testing.T) (*installTest, func()) {
 	var tearDown []func()
 
 	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
