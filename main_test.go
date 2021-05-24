@@ -16,10 +16,8 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -67,14 +65,6 @@ show usage with: getenvoy -h
 			expectedStderr: `unknown command "fly"
 show usage with: getenvoy -h
 `,
-		},
-		{
-			name:           "invalid command arg",
-			args:           []string{"getenvoy", "install", "unknown"},
-			expectedStatus: 1,
-			expectedStderr: fmt.Sprintf(`couldn't find version "unknown" for platform "%s"
-show usage with: getenvoy -h
-`, runtime.GOOS),
 		},
 		{
 			name:           "execution error",

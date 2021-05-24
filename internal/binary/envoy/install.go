@@ -33,8 +33,8 @@ import (
 const binEnvoy = "bin/envoy"
 
 // InstallIfNeeded downloads an Envoy binary corresponding to the given version and returns a path to it or an error.
-func InstallIfNeeded(o *globals.GlobalOpts, goos, version string) (string, error) {
-	installPath := filepath.Join(o.HomeDir, "versions", version)
+func InstallIfNeeded(o *globals.GlobalOpts, p, v string) (string, error) {
+	installPath := filepath.Join(o.HomeDir, "versions", v)
 	envoyPath := filepath.Join(installPath, binEnvoy)
 	_, err := os.Stat(envoyPath)
 	switch {
@@ -48,17 +48,17 @@ func InstallIfNeeded(o *globals.GlobalOpts, goos, version string) (string, error
 			return "", e
 		}
 
-		downloadLocationURL, e := downloadURL(m, goos, version)
+		tarballURL, e := tarballURL(m, p, v)
 		if e != nil {
 			return "", e
 		}
 
-		fmt.Fprintln(o.Out, "downloading", downloadLocationURL) //nolint
-		if e := untarEnvoy(installPath, downloadLocationURL, o.Out); e != nil {
+		fmt.Fprintln(o.Out, "downloading", tarballURL) //nolint
+		if e := untarEnvoy(installPath, tarballURL, o.Out); e != nil {
 			return "", e
 		}
 	case err == nil:
-		fmt.Fprintln(o.Out, version, "is already downloaded") //nolint
+		fmt.Fprintln(o.Out, v, "is already downloaded") //nolint
 	default:
 		// TODO: figure out how to get a stat error that isn't file not exist so we can test this
 		return "", err
@@ -67,7 +67,7 @@ func InstallIfNeeded(o *globals.GlobalOpts, goos, version string) (string, error
 }
 
 // LocateBuild returns the downloadLocationURL of the associated envoy binary in the manifest using the input key
-func downloadURL(m *manifest.Manifest, goos, version string) (string, error) {
+func tarballURL(m *manifest.Manifest, goos, version string) (string, error) {
 	errorNoVersions := errors.NewValidationError("couldn't find version %q for platform %q", version, goos)
 	platform := manifest.BuildPlatform(goos)
 	if platform == "" {

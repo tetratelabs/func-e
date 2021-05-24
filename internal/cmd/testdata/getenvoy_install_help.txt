@@ -9,7 +9,7 @@ DESCRIPTION:
    The Envoy <version> will be installed into $GETENVOY_HOME/versions/<version>
    
    Example:
-   $ getenvoy install ENVOY_VERSION
+   $ getenvoy install {ENVOY_VERSION}
 
 OPTIONS:
    --help, -h  show help (default: false)

@@ -52,11 +52,11 @@ func RequireManifestTestServer(t *testing.T, version string) *httptest.Server {
 						Builds: map[string]*manifest.Build{
 							"LINUX_GLIBC": {
 								Platform:            "LINUX_GLIBC",
-								DownloadLocationURL: DownloadURL(h.URL, "linux", version),
+								DownloadLocationURL: TarballURL(h.URL, "linux", version),
 							},
 							"DARWIN": {
 								Platform:            "DARWIN",
-								DownloadLocationURL: DownloadURL(h.URL, "darwin", version),
+								DownloadLocationURL: TarballURL(h.URL, "darwin", version),
 							},
 						},
 					},
@@ -67,9 +67,9 @@ func RequireManifestTestServer(t *testing.T, version string) *httptest.Server {
 	return h
 }
 
-// DownloadURL gives the expected download URL for the given runtime.GOOS and Envoy version.
-func DownloadURL(baseURL, goos, version string) string {
-	return fmt.Sprintf("%s%s%s/envoy-%s-%s-x86_64%s", baseURL, versionsPath, version, version, goos, archiveFormat)
+// TarballURL gives the expected download URL for the given runtime.GOOS and Envoy version.
+func TarballURL(baseURL, goos, v string) string {
+	return fmt.Sprintf("%s%s%s/envoy-%s-%s-x86_64%s", baseURL, versionsPath, v, v, goos, archiveFormat)
 }
 
 // server represents an HTTP server serving GetEnvoy manifest.
@@ -86,14 +86,13 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		require.NoError(s.t, err)
 	case strings.HasPrefix(r.RequestURI, versionsPath):
 		subpath := r.RequestURI[len(versionsPath):]
-		require.True(s.t, strings.HasSuffix(subpath, archiveFormat),
-			"unexpected uri %q: expected archive suffix %q", subpath, archiveFormat)
+		require.True(s.t, strings.HasSuffix(subpath, archiveFormat), "unexpected uri %q: expected archive suffix %q", subpath, archiveFormat)
 
-		version := strings.Split(subpath, "/")[0]
-		require.Regexpf(s.t, `^1\.[1-9][0-9]\.[0-9]+$`, version, "unsupported version in uri %q", subpath)
+		v := strings.Split(subpath, "/")[0]
+		require.Regexpf(s.t, `^1\.[1-9][0-9]\.[0-9]+$`, v, "unsupported version in uri %q", subpath)
 
 		w.WriteHeader(http.StatusOK)
-		_, e := w.Write(requireFakeEnvoyTarGz(s.t, version))
+		_, e := w.Write(requireFakeEnvoyTarGz(s.t, v))
 		require.NoError(s.t, e)
 	default:
 		w.WriteHeader(http.StatusNotFound)
@@ -106,12 +105,12 @@ func (s *server) GetManifest() []byte {
 	return data
 }
 
-func requireFakeEnvoyTarGz(t *testing.T, version string) []byte {
+func requireFakeEnvoyTarGz(t *testing.T, v string) []byte {
 	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
 	defer removeTempDir()
 
 	// construct the platform directory based on the input version
-	installDir := filepath.Join(tempDir, version)
+	installDir := filepath.Join(tempDir, v)
 	require.NoError(t, os.MkdirAll(filepath.Join(installDir, "bin"), 0700)) //nolint:gosec
 	// go:embed doesn't allow us to retain execute bit, so it is simpler to inline this.
 	fakeEnvoy := []byte(`#!/bin/sh

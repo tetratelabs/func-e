@@ -79,7 +79,7 @@ func TestUntarEnvoy(t *testing.T) {
 	defer cleanup()
 
 	out := new(bytes.Buffer)
-	e := untarEnvoy(o.tempDir, o.envoyURL, out)
+	e := untarEnvoy(o.tempDir, o.tarballURL, out)
 	require.NoError(t, e)
 	require.FileExists(t, filepath.Join(o.tempDir, binEnvoy))
 	require.Contains(t, out.String(), `100% |████████████████████████████████████████|`)
@@ -158,7 +158,7 @@ func TestInstallIfNeeded(t *testing.T) {
 	require.Equal(t, o.EnvoyPath, envoyPath)
 	require.FileExists(t, envoyPath)
 
-	require.Contains(t, out.String(), o.envoyURL)
+	require.Contains(t, out.String(), o.tarballURL)
 	require.Contains(t, out.String(), "100% |████████████████████████████████████████|")
 }
 
@@ -212,12 +212,12 @@ func TestVerifyEnvoy(t *testing.T) {
 	})
 }
 
-type manifestTest struct {
+type installTest struct {
 	globals.GlobalOpts
-	tempDir, envoyURL string
+	tempDir, tarballURL string
 }
 
-func setupTest(t *testing.T) (*manifestTest, func()) {
+func setupTest(t *testing.T) (*installTest, func()) {
 	var tearDown []func()
 
 	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
@@ -226,9 +226,9 @@ func setupTest(t *testing.T) (*manifestTest, func()) {
 	manifestServer := manifesttest.RequireManifestTestServer(t, version.Envoy)
 	tearDown = append(tearDown, manifestServer.Close)
 
-	return &manifestTest{
-			tempDir:  tempDir,
-			envoyURL: manifesttest.DownloadURL(manifestServer.URL, runtime.GOOS, version.Envoy),
+	return &installTest{
+			tempDir:    tempDir,
+			tarballURL: manifesttest.TarballURL(manifestServer.URL, runtime.GOOS, version.Envoy),
 			GlobalOpts: globals.GlobalOpts{
 				HomeDir:     tempDir,
 				ManifestURL: manifestServer.URL + "/manifest.json",

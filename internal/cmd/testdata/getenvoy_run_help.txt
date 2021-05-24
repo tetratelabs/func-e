@@ -10,7 +10,7 @@ DESCRIPTION:
    The Envoy working directory is archived as $GETENVOY_HOME/runs/$epochtime.tar.gz upon termination.
    
    Example:
-   $ getenvoy run ENVOY_VERSION --config-path ./bootstrap.yaml
+   $ getenvoy run {ENVOY_VERSION} --config-path ./bootstrap.yaml
 
 OPTIONS:
    --help, -h  show help (default: false)

@@ -21,11 +21,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/internal/globals"
 	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
 func TestGetEnvoyRunValidateFlag(t *testing.T) {
+	o, cleanup := setupTest(t)
+	defer cleanup()
+
 	tests := []struct {
 		name        string
 		args        []string
@@ -48,7 +50,7 @@ func TestGetEnvoyRunValidateFlag(t *testing.T) {
 
 		t.Run(test.name, func(t *testing.T) {
 			// Run "getenvoy run"
-			c, stdout, stderr := newApp(&globals.GlobalOpts{})
+			c, stdout, stderr := newApp(o)
 			err := c.Run(test.args)
 
 			// Verify the command failed with the expected error
