@@ -18,10 +18,10 @@ import (
 	"net/url"
 	"os/user"
 	"path/filepath"
+	"regexp"
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/tetratelabs/getenvoy/internal/errors"
 	"github.com/tetratelabs/getenvoy/internal/globals"
 	"github.com/tetratelabs/getenvoy/internal/version"
 )
@@ -78,7 +78,7 @@ func setManifestURL(o *globals.GlobalOpts, manifestURL string) error {
 	} else {
 		otherURL, err := url.Parse(manifestURL)
 		if err != nil || otherURL.Host == "" || otherURL.Scheme == "" {
-			return errors.NewValidationError("%q is not a valid manifest URL", manifestURL)
+			return NewValidationError("%q is not a valid manifest URL", manifestURL)
 		}
 		o.ManifestURL = manifestURL
 	}
@@ -92,13 +92,13 @@ func setHomeDir(o *globals.GlobalOpts, homeDir string) error {
 	if homeDir == "" {
 		u, err := user.Current()
 		if err != nil || u.HomeDir == "" {
-			return errors.NewValidationError("unable to determine home directory. Set GETENVOY_HOME instead: %v", err)
+			return NewValidationError("unable to determine home directory. Set GETENVOY_HOME instead: %v", err)
 		}
 		o.HomeDir = filepath.Join(u.HomeDir, ".getenvoy")
 	} else {
 		abs, err := filepath.Abs(homeDir)
 		if err != nil {
-			return errors.NewValidationError(err.Error())
+			return NewValidationError(err.Error())
 		}
 		o.HomeDir = abs
 	}
@@ -107,7 +107,11 @@ func setHomeDir(o *globals.GlobalOpts, homeDir string) error {
 
 func validateVersionArg(c *cli.Context) error {
 	if c.NArg() == 0 {
-		return errors.NewValidationError("missing version parameter")
+		return NewValidationError("missing <version> argument")
+	}
+	v := c.Args().First()
+	if matched, _ := regexp.MatchString("^[1-9][0-9]*\\.[0-9]+\\.[0-9]+$", v); !matched {
+		return NewValidationError("invalid <version> argument: %q should look like %q", v, version.Envoy)
 	}
 	return nil
 }

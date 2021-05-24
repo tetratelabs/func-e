@@ -26,7 +26,6 @@ import (
 
 	"github.com/tetratelabs/getenvoy/internal/binary/envoy"
 	"github.com/tetratelabs/getenvoy/internal/binary/envoy/debug"
-	"github.com/tetratelabs/getenvoy/internal/errors"
 	"github.com/tetratelabs/getenvoy/internal/globals"
 	latestversion "github.com/tetratelabs/getenvoy/internal/version"
 )
@@ -83,7 +82,7 @@ func initializeRunOpts(o *globals.GlobalOpts, goos, version string) error {
 
 		// When the directory is implicitly generated, we should create it to avoid late errors.
 		if err := os.MkdirAll(workingDir, 0750); err != nil {
-			return errors.NewValidationError("unable to create working directory %q, so we cannot run envoy", workingDir)
+			return NewValidationError("unable to create working directory %q, so we cannot run envoy", workingDir)
 		}
 		runOpts.WorkingDir = workingDir
 	}

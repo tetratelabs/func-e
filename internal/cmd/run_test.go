@@ -16,7 +16,6 @@ package cmd_test
 
 import (
 	"fmt"
-	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -36,12 +35,12 @@ func TestGetEnvoyRunValidateFlag(t *testing.T) {
 		{
 			name:        "arg[0] missing",
 			args:        []string{"getenvoy", "run"},
-			expectedErr: `missing version parameter`,
+			expectedErr: `missing <version> argument`,
 		},
 		{
 			name:        "arg[0] with invalid version",
 			args:        []string{"getenvoy", "run", "unknown"},
-			expectedErr: fmt.Sprintf(`couldn't find version "unknown" for platform %q`, runtime.GOOS),
+			expectedErr: fmt.Sprintf(`invalid <version> argument: "unknown" should look like "%s"`, version.Envoy),
 		},
 	}
 
@@ -121,7 +120,7 @@ func TestGetEnvoyRunFailWithUnknownVersion(t *testing.T) {
 	err := c.Run([]string{"getenvoy", "run", "unknown"})
 
 	// Verify the command failed with the expected error.
-	require.EqualError(t, err, fmt.Sprintf(`couldn't find version "unknown" for platform %q`, runtime.GOOS))
+	require.EqualError(t, err, fmt.Sprintf(`invalid <version> argument: "unknown" should look like "%s"`, version.Envoy))
 	// GetEnvoy handles logging of errors, so we expect nothing in stdout or stderr
 	require.Empty(t, stdout)
 	require.Empty(t, stderr)

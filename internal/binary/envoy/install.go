@@ -23,7 +23,6 @@ import (
 
 	"github.com/schollz/progressbar/v3"
 
-	"github.com/tetratelabs/getenvoy/internal/errors"
 	"github.com/tetratelabs/getenvoy/internal/globals"
 	"github.com/tetratelabs/getenvoy/internal/manifest"
 	"github.com/tetratelabs/getenvoy/internal/tar"
@@ -68,7 +67,7 @@ func InstallIfNeeded(o *globals.GlobalOpts, p, v string) (string, error) {
 
 // tarballURL returns the downloadLocationURL of a tarball for the given runtime.GOOS and Envoy Versionunable to read
 func tarballURL(m *manifest.Manifest, goos, v string) (string, error) {
-	errorNoVersions := errors.NewValidationError("couldn't find version %q for platform %q", v, goos)
+	errorNoVersions := fmt.Errorf("couldn't find version %q for platform %q", v, goos)
 	platform := manifest.BuildPlatform(goos)
 	if platform == "" {
 		return "", errorNoVersions
