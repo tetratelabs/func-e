@@ -1,17 +1,16 @@
 NAME:
-   getenvoy run - Run Envoy and collect process state on exit
+   getenvoy run - Run Envoy as <version> with <args> as arguments, collecting process state on termination
 
 USAGE:
-   getenvoy run [command options] <reference> -- <envoy-args>
+   getenvoy run [command options] <version> <args>
 
 DESCRIPTION:
-   The '<reference>' minimally includes the Envoy version.
-   The '<envoy-args>' are interpreted by Envoy.
+   The '<version>' is from the "versions" command and installed if necessary.
+   The '<args>' are interpreted by Envoy.
+   The Envoy working directory is archived as $GETENVOY_HOME/runs/$epochtime.tar.gz upon termination.
    
    Example:
-   $ getenvoy run 1.17.1 -- --config-path ./bootstrap.yaml
-   
-   To view all available builds, invoke the "list" command.
+   $ getenvoy run {ENVOY_VERSION} --config-path ./bootstrap.yaml
 
 OPTIONS:
    --help, -h  show help (default: false)

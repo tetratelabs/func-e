@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"fmt"
+	"runtime"
 
 	"github.com/urfave/cli/v2"
 
@@ -24,24 +25,20 @@ import (
 	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
-// NewFetchCmd create a command responsible for retrieving Envoy binaries
-func NewFetchCmd(o *globals.GlobalOpts) *cli.Command {
+// NewInstallCmd create a command responsible for downloading and extracting Envoy
+func NewInstallCmd(o *globals.GlobalOpts) *cli.Command {
 	return &cli.Command{
-		Name:      "fetch",
-		Usage:     "Download a build of Envoy",
-		ArgsUsage: "<reference>",
-		Description: fmt.Sprintf(`The '<reference>' minimally includes the Envoy version.
+		Name:      "install",
+		Usage:     "Download and install a <version> of Envoy",
+		ArgsUsage: "<version>",
+		Description: fmt.Sprintf(`The '<version>' is from the "versions" command.
+The Envoy <version> will be installed into $GETENVOY_HOME/versions/<version>
 
-Example: Prefetch Envoy prior to invoking `+"`getenvoy run`"+`
-$ getenvoy fetch %[1]s
-
-Example: Fetch Envoy to run on a specific platform
-$ getenvoy fetch %[1]s/linux-glibc
-
-To view all available builds, invoke the "list" command.`, version.Envoy),
-		Before: validateReferenceArg,
+Example:
+$ getenvoy install %s`, version.Envoy),
+		Before: validateVersionArg,
 		Action: func(c *cli.Context) error {
-			_, err := envoy.FetchIfNeeded(o, c.Args().First())
+			_, err := envoy.InstallIfNeeded(o, runtime.GOOS, c.Args().First())
 			return err
 		},
 	}

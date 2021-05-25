@@ -16,6 +16,7 @@ package cmd_test
 
 import (
 	"bytes"
+	"io"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -26,6 +27,9 @@ import (
 
 	rootcmd "github.com/tetratelabs/getenvoy/internal/cmd"
 	"github.com/tetratelabs/getenvoy/internal/globals"
+	manifesttest "github.com/tetratelabs/getenvoy/internal/test/manifest"
+	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
+	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
 func TestGetEnvoyValidateArgs(t *testing.T) {
@@ -200,4 +204,29 @@ func runTestCommand(t *testing.T, o *globals.GlobalOpts, args []string) error {
 	require.Empty(t, stdout)
 	require.Empty(t, stderr)
 	return err
+}
+
+// setupTest returns globals.GlobalOpts and a tear-down function.
+// The tear-down functions reverts side-effects such as temp directories and a fake manifest server.
+func setupTest(t *testing.T) (*globals.GlobalOpts, func()) {
+	result := globals.GlobalOpts{}
+	result.Out = io.Discard // ignore logging by default
+	var tearDown []func()
+
+	tempDir, deleteTempDir := morerequire.RequireNewTempDir(t)
+	tearDown = append(tearDown, deleteTempDir)
+
+	result.HomeDir = filepath.Join(tempDir, "envoy_home")
+	err := os.Mkdir(result.HomeDir, 0700)
+	require.NoError(t, err, `error creating directory: %s`, result.HomeDir)
+
+	manifestServer := manifesttest.RequireManifestTestServer(t, version.Envoy)
+	result.ManifestURL = manifestServer.URL + "/manifest.json"
+	tearDown = append(tearDown, manifestServer.Close)
+
+	return &result, func() {
+		for i := len(tearDown) - 1; i >= 0; i-- {
+			tearDown[i]()
+		}
+	}
 }

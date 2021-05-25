@@ -18,11 +18,11 @@ import (
 	"net/url"
 	"os/user"
 	"path/filepath"
+	"regexp"
 
 	"github.com/urfave/cli/v2"
 
 	"github.com/tetratelabs/getenvoy/internal/globals"
-	"github.com/tetratelabs/getenvoy/internal/manifest"
 	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
@@ -47,7 +47,7 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 		},
 		&cli.StringFlag{
 			Name:        "manifest",
-			Usage:       "GetEnvoy manifest URL (list of available Envoy builds)",
+			Usage:       "GetEnvoy manifest URL (list of available Envoy versions)",
 			Hidden:      true,
 			DefaultText: globals.DefaultManifestURL,
 			Destination: &manifestURL,
@@ -62,8 +62,8 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 
 	app.Commands = []*cli.Command{
 		NewRunCmd(o),
-		NewListCmd(o),
-		NewFetchCmd(o),
+		NewVersionsCmd(o),
+		NewInstallCmd(o),
 		NewDocCmd(),
 	}
 	return app
@@ -105,12 +105,13 @@ func setHomeDir(o *globals.GlobalOpts, homeDir string) error {
 	return nil
 }
 
-func validateReferenceArg(c *cli.Context) error {
+func validateVersionArg(c *cli.Context) error {
 	if c.NArg() == 0 {
-		return NewValidationError("missing reference parameter")
+		return NewValidationError("missing <version> argument")
 	}
-	if _, e := manifest.ParseReference(c.Args().First()); e != nil {
-		return NewValidationError(e.Error())
+	v := c.Args().First()
+	if matched, _ := regexp.MatchString("^[1-9][0-9]*\\.[0-9]+\\.[0-9]+$", v); !matched {
+		return NewValidationError("invalid <version> argument: %q should look like %q", v, version.Envoy)
 	}
 	return nil
 }

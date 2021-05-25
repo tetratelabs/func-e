@@ -28,7 +28,7 @@ import (
 )
 
 func TestGetEnvoyHelp(t *testing.T) {
-	for _, command := range []string{"", "fetch", "list", "run"} {
+	for _, command := range []string{"", "install", "versions", "run"} {
 		command := command
 		t.Run(command, func(t *testing.T) {
 			c, stdout, _ := newApp(&globals.GlobalOpts{})
@@ -45,7 +45,7 @@ func TestGetEnvoyHelp(t *testing.T) {
 
 			want, err := os.ReadFile(filepath.Join("testdata", expected))
 			require.NoError(t, err)
-			require.Equal(t, strings.ReplaceAll(string(want), "ENVOY_VERSION", version.Envoy), stdout.String())
+			require.Equal(t, strings.ReplaceAll(string(want), "{ENVOY_VERSION}", version.Envoy), stdout.String())
 		})
 	}
 }

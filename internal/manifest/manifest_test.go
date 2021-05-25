@@ -16,7 +16,6 @@ package manifest
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -24,69 +23,60 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestLocateBuild(t *testing.T) {
-	tests := []struct{ name, reference, want, wantErr string }{
+func TestBuildPlatform(t *testing.T) {
+	tests := []struct{ name, goos, expected string }{
 		{
-			name:      "standard 1.17.1 linux-glibc matches",
-			reference: "standard:1.17.1/linux-glibc",
-			want:      "standard:1.17.1/linux-glibc",
+			name:     "darwin",
+			goos:     "darwin",
+			expected: "DARWIN",
 		},
 		{
-			name:      "standard 1.17.1 matches",
-			reference: "standard:1.17.1",
-			want:      fmt.Sprintf("standard:1.17.1/%v", currentPlatform()),
+			name:     "linux",
+			goos:     "linux",
+			expected: "LINUX_GLIBC",
 		},
 		{
-			name:      "standard-fips1402:1.10.0/linux-glibc matches",
-			reference: "standard-fips1402:1.10.0/linux-glibc",
-			want:      "standard-fips1402:1.10.0/linux-glibc",
+			name:     "unsupported",
+			goos:     "windows",
+			expected: "",
 		},
 		{
-			name:      "sTanDard:nIgHTLY/LiNuX-gLiBc matches",
-			reference: "sTanDard:nIgHTLY/LiNuX-gLiBc",
-			want:      "standard:nightly/linux-glibc",
-		},
-		{
-			name:      "Error if not found",
-			reference: "notaFlavor:1.17.1/notaPlatform",
-			wantErr:   `unable to find matching GetEnvoy build for reference "notaflavor:1.17.1/notaplatform"`,
+			name:     "empty",
+			goos:     "",
+			expected: "",
 		},
 	}
 	for _, tt := range tests {
 		tc := tt
 		t.Run(tc.name, func(t *testing.T) {
-			key, err := ParseReference(tc.reference)
-			require.NoError(t, err)
-
-			if have, err := LocateBuild(key, goodManifest); tc.wantErr != "" {
-				require.EqualError(t, err, tc.wantErr)
-				require.Equal(t, "", have)
-			} else {
-				require.NoError(t, err)
-				require.Equal(t, tc.want, have)
-			}
+			require.Equal(t, tc.expected, BuildPlatform(tc.goos))
 		})
 	}
 }
 
-func TestFetchManifest(t *testing.T) {
+func TestGetManifest(t *testing.T) {
 	goodManifestBytes, err := json.Marshal(goodManifest)
 	require.NoError(t, err)
 
 	// This tests we can parse a flavor besides "standard", and don't crash on new fields
-	nonStandardManifestBytes := []byte(`{
-  "manifestVersion": "v0.1.2",
+	unknownFieldsManifestBytes := []byte(`{
+  "manifestVersion": "v0.1.0",
   "flavors": {
-    "experiment": {
-      "name": "experiment",
+    "standard": {
+      "name": "standard",
+      "favoriteColor": "blue.. no, yellow!",
+
       "versions": {
-        "1.15": {
-          "name": "1.15",
+        "1.14.6": {
+          "name": "1.14.6",
           "builds": {
             "DARWIN": {
-              "downloadLocationUrl": "1.17.1/darwin",
               "platform": "DARWIN",
-              "ARCH": "amd64"
+              "downloadLocationUrl": "https://getenvoy.io/versions/1.14.6/envoy-1.14.6-darwin-x86_64.tar.gz"
+            },
+            "LINUX_GLIBC": {
+              "platform": "LINUX_GLIBC",
+              "downloadLocationUrl": "https://getenvoy.io/versions/1.14.6/envoy-1.14.6-linux-x86_64.tar.gz"
             }
           }
         }
@@ -94,26 +84,6 @@ func TestFetchManifest(t *testing.T) {
     }
   }
 }`)
-
-	var nonStandardManifest = &Manifest{
-		ManifestVersion: "v0.1.2",
-		Flavors: map[string]*Flavor{
-			"experiment": {
-				Name: "experiment",
-				Versions: map[string]*Version{
-					"1.15": {
-						Name: "1.15",
-						Builds: map[string]*Build{
-							"DARWIN": {
-								Platform:            "DARWIN",
-								DownloadLocationURL: "1.17.1/darwin",
-							},
-						},
-					},
-				},
-			},
-		},
-	}
 
 	tests := []struct {
 		name                  string
@@ -129,10 +99,10 @@ func TestFetchManifest(t *testing.T) {
 			want:                  goodManifest,
 		},
 		{
-			name:                  "allows non-standard flavor and unknown fields",
+			name:                  "allows unknown fields",
 			responseStatusCode:    http.StatusOK,
-			responseManifestBytes: nonStandardManifestBytes,
-			want:                  nonStandardManifest, // instead of crash
+			responseManifestBytes: unknownFieldsManifestBytes,
+			want:                  goodManifest, // instead of crash
 		},
 		{
 			name:               "errors on non-200 response",
@@ -152,7 +122,7 @@ func TestFetchManifest(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mock := mockServer(tc.responseStatusCode, tc.responseManifestBytes)
 			defer mock.Close()
-			have, err := FetchManifest(mock.URL)
+			have, err := GetManifest(mock.URL)
 			require.Equal(t, tc.want, have)
 			if tc.wantErr {
 				require.Error(t, err)
@@ -170,4 +140,28 @@ func mockServer(responseStatusCode int, responseManifestBytes []byte) *httptest.
 			w.Write(responseManifestBytes)
 		}
 	}))
+}
+
+var goodManifest = &Manifest{
+	ManifestVersion: "v0.1.0",
+	Flavors: map[string]*Flavor{
+		"standard": {
+			Name: "standard",
+			Versions: map[string]*Version{
+				"1.14.6": {
+					Name: "1.14.6",
+					Builds: map[string]*Build{
+						"LINUX_GLIBC": {
+							Platform:            "LINUX_GLIBC",
+							DownloadLocationURL: "https://getenvoy.io/versions/1.14.6/envoy-1.14.6-linux-x86_64.tar.gz",
+						},
+						"DARWIN": {
+							Platform:            "DARWIN",
+							DownloadLocationURL: "https://getenvoy.io/versions/1.14.6/envoy-1.14.6-darwin-x86_64.tar.gz",
+						},
+					},
+				},
+			},
+		},
+	},
 }

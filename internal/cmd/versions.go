@@ -15,25 +15,27 @@
 package cmd
 
 import (
-	"os"
+	"runtime"
 
 	"github.com/urfave/cli/v2"
 
+	"github.com/tetratelabs/getenvoy/internal/binary/envoy"
 	"github.com/tetratelabs/getenvoy/internal/globals"
 	"github.com/tetratelabs/getenvoy/internal/manifest"
 )
 
-// NewListCmd returns command that lists available Envoy binaries
-func NewListCmd(o *globals.GlobalOpts) *cli.Command {
+// NewVersionsCmd returns command that lists available Envoy versions for the current platform.
+func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 	return &cli.Command{
-		Name:  "list",
-		Usage: "List available Envoy builds",
+		Name:  "versions",
+		Usage: "List available Envoy versions",
 		Action: func(c *cli.Context) error {
-			m, err := manifest.FetchManifest(o.ManifestURL)
+			m, err := manifest.GetManifest(o.ManifestURL)
 			if err != nil {
 				return err
 			}
-			return manifest.Print(m, os.Stdout)
+			envoy.PrintVersions(m, runtime.GOOS, c.App.Writer)
+			return nil
 		},
 	}
 }

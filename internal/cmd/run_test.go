@@ -16,21 +16,17 @@ package cmd_test
 
 import (
 	"fmt"
-	"io"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/internal/globals"
-	"github.com/tetratelabs/getenvoy/internal/manifest"
-	manifesttest "github.com/tetratelabs/getenvoy/internal/test/manifest"
-	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
 	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
 func TestGetEnvoyRunValidateFlag(t *testing.T) {
+	o, cleanup := setupTest(t)
+	defer cleanup()
+
 	tests := []struct {
 		name        string
 		args        []string
@@ -39,12 +35,12 @@ func TestGetEnvoyRunValidateFlag(t *testing.T) {
 		{
 			name:        "arg[0] missing",
 			args:        []string{"getenvoy", "run"},
-			expectedErr: `missing reference parameter`,
+			expectedErr: `missing <version> argument`,
 		},
 		{
-			name:        "arg[0] with invalid reference",
-			args:        []string{"getenvoy", "run", "???"},
-			expectedErr: `"???" is not a valid GetEnvoy reference. Expected format: [<flavor>:]<version>[/<platform>]`,
+			name:        "arg[0] with invalid version",
+			args:        []string{"getenvoy", "run", "unknown"},
+			expectedErr: fmt.Sprintf(`invalid <version> argument: "unknown" should look like "%s"`, version.Envoy),
 		},
 	}
 
@@ -53,7 +49,7 @@ func TestGetEnvoyRunValidateFlag(t *testing.T) {
 
 		t.Run(test.name, func(t *testing.T) {
 			// Run "getenvoy run"
-			c, stdout, stderr := newApp(&globals.GlobalOpts{})
+			c, stdout, stderr := newApp(o)
 			err := c.Run(test.args)
 
 			// Verify the command failed with the expected error
@@ -77,11 +73,11 @@ func TestGetEnvoyRun(t *testing.T) {
 		},
 		{
 			name: "empty envoy args",
-			args: []string{"getenvoy", "run", version.Envoy, "--"},
+			args: []string{"getenvoy", "run", version.Envoy},
 		},
 		{
 			name:              "envoy args",
-			args:              []string{"getenvoy", "run", version.Envoy, "--", "-c", "envoy.yaml"},
+			args:              []string{"getenvoy", "run", version.Envoy, "-c", "envoy.yaml"},
 			expectedEnvoyArgs: ` -c envoy.yaml`,
 		},
 	}
@@ -93,8 +89,8 @@ func TestGetEnvoyRun(t *testing.T) {
 			o, cleanup := setupTest(t)
 			defer cleanup()
 
-			// Run "getenvoy run 1.17.1 -- -c envoy.yaml"
-			c, stdout, stderr := newApp(&o.GlobalOpts)
+			// Run "getenvoy run 1.17.1 -c envoy.yaml"
+			c, stdout, stderr := newApp(o)
 			err := c.Run(test.args)
 
 			// Verify the command invoked, passing the correct default commandline
@@ -117,55 +113,15 @@ func TestGetEnvoyRunFailWithUnknownVersion(t *testing.T) {
 	o, cleanup := setupTest(t)
 	defer cleanup()
 
-	o.EnvoyPath = "" // force lookup of reference flag
-	c, stdout, stderr := newApp(&o.GlobalOpts)
+	o.EnvoyPath = "" // force lookup of version flag
+	c, stdout, stderr := newApp(o)
 
 	// Run "getenvoy run unknown"
 	err := c.Run([]string{"getenvoy", "run", "unknown"})
 
 	// Verify the command failed with the expected error.
-	reference := "unknown/" + o.platform
-	expectedErr := fmt.Sprintf(`unable to find matching GetEnvoy build for reference "%s"`, reference)
-	require.EqualError(t, err, expectedErr)
+	require.EqualError(t, err, fmt.Sprintf(`invalid <version> argument: "unknown" should look like "%s"`, version.Envoy))
 	// GetEnvoy handles logging of errors, so we expect nothing in stdout or stderr
 	require.Empty(t, stdout)
 	require.Empty(t, stderr)
-}
-
-type testEnvoyExtensionConfig struct {
-	globals.GlobalOpts
-	// platform is the types.Reference.Platform used in manifest commands
-	platform string
-}
-
-// setupTest returns testEnvoyExtensionConfig and a tear-down function.
-// The tear-down functions reverts side-effects such as temp directories and a fake manifest server.
-func setupTest(t *testing.T) (*testEnvoyExtensionConfig, func()) {
-	result := testEnvoyExtensionConfig{}
-	result.Out = io.Discard // ignore logging
-	var tearDown []func()
-
-	tempDir, deleteTempDir := morerequire.RequireNewTempDir(t)
-	tearDown = append(tearDown, deleteTempDir)
-
-	result.HomeDir = filepath.Join(tempDir, "envoy_home")
-	err := os.Mkdir(result.HomeDir, 0700)
-	require.NoError(t, err, `error creating directory: %s`, result.HomeDir)
-
-	ref, err := manifest.ParseReference(version.Envoy)
-	require.NoError(t, err, `error resolving manifest for reference: %s`, ref)
-	result.platform = ref.Platform
-
-	testManifest, err := manifesttest.NewSimpleManifest(ref.String())
-	require.NoError(t, err, `error creating test manifest`)
-
-	manifestServer := manifesttest.RequireManifestTestServer(t, testManifest)
-	result.ManifestURL = manifestServer.URL + "/manifest.json"
-	tearDown = append(tearDown, manifestServer.Close)
-
-	return &result, func() {
-		for i := len(tearDown) - 1; i >= 0; i-- {
-			tearDown[i]()
-		}
-	}
 }

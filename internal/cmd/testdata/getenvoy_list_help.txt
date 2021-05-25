@@ -1,9 +1,0 @@
-NAME:
-   getenvoy list - List available Envoy builds
-
-USAGE:
-   getenvoy list [command options] [arguments...]
-
-OPTIONS:
-   --help, -h  show help (default: false)
-   

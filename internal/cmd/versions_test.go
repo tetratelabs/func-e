@@ -12,10 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package manifest
+package cmd_test
 
-// CurrentPlatform exports currentPlatform for testing purpose.
-// Note that this file is not compiled into the resulting binary since the name is suffixed by `_test.go`
-func CurrentPlatform() string {
-	return currentPlatform() // unexported one defined in platform_${darwin,linux}.go
+import (
+	"fmt"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+
+	"github.com/tetratelabs/getenvoy/internal/version"
+)
+
+func TestGetEnvoyVersions(t *testing.T) {
+	o, cleanup := setupTest(t)
+	defer cleanup()
+
+	// Run "getenvoy versions"
+	c, stdout, stderr := newApp(o)
+	o.Out = stdout
+	err := c.Run([]string{"getenvoy", "versions"})
+
+	// Verify the command invoked, passing the correct default commandline
+	require.NoError(t, err)
+	require.Equal(t, fmt.Sprintln(version.Envoy), stdout.String())
+	require.Empty(t, stderr)
 }
