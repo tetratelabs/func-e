@@ -25,6 +25,7 @@ import (
 
 	"github.com/tetratelabs/getenvoy/internal/globals"
 	"github.com/tetratelabs/getenvoy/internal/tar"
+	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
 const binEnvoy = "bin/envoy"
@@ -36,13 +37,14 @@ func InstallIfNeeded(o *globals.GlobalOpts, p, v string) (string, error) {
 	_, err := os.Stat(envoyPath)
 	switch {
 	case os.IsNotExist(err):
-		if e := os.MkdirAll(installPath, 0750); e != nil {
-			return "", fmt.Errorf("unable to create directory %q: %w", installPath, e)
+		if err = os.MkdirAll(installPath, 0750); err != nil {
+			return "", fmt.Errorf("unable to create directory %q: %w", installPath, err)
 		}
 
-		ev, e := GetEnvoyVersions(o.EnvoyVersionsURL)
-		if e != nil {
-			return "", e
+		var ev version.EnvoyVersions
+		ev, err = GetEnvoyVersions(o.EnvoyVersionsURL)
+		if err != nil {
+			return "", err
 		}
 
 		tarballURL := ev.Versions[v].Tarballs[p]
@@ -51,8 +53,8 @@ func InstallIfNeeded(o *globals.GlobalOpts, p, v string) (string, error) {
 		}
 
 		fmt.Fprintln(o.Out, "downloading", tarballURL) //nolint
-		if e := untarEnvoy(installPath, tarballURL, o.Out); e != nil {
-			return "", e
+		if err = untarEnvoy(installPath, tarballURL, o.Out); err != nil {
+			return "", err
 		}
 	case err == nil:
 		fmt.Fprintln(o.Out, v, "is already downloaded") //nolint
@@ -76,9 +78,9 @@ func verifyEnvoy(installPath string) (string, error) {
 }
 
 func untarEnvoy(dst, url string, out io.Writer) error { // dst, src order like io.Copy
-	resp, e := httpGet(url)
-	if e != nil {
-		return e
+	resp, err := httpGet(url)
+	if err != nil {
+		return err
 	}
 	defer resp.Body.Close() //nolint
 
@@ -90,8 +92,8 @@ func untarEnvoy(dst, url string, out io.Writer) error { // dst, src order like i
 	src := progressReader(out, resp.Body, resp.ContentLength)
 	defer src.Close() //nolint
 
-	if e = tar.Untar(dst, src); e != nil {
-		return fmt.Errorf("error untarring %s: %w", url, e)
+	if err = tar.Untar(dst, src); err != nil {
+		return fmt.Errorf("error untarring %s: %w", url, err)
 	}
 	return nil
 }

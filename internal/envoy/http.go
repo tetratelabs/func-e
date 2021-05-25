@@ -26,9 +26,9 @@ var userAgent = fmt.Sprintf("GetEnvoy/%s", version.GetEnvoy)
 // httpGet adds the "User-Agent" header to the request, so that we can tell what is a dev build vs release.
 func httpGet(url string) (*http.Response, error) {
 	// #nosec -> url can be anywhere by design
-	req, e := http.NewRequest("GET", url, nil)
-	if e != nil {
-		return nil, e
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
 	}
 	req.Header.Add("User-Agent", userAgent)
 	return http.DefaultClient.Do(req)

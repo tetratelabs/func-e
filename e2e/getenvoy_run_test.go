@@ -86,8 +86,8 @@ func requireEnvoyReady(t *testing.T, envoyWorkingDir string, stderr io.Reader, c
 	envoyClient, err := newClient(string(adminAddress))
 	require.NoError(t, err, `error from envoy client %s after running [%v]`, adminAddress, c)
 	require.Eventually(t, func() bool {
-		ready, e := envoyClient.isReady()
-		return e == nil && ready
+		ready, err := envoyClient.isReady()
+		return err == nil && ready
 	}, 1*time.Minute, 100*time.Millisecond, `envoy client %s never ready after running [%v]`, adminAddress, c)
 
 	return envoyClient
@@ -101,8 +101,8 @@ func verifyDebugDump(t *testing.T, workingDir string, c interface{}) {
 
 	src, err := os.Open(runArchive)
 	require.NoError(t, err, "error opening %s after stopping [%v]", runArchive, c)
-	e := tar.Untar(workingDir, src)
-	require.NoError(t, e, "error restoring %s from %s after stopping [%v]", workingDir, runArchive, c)
+	err = tar.Untar(workingDir, src)
+	require.NoError(t, err, "error restoring %s from %s after stopping [%v]", workingDir, runArchive, c)
 
 	// ensure the minimum contents exist
 	for _, filename := range []string{"config_dump.json", "stats.json"} {

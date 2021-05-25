@@ -82,8 +82,8 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		require.Regexpf(s.t, `^1\.[1-9][0-9]\.[0-9]+$`, v, "unsupported version in uri %q", subpath)
 
 		w.WriteHeader(http.StatusOK)
-		_, e := w.Write(requireFakeEnvoyTarGz(s.t, v))
-		require.NoError(s.t, e)
+		_, err := w.Write(requireFakeEnvoyTarGz(s.t, v))
+		require.NoError(s.t, err)
 	default:
 		w.WriteHeader(http.StatusNotFound)
 	}
@@ -115,14 +115,14 @@ echo >&2 envoy stderr
 
 	// tar.gz the platform dir
 	tempGz := filepath.Join(tempDir, "envoy.tar.gz")
-	e := tar.TarGz(tempGz, installDir)
-	require.NoError(t, e)
+	err := tar.TarGz(tempGz, installDir)
+	require.NoError(t, err)
 
 	// Read the tar.gz into a byte array. This allows the mock server to set content length correctly
-	f, e := os.Open(tempGz) //nolint:gosec
-	require.NoError(t, e)
+	f, err := os.Open(tempGz) //nolint:gosec
+	require.NoError(t, err)
 	defer f.Close() // nolint
-	b, e := io.ReadAll(f)
-	require.NoError(t, e)
+	b, err := io.ReadAll(f)
+	require.NoError(t, err)
 	return b
 }

@@ -92,20 +92,19 @@ type proc struct {
 }
 
 // parseProcessTable returns processes that could be parsed and the first error
-func parseProcessTable(ctx context.Context, processes []*process.Process) ([]*proc, error) {
-	procs := make([]*proc, 0, len(processes))
-	var err error
+func parseProcessTable(ctx context.Context, processes []*process.Process) (procs []*proc, e error) {
+	procs = make([]*proc, 0, len(processes))
 	for _, p := range processes {
-		parsed, e := parseProc(ctx, p)
-		if e != nil { // Continue as the process could have died between the process listing and now.
-			if err == nil { // Capture only one error
-				err = e
+		parsed, err := parseProc(ctx, p)
+		if err != nil { // Continue as the process could have died between the process listing and now.
+			if e == nil { // Capture only one error
+				e = err
 			}
 			continue
 		}
 		procs = append(procs, parsed)
 	}
-	return procs, err
+	return
 }
 
 // parseProc returns a proc if there were no errors parsing its data

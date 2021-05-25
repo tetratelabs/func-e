@@ -29,9 +29,9 @@ import (
 func GetEnvoyVersions(envoyVersionsURL string) (version.EnvoyVersions, error) {
 	result := version.EnvoyVersions{}
 	// #nosec => This is by design, users can call out to wherever they like!
-	resp, e := httpGet(envoyVersionsURL)
-	if e != nil {
-		return result, e
+	resp, err := httpGet(envoyVersionsURL)
+	if err != nil {
+		return result, err
 	}
 	defer resp.Body.Close() //nolint
 
