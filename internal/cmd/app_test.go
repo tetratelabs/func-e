@@ -125,9 +125,9 @@ func TestEnvoyVersionsURL(t *testing.T) {
 
 	tests := []testCase{ // we don't test default as that depends on the runtime env
 		{
-			name:     "TODO: default is https://getenvoy.io/envoy_versions.json",
+			name:     "default is https://getenvoy.io/envoy_versions.json",
 			args:     []string{"getenvoy"},
-			expected: globals.DefaultEnvoyVersionsURL,
+			expected: "https://getenvoy.io/envoy_versions.json",
 		},
 		{
 			name: "ENVOY_VERSIONS_URL env",

@@ -50,5 +50,5 @@ const (
 	// DefaultHomeDir is the default value for GlobalOpts.HomeDir
 	DefaultHomeDir = "${HOME}/.getenvoy"
 	// DefaultEnvoyVersionsURL is the default value for GlobalOpts.EnvoyVersionsURL
-	DefaultEnvoyVersionsURL = "https://raw.githubusercontent.com/tetratelabs/getenvoy/new-json/site/envoy_versions.json"
+	DefaultEnvoyVersionsURL = "https://getenvoy.io/envoy_versions.json"
 )
