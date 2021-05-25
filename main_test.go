@@ -52,9 +52,9 @@ show usage with: getenvoy -h
 		},
 		{
 			name:           "incorrect global flag value",
-			args:           []string{"getenvoy", "--manifest", ".", "versions"},
+			args:           []string{"getenvoy", "--envoy-versions-url", ".", "list"},
 			expectedStatus: 1,
-			expectedStderr: `"." is not a valid manifest URL
+			expectedStderr: `"." is not a valid Envoy versions URL
 show usage with: getenvoy -h
 `,
 		},
@@ -68,9 +68,9 @@ show usage with: getenvoy -h
 		},
 		{
 			name:           "execution error",
-			args:           []string{"getenvoy", "--manifest", server.URL, "versions"},
+			args:           []string{"getenvoy", "--envoy-versions-url", server.URL, "versions"},
 			expectedStatus: 1,
-			expectedStderr: `error: error unmarshalling manifest: unexpected end of JSON input
+			expectedStderr: `error: error unmarshalling Envoy versions: unexpected end of JSON input
 `,
 		},
 	}

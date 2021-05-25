@@ -12,7 +12,7 @@ make e2e
 You can override the binary tested by setting `E2E_GETENVOY_BINARY` to an alternative location, for example a release.
 
 ## Version of Envoy under test
-The envoy version used in tests default to what's in [/internal/version/envoy.txt](../internal/version/envoy.txt).
+The envoy version used in tests default to [/internal/version/last_known_envoy.txt](../internal/version/last_known_envoy.txt).
 
 ## Development Notes
 

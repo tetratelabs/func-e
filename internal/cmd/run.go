@@ -18,14 +18,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"time"
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/tetratelabs/getenvoy/internal/binary/envoy"
-	"github.com/tetratelabs/getenvoy/internal/binary/envoy/debug"
+	"github.com/tetratelabs/getenvoy/internal/envoy"
+	"github.com/tetratelabs/getenvoy/internal/envoy/debug"
 	"github.com/tetratelabs/getenvoy/internal/globals"
 	latestversion "github.com/tetratelabs/getenvoy/internal/version"
 )
@@ -41,11 +40,11 @@ The '<args>' are interpreted by Envoy.
 The Envoy working directory is archived as $GETENVOY_HOME/runs/$epochtime.tar.gz upon termination.
 
 Example:
-$ getenvoy run %s --config-path ./bootstrap.yaml`, latestversion.Envoy),
+$ getenvoy run %s --config-path ./bootstrap.yaml`, latestversion.LastKnownEnvoy),
 		Before: validateVersionArg,
 		Action: func(c *cli.Context) error {
 			args := c.Args().Slice()
-			if err := initializeRunOpts(o, runtime.GOOS, args[0]); err != nil {
+			if err := initializeRunOpts(o, envoy.CurrentPlatform(), args[0]); err != nil {
 				return err
 			}
 			r := envoy.NewRuntime(&o.RunOpts)
@@ -66,10 +65,10 @@ $ getenvoy run %s --config-path ./bootstrap.yaml`, latestversion.Envoy),
 // initializeRunOpts allows us to default values when not overridden for tests.
 // The version parameter correlates with the globals.GlobalOpts EnvoyPath which is installed if needed.
 // Notably, this creates and sets a globals.GlobalOpts WorkingDirectory for Envoy, and any files that precede it.
-func initializeRunOpts(o *globals.GlobalOpts, goos, version string) error {
+func initializeRunOpts(o *globals.GlobalOpts, platform, version string) error {
 	runOpts := &o.RunOpts
 	if o.EnvoyPath == "" { // not overridden for tests
-		envoyPath, err := envoy.InstallIfNeeded(o, goos, version)
+		envoyPath, err := envoy.InstallIfNeeded(o, platform, version)
 		if err != nil {
 			return err
 		}

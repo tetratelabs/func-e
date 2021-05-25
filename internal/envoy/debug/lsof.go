@@ -23,7 +23,7 @@ import (
 
 	"github.com/shirou/gopsutil/v3/process"
 
-	"github.com/tetratelabs/getenvoy/internal/binary/envoy"
+	"github.com/tetratelabs/getenvoy/internal/envoy"
 )
 
 // OpenFileStat defines the structure of statistics about a single opened file

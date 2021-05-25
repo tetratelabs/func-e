@@ -20,7 +20,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/tetratelabs/getenvoy/internal/binary/envoy"
+	"github.com/tetratelabs/getenvoy/internal/envoy"
 )
 
 // enableEnvoyLogCollection is a preset option that registers collection of Envoy access logs and stderr

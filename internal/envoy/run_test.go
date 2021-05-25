@@ -25,9 +25,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/internal/binary/envoy"
-	"github.com/tetratelabs/getenvoy/internal/binary/envoytest"
+	"github.com/tetratelabs/getenvoy/internal/envoy"
 	"github.com/tetratelabs/getenvoy/internal/globals"
+	"github.com/tetratelabs/getenvoy/internal/test"
 	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
 )
 
@@ -46,14 +46,13 @@ func TestRuntime_Run(t *testing.T) {
 	tests := []struct {
 		name                           string
 		args                           []string
-		terminate                      func(r *envoy.Runtime)
+		terminate                      func()
 		expectedStdout, expectedStderr string
 		expectedErr                    string
 		expectedHooks                  []string
 	}{
 		{
-			name:      "GetEnvoy Ctrl-C",
-			terminate: nil,
+			name: "GetEnvoy Ctrl-C",
 			// Don't warn the user when they exited the process
 			expectedStdout: fmt.Sprintf(`starting: %s
 working directory: %s
@@ -65,7 +64,7 @@ working directory: %s
 		// Envoy returns exit status zero on anything except kill -9. We can't test kill -9 with a fake shell script.
 		{
 			name:      "Envoy exited with error",
-			terminate: func(r *envoy.Runtime) { time.Sleep(time.Millisecond * 100) },
+			terminate: func() { time.Sleep(time.Millisecond * 100) },
 			args:      []string{"quiet_exit=3"},
 			expectedStdout: fmt.Sprintf(`starting: %s quiet_exit=3
 working directory: %s
@@ -86,7 +85,16 @@ working directory: %s
 			stderr := new(bytes.Buffer)
 			r, hooksCalled := newRuntimeWithMockHooks(t, stdout, stderr, o)
 
-			err := envoytest.RequireRunTerminate(t, tc.terminate, r, tc.args...)
+			terminate := tc.terminate
+			if terminate == nil {
+				terminate = interrupt(r)
+			}
+
+			// tee the error stream so we can look for the "started" line without consuming it.
+			errCopy := new(bytes.Buffer)
+			r.Err = io.MultiWriter(r.Err, errCopy)
+			err := test.RequireRunTerminate(t, terminate, r, errCopy, tc.args...)
+
 			if tc.expectedErr == "" {
 				require.NoError(t, err)
 			} else {
@@ -110,6 +118,15 @@ working directory: %s
 			// Cleanup for the next run
 			require.NoError(t, os.Remove(archive))
 		})
+	}
+}
+
+func interrupt(r *envoy.Runtime) func() {
+	return func() {
+		fakeInterrupt := r.FakeInterrupt
+		if fakeInterrupt != nil {
+			fakeInterrupt()
+		}
 	}
 }
 

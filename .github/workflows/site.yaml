@@ -1,8 +1,8 @@
 # `name` value will appear "as is" in the badge.
 # See https://docs.github.com/en/actions/configuring-and-managing-workflows/configuring-a-workflow#adding-a-workflow-status-badge-to-your-repository
-# yamllint --format github .github/workflows/commit.yaml
+# yamllint --format github .github/workflows/site.yaml
 ---
-name: "build"
+name: "site"
 
 env:
   GO_VERSION: "1.16.4"
@@ -12,11 +12,11 @@ on:
   push:
     tags: ''
     branches: master
-    paths-ignore: 'site/**'
+    paths: 'site/**'
   # We also run tests on pull requests targeted at the master branch.
   pull_request:
     branches: master
-    paths-ignore: 'site/**'
+    paths: 'site/**'
   # workflow_dispatch will let us manually trigger the workflow from GitHub actions dashboard.
   # For example, you can try to build a branch without raising a pull request.
   # See https://docs.github.com/en/free-pro-team@latest/actions/managing-workflow-runs/manually-running-a-workflow
@@ -24,13 +24,8 @@ on:
 
 jobs:
   test:
-    name: "Run unit tests (${{ matrix.os }})"
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 90  # instead of 360 by default
-    strategy:
-      fail-fast: false  # don't fail fast as sometimes failures are operating system specific
-      matrix:
-        os: [ubuntu-latest, macos-latest]
+    name: "Run site tests"
+    runs-on: ubuntu-latest
     steps:
       - name: "Checkout"
         uses: actions/checkout@v2
@@ -46,30 +41,11 @@ jobs:
           # This combines unrelated caches because actions/cache@v2 doesn't support multiple
           # instances, rather a combined path. https://github.com/actions/cache/issues/16
           path: |
-            ~/.getenvoy/versions
             ~/go/pkg/mod
             ~/go/bin/*-v*
           # '.bingo/*.sum' files generate inconsistently when building `~/go/bin/*-v*`. We key '.bingo/*.mod' instead.
-          key: test-${{ runner.os }}-${{ env.GO_VERSION }}-go-${{ hashFiles('internal/version/last_known_envoy.txt', 'go.sum', '.bingo/*.mod') }}
+          key: test-${{ runner.os }}-${{ env.GO_VERSION }}-go-${{ hashFiles('go.sum', '.bingo/*.mod') }}
           restore-keys: test-${{ runner.os }}-${{ env.GO_VERSION }}-go-
 
-      - name: "Verify clean check-in"
-        run: make check
-
-      - name: "Run unit tests"
-        run: make test
-
-      - name: "Build the `getenvoy` binary"
-        run: make bin
-
-      - name: "Run e2e tests using the `getenvoy` binary"
-        run: make e2e
-
-      - name: "Generate coverage report" # only once (not per OS)
-        run: make coverage
-
-      - name: "Upload coverage report" # only on master push and only once (not per OS)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && runner.os == 'Linux'
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        run: bash <(curl -s https://codecov.io/bash)
+      - name: "Run site tests"
+        run: make test.site

@@ -21,7 +21,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/tetratelabs/getenvoy/internal/binary/envoy"
+	"github.com/tetratelabs/getenvoy/internal/envoy"
 )
 
 // EnableAll enables all debug options and returns a possibly empty list of errors.

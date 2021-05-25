@@ -24,7 +24,6 @@ import (
 	"github.com/schollz/progressbar/v3"
 
 	"github.com/tetratelabs/getenvoy/internal/globals"
-	"github.com/tetratelabs/getenvoy/internal/manifest"
 	"github.com/tetratelabs/getenvoy/internal/tar"
 	"github.com/tetratelabs/getenvoy/internal/transport"
 )
@@ -42,14 +41,14 @@ func InstallIfNeeded(o *globals.GlobalOpts, p, v string) (string, error) {
 			return "", fmt.Errorf("unable to create directory %q: %w", installPath, e)
 		}
 
-		m, e := manifest.GetManifest(o.ManifestURL)
+		ev, e := GetEnvoyVersions(o.EnvoyVersionsURL)
 		if e != nil {
 			return "", e
 		}
 
-		tarballURL, e := tarballURL(m, p, v)
-		if e != nil {
-			return "", e
+		tarballURL := ev.Versions[v].Tarballs[p]
+		if tarballURL == "" {
+			return "", fmt.Errorf("couldn't find version %q for platform %q", v, p)
 		}
 
 		fmt.Fprintln(o.Out, "downloading", tarballURL) //nolint
@@ -63,29 +62,6 @@ func InstallIfNeeded(o *globals.GlobalOpts, p, v string) (string, error) {
 		return "", err
 	}
 	return verifyEnvoy(installPath)
-}
-
-// tarballURL returns the downloadLocationURL of a tarball for the given runtime.GOOS and Envoy Versionunable to read
-func tarballURL(m *manifest.Manifest, goos, v string) (string, error) {
-	errorNoVersions := fmt.Errorf("couldn't find version %q for platform %q", v, goos)
-	platform := manifest.BuildPlatform(goos)
-	if platform == "" {
-		return "", errorNoVersions
-	}
-
-	// Error if the only released "flavor" or it has no version
-	f, ok := m.Flavors["standard"]
-	if !ok || len(f.Versions) == 0 {
-		return "", errorNoVersions
-	}
-
-	// Error if the version doesn't exist or has no builds for this platform
-	b, ok := f.Versions[v]
-	if !ok || b.Builds[platform] == nil {
-		return "", errorNoVersions
-	}
-
-	return b.Builds[platform].DownloadLocationURL, nil
 }
 
 func verifyEnvoy(installPath string) (string, error) {

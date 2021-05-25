@@ -40,7 +40,7 @@ func TestGetEnvoyRunValidateFlag(t *testing.T) {
 		{
 			name:        "arg[0] with invalid version",
 			args:        []string{"getenvoy", "run", "unknown"},
-			expectedErr: fmt.Sprintf(`invalid <version> argument: "unknown" should look like "%s"`, version.Envoy),
+			expectedErr: fmt.Sprintf(`invalid <version> argument: "unknown" should look like "%s"`, version.LastKnownEnvoy),
 		},
 	}
 
@@ -69,15 +69,15 @@ func TestGetEnvoyRun(t *testing.T) {
 	}{
 		{
 			name: "no envoy args",
-			args: []string{"getenvoy", "run", version.Envoy},
+			args: []string{"getenvoy", "run", version.LastKnownEnvoy},
 		},
 		{
 			name: "empty envoy args",
-			args: []string{"getenvoy", "run", version.Envoy},
+			args: []string{"getenvoy", "run", version.LastKnownEnvoy},
 		},
 		{
 			name:              "envoy args",
-			args:              []string{"getenvoy", "run", version.Envoy, "-c", "envoy.yaml"},
+			args:              []string{"getenvoy", "run", version.LastKnownEnvoy, "-c", "envoy.yaml"},
 			expectedEnvoyArgs: ` -c envoy.yaml`,
 		},
 	}
@@ -89,7 +89,7 @@ func TestGetEnvoyRun(t *testing.T) {
 			o, cleanup := setupTest(t)
 			defer cleanup()
 
-			// Run "getenvoy run 1.17.1 -c envoy.yaml"
+			// Run "getenvoy run 1.18.3 -c envoy.yaml"
 			c, stdout, stderr := newApp(o)
 			err := c.Run(test.args)
 
@@ -120,7 +120,7 @@ func TestGetEnvoyRunFailWithUnknownVersion(t *testing.T) {
 	err := c.Run([]string{"getenvoy", "run", "unknown"})
 
 	// Verify the command failed with the expected error.
-	require.EqualError(t, err, fmt.Sprintf(`invalid <version> argument: "unknown" should look like "%s"`, version.Envoy))
+	require.EqualError(t, err, fmt.Sprintf(`invalid <version> argument: "unknown" should look like "%s"`, version.LastKnownEnvoy))
 	// GetEnvoy handles logging of errors, so we expect nothing in stdout or stderr
 	require.Empty(t, stdout)
 	require.Empty(t, stderr)

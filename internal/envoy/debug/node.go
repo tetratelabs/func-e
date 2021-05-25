@@ -27,7 +27,7 @@ import (
 	"github.com/shirou/gopsutil/v3/net"
 	"github.com/shirou/gopsutil/v3/process"
 
-	"github.com/tetratelabs/getenvoy/internal/binary/envoy"
+	"github.com/tetratelabs/getenvoy/internal/envoy"
 )
 
 // enableNodeCollection is a preset option that registers collection of node level information for debugging

@@ -29,7 +29,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/getenvoy/internal/globals"
-	manifesttest "github.com/tetratelabs/getenvoy/internal/test/manifest"
+	"github.com/tetratelabs/getenvoy/internal/test"
 	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
 	"github.com/tetratelabs/getenvoy/internal/version"
 )
@@ -89,10 +89,10 @@ func TestInstallIfNeeded_ErrorOnIncorrectURL(t *testing.T) {
 	o, cleanup := setupInstallTest(t)
 	defer cleanup()
 
-	o.ManifestURL += "/mannyfest.json"
+	o.EnvoyVersionsURL += "/varsionz.json"
 
-	_, e := InstallIfNeeded(&o.GlobalOpts, runtime.GOOS, version.Envoy)
-	require.EqualError(t, e, "received 404 status code from "+o.ManifestURL)
+	_, e := InstallIfNeeded(&o.GlobalOpts, runtime.GOOS, version.LastKnownEnvoy)
+	require.EqualError(t, e, "received 404 status code from "+o.EnvoyVersionsURL)
 	require.Empty(t, o.Out.(*bytes.Buffer))
 }
 
@@ -110,8 +110,8 @@ func TestInstallIfNeeded_Validates(t *testing.T) {
 		{
 			name:        "unsupported OS",
 			goos:        "windows",
-			version:     version.Envoy,
-			expectedErr: fmt.Sprintf(`couldn't find version %q for platform "windows"`, version.Envoy),
+			version:     version.LastKnownEnvoy,
+			expectedErr: fmt.Sprintf(`couldn't find version %q for platform "windows"`, version.LastKnownEnvoy),
 		},
 	}
 
@@ -153,13 +153,27 @@ func TestInstallIfNeeded(t *testing.T) {
 	defer cleanup()
 	out := o.Out.(*bytes.Buffer)
 
-	envoyPath, e := InstallIfNeeded(&o.GlobalOpts, runtime.GOOS, version.Envoy)
+	envoyPath, e := InstallIfNeeded(&o.GlobalOpts, CurrentPlatform(), version.LastKnownEnvoy)
 	require.NoError(t, e)
 	require.Equal(t, o.EnvoyPath, envoyPath)
 	require.FileExists(t, envoyPath)
 
 	require.Contains(t, out.String(), o.tarballURL)
 	require.Contains(t, out.String(), "100% |████████████████████████████████████████|")
+}
+
+func TestInstallIfNeeded_NotFound(t *testing.T) {
+	o, cleanup := setupInstallTest(t)
+	defer cleanup()
+
+	t.Run("unknown version", func(t *testing.T) {
+		_, e := InstallIfNeeded(&o.GlobalOpts, "darwin/amd64", "1.1.1")
+		require.EqualError(t, e, `couldn't find version "1.1.1" for platform "darwin/amd64"`)
+	})
+	t.Run("unknown platform", func(t *testing.T) {
+		_, e := InstallIfNeeded(&o.GlobalOpts, "windows/arm64", version.LastKnownEnvoy)
+		require.EqualError(t, e, fmt.Sprintf(`couldn't find version "%s" for platform "windows/arm64"`, version.LastKnownEnvoy))
+	})
 }
 
 func TestInstallIfNeeded_AlreadyExists(t *testing.T) {
@@ -173,9 +187,9 @@ func TestInstallIfNeeded_AlreadyExists(t *testing.T) {
 	envoyStat, err := os.Stat(o.EnvoyPath)
 	require.NoError(t, err)
 
-	envoyPath, e := InstallIfNeeded(&o.GlobalOpts, runtime.GOOS, version.Envoy)
+	envoyPath, e := InstallIfNeeded(&o.GlobalOpts, runtime.GOOS, version.LastKnownEnvoy)
 	require.NoError(t, e)
-	require.Equal(t, fmt.Sprintln(version.Envoy, "is already downloaded"), out.String())
+	require.Equal(t, fmt.Sprintln(version.LastKnownEnvoy, "is already downloaded"), out.String())
 
 	newStat, e := os.Stat(envoyPath)
 	require.NoError(t, e)
@@ -188,7 +202,7 @@ func TestVerifyEnvoy(t *testing.T) {
 	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
 	defer removeTempDir()
 
-	envoyPath := filepath.Join(tempDir, "versions", version.Envoy)
+	envoyPath := filepath.Join(tempDir, "versions", version.LastKnownEnvoy)
 	require.NoError(t, os.MkdirAll(filepath.Join(envoyPath, "bin"), 0755))
 	t.Run("envoy binary doesn't exist", func(t *testing.T) {
 		EnvoyPath, e := verifyEnvoy(envoyPath)
@@ -223,18 +237,18 @@ func setupInstallTest(t *testing.T) (*installTest, func()) {
 	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
 	tearDown = append(tearDown, removeTempDir)
 
-	manifestServer := manifesttest.RequireManifestTestServer(t, version.Envoy)
-	tearDown = append(tearDown, manifestServer.Close)
+	versionsServer := test.RequireEnvoyVersionsTestServer(t, version.LastKnownEnvoy)
+	tearDown = append(tearDown, versionsServer.Close)
 
 	return &installTest{
 			tempDir:    tempDir,
-			tarballURL: manifesttest.TarballURL(manifestServer.URL, runtime.GOOS, version.Envoy),
+			tarballURL: test.TarballURL(versionsServer.URL, runtime.GOOS, runtime.GOARCH, version.LastKnownEnvoy),
 			GlobalOpts: globals.GlobalOpts{
-				HomeDir:     tempDir,
-				ManifestURL: manifestServer.URL + "/manifest.json",
-				Out:         new(bytes.Buffer),
+				HomeDir:          tempDir,
+				EnvoyVersionsURL: versionsServer.URL + "/envoy_versions.json",
+				Out:              new(bytes.Buffer),
 				RunOpts: globals.RunOpts{
-					EnvoyPath: filepath.Join(tempDir, "versions", version.Envoy, "bin", "envoy"),
+					EnvoyPath: filepath.Join(tempDir, "versions", version.LastKnownEnvoy, "bin", "envoy"),
 				},
 			},
 		}, func() {

@@ -12,11 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package envoytest
+package test
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"io"
 	"strings"
@@ -24,25 +23,15 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/tetratelabs/getenvoy/internal/binary/envoy"
 )
 
+// Runner allows us to not introduce dependency cycles on envoy.Runtime
+type Runner interface {
+	Run(ctx context.Context, args []string) (err error)
+}
+
 // RequireRunTerminate executes Run on the given Runtime and terminates it after starting.
-func RequireRunTerminate(t *testing.T, terminate func(r *envoy.Runtime), r *envoy.Runtime, args ...string) (err error) {
-	if terminate == nil {
-		terminate = func(r *envoy.Runtime) {
-			fakeInterrupt := r.FakeInterrupt
-			if fakeInterrupt != nil {
-				fakeInterrupt()
-			}
-		}
-	}
-
-	// tee the error stream so we can look for the "started" line without consuming it.
-	stderr := new(bytes.Buffer)
-	r.Err = io.MultiWriter(r.Err, stderr)
-
+func RequireRunTerminate(t *testing.T, terminate func(), r Runner, stderr io.Reader, args ...string) (err error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		err = r.Run(ctx, args)
@@ -55,7 +44,7 @@ func RequireRunTerminate(t *testing.T, terminate func(r *envoy.Runtime), r *envo
 		return e != nil && strings.Contains(string(b), "started\n")
 	}, 2*time.Second, 100*time.Millisecond, "never started process")
 
-	terminate(r)
+	terminate()
 
 	select { // Await run completion
 	case <-time.After(10 * time.Second):

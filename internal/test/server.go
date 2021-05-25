@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package manifest
+package test
 
 import (
 	"encoding/json"
@@ -22,14 +22,15 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/internal/manifest"
 	"github.com/tetratelabs/getenvoy/internal/tar"
 	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
+	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
 // Even though currently binaries are compressed with "xz" more than "gz", using "gz" in tests allows us to re-use
@@ -37,52 +38,41 @@ import (
 const archiveFormat = ".tar.gz"
 const versionsPath = "/versions/"
 
-// RequireManifestTestServer serves "/manifest.json", which contains download links a compressed archive of artifactDir
-func RequireManifestTestServer(t *testing.T, version string) *httptest.Server {
+// RequireEnvoyVersionsTestServer serves "/envoy_versions.json", containing download links a fake Envoy archive.
+func RequireEnvoyVersionsTestServer(t *testing.T, v string) *httptest.Server {
 	s := &server{t: t}
 	h := httptest.NewServer(s)
-	s.manifest = &manifest.Manifest{
-		ManifestVersion: "v0.1.0",
-		Flavors: map[string]*manifest.Flavor{
-			"standard": {
-				Name: "standard",
-				Versions: map[string]*manifest.Version{
-					version: {
-						Name: version,
-						Builds: map[string]*manifest.Build{
-							"LINUX_GLIBC": {
-								Platform:            "LINUX_GLIBC",
-								DownloadLocationURL: TarballURL(h.URL, "linux", version),
-							},
-							"DARWIN": {
-								Platform:            "DARWIN",
-								DownloadLocationURL: TarballURL(h.URL, "darwin", version),
-							},
-						},
-					},
-				},
-			},
-		},
+	s.versions = version.EnvoyVersions{
+		LatestVersion: v,
+		Versions: map[string]version.EnvoyVersion{
+			v: {Tarballs: map[string]string{
+				"linux/" + runtime.GOARCH:  TarballURL(h.URL, "linux", runtime.GOARCH, v),
+				"darwin/" + runtime.GOARCH: TarballURL(h.URL, "darwin", runtime.GOARCH, v),
+			}}},
 	}
 	return h
 }
 
 // TarballURL gives the expected download URL for the given runtime.GOOS and Envoy version.
-func TarballURL(baseURL, goos, v string) string {
-	return fmt.Sprintf("%s%s%s/envoy-%s-%s-x86_64%s", baseURL, versionsPath, v, v, goos, archiveFormat)
+func TarballURL(baseURL, goos, goarch, v string) string {
+	var arch = "x86_64"
+	if goarch != "arm64" {
+		arch = goarch
+	}
+	return fmt.Sprintf("%s%s%s/envoy-%s-%s-%s%s", baseURL, versionsPath, v, v, goos, arch, archiveFormat)
 }
 
-// server represents an HTTP server serving GetEnvoy manifest.
+// server represents an HTTP server serving GetEnvoy versions.
 type server struct {
 	t        *testing.T
-	manifest *manifest.Manifest
+	versions version.EnvoyVersions
 }
 
 func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch {
-	case r.RequestURI == "/manifest.json":
+	case r.RequestURI == "/envoy_versions.json":
 		w.WriteHeader(http.StatusOK)
-		_, err := w.Write(s.GetManifest())
+		_, err := w.Write(s.getEnvoyVersions())
 		require.NoError(s.t, err)
 	case strings.HasPrefix(r.RequestURI, versionsPath):
 		subpath := r.RequestURI[len(versionsPath):]
@@ -99,8 +89,8 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *server) GetManifest() []byte {
-	data, err := json.Marshal(s.manifest)
+func (s *server) getEnvoyVersions() []byte {
+	data, err := json.Marshal(s.versions)
 	require.NoError(s.t, err)
 	return data
 }

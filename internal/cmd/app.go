@@ -29,7 +29,7 @@ import (
 // NewApp create a new root command. The globals.GlobalOpts parameter allows tests to scope overrides, which avoids
 // having to define a flag for everything needed in tests.
 func NewApp(o *globals.GlobalOpts) *cli.App {
-	var homeDir, manifestURL string
+	var homeDir, envoyVersionsURL string
 
 	app := cli.NewApp()
 	app.Name = "getenvoy"
@@ -40,24 +40,23 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
 			Name:        "home-dir",
-			Usage:       "GetEnvoy home directory (location of downloaded artifacts, caches, etc)",
+			Usage:       "GetEnvoy home directory (location of downloaded versions and run archives)",
 			DefaultText: globals.DefaultHomeDir,
 			Destination: &homeDir,
 			EnvVars:     []string{"GETENVOY_HOME"},
 		},
 		&cli.StringFlag{
-			Name:        "manifest",
-			Usage:       "GetEnvoy manifest URL (list of available Envoy versions)",
-			Hidden:      true,
-			DefaultText: globals.DefaultManifestURL,
-			Destination: &manifestURL,
-			EnvVars:     []string{"GETENVOY_MANIFEST_URL"},
+			Name:        "envoy-versions-url",
+			Usage:       "URL of Envoy versions JSON",
+			DefaultText: globals.DefaultEnvoyVersionsURL,
+			Destination: &envoyVersionsURL,
+			EnvVars:     []string{"ENVOY_VERSIONS_URL"},
 		}}
 	app.Before = func(c *cli.Context) error {
 		if err := setHomeDir(o, homeDir); err != nil {
 			return err
 		}
-		return setManifestURL(o, manifestURL)
+		return setEnvoyVersionsURL(o, envoyVersionsURL)
 	}
 
 	app.Commands = []*cli.Command{
@@ -69,18 +68,18 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 	return app
 }
 
-func setManifestURL(o *globals.GlobalOpts, manifestURL string) error {
-	if o.ManifestURL != "" { // overridden for tests
+func setEnvoyVersionsURL(o *globals.GlobalOpts, versionsURL string) error {
+	if o.EnvoyVersionsURL != "" { // overridden for tests
 		return nil
 	}
-	if manifestURL == "" {
-		o.ManifestURL = globals.DefaultManifestURL
+	if versionsURL == "" {
+		o.EnvoyVersionsURL = globals.DefaultEnvoyVersionsURL
 	} else {
-		otherURL, err := url.Parse(manifestURL)
+		otherURL, err := url.Parse(versionsURL)
 		if err != nil || otherURL.Host == "" || otherURL.Scheme == "" {
-			return NewValidationError("%q is not a valid manifest URL", manifestURL)
+			return NewValidationError("%q is not a valid Envoy versions URL", versionsURL)
 		}
-		o.ManifestURL = manifestURL
+		o.EnvoyVersionsURL = versionsURL
 	}
 	return nil
 }
@@ -111,7 +110,7 @@ func validateVersionArg(c *cli.Context) error {
 	}
 	v := c.Args().First()
 	if matched, _ := regexp.MatchString("^[1-9][0-9]*\\.[0-9]+\\.[0-9]+$", v); !matched {
-		return NewValidationError("invalid <version> argument: %q should look like %q", v, version.Envoy)
+		return NewValidationError("invalid <version> argument: %q should look like %q", v, version.LastKnownEnvoy)
 	}
 	return nil
 }

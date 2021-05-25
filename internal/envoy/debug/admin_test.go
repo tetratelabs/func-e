@@ -15,6 +15,7 @@
 package debug
 
 import (
+	"bytes"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -24,9 +25,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/internal/binary/envoy"
-	"github.com/tetratelabs/getenvoy/internal/binary/envoytest"
+	"github.com/tetratelabs/getenvoy/internal/envoy"
 	"github.com/tetratelabs/getenvoy/internal/globals"
+	"github.com/tetratelabs/getenvoy/internal/test"
 	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
 )
 
@@ -61,10 +62,16 @@ func runAndTerminateWithDebug(t *testing.T, workingDir string, debug func(r *env
 
 	o := &globals.RunOpts{EnvoyPath: fakeEnvoy, WorkingDir: workingDir, DontArchiveWorkingDir: true}
 
+	stderr := new(bytes.Buffer)
 	r := envoy.NewRuntime(o)
 	r.Out = io.Discard
-	r.Err = io.Discard
+	r.Err = stderr
 	require.NoError(t, debug(r))
 
-	return envoytest.RequireRunTerminate(t, nil, r, args...)
+	return test.RequireRunTerminate(t, func() {
+		fakeInterrupt := r.FakeInterrupt
+		if fakeInterrupt != nil {
+			fakeInterrupt()
+		}
+	}, r, stderr, args...)
 }

@@ -13,6 +13,7 @@ COMMANDS:
    install   Download and install a <version> of Envoy
 
 GLOBAL OPTIONS:
-   --home-dir value  GetEnvoy home directory (location of downloaded artifacts, caches, etc) (default: ${HOME}/.getenvoy) [$GETENVOY_HOME]
-   --help, -h        show help (default: false)
-   --version, -v     print the version (default: false)
+   --home-dir value            GetEnvoy home directory (location of downloaded versions and run archives) (default: ${HOME}/.getenvoy) [$GETENVOY_HOME]
+   --envoy-versions-url value  URL of Envoy versions JSON (default: https://raw.githubusercontent.com/tetratelabs/getenvoy/new-json/site/envoy_versions.json) [$ENVOY_VERSIONS_URL]
+   --help, -h                  show help (default: false)
+   --version, -v               print the version (default: false)
