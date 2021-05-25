@@ -27,7 +27,8 @@ builds:
     goarch:
       - amd64
       - arm64
-# No changelog as we write release notes manually until refactoring settles down.
+# Create a draft release in GitHub. We can write release notes manually.
+draft: true
 brews:
   - name: getenvoy
     tap:
