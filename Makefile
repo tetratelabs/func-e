@@ -70,8 +70,7 @@ lint: $(GOLANGCI_LINT) $(LICENSER) $(GORELEASER) .golangci.yml .goreleaser.yaml 
 	@echo "--- lint ---"
 	@$(LICENSER) verify -r .
 	@$(GOLANGCI_LINT) run --timeout 5m --config .golangci.yml ./...
-# TODO: this is chatty until https://github.com/goreleaser/goreleaser/issues/2226
-	@$(GORELEASER) check
+	@$(GORELEASER) check -q
 
 # The goimports tool does not arrange imports in 3 blocks if there are already more than three blocks.
 # To avoid that, before running it, we collapse all imports in one block, then run the formatter.

@@ -24,12 +24,7 @@ builds:
       - darwin
     goarch:
       - amd64
-archives:
-  - name_template: "getenvoy_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
-    replacements:
-      darwin: Darwin
-      linux: Linux
-      amd64: x86_64
+      - arm64
 checksum:
   name_template: 'checksums.txt'
 snapshot:
