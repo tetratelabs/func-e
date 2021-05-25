@@ -72,7 +72,7 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case r.RequestURI == "/envoy_versions.json":
 		w.WriteHeader(http.StatusOK)
-		_, err := w.Write(s.GetEnvoyVersions())
+		_, err := w.Write(s.getEnvoyVersions())
 		require.NoError(s.t, err)
 	case strings.HasPrefix(r.RequestURI, versionsPath):
 		subpath := r.RequestURI[len(versionsPath):]

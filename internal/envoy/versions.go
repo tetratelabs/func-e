@@ -55,7 +55,7 @@ func PrintVersions(vs version.EnvoyVersions, p string, w io.Writer) {
 	// Build a list of versions for this platform
 	var versions []string
 	for v, t := range vs.Versions {
-		if len(t.Tarballs[p]) > 0 {
+		if _, ok := t.Tarballs[p]; ok {
 			versions = append(versions, v)
 		}
 	}
