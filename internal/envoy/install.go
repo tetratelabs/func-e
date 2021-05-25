@@ -25,7 +25,6 @@ import (
 
 	"github.com/tetratelabs/getenvoy/internal/globals"
 	"github.com/tetratelabs/getenvoy/internal/tar"
-	"github.com/tetratelabs/getenvoy/internal/transport"
 )
 
 const binEnvoy = "bin/envoy"
@@ -77,8 +76,7 @@ func verifyEnvoy(installPath string) (string, error) {
 }
 
 func untarEnvoy(dst, url string, out io.Writer) error { // dst, src order like io.Copy
-	// #nosec -> url can be anywhere by design
-	resp, e := transport.Get(url)
+	resp, e := httpGet(url)
 	if e != nil {
 		return e
 	}
