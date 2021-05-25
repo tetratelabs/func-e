@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# See http://goreleaser.com for valid values
 project_name: getenvoy
 builds:
   - binary: getenvoy
+    # Updates the version so that `getenvoy -v` prints out the release version instead of "dev"
     ldflags: "-s -w -X github.com/tetratelabs/getenvoy/internal/version.GetEnvoy={{.Version}}"
     main: .
     env:
@@ -25,19 +27,10 @@ builds:
     goarch:
       - amd64
       - arm64
-checksum:
-  name_template: 'checksums.txt'
-snapshot:
-  name_template: "{{ .Version }}-next-{{ .ShortCommit }}"
-changelog:
-  sort: asc
-  filters:
-    exclude:
-      - docs
-      - test
-      - goreleaser
+# No changelog as we write release notes manually until refactoring settles down.
 brews:
-  - tap:
+  - name: getenvoy
+    tap:
       owner: tetratelabs
       name: homebrew-getenvoy
       # Use token other than the default one (which is limited in scope to
@@ -45,6 +38,9 @@ brews:
       token: "{{ .Env.HOMEBREW_GETENVOY_GITHUB_TOKEN }}"
     folder: Formula
     homepage: https://github.com/tetratelabs/getenvoy
-    description: Distribute, deploy and operate a fleet of Envoys
+    description: Download and run Envoy
+    license: Apache-2.0
+    install: |  # TODO: add shell completion post-install
+      bin.install "getenvoy"
     test: |
-      system "#{bin}/getenvoy --help"
+      system "#{bin}/getenvoy -v"
