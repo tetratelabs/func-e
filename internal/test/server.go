@@ -89,7 +89,7 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *server) GetEnvoyVersions() []byte {
+func (s *server) getEnvoyVersions() []byte {
 	data, err := json.Marshal(s.versions)
 	require.NoError(s.t, err)
 	return data
