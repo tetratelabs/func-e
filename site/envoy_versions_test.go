@@ -37,19 +37,24 @@ func TestEnvoyVersionsJson(t *testing.T) {
 	evs := version.EnvoyVersions{}
 	err = json.Unmarshal(data, &evs)
 	require.NoErrorf(t, err, "error parsing json from %s", envoyVersionsPath)
+	require.Greaterf(t, len(evs.Versions), 2, "expected more than two versions")
+
+	require.NotEmptyf(t, evs.LatestVersion, "latest version isn't in %s", envoyVersionsPath)
+	require.Containsf(t, evs.Versions, evs.LatestVersion, "latest version isn't in the version list of %s", envoyVersionsPath)
+	require.Equalf(t, evs.LatestVersion, version.LastKnownEnvoy, "version.LastKnownEnvoy doesn't match latest version in %s", envoyVersionsPath)
+
+	// Ensure there's an option besides the latest version
+	require.Greaterf(t, len(evs.Versions), 2, "expected more than two versions")
 
 	type testCase struct{ version, platform, tarballURL string }
 
 	var tests []testCase
 	for v, ev := range evs.Versions {
+		require.Greaterf(t, len(ev.Tarballs), 2, "expected at least two platforms for version %s", v)
 		for p, tb := range ev.Tarballs {
 			tests = append(tests, testCase{v, p, tb})
 		}
 	}
-
-	require.NotEmptyf(t, evs.LatestVersion, "latest version isn't in %s", envoyVersionsPath)
-	require.Containsf(t, evs.Versions, evs.LatestVersion, "latest version isn't in the version list of %s", envoyVersionsPath)
-	require.Equalf(t, evs.LatestVersion, version.Envoy, "version.Envoy doesn't match latest version in %s", envoyVersionsPath)
 
 	for _, tc := range tests {
 		name := fmt.Sprintf("%s-%s", tc.version, tc.platform)
@@ -57,6 +62,7 @@ func TestEnvoyVersionsJson(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			require.Regexpf(t, "https://.*.tar.(gz|xz)", tarballURL, "expected an https tar.gz or xz %s", tarballURL)
 			res, err := http.Head(tarballURL)
+			require.NoErrorf(t, err, "error from HEAD %s", tarballURL)
 			defer res.Body.Close() //nolint
 
 			require.NoErrorf(t, err, "error reading %s", tarballURL)

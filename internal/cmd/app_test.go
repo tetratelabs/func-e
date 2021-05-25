@@ -220,7 +220,7 @@ func setupTest(t *testing.T) (*globals.GlobalOpts, func()) {
 	err := os.Mkdir(result.HomeDir, 0700)
 	require.NoError(t, err, `error creating directory: %s`, result.HomeDir)
 
-	versionsServer := test.RequireEnvoyVersionsTestServer(t, version.Envoy)
+	versionsServer := test.RequireEnvoyVersionsTestServer(t, version.LastKnownEnvoy)
 	result.EnvoyVersionsURL = versionsServer.URL + "/envoy_versions.json"
 	tearDown = append(tearDown, versionsServer.Close)
 

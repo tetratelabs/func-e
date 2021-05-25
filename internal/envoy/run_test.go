@@ -25,7 +25,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	envoy2 "github.com/tetratelabs/getenvoy/internal/envoy"
+	"github.com/tetratelabs/getenvoy/internal/envoy"
 	"github.com/tetratelabs/getenvoy/internal/globals"
 	"github.com/tetratelabs/getenvoy/internal/test"
 	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
@@ -121,7 +121,7 @@ working directory: %s
 	}
 }
 
-func interrupt(r *envoy2.Runtime) func() {
+func interrupt(r *envoy.Runtime) func() {
 	return func() {
 		fakeInterrupt := r.FakeInterrupt
 		if fakeInterrupt != nil {
@@ -131,8 +131,8 @@ func interrupt(r *envoy2.Runtime) func() {
 }
 
 // This ensures functions are called in the correct order
-func newRuntimeWithMockHooks(t *testing.T, stdout, stderr io.Writer, o *globals.RunOpts) (*envoy2.Runtime, *[]string) {
-	r := envoy2.NewRuntime(o)
+func newRuntimeWithMockHooks(t *testing.T, stdout, stderr io.Writer, o *globals.RunOpts) (*envoy.Runtime, *[]string) {
+	r := envoy.NewRuntime(o)
 	r.Out = stdout
 	r.Err = stderr
 	var hooks []string

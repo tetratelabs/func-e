@@ -10,7 +10,7 @@ go.sum
 .bingo
 .idea
 
-envoy.txt
+last_known_envoy.txt
 
 testdata/
 site/*.json

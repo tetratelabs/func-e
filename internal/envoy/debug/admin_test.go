@@ -25,7 +25,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	envoy2 "github.com/tetratelabs/getenvoy/internal/envoy"
+	"github.com/tetratelabs/getenvoy/internal/envoy"
 	"github.com/tetratelabs/getenvoy/internal/globals"
 	"github.com/tetratelabs/getenvoy/internal/test"
 	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
@@ -56,14 +56,14 @@ func TestEnableEnvoyAdminDataCollection(t *testing.T) {
 }
 
 // runAndTerminateWithDebug is like RequireRunTerminate, except returns a directory populated by the debug plugin.
-func runAndTerminateWithDebug(t *testing.T, workingDir string, debug func(r *envoy2.Runtime) error, args ...string) error {
+func runAndTerminateWithDebug(t *testing.T, workingDir string, debug func(r *envoy.Runtime) error, args ...string) error {
 	fakeEnvoy := filepath.Join(workingDir, "envoy")
 	morerequire.RequireCaptureScript(t, fakeEnvoy)
 
 	o := &globals.RunOpts{EnvoyPath: fakeEnvoy, WorkingDir: workingDir, DontArchiveWorkingDir: true}
 
 	stderr := new(bytes.Buffer)
-	r := envoy2.NewRuntime(o)
+	r := envoy.NewRuntime(o)
 	r.Out = io.Discard
 	r.Err = stderr
 	require.NoError(t, debug(r))

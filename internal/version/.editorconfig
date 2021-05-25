@@ -1,4 +1,4 @@
 # see https://github.com/mvdan/sh#shfmt
-[envoy.txt]
+[last_known_envoy.txt]
 insert_final_newline     = false
 trim_trailing_whitespace = true

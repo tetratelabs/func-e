@@ -23,8 +23,8 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	envoy2 "github.com/tetratelabs/getenvoy/internal/envoy"
-	debug2 "github.com/tetratelabs/getenvoy/internal/envoy/debug"
+	"github.com/tetratelabs/getenvoy/internal/envoy"
+	"github.com/tetratelabs/getenvoy/internal/envoy/debug"
 	"github.com/tetratelabs/getenvoy/internal/globals"
 	latestversion "github.com/tetratelabs/getenvoy/internal/version"
 )
@@ -40,19 +40,19 @@ The '<args>' are interpreted by Envoy.
 The Envoy working directory is archived as $GETENVOY_HOME/runs/$epochtime.tar.gz upon termination.
 
 Example:
-$ getenvoy run %s --config-path ./bootstrap.yaml`, latestversion.Envoy),
+$ getenvoy run %s --config-path ./bootstrap.yaml`, latestversion.LastKnownEnvoy),
 		Before: validateVersionArg,
 		Action: func(c *cli.Context) error {
 			args := c.Args().Slice()
-			if err := initializeRunOpts(o, envoy2.CurrentPlatform(), args[0]); err != nil {
+			if err := initializeRunOpts(o, envoy.CurrentPlatform(), args[0]); err != nil {
 				return err
 			}
-			r := envoy2.NewRuntime(&o.RunOpts)
+			r := envoy.NewRuntime(&o.RunOpts)
 
 			r.Out = c.App.Writer
 			r.Err = c.App.ErrWriter
 
-			for _, err := range debug2.EnableAll(r) {
+			for _, err := range debug.EnableAll(r) {
 				fmt.Fprintln(r.Out, "failed to enable debug option:", err) //nolint
 			}
 
@@ -68,7 +68,7 @@ $ getenvoy run %s --config-path ./bootstrap.yaml`, latestversion.Envoy),
 func initializeRunOpts(o *globals.GlobalOpts, platform, version string) error {
 	runOpts := &o.RunOpts
 	if o.EnvoyPath == "" { // not overridden for tests
-		envoyPath, err := envoy2.InstallIfNeeded(o, platform, version)
+		envoyPath, err := envoy.InstallIfNeeded(o, platform, version)
 		if err != nil {
 			return err
 		}

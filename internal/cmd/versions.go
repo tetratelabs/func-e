@@ -17,7 +17,7 @@ package cmd
 import (
 	"github.com/urfave/cli/v2"
 
-	envoy2 "github.com/tetratelabs/getenvoy/internal/envoy"
+	"github.com/tetratelabs/getenvoy/internal/envoy"
 	"github.com/tetratelabs/getenvoy/internal/globals"
 )
 
@@ -27,11 +27,11 @@ func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 		Name:  "versions",
 		Usage: "List available Envoy versions",
 		Action: func(c *cli.Context) error {
-			m, err := envoy2.GetEnvoyVersions(o.EnvoyVersionsURL)
+			m, err := envoy.GetEnvoyVersions(o.EnvoyVersionsURL)
 			if err != nil {
 				return err
 			}
-			envoy2.PrintVersions(m, envoy2.CurrentPlatform(), c.App.Writer)
+			envoy.PrintVersions(m, envoy.CurrentPlatform(), c.App.Writer)
 			return nil
 		},
 	}

@@ -19,7 +19,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	envoy2 "github.com/tetratelabs/getenvoy/internal/envoy"
+	"github.com/tetratelabs/getenvoy/internal/envoy"
 	"github.com/tetratelabs/getenvoy/internal/globals"
 	"github.com/tetratelabs/getenvoy/internal/version"
 )
@@ -34,10 +34,10 @@ func NewInstallCmd(o *globals.GlobalOpts) *cli.Command {
 The Envoy <version> will be installed into $GETENVOY_HOME/versions/<version>
 
 Example:
-$ getenvoy install %s`, version.Envoy),
+$ getenvoy install %s`, version.LastKnownEnvoy),
 		Before: validateVersionArg,
 		Action: func(c *cli.Context) error {
-			_, err := envoy2.InstallIfNeeded(o, envoy2.CurrentPlatform(), c.Args().First())
+			_, err := envoy.InstallIfNeeded(o, envoy.CurrentPlatform(), c.Args().First())
 			return err
 		},
 	}

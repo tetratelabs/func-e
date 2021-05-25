@@ -20,11 +20,11 @@ import (
 	"os"
 	"path/filepath"
 
-	envoy2 "github.com/tetratelabs/getenvoy/internal/envoy"
+	"github.com/tetratelabs/getenvoy/internal/envoy"
 )
 
 // enableEnvoyLogCollection is a preset option that registers collection of Envoy access logs and stderr
-func enableEnvoyLogCollection(r *envoy2.Runtime) error {
+func enableEnvoyLogCollection(r *envoy.Runtime) error {
 	logsDir := filepath.Join(r.GetWorkingDir(), "logs")
 	if err := os.MkdirAll(logsDir, 0750); err != nil {
 		return fmt.Errorf("unable to create directory %q, so no logs will be captured: %w", logsDir, err)
@@ -36,7 +36,7 @@ func enableEnvoyLogCollection(r *envoy2.Runtime) error {
 }
 
 type envoyLogCollection struct {
-	r       *envoy2.Runtime
+	r       *envoy.Runtime
 	logsDir string
 }
 

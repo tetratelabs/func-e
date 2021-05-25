@@ -110,7 +110,7 @@ func validateVersionArg(c *cli.Context) error {
 	}
 	v := c.Args().First()
 	if matched, _ := regexp.MatchString("^[1-9][0-9]*\\.[0-9]+\\.[0-9]+$", v); !matched {
-		return NewValidationError("invalid <version> argument: %q should look like %q", v, version.Envoy)
+		return NewValidationError("invalid <version> argument: %q should look like %q", v, version.LastKnownEnvoy)
 	}
 	return nil
 }

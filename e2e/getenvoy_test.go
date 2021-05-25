@@ -38,7 +38,7 @@ func TestGetEnvoyVersions(t *testing.T) {
 
 	stdout, stderr, err := getEnvoy("versions").exec()
 
-	require.Contains(t, stdout, fmt.Sprintln(version.Envoy))
+	require.Contains(t, stdout, fmt.Sprintln(version.LastKnownEnvoy))
 	require.Empty(t, stderr)
 	require.NoError(t, err)
 }

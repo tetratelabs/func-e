@@ -34,5 +34,5 @@ func TestGetEnvoyDoc(t *testing.T) {
 
 	want, err := os.ReadFile(filepath.Join("testdata", "getenvoy.md"))
 	require.NoError(t, err)
-	require.Equal(t, strings.ReplaceAll(string(want), "ENVOY_VERSION", version.Envoy), stdout.String())
+	require.Equal(t, strings.ReplaceAll(string(want), "ENVOY_VERSION", version.LastKnownEnvoy), stdout.String())
 }
