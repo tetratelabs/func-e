@@ -55,8 +55,8 @@ func TestNewDecompressor_Validates(t *testing.T) {
 	for _, tt := range tests {
 		tc := tt
 		t.Run(tc.name, func(t *testing.T) {
-			_, e := newDecompressor(bytes.NewReader(tc.junk))
-			require.EqualError(t, e, tc.expectedErr)
+			_, err := newDecompressor(bytes.NewReader(tc.junk))
+			require.EqualError(t, err, tc.expectedErr)
 		})
 	}
 }
@@ -75,19 +75,19 @@ func TestNewDecompressor(t *testing.T) {
 	} {
 		p := p
 		t.Run(p, func(t *testing.T) {
-			f, e := os.Open(p)
-			require.NoError(t, e)
+			f, err := os.Open(p)
+			require.NoError(t, err)
 			defer f.Close()
 
-			want, e := os.ReadFile(strings.TrimSuffix(p, path.Ext(p)))
-			require.NoError(t, e)
+			want, err := os.ReadFile(strings.TrimSuffix(p, path.Ext(p)))
+			require.NoError(t, err)
 
-			d, e := newDecompressor(f)
-			require.NoError(t, e)
+			d, err := newDecompressor(f)
+			require.NoError(t, err)
 			defer d.Close()
 
-			have, e := io.ReadAll(d)
-			require.NoError(t, e)
+			have, err := io.ReadAll(d)
+			require.NoError(t, err)
 
 			require.Equal(t, want, have)
 		})
@@ -114,12 +114,12 @@ func TestUntar(t *testing.T) {
 			if tt.emptyTar {
 				srcFile = filepath.Join("testdata", "empty.tar.xz")
 			}
-			f, e := os.Open(srcFile)
-			require.NoError(t, e)
+			f, err := os.Open(srcFile)
+			require.NoError(t, err)
 			defer f.Close()
 
-			e = Untar(dst, f)
-			require.NoError(t, e)
+			err = Untar(dst, f)
+			require.NoError(t, err)
 
 			if tt.emptyTar {
 				requireEmptyDirectory(t, dst)

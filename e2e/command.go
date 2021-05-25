@@ -79,8 +79,8 @@ func (b *cmdBuilder) start(t *testing.T, terminateTimeout time.Duration) (io.Rea
 		require.NoError(t, err, `error terminating [%v]`, b.cmd)
 
 		select {
-		case e := <-errc:
-			require.NoError(t, e, `error running [%v]`, b.cmd)
+		case err := <-errc:
+			require.NoError(t, err, `error running [%v]`, b.cmd)
 		case <-time.After(terminateTimeout):
 			t.Fatal(fmt.Sprintf("getenvoy command didn't exit gracefully within %s", terminateTimeout))
 		}

@@ -22,7 +22,6 @@ import (
 	"runtime"
 	"sort"
 
-	"github.com/tetratelabs/getenvoy/internal/transport"
 	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
@@ -30,7 +29,7 @@ import (
 func GetEnvoyVersions(envoyVersionsURL string) (version.EnvoyVersions, error) {
 	result := version.EnvoyVersions{}
 	// #nosec => This is by design, users can call out to wherever they like!
-	resp, err := transport.Get(envoyVersionsURL)
+	resp, err := httpGet(envoyVersionsURL)
 	if err != nil {
 		return result, err
 	}

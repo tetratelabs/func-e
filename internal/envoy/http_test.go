@@ -12,44 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package transport
+package envoy
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
-func TestClientWithoutRequest(t *testing.T) {
-	ua := fmt.Sprintf("GetEnvoy/%s", "1.0")
+func TestHttpGet_AddsUserAgent(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		want := http.Header{
-			"Accept-Encoding": []string{"gzip"},
-			"User-Agent":      []string{ua},
-		}
-		if !reflect.DeepEqual(r.Header, want) {
-			t.Errorf("Request.Header = %#v; want %#v", r.Header, want)
-		}
-		if t.Failed() {
-			w.Header().Set("Result", "got errors")
-		} else {
-			w.Header().Set("Result", "ok")
-		}
+		require.Equal(t, userAgent, r.UserAgent())
 	}))
 	defer ts.Close()
 
-	client := NewClient(AddUserAgent(ua))
-	res, err := client.Get(ts.URL)
-	if err != nil {
-		t.Fatal(err)
-	}
+	res, err := httpGet(ts.URL)
+	require.NoError(t, err)
+
 	defer res.Body.Close()
-	if res.StatusCode != 200 {
-		t.Fatal(res.Status)
-	}
-	if got := res.Header.Get("Result"); got != "ok" {
-		t.Errorf("result = %q; want ok", got)
-	}
+	require.Equal(t, 200, res.StatusCode)
 }

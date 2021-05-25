@@ -52,8 +52,8 @@ func (r *Runtime) Run(ctx context.Context, args []string) (err error) {
 	}
 
 	// Print the process line to the console for user knowledge and parsing convenience
-	e := strings.Join(append([]string{r.opts.EnvoyPath}, args...), " ") // ensures no trailing space on empty args
-	fmt.Fprintln(r.Out, "starting:", e)                                 //nolint
+	a := strings.Join(append([]string{r.opts.EnvoyPath}, args...), " ") // ensures no trailing space on empty args
+	fmt.Fprintln(r.Out, "starting:", a)                                 //nolint
 	fmt.Fprintln(r.Out, "working directory:", cmd.Dir)                  //nolint
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("unable to start Envoy process: %w", err)

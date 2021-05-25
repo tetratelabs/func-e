@@ -35,13 +35,13 @@ import (
 // To keep the binary size small, only supports compression formats used in practice. As of May 2021, all
 // "tarballURL" from stable releases were "tar.xz".
 func Untar(dst string, src io.Reader) error { // dst, src order like io.Copy
-	if e := os.MkdirAll(dst, 0750); e != nil {
-		return e
+	if err := os.MkdirAll(dst, 0750); err != nil {
+		return err
 	}
 
-	zSrc, e := newDecompressor(src)
-	if e != nil {
-		return e
+	zSrc, err := newDecompressor(src)
+	if err != nil {
+		return err
 	}
 	defer zSrc.Close() //nolint
 
@@ -64,14 +64,14 @@ func Untar(dst string, src io.Reader) error { // dst, src order like io.Copy
 		dstPath := filepath.Join(dst, srcPath)
 		info := header.FileInfo()
 		if info.IsDir() {
-			if e := os.MkdirAll(dstPath, info.Mode()); e != nil {
-				return e
+			if err := os.MkdirAll(dstPath, info.Mode()); err != nil {
+				return err
 			}
 			continue
 		}
 
-		if e := extractFile(dstPath, tr, info.Mode()); e != nil {
-			return e
+		if err := extractFile(dstPath, tr, info.Mode()); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -85,8 +85,8 @@ func newDecompressor(r io.Reader) (io.ReadCloser, error) {
 		return nil, err
 	}
 	if xz.ValidHeader(h) {
-		xzr, e := xz.NewReader(br)
-		if e != nil {
+		xzr, err := xz.NewReader(br)
+		if err != nil {
 			return nil, err
 		}
 		return io.NopCloser(xzr), nil

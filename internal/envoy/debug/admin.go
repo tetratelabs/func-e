@@ -56,8 +56,8 @@ func (e *envoyAdminDataCollection) retrieveAdminAPIData() error {
 	for p, f := range adminAPIPaths {
 		url := fmt.Sprintf("http://%s/%v", adminAddress, p)
 		file := filepath.Join(e.workingDir, f)
-		if e := copyURLToFile(url, file); e != nil {
-			return e
+		if err := copyURLToFile(url, file); err != nil {
+			return err
 		}
 	}
 	return nil

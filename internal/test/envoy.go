@@ -40,8 +40,8 @@ func RequireRunTerminate(t *testing.T, terminate func(), r Runner, stderr io.Rea
 
 	reader := bufio.NewReader(stderr)
 	require.Eventually(t, func() bool {
-		b, e := reader.Peek(512)
-		return e != nil && strings.Contains(string(b), "started\n")
+		b, err := reader.Peek(512)
+		return err != nil && strings.Contains(string(b), "started\n")
 	}, 2*time.Second, 100*time.Millisecond, "never started process")
 
 	terminate()

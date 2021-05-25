@@ -51,16 +51,16 @@ func TestUntarEnvoyError(t *testing.T) {
 
 	url := server.URL + "/file.tar.gz"
 	t.Run("error on incorrect URL", func(t *testing.T) {
-		e := untarEnvoy(dst, url, io.Discard)
-		require.EqualError(t, e, fmt.Sprintf(`received 404 status code from %s`, url))
+		err := untarEnvoy(dst, url, io.Discard)
+		require.EqualError(t, err, fmt.Sprintf(`received 404 status code from %s`, url))
 	})
 
 	realHandler = func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(200)
 	}
 	t.Run("error on empty", func(t *testing.T) {
-		e := untarEnvoy(dst, url, io.Discard)
-		require.EqualError(t, e, fmt.Sprintf(`error untarring %s: EOF`, url))
+		err := untarEnvoy(dst, url, io.Discard)
+		require.EqualError(t, err, fmt.Sprintf(`error untarring %s: EOF`, url))
 	})
 
 	realHandler = func(w http.ResponseWriter, _ *http.Request) {
@@ -68,8 +68,8 @@ func TestUntarEnvoyError(t *testing.T) {
 		w.Write([]byte("mary had a little lamb")) //nolint
 	}
 	t.Run("error on not a tar", func(t *testing.T) {
-		e := untarEnvoy(dst, url, io.Discard)
-		require.EqualError(t, e, fmt.Sprintf(`error untarring %s: gzip: invalid header`, url))
+		err := untarEnvoy(dst, url, io.Discard)
+		require.EqualError(t, err, fmt.Sprintf(`error untarring %s: gzip: invalid header`, url))
 	})
 }
 
@@ -79,8 +79,8 @@ func TestUntarEnvoy(t *testing.T) {
 	defer cleanup()
 
 	out := new(bytes.Buffer)
-	e := untarEnvoy(o.tempDir, o.tarballURL, out)
-	require.NoError(t, e)
+	err := untarEnvoy(o.tempDir, o.tarballURL, out)
+	require.NoError(t, err)
 	require.FileExists(t, filepath.Join(o.tempDir, binEnvoy))
 	require.Contains(t, out.String(), `100% |████████████████████████████████████████|`)
 }
@@ -91,8 +91,8 @@ func TestInstallIfNeeded_ErrorOnIncorrectURL(t *testing.T) {
 
 	o.EnvoyVersionsURL += "/varsionz.json"
 
-	_, e := InstallIfNeeded(&o.GlobalOpts, runtime.GOOS, version.LastKnownEnvoy)
-	require.EqualError(t, e, "received 404 status code from "+o.EnvoyVersionsURL)
+	_, err := InstallIfNeeded(&o.GlobalOpts, runtime.GOOS, version.LastKnownEnvoy)
+	require.EqualError(t, err, "received 404 status code from "+o.EnvoyVersionsURL)
 	require.Empty(t, o.Out.(*bytes.Buffer))
 }
 
