@@ -44,13 +44,13 @@ func TestEnvoyVersionsJson(t *testing.T) {
 	require.Equalf(t, evs.LatestVersion, version.LastKnownEnvoy, "version.LastKnownEnvoy doesn't match latest version in %s", envoyVersionsPath)
 
 	// Ensure there's an option besides the latest version
-	require.Greaterf(t, len(evs.Versions), 2, "expected more than two versions")
+	require.GreaterOrEqualf(t, len(evs.Versions), 2, "expected more than two versions")
 
 	type testCase struct{ version, platform, tarballURL string }
 
 	var tests []testCase
 	for v, ev := range evs.Versions {
-		require.Greaterf(t, len(ev.Tarballs), 2, "expected at least two platforms for version %s", v)
+		require.GreaterOrEqualf(t, len(ev.Tarballs), 2, "expected at least two platforms for version %s", v)
 		for p, tb := range ev.Tarballs {
 			tests = append(tests, testCase{v, p, tb})
 		}
