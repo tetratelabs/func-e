@@ -56,7 +56,6 @@ func TestMain(m *testing.M) {
 		os.Setenv(envoyVersionsUrlEnvKey, s.URL)
 	}
 
-	fmt.Println("starting end-to-end (e2e) tests:", versionLine)
 	os.Exit(m.Run())
 }
 
