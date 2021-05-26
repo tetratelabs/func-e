@@ -38,7 +38,8 @@ func TestGetEnvoyVersions(t *testing.T) {
 
 	stdout, stderr, err := getEnvoy("versions").exec()
 
-	require.Contains(t, stdout, fmt.Sprintln(version.LastKnownEnvoy))
+	require.Regexp(t, "^VERSION\tRELEASE_DATE\n", stdout)
+	require.Regexp(t, fmt.Sprintf("%s\t202[1-9]-[01][0-9]-[0-3][0-9]\n", version.LastKnownEnvoy), stdout)
 	require.Empty(t, stderr)
 	require.NoError(t, err)
 }

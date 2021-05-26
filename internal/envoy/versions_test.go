@@ -33,32 +33,40 @@ func TestPrintVersions(t *testing.T) {
 			name:     "darwin",
 			platform: "darwin/amd64",
 			versions: goodVersions,
-			expected: `1.18.3
-1.14.7
+			expected: `VERSION	RELEASE_DATE
+1.18.3	2021-05-11
+1.14.7	2021-04-15
 `,
 		},
 		{
 			name:     "linux",
 			platform: "linux/amd64",
 			versions: goodVersions,
-			expected: `1.17.3
-1.14.7
+			expected: `VERSION	RELEASE_DATE
+1.18.3	2021-05-11
+1.17.3	2021-05-11
+1.14.7	2021-04-15
 `,
 		},
 		{
 			name:     "unsupported OS",
 			platform: "windows/amd64",
 			versions: goodVersions,
+			expected: `VERSION	RELEASE_DATE
+`,
 		},
 		{
 			name:     "unsupported Arch",
 			platform: "linux/arm64",
 			versions: goodVersions,
+			expected: `VERSION	RELEASE_DATE
+`,
 		},
 		{
 			name:     "empty version list",
 			platform: "darwin/amd64",
-			expected: ``,
+			expected: `VERSION	RELEASE_DATE
+`,
 		},
 	}
 
@@ -76,19 +84,23 @@ var goodVersions = version.EnvoyVersions{
 	LatestVersion: "1.18.3",
 	Versions: map[string]version.EnvoyVersion{
 		"1.14.7": {
+			ReleaseDate: "2021-04-15",
 			Tarballs: map[string]string{
+				"darwin/amd64": "https://getenvoy.io/versions/1.14.7/envoy-1.14.7-darwin-x86_64.tar.gz",
 				"linux/amd64":  "https://getenvoy.io/versions/1.14.7/envoy-1.14.7-linux-x86_64.tar.gz",
-				"darwin/amd64": "https://getenvoy.io/versions/1.14.7/envoy-1.14.7-darwin/amd64-x86_64.tar.gz",
 			},
 		},
 		"1.17.3": {
+			ReleaseDate: "2021-05-11",
 			Tarballs: map[string]string{
 				"linux/amd64": "https://getenvoy.io/versions/1.17.3/envoy-1.17.3-linux-x86_64.tar.gz",
 			},
 		},
 		"1.18.3": {
+			ReleaseDate: "2021-05-11",
 			Tarballs: map[string]string{
-				"darwin/amd64": "https://getenvoy.io/versions/1.18.3/envoy-1.18.3-darwin/amd64-x86_64.tar.gz",
+				"darwin/amd64": "https://getenvoy.io/versions/1.18.3/envoy-1.18.3-darwin-x86_64.tar.gz",
+				"linux/amd64":  "https://getenvoy.io/versions/1.18.3/envoy-1.18.3-linux-x86_64.tar.gz",
 			},
 		},
 	},

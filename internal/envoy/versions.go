@@ -51,22 +51,28 @@ func GetEnvoyVersions(envoyVersionsURL string) (version.EnvoyVersions, error) {
 
 // PrintVersions retrieves the Envoy versions from the passed location and writes it to the passed writer
 func PrintVersions(vs version.EnvoyVersions, p string, w io.Writer) {
-	// Build a list of versions for this platform
-	var versions []string
+	// Build a list of Envoy versions with release date for this platform
+	type versionReleaseDate struct{ version, releaseDate string }
+
+	var rows []versionReleaseDate
 	for v, t := range vs.Versions {
 		if _, ok := t.Tarballs[p]; ok {
-			versions = append(versions, v)
+			rows = append(rows, versionReleaseDate{v, t.ReleaseDate})
 		}
 	}
 
-	// Sort lexicographically descending, so that new versions appear first
-	sort.Slice(versions, func(i, j int) bool {
-		return versions[i] > versions[j]
+	// Sort so that new release dates appear first and on conflict choosing the higher version
+	sort.Slice(rows, func(i, j int) bool {
+		if rows[i].releaseDate == rows[j].releaseDate {
+			return rows[i].version > rows[j].version
+		}
+		return rows[i].releaseDate > rows[j].releaseDate
 	})
 
-	// Print the versions
-	for _, v := range versions {
-		fmt.Fprintln(w, v) //nolint
+	// This doesn't use tabwriter because the columns are likely to remain the same width for the foreseeable future.
+	fmt.Fprintln(w, "VERSION\tRELEASE_DATE") //nolint
+	for _, vr := range rows {                //nolint:gocritic
+		fmt.Fprintf(w, "%s\t%s\n", vr.version, vr.releaseDate) //nolint
 	}
 }
 
