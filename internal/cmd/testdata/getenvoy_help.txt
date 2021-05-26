@@ -1,5 +1,5 @@
 NAME:
-   getenvoy - Download and run Envoy
+   getenvoy - Install and run Envoy
 
 USAGE:
    getenvoy [global options] command [command options] [arguments...]
