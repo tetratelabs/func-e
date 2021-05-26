@@ -20,6 +20,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -108,7 +109,7 @@ func getEnvoyReleaseDates() (map[string]string, error) {
 		return nil, fmt.Errorf("error reading %s: %w", url, err)
 	}
 
-	var releases []GitHubRelease
+	var releases []gitHubRelease
 	if err := json.Unmarshal(body, &releases); err != nil {
 		return nil, fmt.Errorf("error unmarshalling GitHub Releases: %w", err)
 	}
