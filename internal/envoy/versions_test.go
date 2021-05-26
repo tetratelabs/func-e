@@ -52,16 +52,21 @@ func TestPrintVersions(t *testing.T) {
 			name:     "unsupported OS",
 			platform: "windows/amd64",
 			versions: goodVersions,
+			expected: `VERSION	RELEASE_DATE
+`,
 		},
 		{
 			name:     "unsupported Arch",
 			platform: "linux/arm64",
 			versions: goodVersions,
+			expected: `VERSION	RELEASE_DATE
+`,
 		},
 		{
 			name:     "empty version list",
 			platform: "darwin/amd64",
-			expected: ``,
+			expected: `VERSION	RELEASE_DATE
+`,
 		},
 	}
 

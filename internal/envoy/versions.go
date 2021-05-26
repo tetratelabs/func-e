@@ -21,7 +21,6 @@ import (
 	"net/http"
 	"runtime"
 	"sort"
-	"text/tabwriter"
 
 	"github.com/tetratelabs/getenvoy/internal/version"
 )
@@ -51,7 +50,7 @@ func GetEnvoyVersions(envoyVersionsURL string) (version.EnvoyVersions, error) {
 }
 
 // PrintVersions retrieves the Envoy versions from the passed location and writes it to the passed writer
-func PrintVersions(vs version.EnvoyVersions, p string, w io.Writer) error {
+func PrintVersions(vs version.EnvoyVersions, p string, w io.Writer) {
 	// Build a list of Envoy versions with release date for this platform
 	type versionReleaseDate struct{ version, releaseDate string }
 
@@ -62,10 +61,6 @@ func PrintVersions(vs version.EnvoyVersions, p string, w io.Writer) error {
 		}
 	}
 
-	if len(rows) == 0 {
-		return nil
-	}
-
 	// Sort so that new release dates appear first and on conflict choosing the higher version
 	sort.Slice(rows, func(i, j int) bool {
 		if rows[i].releaseDate == rows[j].releaseDate {
@@ -74,17 +69,11 @@ func PrintVersions(vs version.EnvoyVersions, p string, w io.Writer) error {
 		return rows[i].releaseDate > rows[j].releaseDate
 	})
 
-	tw := tabwriter.NewWriter(w, 1, 8, 1, '\t', 0)
-	if _, err := fmt.Fprintln(tw, "VERSION\tRELEASE_DATE"); err != nil {
-		return err
+	// This doesn't use tabwriter because the columns are likely to remain the same width for the foreseeable future.
+	fmt.Fprintln(w, "VERSION\tRELEASE_DATE") //nolint
+	for _, vr := range rows {                //nolint:gocritic
+		fmt.Fprintf(w, "%s\t%s\n", vr.version, vr.releaseDate) //nolint
 	}
-
-	for _, vr := range rows { //nolint:gocritic
-		if _, err := fmt.Fprintf(tw, "%s\t%s\n", vr.version, vr.releaseDate); err != nil {
-			return err
-		}
-	}
-	return tw.Flush()
 }
 
 // CurrentPlatform is the platform of the current process. This is used as a key in EnvoyVersion.Tarballs.
