@@ -119,7 +119,7 @@ func getEnvoyReleaseDates() (map[string]string, error) {
 			continue
 		}
 		// clean inputs "v1.15.4" -> "2021-05-11T19:11:09Z" into "1.15.4" -> "2021-05-11"
-		m[r.Name[1:]] = r.PublishedAt[0:10]
+		m[strings.TrimPrefix(r.Name, "v")] = r.PublishedAt[0:10]
 	}
 	return m, nil
 }
