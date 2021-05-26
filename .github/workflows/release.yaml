@@ -34,17 +34,15 @@ jobs:
         run: make release
 
   e2e:
-    name: Run e2e tests (${{ matrix.runner.os }})
+    name: Run e2e tests (${{ matrix.os }})
     needs:
       - getenvoy
-    runs-on: ${{ matrix.runner.os }}
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 90  # instead of 360 by default
     strategy:
       fail-fast: false  # don't fail fast as sometimes failures are operating system specific
       matrix:
-        runner:
-          - os: macos-latest
-          - os: ubuntu-latest
+        os: [ ubuntu-latest, macos-latest ]
     steps:
       - name: "Checkout"
         uses: actions/checkout@v2
