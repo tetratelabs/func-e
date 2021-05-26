@@ -2,7 +2,7 @@
   "latestVersion": "1.18.3",
   "versions": {
     "1.14.7": {
-      "releaseDate": "2021-05-16",
+      "releaseDate": "2021-04-15",
       "tarballs": {
         "darwin/amd64": "https://dl.getenvoy.io/public/raw/files/getenvoy-envoy-1.14.7.p0.gbc15868-1p74.gbb8060d-darwin-release-x86_64.tar.xz",
         "linux/amd64": "https://dl.getenvoy.io/public/raw/files/getenvoy-envoy-1.14.7.p0.gbc15868-1p74.gbb8060d-linux-glibc-release-x86_64.tar.xz"

@@ -29,8 +29,8 @@ import (
 //nolint:golint
 const (
 	getenvoyBinaryEnvKey   = "E2E_GETENVOY_BINARY"
-	envoyVersionsUrlEnvKey = "ENVOY_VERSIONS_URL"
-	envoyVersionsJson      = "../site/envoy_versions.json"
+	envoyVersionsURLEnvKey = "ENVOY_VERSIONS_URL"
+	envoyVersionsJSON      = "../site/envoy_versions.json"
 )
 
 // TestMain ensures the "getenvoy" binary is valid.
@@ -47,13 +47,13 @@ func TestMain(m *testing.M) {
 		exitOnInvalidBinary(err)
 	}
 
-	if _, ok := os.LookupEnv(envoyVersionsUrlEnvKey); !ok && strings.Contains(versionLine, "SNAPSHOT") {
+	if _, ok := os.LookupEnv(envoyVersionsURLEnvKey); !ok && strings.Contains(versionLine, "SNAPSHOT") {
 		s, err := mockEnvoyVersionsServer() // no defer s.Close() because os.Exit() subverts it
 		if err != nil {
-			fmt.Fprintf(os.Stderr, `failed to serve %s: %v`, envoyVersionsJson, err)
+			fmt.Fprintf(os.Stderr, `failed to serve %s: %v`, envoyVersionsJSON, err)
 			os.Exit(1)
 		}
-		os.Setenv(envoyVersionsUrlEnvKey, s.URL)
+		os.Setenv(envoyVersionsURLEnvKey, s.URL)
 	}
 
 	os.Exit(m.Run())
@@ -64,10 +64,10 @@ func exitOnInvalidBinary(err error) {
 	os.Exit(1)
 }
 
-// mockEnvoyVersionsServer ensures envoyVersionsUrlEnvKey is set appropriately, so that non-release versions can see
-// changes to local envoyVersionsJson.
+// mockEnvoyVersionsServer ensures envoyVersionsURLEnvKey is set appropriately, so that non-release versions can see
+// changes to local envoyVersionsJSON.
 func mockEnvoyVersionsServer() (*httptest.Server, error) {
-	f, err := os.Open(envoyVersionsJson)
+	f, err := os.Open(envoyVersionsJSON)
 	if err != nil {
 		return nil, err
 	}
