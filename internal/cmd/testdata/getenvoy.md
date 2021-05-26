@@ -1,6 +1,6 @@
 # NAME
 
-getenvoy - Download and run Envoy
+getenvoy - Install and run Envoy
 
 # SYNOPSIS
 
