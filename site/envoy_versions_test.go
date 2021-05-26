@@ -30,7 +30,7 @@ import (
 const envoyVersionsPath = "./envoy_versions.json"
 
 // GitHubRelease includes a subset of fields we use from https://docs.github.com/en/rest/reference/repos#releases
-type GitHubRelease struct {
+type gitHubRelease struct {
 	// Name ex "v1.15.4"
 	Name string `json:"name"`
 	// PublishedAt ex "2021-05-11T19:11:09Z"
