@@ -39,7 +39,7 @@ brews:
       token: "{{ .Env.HOMEBREW_GETENVOY_GITHUB_TOKEN }}"
     folder: Formula
     homepage: https://github.com/tetratelabs/getenvoy
-    description: Download and run Envoy
+    description: Install and run Envoy
     license: Apache-2.0
     install: |  # TODO: add shell completion post-install
       bin.install "getenvoy"
