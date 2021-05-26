@@ -34,7 +34,7 @@ linters:
     - "gofmt"
     - "gocyclo"
     - "goimports"
-    - "golint"
+    - "revive"
     - "gosec"
     - "gosimple"
     - "lll"

@@ -34,7 +34,7 @@ func TestPrintVersions(t *testing.T) {
 			platform: "darwin/amd64",
 			versions: goodVersions,
 			expected: `1.18.3
-1.14.6
+1.14.7
 `,
 		},
 		{
@@ -42,7 +42,7 @@ func TestPrintVersions(t *testing.T) {
 			platform: "linux/amd64",
 			versions: goodVersions,
 			expected: `1.17.3
-1.14.6
+1.14.7
 `,
 		},
 		{
@@ -75,10 +75,10 @@ func TestPrintVersions(t *testing.T) {
 var goodVersions = version.EnvoyVersions{
 	LatestVersion: "1.18.3",
 	Versions: map[string]version.EnvoyVersion{
-		"1.14.6": {
+		"1.14.7": {
 			Tarballs: map[string]string{
-				"linux/amd64":  "https://getenvoy.io/versions/1.14.6/envoy-1.14.6-linux-x86_64.tar.gz",
-				"darwin/amd64": "https://getenvoy.io/versions/1.14.6/envoy-1.14.6-darwin/amd64-x86_64.tar.gz",
+				"linux/amd64":  "https://getenvoy.io/versions/1.14.7/envoy-1.14.7-linux-x86_64.tar.gz",
+				"darwin/amd64": "https://getenvoy.io/versions/1.14.7/envoy-1.14.7-darwin/amd64-x86_64.tar.gz",
 			},
 		},
 		"1.17.3": {

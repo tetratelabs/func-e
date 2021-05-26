@@ -16,53 +16,101 @@ package e2e
 
 import (
 	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 )
 
 //nolint:golint
-const E2E_GETENVOY_BINARY = "E2E_GETENVOY_BINARY"
+const (
+	getenvoyBinaryEnvKey   = "E2E_GETENVOY_BINARY"
+	envoyVersionsURLEnvKey = "ENVOY_VERSIONS_URL"
+	envoyVersionsJSON      = "../site/envoy_versions.json"
+)
 
 // TestMain ensures the "getenvoy" binary is valid.
 func TestMain(m *testing.M) {
 	// As this is an e2e test, we execute all tests with a binary compiled earlier.
 	path, err := readGetEnvoyPath()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, `failed to start e2e tests due to an invalid "getenvoy" binary: %v`, err)
-		os.Exit(1)
+		exitOnInvalidBinary(err)
 	}
 	getEnvoyPath = path
 
+	versionLine, _, err := getEnvoy("--version").exec()
+	if err != nil {
+		exitOnInvalidBinary(err)
+	}
+
+	if _, ok := os.LookupEnv(envoyVersionsURLEnvKey); !ok && strings.Contains(versionLine, "SNAPSHOT") {
+		s, err := mockEnvoyVersionsServer() // no defer s.Close() because os.Exit() subverts it
+		if err != nil {
+			fmt.Fprintf(os.Stderr, `failed to serve %s: %v`, envoyVersionsJSON, err)
+			os.Exit(1)
+		}
+		os.Setenv(envoyVersionsURLEnvKey, s.URL)
+	}
+
 	os.Exit(m.Run())
+}
+
+func exitOnInvalidBinary(err error) {
+	fmt.Fprintf(os.Stderr, `failed to start e2e tests due to an invalid "getenvoy" binary: %v`, err)
+	os.Exit(1)
+}
+
+// mockEnvoyVersionsServer ensures envoyVersionsURLEnvKey is set appropriately, so that non-release versions can see
+// changes to local envoyVersionsJSON.
+func mockEnvoyVersionsServer() (*httptest.Server, error) {
+	f, err := os.Open(envoyVersionsJSON)
+	if err != nil {
+		return nil, err
+	}
+
+	defer f.Close() // nolint
+	bytes, err := io.ReadAll(f)
+	if err != nil {
+		return nil, err
+	}
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(200)
+		w.Write(bytes) //nolint
+	}))
+	return ts, nil
 }
 
 // readGetEnvoyPath reads E2E_GETENVOY_BINARY or defaults to "$PWD/dist/getenvoy_$GOOS_$GOARCH/getenvoy"
 // An error is returned if the value isn't an executable file.
 func readGetEnvoyPath() (string, error) {
-	path := os.Getenv(E2E_GETENVOY_BINARY)
+	path := os.Getenv(getenvoyBinaryEnvKey)
 	if path == "" {
 		// Assemble the default created by "make bin"
 		relativePath := filepath.Join("..", "dist", fmt.Sprintf("getenvoy_%s_%s", runtime.GOOS, runtime.GOARCH), "getenvoy")
 		abs, err := filepath.Abs(relativePath)
 		if err != nil {
-			return "", fmt.Errorf("%s didn't resolve to a valid path. Correct environment variable %s", path, E2E_GETENVOY_BINARY)
+			return "", fmt.Errorf("%s didn't resolve to a valid path. Correct environment variable %s", path, getenvoyBinaryEnvKey)
 		}
 		path = abs
 	}
 
 	stat, err := os.Stat(path)
 	if err != nil && os.IsNotExist(err) {
-		return "", fmt.Errorf("%s doesn't exist. Correct environment variable %s", path, E2E_GETENVOY_BINARY)
+		return "", fmt.Errorf("%s doesn't exist. Correct environment variable %s", path, getenvoyBinaryEnvKey)
 	}
 	if stat.IsDir() {
-		return "", fmt.Errorf("%s is not a file. Correct environment variable %s", path, E2E_GETENVOY_BINARY)
+		return "", fmt.Errorf("%s is not a file. Correct environment variable %s", path, getenvoyBinaryEnvKey)
 	}
 	// While "make bin" should result in correct permissions, double-check as some tools lose them, such as
 	// https://github.com/actions/upload-artifact#maintaining-file-permissions-and-case-sensitive-files
 	if stat.Mode()&0111 == 0 {
-		return "", fmt.Errorf("%s is not executable. Correct environment variable %s", path, E2E_GETENVOY_BINARY)
+		return "", fmt.Errorf("%s is not executable. Correct environment variable %s", path, getenvoyBinaryEnvKey)
 	}
 	return path, nil
 }
