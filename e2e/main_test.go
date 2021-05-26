@@ -48,7 +48,7 @@ func TestMain(m *testing.M) {
 	}
 
 	if _, ok := os.LookupEnv(envoyVersionsUrlEnvKey); !ok && strings.Contains(versionLine, "SNAPSHOT") {
-		s, err := mockEnvoyVersionsServer()
+		s, err := mockEnvoyVersionsServer() // no defer s.Close() because os.Exit() subverts it
 		if err != nil {
 			fmt.Fprintf(os.Stderr, `failed to serve %s: %v`, envoyVersionsJson, err)
 			os.Exit(1)
