@@ -31,8 +31,7 @@ func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 			if err != nil {
 				return err
 			}
-			envoy.PrintVersions(m, envoy.CurrentPlatform(), c.App.Writer)
-			return nil
+			return envoy.PrintVersions(m, envoy.CurrentPlatform(), c.App.Writer)
 		},
 	}
 }

@@ -44,8 +44,8 @@ func RequireEnvoyVersionsTestServer(t *testing.T, v string) *httptest.Server {
 	h := httptest.NewServer(s)
 	s.versions = version.EnvoyVersions{
 		LatestVersion: v,
-		Versions: map[string]version.EnvoyVersion{
-			v: {Tarballs: map[string]string{
+		Versions: map[string]version.EnvoyVersion{ // hard-code date so that tests don't drift
+			v: {ReleaseDate: "2020-12-31", Tarballs: map[string]string{
 				"linux/" + runtime.GOARCH:  TarballURL(h.URL, "linux", runtime.GOARCH, v),
 				"darwin/" + runtime.GOARCH: TarballURL(h.URL, "darwin", runtime.GOARCH, v),
 			}}},

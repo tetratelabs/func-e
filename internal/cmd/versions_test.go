@@ -34,6 +34,8 @@ func TestGetEnvoyVersions(t *testing.T) {
 
 	// Verify the command invoked, passing the correct default commandline
 	require.NoError(t, err)
-	require.Equal(t, fmt.Sprintln(version.LastKnownEnvoy), stdout.String())
+	require.Equal(t, fmt.Sprintf(`VERSION	RELEASE_DATE
+%s	2020-12-31
+`, version.LastKnownEnvoy), stdout.String())
 	require.Empty(t, stderr)
 }
