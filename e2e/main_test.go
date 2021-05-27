@@ -31,6 +31,7 @@ const (
 	getenvoyBinaryEnvKey   = "E2E_GETENVOY_BINARY"
 	envoyVersionsURLEnvKey = "ENVOY_VERSIONS_URL"
 	envoyVersionsJSON      = "../site/envoy-versions.json"
+	userAgent              = "GetEnvoy/dev"
 )
 
 // TestMain ensures the "getenvoy" binary is valid.
@@ -55,7 +56,6 @@ func TestMain(m *testing.M) {
 		}
 		os.Setenv(envoyVersionsURLEnvKey, s.URL)
 	}
-
 	os.Exit(m.Run())
 }
 
@@ -79,6 +79,12 @@ func mockEnvoyVersionsServer() (*httptest.Server, error) {
 	}
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Ensure e2e tests won't eventually interfere with analytics when run against a release version
+		if r.UserAgent() != userAgent {
+			w.WriteHeader(500)
+			w.Write([]byte(fmt.Sprintln(`invalid "User-Agent":`, r.UserAgent()))) //nolint
+			return
+		}
 		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(200)
 		w.Write(bytes) //nolint

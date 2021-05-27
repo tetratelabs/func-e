@@ -28,6 +28,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/tetratelabs/getenvoy/internal/globals"
 	"github.com/tetratelabs/getenvoy/internal/tar"
 	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
 	"github.com/tetratelabs/getenvoy/internal/version"
@@ -71,6 +72,7 @@ type server struct {
 func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case r.RequestURI == "/envoy-versions.json":
+		require.Equal(s.t, globals.DefaultUserAgent, r.UserAgent())
 		w.WriteHeader(http.StatusOK)
 		_, err := w.Write(s.getEnvoyVersions())
 		require.NoError(s.t, err)

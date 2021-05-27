@@ -27,11 +27,11 @@ func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 		Name:  "versions",
 		Usage: "List available Envoy versions",
 		Action: func(c *cli.Context) error {
-			m, err := envoy.GetEnvoyVersions(o.EnvoyVersionsURL)
+			m, err := envoy.GetEnvoyVersions(o.EnvoyVersionsURL, o.UserAgent)
 			if err != nil {
 				return err
 			}
-			envoy.PrintVersions(m, envoy.CurrentPlatform(), c.App.Writer)
+			envoy.PrintVersions(m, globals.CurrentPlatform, c.App.Writer)
 			return nil
 		},
 	}
