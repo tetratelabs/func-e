@@ -51,10 +51,11 @@ func NewInstalledCmd(o *globals.GlobalOpts) *cli.Command {
 				return rows[i] > rows[j]
 			})
 
-			fmt.Fprintln(o.Out, "VERSION") //nolint
+			out := "VERSION\n"
 			for _, vr := range rows {
-				fmt.Fprintln(o.Out, vr) //nolint
+				out += vr + "\n"
 			}
+			fmt.Fprint(o.Out, out)
 			return nil
 		},
 	}
