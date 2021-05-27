@@ -15,7 +15,9 @@
 package e2e
 
 import (
+	"fmt"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -46,4 +48,13 @@ func TestGetEnvoyInstall(t *testing.T) {
 		require.Equal(t, version.LastKnownEnvoy+" is already downloaded\n", stdout)
 		require.Empty(t, stderr)
 	})
+}
+
+func TestGetEnvoyInstall_UnknownVersion(t *testing.T) {
+	stdout, stderr, err := getEnvoy("install", "1.1.1").exec()
+
+	require.EqualError(t, err, "exit status 1")
+	require.Empty(t, stdout)
+	require.Equal(t, fmt.Sprintf(`error: couldn't find version "1.1.1" for platform "%s/%s"
+`, runtime.GOOS, runtime.GOARCH), stderr)
 }

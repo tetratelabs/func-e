@@ -31,8 +31,7 @@ func TestGetEnvoyInstalled_NothingYet(t *testing.T) {
 	err := c.Run([]string{"getenvoy", "installed"})
 
 	require.NoError(t, err)
-	require.Equal(t, `No envoy versions installed, yet
-`, stdout.String())
+	require.Equal(t, "No envoy versions installed, yet\n", stdout.String())
 	require.Empty(t, stderr)
 }
 

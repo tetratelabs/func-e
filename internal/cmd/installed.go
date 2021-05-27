@@ -19,6 +19,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/urfave/cli/v2"
 
@@ -33,13 +34,13 @@ func NewInstalledCmd(o *globals.GlobalOpts) *cli.Command {
 		Action: func(c *cli.Context) error {
 			files, err := os.ReadDir(filepath.Join(o.HomeDir, "versions"))
 			if os.IsNotExist(err) {
-				fmt.Fprintln(o.Out, "No envoy versions installed, yet")
-				return nil
+				_, err = fmt.Fprintln(o.Out, "No envoy versions installed, yet")
+				return err
 			} else if err != nil {
 				return err
 			}
 
-			var rows []string
+			rows := []string{"VERSION"}
 			for _, f := range files {
 				if f.IsDir() {
 					rows = append(rows, f.Name())
@@ -51,12 +52,8 @@ func NewInstalledCmd(o *globals.GlobalOpts) *cli.Command {
 				return rows[i] > rows[j]
 			})
 
-			out := "VERSION\n"
-			for _, vr := range rows {
-				out += vr + "\n"
-			}
-			fmt.Fprint(o.Out, out)
-			return nil
+			_, err = fmt.Fprintln(o.Out, strings.Join(rows, "\n"))
+			return err
 		},
 	}
 }
