@@ -28,7 +28,7 @@ import (
 	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
-const envoyVersionsPath = "./envoy_versions.json"
+const envoyVersionsPath = "./envoy-versions.json"
 
 // GitHubRelease includes a subset of fields we use from https://docs.github.com/en/rest/reference/repos#releases
 type gitHubRelease struct {

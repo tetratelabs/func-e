@@ -38,7 +38,7 @@ import (
 const archiveFormat = ".tar.gz"
 const versionsPath = "/versions/"
 
-// RequireEnvoyVersionsTestServer serves "/envoy_versions.json", containing download links a fake Envoy archive.
+// RequireEnvoyVersionsTestServer serves "/envoy-versions.json", containing download links a fake Envoy archive.
 func RequireEnvoyVersionsTestServer(t *testing.T, v string) *httptest.Server {
 	s := &server{t: t}
 	h := httptest.NewServer(s)
@@ -70,7 +70,7 @@ type server struct {
 
 func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch {
-	case r.RequestURI == "/envoy_versions.json":
+	case r.RequestURI == "/envoy-versions.json":
 		w.WriteHeader(http.StatusOK)
 		_, err := w.Write(s.getEnvoyVersions())
 		require.NoError(s.t, err)

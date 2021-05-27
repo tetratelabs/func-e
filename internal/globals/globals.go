@@ -38,7 +38,7 @@ type RunOpts struct {
 type GlobalOpts struct {
 	// RunOpts are inlined to allow tests to override parameters without changing ENV variables or flags
 	RunOpts
-	// EnvoyVersionsURL is the path to the envoy_versions.json. Defaults to DefaultEnvoyVersionsURL
+	// EnvoyVersionsURL is the path to the envoy-versions.json. Defaults to DefaultEnvoyVersionsURL
 	EnvoyVersionsURL string
 	// HomeDir most importantly contains Envoy versions installed from EnvoyVersionsURL. Defaults to DefaultHomeDir
 	HomeDir string
@@ -50,5 +50,5 @@ const (
 	// DefaultHomeDir is the default value for GlobalOpts.HomeDir
 	DefaultHomeDir = "${HOME}/.getenvoy"
 	// DefaultEnvoyVersionsURL is the default value for GlobalOpts.EnvoyVersionsURL
-	DefaultEnvoyVersionsURL = "https://getenvoy.io/envoy_versions.json"
+	DefaultEnvoyVersionsURL = "https://getenvoy.io/envoy-versions.json"
 )

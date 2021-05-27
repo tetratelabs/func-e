@@ -125,9 +125,9 @@ func TestEnvoyVersionsURL(t *testing.T) {
 
 	tests := []testCase{ // we don't test default as that depends on the runtime env
 		{
-			name:     "default is https://getenvoy.io/envoy_versions.json",
+			name:     "default is https://getenvoy.io/envoy-versions.json",
 			args:     []string{"getenvoy"},
-			expected: "https://getenvoy.io/envoy_versions.json",
+			expected: "https://getenvoy.io/envoy-versions.json",
 		},
 		{
 			name: "ENVOY_VERSIONS_URL env",
@@ -221,7 +221,7 @@ func setupTest(t *testing.T) (*globals.GlobalOpts, func()) {
 	require.NoError(t, err, `error creating directory: %s`, result.HomeDir)
 
 	versionsServer := test.RequireEnvoyVersionsTestServer(t, version.LastKnownEnvoy)
-	result.EnvoyVersionsURL = versionsServer.URL + "/envoy_versions.json"
+	result.EnvoyVersionsURL = versionsServer.URL + "/envoy-versions.json"
 	tearDown = append(tearDown, versionsServer.Close)
 
 	return &result, func() {
