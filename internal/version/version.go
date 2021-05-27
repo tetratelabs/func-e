@@ -21,7 +21,7 @@ import _ "embed" // We embed the Envoy version so that we can cache it in CI
 var GetEnvoy = "dev"
 
 // LastKnownEnvoy is the last known Envoy version, used to ensure help statements aren't out-of-date.
-// This is derived from /site/envoy_versions.json, but not used directly because go:embed requires a file read from the
+// This is derived from /site/envoy-versions.json, but not used directly because go:embed requires a file read from the
 // current directory tree.
 //
 // This is different than the "latestVersion" because this is built into the binary. For example, after the binary is

@@ -14,6 +14,6 @@ COMMANDS:
 
 GLOBAL OPTIONS:
    --home-dir value            GetEnvoy home directory (location of downloaded versions and run archives) (default: ${HOME}/.getenvoy) [$GETENVOY_HOME]
-   --envoy-versions-url value  URL of Envoy versions JSON (default: https://getenvoy.io/envoy_versions.json) [$ENVOY_VERSIONS_URL]
+   --envoy-versions-url value  URL of Envoy versions JSON (default: https://getenvoy.io/envoy-versions.json) [$ENVOY_VERSIONS_URL]
    --help, -h                  show help (default: false)
    --version, -v               print the version (default: false)

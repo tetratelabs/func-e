@@ -30,7 +30,7 @@ import (
 const (
 	getenvoyBinaryEnvKey   = "E2E_GETENVOY_BINARY"
 	envoyVersionsURLEnvKey = "ENVOY_VERSIONS_URL"
-	envoyVersionsJSON      = "../site/envoy_versions.json"
+	envoyVersionsJSON      = "../site/envoy-versions.json"
 )
 
 // TestMain ensures the "getenvoy" binary is valid.
