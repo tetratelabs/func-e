@@ -42,7 +42,7 @@ func InstallIfNeeded(o *globals.GlobalOpts, p, v string) (string, error) {
 		}
 
 		var ev version.EnvoyVersions
-		ev, err = GetEnvoyVersions(o.EnvoyVersionsURL)
+		ev, err = GetEnvoyVersions(o.EnvoyVersionsURL, o.UserAgent)
 		if err != nil {
 			return "", err
 		}
@@ -53,7 +53,7 @@ func InstallIfNeeded(o *globals.GlobalOpts, p, v string) (string, error) {
 		}
 
 		fmt.Fprintln(o.Out, "downloading", tarballURL) //nolint
-		if err = untarEnvoy(installPath, tarballURL, o.Out); err != nil {
+		if err = untarEnvoy(installPath, tarballURL, o.UserAgent, o.Out); err != nil {
 			return "", err
 		}
 	case err == nil:
@@ -77,8 +77,8 @@ func verifyEnvoy(installPath string) (string, error) {
 	return envoyPath, nil
 }
 
-func untarEnvoy(dst, url string, out io.Writer) error { // dst, src order like io.Copy
-	resp, err := httpGet(url)
+func untarEnvoy(dst, url, userAgent string, out io.Writer) error { // dst, src order like io.Copy
+	resp, err := httpGet(url, userAgent)
 	if err != nil {
 		return err
 	}

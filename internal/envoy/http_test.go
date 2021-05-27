@@ -23,12 +23,14 @@ import (
 )
 
 func TestHttpGet_AddsUserAgent(t *testing.T) {
+	userAgent := "foo"
+
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, userAgent, r.UserAgent())
 	}))
 	defer ts.Close()
 
-	res, err := httpGet(ts.URL)
+	res, err := httpGet(ts.URL, userAgent)
 	require.NoError(t, err)
 
 	defer res.Body.Close()

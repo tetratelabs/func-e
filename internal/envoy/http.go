@@ -15,16 +15,11 @@
 package envoy
 
 import (
-	"fmt"
 	"net/http"
-
-	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
-var userAgent = fmt.Sprintf("GetEnvoy/%s", version.GetEnvoy)
-
 // httpGet adds the "User-Agent" header to the request, so that we can tell what is a dev build vs release.
-func httpGet(url string) (*http.Response, error) {
+func httpGet(url, userAgent string) (*http.Response, error) {
 	// #nosec -> url can be anywhere by design
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {

@@ -44,7 +44,7 @@ $ getenvoy run %s --config-path ./bootstrap.yaml`, latestversion.LastKnownEnvoy)
 		Before: validateVersionArg,
 		Action: func(c *cli.Context) error {
 			args := c.Args().Slice()
-			if err := initializeRunOpts(o, envoy.CurrentPlatform(), args[0]); err != nil {
+			if err := initializeRunOpts(o, globals.CurrentPlatform, args[0]); err != nil {
 				return err
 			}
 			r := envoy.NewRuntime(&o.RunOpts)

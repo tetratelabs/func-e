@@ -29,7 +29,7 @@ import (
 // NewApp create a new root command. The globals.GlobalOpts parameter allows tests to scope overrides, which avoids
 // having to define a flag for everything needed in tests.
 func NewApp(o *globals.GlobalOpts) *cli.App {
-	var homeDir, envoyVersionsURL string
+	var homeDir, envoyVersionsURL, userAgent string
 
 	app := cli.NewApp()
 	app.Name = "getenvoy"
@@ -51,8 +51,15 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 			DefaultText: globals.DefaultEnvoyVersionsURL,
 			Destination: &envoyVersionsURL,
 			EnvVars:     []string{"ENVOY_VERSIONS_URL"},
+		},
+		&cli.StringFlag{
+			Name:        "internal-user-agent", // Hidden, but settable for release e2e tests
+			Hidden:      true,                  // Hidden, but settable for release e2e tests
+			Value:       globals.DefaultUserAgent,
+			Destination: &userAgent,
 		}}
 	app.Before = func(c *cli.Context) error {
+		o.UserAgent = userAgent
 		if err := setHomeDir(o, homeDir); err != nil {
 			return err
 		}

@@ -19,17 +19,16 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"runtime"
 	"sort"
 
 	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
 // GetEnvoyVersions returns a version map from a remote URL. eg globals.DefaultEnvoyVersionsURL.
-func GetEnvoyVersions(envoyVersionsURL string) (version.EnvoyVersions, error) {
+func GetEnvoyVersions(envoyVersionsURL, userAgent string) (version.EnvoyVersions, error) {
 	result := version.EnvoyVersions{}
 	// #nosec => This is by design, users can call out to wherever they like!
-	resp, err := httpGet(envoyVersionsURL)
+	resp, err := httpGet(envoyVersionsURL, userAgent)
 	if err != nil {
 		return result, err
 	}
@@ -74,9 +73,4 @@ func PrintVersions(vs version.EnvoyVersions, p string, w io.Writer) {
 	for _, vr := range rows {                //nolint:gocritic
 		fmt.Fprintf(w, "%s\t%s\n", vr.version, vr.releaseDate) //nolint
 	}
-}
-
-// CurrentPlatform is the platform of the current process. This is used as a key in EnvoyVersion.Tarballs.
-func CurrentPlatform() string {
-	return runtime.GOOS + "/" + runtime.GOARCH
 }

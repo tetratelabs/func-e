@@ -37,7 +37,7 @@ Example:
 $ getenvoy install %s`, version.LastKnownEnvoy),
 		Before: validateVersionArg,
 		Action: func(c *cli.Context) error {
-			_, err := envoy.InstallIfNeeded(o, envoy.CurrentPlatform(), c.Args().First())
+			_, err := envoy.InstallIfNeeded(o, globals.CurrentPlatform, c.Args().First())
 			return err
 		},
 	}

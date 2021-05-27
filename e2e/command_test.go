@@ -28,10 +28,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var (
-	// getEnvoyPath holds a path to a 'getenvoy' binary under test.
-	getEnvoyPath = "getenvoy"
-)
+// getEnvoyPath holds a path to a 'getenvoy' binary under test.
+var getEnvoyPath = "getenvoy"
 
 // cmdBuilder represents a command builder.
 type cmdBuilder struct {
@@ -40,7 +38,16 @@ type cmdBuilder struct {
 
 // getEnvoy returns a new command builder.
 func getEnvoy(arg0 string) *cmdBuilder { //nolint:golint
-	return &cmdBuilder{exec.Command(getEnvoyPath, arg0)} //nolint:gosec
+
+	var args []string
+	if arg0 == "--version" {
+		args = []string{arg0}
+	} else {
+		args = []string{"--internal-user-agent", userAgent, arg0}
+	}
+
+	// Hard-code "User-Agent" HTTP header so that it doesn't interfere with site analytics.
+	return &cmdBuilder{exec.Command(getEnvoyPath, args...)} //nolint:gosec
 }
 
 func (b *cmdBuilder) args(args ...string) *cmdBuilder {
