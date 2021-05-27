@@ -43,8 +43,7 @@ func TestGetEnvoyInstall(t *testing.T) {
 		stdout, stderr, err := getEnvoy("--home-dir", homeDir, "install", version.LastKnownEnvoy).exec()
 
 		require.NoError(t, err)
-		require.Equal(t, version.LastKnownEnvoy+` is already downloaded
-`, stdout)
+		require.Equal(t, version.LastKnownEnvoy+" is already downloaded\n", stdout)
 		require.Empty(t, stderr)
 	})
 }
