@@ -45,7 +45,7 @@ jobs:
         with:
           # This combines unrelated caches because actions/cache@v2 doesn't support multiple
           # instances, rather a combined path. https://github.com/actions/cache/issues/16
-          path: |
+          path: |  # ~/.getenvoy/versions is cached so that we only re-download once: for TestGetEnvoyInstall
             ~/.getenvoy/versions
             ~/go/pkg/mod
             ~/go/bin/*-v*

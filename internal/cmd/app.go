@@ -40,7 +40,7 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
 			Name:        "home-dir",
-			Usage:       "GetEnvoy home directory (location of downloaded versions and run archives)",
+			Usage:       "GetEnvoy home directory (location of installed versions and run archives)",
 			DefaultText: globals.DefaultHomeDir,
 			Destination: &homeDir,
 			EnvVars:     []string{"GETENVOY_HOME"},
@@ -70,6 +70,7 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 		NewRunCmd(o),
 		NewVersionsCmd(o),
 		NewInstallCmd(o),
+		NewInstalledCmd(o),
 		NewDocCmd(),
 	}
 	return app

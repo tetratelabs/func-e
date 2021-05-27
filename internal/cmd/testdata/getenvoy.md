@@ -25,7 +25,7 @@ getenvoy [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--help, -h**: show help
 
-**--home-dir**="": GetEnvoy home directory (location of downloaded versions and run archives)
+**--home-dir**="": GetEnvoy home directory (location of installed versions and run archives)
 
 **--version, -v**: print the version
 
@@ -43,4 +43,8 @@ List available Envoy versions
 ## install
 
 Download and install a <version> of Envoy
+
+## installed
+
+List installed Envoy versions
 
