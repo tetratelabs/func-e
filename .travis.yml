@@ -1,13 +1,16 @@
 # See https://docs.travis-ci.com/user/reference/overview/#for-a-particular-travisyml-configuration
 # run `travis lint` prior to check-in!
 os: linux   # required for arch different than amd64
-arch: amd64  # TODO arm64-graviton2 # we only only test archs not already tested with GH actions
+arch: arm64-graviton2 # we only only test archs not already tested with GH actions
 group: edge  # required for arm64-graviton2
 virt: lxd  # faster starting
 language: go
 
 go:
   - 1.16.5
+
+env:  # site/envoy-versions.json doesn't yet include arm64
+  - ENVOY_VERSIONS_URL=https://raw.githubusercontent.com/tetratelabs/temprepo/master/envoy-versions.json
 
 git:
   depth: false  # TRAVIS_COMMIT_RANGE requires full commit history.
