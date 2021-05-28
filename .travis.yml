@@ -1,8 +1,9 @@
 # See https://docs.travis-ci.com/user/reference/overview/#for-a-particular-travisyml-configuration
-arch:  # we only only test archs not already tested with GH actions
-  - amd64  # TODO: switch to arm64 once green and once we have an envoy binary for it
+# run `travis lint` prior to check-in!
 os: linux   # required for arch different than amd64
-dist: focal # newest available distribution
+arch: amd64  # TODO arm64-graviton2 # we only only test archs not already tested with GH actions
+group: edge  # required for arm64-graviton2
+virt: lxd  # faster starting
 language: go
 
 go:
