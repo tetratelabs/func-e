@@ -33,8 +33,7 @@
       "releaseDate": "2021-05-11",
       "tarballs": {
         "darwin/amd64": "https://dl.getenvoy.io/public/raw/files/getenvoy-envoy-1.18.3.p0.g98c1c9e-1p77.gb76c773-darwin-release-x86_64.tar.xz",
-        "linux/amd64": "https://dl.getenvoy.io/public/raw/files/getenvoy-envoy-1.18.3.p0.g98c1c9e-1p77.gb76c773-linux-glibc-release-x86_64.tar.xz",
-        "linux/arm64": "https://github.com/codefromthecrypt/temprepo/releases/download/v1.18.3/envoy-1.18.3-linux-arm64.tar.gz"
+        "linux/amd64": "https://dl.getenvoy.io/public/raw/files/getenvoy-envoy-1.18.3.p0.g98c1c9e-1p77.gb76c773-linux-glibc-release-x86_64.tar.xz"
       }
     }
   }
