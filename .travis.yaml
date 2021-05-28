@@ -1,0 +1,21 @@
+# See https://docs.travis-ci.com/user/reference/overview/#for-a-particular-travisyml-configuration
+arch:  # we only only test archs not already tested with GH actions
+  - amd64  # TODO: switch to arm64 once green and once we have an envoy binary for it
+os: linux   # required for arch different than amd64
+dist: focal # newest available distribution
+language: go
+
+go:
+  - 1.16.4
+
+git:
+  depth: false  # TRAVIS_COMMIT_RANGE requires full commit history.
+
+if: branch = master AND tag IS blank AND type IN (push, pull_request)
+before_install: |  # Prevent test build of a documentation-only change.
+  make check || travis_terminate 1
+  if [ -n "${TRAVIS_COMMIT_RANGE}" ] && ! git diff --name-only "${TRAVIS_COMMIT_RANGE}" -- | grep -qv '\.md$'; then
+    echo "Stopping job as changes only affect documentation (ex. README.md)"
+    travis_terminate 0
+  fi
+script: make e2e
