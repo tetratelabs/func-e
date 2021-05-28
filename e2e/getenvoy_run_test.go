@@ -38,7 +38,7 @@ func TestGetEnvoyRun(t *testing.T) {
 
 	c := getEnvoy(`run`)
 	// Below is the minimal config needed to run envoy
-	c.args(`--config-yaml`, `admin: {access_log_path: '/dev/stdout', address: {socket_address: {address: '127.0.0.1', port_value: 0}}}`)
+	c.args("--config-yaml", "admin: {access_log_path: '/dev/stdout', address: {socket_address: {address: '127.0.0.1', port_value: 0}}}")
 
 	stdout, stderr, terminate := c.start(t, terminateTimeout)
 
