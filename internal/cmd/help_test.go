@@ -32,9 +32,9 @@ func TestGetEnvoyHelp(t *testing.T) {
 		command := command
 		t.Run(command, func(t *testing.T) {
 			c, stdout, _ := newApp(&globals.GlobalOpts{})
-			args := []string{"getenvoy", "-h"}
+			args := []string{"getenvoy"}
 			if command != "" {
-				args = []string{"getenvoy", command, "-h"}
+				args = []string{"getenvoy", "help", command}
 			}
 			require.NoError(t, c.Run(args))
 

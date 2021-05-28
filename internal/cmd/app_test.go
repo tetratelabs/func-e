@@ -77,7 +77,7 @@ func TestGetEnvoyHomeDir(t *testing.T) {
 			name: "GETENVOY_HOME env",
 			args: []string{"getenvoy"},
 			setup: func() func() {
-				return requireSetenv(t, "GETENVOY_HOME", "/from/GETENVOY_HOME/env")
+				return morerequire.RequireSetenv(t, "GETENVOY_HOME", "/from/GETENVOY_HOME/env")
 			},
 			expected: "/from/GETENVOY_HOME/env",
 		},
@@ -90,7 +90,7 @@ func TestGetEnvoyHomeDir(t *testing.T) {
 			name: "prioritizes --home-dir arg over GETENVOY_HOME env",
 			args: []string{"getenvoy", "--home-dir", "/from/home-dir/arg"},
 			setup: func() func() {
-				return requireSetenv(t, "GETENVOY_HOME", "/from/GETENVOY_HOME/env")
+				return morerequire.RequireSetenv(t, "GETENVOY_HOME", "/from/GETENVOY_HOME/env")
 			},
 			expected: "/from/home-dir/arg",
 		},
@@ -133,7 +133,7 @@ func TestEnvoyVersionsURL(t *testing.T) {
 			name: "ENVOY_VERSIONS_URL env",
 			args: []string{"getenvoy"},
 			setup: func() func() {
-				return requireSetenv(t, "ENVOY_VERSIONS_URL", "http://ENVOY_VERSIONS_URL/env")
+				return morerequire.RequireSetenv(t, "ENVOY_VERSIONS_URL", "http://ENVOY_VERSIONS_URL/env")
 			},
 			expected: "http://ENVOY_VERSIONS_URL/env",
 		},
@@ -146,7 +146,7 @@ func TestEnvoyVersionsURL(t *testing.T) {
 			name: "prioritizes --envoy-versions-url arg over ENVOY_VERSIONS_URL env",
 			args: []string{"getenvoy", "--envoy-versions-url", "http://versions/arg"},
 			setup: func() func() {
-				return requireSetenv(t, "ENVOY_VERSIONS_URL", "http://ENVOY_VERSIONS_URL/env")
+				return morerequire.RequireSetenv(t, "ENVOY_VERSIONS_URL", "http://ENVOY_VERSIONS_URL/env")
 			},
 			expected: "http://versions/arg",
 		},
@@ -204,17 +204,6 @@ func TestGetEnvoyUserAgent(t *testing.T) {
 	}
 }
 
-// requireSetenv will os.Setenv the given key and value. The function returned reverts to the original.
-func requireSetenv(t *testing.T, key, value string) func() {
-	previous := os.Getenv(key)
-	err := os.Setenv(key, value)
-	require.NoError(t, err, `error setting env variable %s=%s`, key, value)
-	return func() {
-		err := os.Setenv(key, previous)
-		require.NoError(t, err, `error reverting env variable %s=%s`, key, previous)
-	}
-}
-
 // newApp initializes a command with buffers for stdout and stderr.
 func newApp(o *globals.GlobalOpts) (c *cli.App, stdout, stderr *bytes.Buffer) {
 	stdout = new(bytes.Buffer)
@@ -244,6 +233,7 @@ func runTestCommand(t *testing.T, o *globals.GlobalOpts, args []string) error {
 // The tear-down functions reverts side-effects such as temp directories and a fake Envoy versions server.
 func setupTest(t *testing.T) (*globals.GlobalOpts, func()) {
 	result := globals.GlobalOpts{}
+	result.HomeEnvoyVersion = version.LastKnownEnvoy
 	result.Out = io.Discard // ignore logging by default
 	var tearDown []func()
 

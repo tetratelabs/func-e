@@ -49,3 +49,14 @@ var (
 func RequireCaptureScript(t *testing.T, path string) {
 	require.NoError(t, os.WriteFile(path, captureScript, 0700)) //nolint:gosec
 }
+
+// RequireSetenv will os.Setenv the given key and value. The function returned reverts to the original.
+func RequireSetenv(t *testing.T, key, value string) func() {
+	previous := os.Getenv(key)
+	err := os.Setenv(key, value)
+	require.NoError(t, err, `error setting env variable %s=%s`, key, value)
+	return func() {
+		err := os.Setenv(key, previous)
+		require.NoError(t, err, `error reverting env variable %s=%s`, key, previous)
+	}
+}

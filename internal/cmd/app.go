@@ -18,7 +18,6 @@ import (
 	"net/url"
 	"os/user"
 	"path/filepath"
-	"regexp"
 
 	"github.com/urfave/cli/v2"
 
@@ -34,7 +33,6 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 	app := cli.NewApp()
 	app.Name = "getenvoy"
 	app.HelpName = "getenvoy"
-	app.HideHelpCommand = true
 	app.Usage = `Install and run Envoy`
 	app.Version = version.GetEnvoy
 	app.Flags = []cli.Flag{
@@ -66,7 +64,9 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 		return setEnvoyVersionsURL(o, envoyVersionsURL)
 	}
 
+	app.HideHelp = true
 	app.Commands = []*cli.Command{
+		helpCommand,
 		NewRunCmd(o),
 		NewVersionsCmd(o),
 		NewInstallCmd(o),
@@ -74,6 +74,21 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 		NewDocCmd(),
 	}
 	return app
+}
+
+// helpCommand allows us to hide the global flags which cleans up help and markdown
+var helpCommand = &cli.Command{
+	Name:      "help",
+	Usage:     "Shows how to use a [command]",
+	ArgsUsage: "[command]",
+	Action: func(c *cli.Context) error {
+		args := c.Args()
+		if args.Present() {
+			return cli.ShowCommandHelp(c, args.First())
+		}
+		_ = cli.ShowAppHelp(c)
+		return nil
+	},
 }
 
 func setEnvoyVersionsURL(o *globals.GlobalOpts, versionsURL string) error {
@@ -108,17 +123,6 @@ func setHomeDir(o *globals.GlobalOpts, homeDir string) error {
 			return NewValidationError(err.Error())
 		}
 		o.HomeDir = abs
-	}
-	return nil
-}
-
-func validateVersionArg(c *cli.Context) error {
-	if c.NArg() == 0 {
-		return NewValidationError("missing <version> argument")
-	}
-	v := c.Args().First()
-	if matched, _ := regexp.MatchString("^[1-9][0-9]*\\.[0-9]+\\.[0-9]+$", v); !matched {
-		return NewValidationError("invalid <version> argument: %q should look like %q", v, version.LastKnownEnvoy)
 	}
 	return nil
 }

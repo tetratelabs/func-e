@@ -28,10 +28,10 @@ import (
 func NewInstallCmd(o *globals.GlobalOpts) *cli.Command {
 	return &cli.Command{
 		Name:      "install",
-		Usage:     "Download and install a <version> of Envoy",
-		ArgsUsage: "<version>",
-		Description: fmt.Sprintf(`The '<version>' is from the "versions" command.
-The Envoy <version> will be installed into $GETENVOY_HOME/versions/<version>
+		Usage:     "Download and install a [version] of Envoy",
+		ArgsUsage: "[version]",
+		Description: fmt.Sprintf(`The '[version]' is from the "versions" command.
+The Envoy <version> will be installed into $GETENVOY_HOME/versions/[version]
 
 Example:
 $ getenvoy install %s`, version.LastKnownEnvoy),
@@ -41,4 +41,15 @@ $ getenvoy install %s`, version.LastKnownEnvoy),
 			return err
 		},
 	}
+}
+
+func validateVersionArg(c *cli.Context) error {
+	if c.NArg() == 0 {
+		return NewValidationError("missing <version> argument")
+	}
+	v := c.Args().First()
+	if matched := globals.EnvoyVersionPattern.MatchString(v); !matched {
+		return NewValidationError("invalid <version> argument: %q should look like %q", v, version.LastKnownEnvoy)
+	}
+	return nil
 }

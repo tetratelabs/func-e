@@ -26,25 +26,43 @@ import (
 	"github.com/tetratelabs/getenvoy/internal/envoy"
 	"github.com/tetratelabs/getenvoy/internal/envoy/debug"
 	"github.com/tetratelabs/getenvoy/internal/globals"
-	latestversion "github.com/tetratelabs/getenvoy/internal/version"
 )
 
 // NewRunCmd create a command responsible for starting an Envoy process
 func NewRunCmd(o *globals.GlobalOpts) *cli.Command {
+	var envoyVersion string
 	cmd := &cli.Command{
-		Name:      "run",
-		Usage:     "Run Envoy as <version> with <args> as arguments, collecting process state on termination",
-		ArgsUsage: "<version> <args>",
-		Description: fmt.Sprintf(`The '<version>' is from the "versions" command and installed if necessary.
-The '<args>' are interpreted by Envoy.
-The Envoy working directory is archived as $GETENVOY_HOME/runs/$epochtime.tar.gz upon termination.
+		Name:            "run",
+		Usage:           "Run Envoy with the given [arguments...], collecting process state on termination",
+		ArgsUsage:       "[arguments...]",
+		SkipFlagParsing: true,
+		Description: fmt.Sprintf(`The version of Envoy run is chosen from %s
+The '[arguments...]' are interpreted by Envoy.
+
+Envoy uses $GETENVOY_HOME/runs/$epochtime as the working directory.
+Upon termination, this is archived as $GETENVOY_HOME/runs/$epochtime.tar.gz.
 
 Example:
-$ getenvoy run %s --config-path ./bootstrap.yaml`, latestversion.LastKnownEnvoy),
-		Before: validateVersionArg,
+$ getenvoy run -c ./bootstrap.yaml`, envoy.VersionUsageList()),
+		Before: func(context *cli.Context) error {
+			if err := os.MkdirAll(o.HomeDir, 0750); err != nil {
+				return NewValidationError(err.Error())
+			}
+
+			if o.HomeEnvoyVersion == "" { // not overridden for tests
+				if err := setHomeEnvoyVersion(o); err != nil {
+					return err
+				}
+			}
+			v, _, err := envoy.CurrentVersion(o.HomeEnvoyVersion)
+			if err != nil {
+				return NewValidationError(err.Error())
+			}
+			envoyVersion = v
+			return nil
+		},
 		Action: func(c *cli.Context) error {
-			args := c.Args().Slice()
-			if err := initializeRunOpts(o, globals.CurrentPlatform, args[0]); err != nil {
+			if err := initializeRunOpts(o, globals.CurrentPlatform, envoyVersion); err != nil {
 				return err
 			}
 			r := envoy.NewRuntime(&o.RunOpts)
@@ -56,7 +74,7 @@ $ getenvoy run %s --config-path ./bootstrap.yaml`, latestversion.LastKnownEnvoy)
 				fmt.Fprintln(r.Out, "failed to enable debug option:", err) //nolint
 			}
 
-			return r.Run(c.Context, args[1:])
+			return r.Run(c.Context, c.Args().Slice())
 		},
 	}
 	return cmd
@@ -86,4 +104,27 @@ func initializeRunOpts(o *globals.GlobalOpts, platform, version string) error {
 		runOpts.WorkingDir = workingDir
 	}
 	return nil
+}
+
+// setHomeEnvoyVersion makes sure the $GETENVOY_HOME/version exists and globals.GlobalOpts HomeEnvoyVersion contains it.
+func setHomeEnvoyVersion(o *globals.GlobalOpts) error {
+	// See if there's an existing default version
+	homeVersionFile := filepath.Join(o.HomeDir, "version")
+	if data, err := os.ReadFile(homeVersionFile); err == nil {
+		o.HomeEnvoyVersion = string(data)
+		return nil
+	} else if !os.IsNotExist(err) {
+		return NewValidationError(`couldn't read version from "$GETENVOY_HOME/version": %s`, err)
+	}
+
+	// First time install: look up the latest version, which may be newer than version.LastKnownEnvoy!
+	fmt.Fprintln(o.Out, "looking up latest version") //nolint
+	m, err := envoy.GetEnvoyVersions(o.EnvoyVersionsURL, o.UserAgent)
+	if err != nil {
+		return NewValidationError(`couldn't read latest version from %s: %s`, o.EnvoyVersionsURL, err)
+	}
+	o.HomeEnvoyVersion = m.LatestVersion
+
+	// Persist it for the next invocation
+	return os.WriteFile(homeVersionFile, []byte(o.HomeEnvoyVersion), 0600)
 }

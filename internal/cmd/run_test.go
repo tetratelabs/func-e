@@ -15,51 +15,18 @@
 package cmd_test
 
 import (
+	"bytes"
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/tetratelabs/getenvoy/internal/globals"
+	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
 	"github.com/tetratelabs/getenvoy/internal/version"
 )
-
-func TestGetEnvoyRunValidateFlag(t *testing.T) {
-	o, cleanup := setupTest(t)
-	defer cleanup()
-
-	tests := []struct {
-		name        string
-		args        []string
-		expectedErr string
-	}{
-		{
-			name:        "arg[0] missing",
-			args:        []string{"getenvoy", "run"},
-			expectedErr: `missing <version> argument`,
-		},
-		{
-			name:        "arg[0] with invalid version",
-			args:        []string{"getenvoy", "run", "unknown"},
-			expectedErr: fmt.Sprintf(`invalid <version> argument: "unknown" should look like "%s"`, version.LastKnownEnvoy),
-		},
-	}
-
-	for _, test := range tests {
-		test := test // pin! see https://github.com/kyoh86/scopelint for why
-
-		t.Run(test.name, func(t *testing.T) {
-			// Run "getenvoy run"
-			c, stdout, stderr := newApp(o)
-			err := c.Run(test.args)
-
-			// Verify the command failed with the expected error
-			require.EqualError(t, err, test.expectedErr)
-			// GetEnvoy handles logging of errors, so we expect nothing in stdout or stderr
-			require.Empty(t, stdout)
-			require.Empty(t, stderr)
-		})
-	}
-}
 
 func TestGetEnvoyRun(t *testing.T) {
 	tests := []struct {
@@ -69,15 +36,11 @@ func TestGetEnvoyRun(t *testing.T) {
 	}{
 		{
 			name: "no envoy args",
-			args: []string{"getenvoy", "run", version.LastKnownEnvoy},
-		},
-		{
-			name: "empty envoy args",
-			args: []string{"getenvoy", "run", version.LastKnownEnvoy},
+			args: []string{"getenvoy", "run"},
 		},
 		{
 			name:              "envoy args",
-			args:              []string{"getenvoy", "run", version.LastKnownEnvoy, "-c", "envoy.yaml"},
+			args:              []string{"getenvoy", "run", "-c", "envoy.yaml"},
 			expectedEnvoyArgs: ` -c envoy.yaml`,
 		},
 	}
@@ -89,7 +52,6 @@ func TestGetEnvoyRun(t *testing.T) {
 			o, cleanup := setupTest(t)
 			defer cleanup()
 
-			// Run "getenvoy run 1.18.3 -c envoy.yaml"
 			c, stdout, stderr := newApp(o)
 			err := c.Run(test.args)
 
@@ -109,19 +71,65 @@ envoy args:%[3]s --admin-address-path admin-address.txt`, o.WorkingDir, o.EnvoyP
 	}
 }
 
-func TestGetEnvoyRunFailWithUnknownVersion(t *testing.T) {
+func TestGetEnvoyRun_ReadsHomeVersionFile(t *testing.T) {
 	o, cleanup := setupTest(t)
+	o.HomeEnvoyVersion = "" // pretend this is an initial setup
+	o.Out = new(bytes.Buffer)
 	defer cleanup()
 
-	o.EnvoyPath = "" // force lookup of version flag
-	c, stdout, stderr := newApp(o)
+	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte(version.LastKnownEnvoy), 0600))
 
-	// Run "getenvoy run unknown"
-	err := c.Run([]string{"getenvoy", "run", "unknown"})
+	c, _, _ := newApp(o)
+	require.NoError(t, c.Run([]string{"getenvoy", "run"}))
 
-	// Verify the command failed with the expected error.
-	require.EqualError(t, err, fmt.Sprintf(`invalid <version> argument: "unknown" should look like "%s"`, version.LastKnownEnvoy))
-	// GetEnvoy handles logging of errors, so we expect nothing in stdout or stderr
-	require.Empty(t, stdout)
-	require.Empty(t, stderr)
+	// No implicit lookup
+	require.NotContains(t, o.Out.(*bytes.Buffer).String(), "looking up latest version\n")
+}
+
+func TestGetEnvoyRun_CreatesHomeVersionFile(t *testing.T) {
+	o, cleanup := setupTest(t)
+	o.HomeEnvoyVersion = "" // pretend this is an initial setup
+	o.Out = new(bytes.Buffer)
+	defer cleanup()
+
+	// make sure first run where the home doesn't exist yet, works!
+	require.NoError(t, os.RemoveAll(o.HomeDir))
+
+	c, _, _ := newApp(o)
+	require.NoError(t, c.Run([]string{"getenvoy", "run"}))
+
+	// We logged the implicit lookup
+	require.Contains(t, o.Out.(*bytes.Buffer).String(), "looking up latest version\n")
+	require.FileExists(t, filepath.Join(o.HomeDir, "version"))
+}
+
+func TestGetEnvoyRun_ValidatesHomeVersionContents(t *testing.T) {
+	o, cleanup := setupTest(t)
+	o.Out = new(bytes.Buffer)
+	defer cleanup()
+
+	o.HomeEnvoyVersion = ""
+	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte("a.a.a"), 0600))
+
+	c, _, _ := newApp(o)
+	err := c.Run([]string{"getenvoy", "run"})
+
+	// Verify the command failed with the expected error
+	require.EqualError(t, err, fmt.Sprintf(`invalid version in "$GETENVOY_HOME/version": "a.a.a" should look like "%s"`, version.LastKnownEnvoy))
+}
+
+func TestGetEnvoyRun_ErrsWhenVersionsServerDown(t *testing.T) {
+	tempDir, deleteTempDir := morerequire.RequireNewTempDir(t)
+	defer deleteTempDir()
+
+	o := &globals.GlobalOpts{
+		EnvoyVersionsURL: "https://127.0.0.1:9999",
+		HomeDir:          tempDir,
+		Out:              new(bytes.Buffer),
+	}
+	c, _, _ := newApp(o)
+	err := c.Run([]string{"getenvoy", "run"})
+
+	require.Contains(t, o.Out.(*bytes.Buffer).String(), "looking up latest version\n")
+	require.Contains(t, err.Error(), fmt.Sprintf(`couldn't read latest version from %s`, o.EnvoyVersionsURL))
 }

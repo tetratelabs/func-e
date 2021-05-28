@@ -17,6 +17,7 @@ package globals
 import (
 	"fmt"
 	"io"
+	"regexp"
 	"runtime"
 
 	"github.com/tetratelabs/getenvoy/internal/version"
@@ -46,7 +47,10 @@ type GlobalOpts struct {
 	RunOpts
 	// EnvoyVersionsURL is the path to the envoy-versions.json. Defaults to DefaultEnvoyVersionsURL
 	EnvoyVersionsURL string
-	// HomeDir most importantly contains Envoy versions installed from EnvoyVersionsURL. Defaults to DefaultHomeDir
+	// HomeEnvoyVersion is the default version of Envoy to run. Defaults to the contents of "$HomeDir/versions/version".
+	// When that file is missing, it is generated from ".latestVersion" from the EnvoyVersionsURL.
+	HomeEnvoyVersion string
+	// HomeDir is an absolute path which most importantly contains "versions" installed from EnvoyVersionsURL. Defaults to DefaultHomeDir
 	HomeDir string
 	// UserAgent is the "User-Agent" header added to all HTTP requests. Defaults to DefaultUserAgent
 	UserAgent string
@@ -62,6 +66,8 @@ const (
 )
 
 var (
+	// EnvoyVersionPattern is used to validate versions and is the same pattern as envoy-versions-schema.json.
+	EnvoyVersionPattern = regexp.MustCompile(`^[1-9][0-9]*\.[0-9]+\.[0-9]+$`)
 	// CurrentPlatform is the platform of the current process. This is used as a key in EnvoyVersion.Tarballs.
 	CurrentPlatform = runtime.GOOS + "/" + runtime.GOARCH
 	// DefaultUserAgent is the default value for GlobalOpts.UserAgent.
