@@ -1,4 +1,4 @@
-// Copyright 2020 Tetrate
+// Copyright 2021 Tetrate
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -30,12 +30,12 @@ func TestGetEnvoyInstall_VersionValidates(t *testing.T) {
 	tests := []struct{ name, version, expectedErr string }{
 		{
 			name:        "version empty",
-			expectedErr: fmt.Sprintf(`invalid <version> argument: "" should look like "%s"`, version.LastKnownEnvoy),
+			expectedErr: fmt.Sprintf(`invalid [version] argument: "" should look like "%s"`, version.LastKnownEnvoy),
 		},
 		{
 			name:        "version invalid",
 			version:     "a.b.c",
-			expectedErr: fmt.Sprintf(`invalid <version> argument: "a.b.c" should look like "%s"`, version.LastKnownEnvoy),
+			expectedErr: fmt.Sprintf(`invalid [version] argument: "a.b.c" should look like "%s"`, version.LastKnownEnvoy),
 		},
 	}
 

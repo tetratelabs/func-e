@@ -6,7 +6,7 @@ USAGE:
 
 DESCRIPTION:
    The '[version]' is from the "versions" command.
-   The Envoy <version> will be installed into $GETENVOY_HOME/versions/[version]
+   The Envoy [version] will be installed into $GETENVOY_HOME/versions/[version]
    
    Example:
    $ getenvoy install 1.18.3
