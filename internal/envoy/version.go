@@ -45,7 +45,7 @@ func CurrentVersion(homeVersion string) (string, string, error) {
 }
 
 func getCurrentVersion(homeVersion string) (v, source string, err error) {
-	// Priority 3: $ENVOY_VERSION
+	// Priority 1: $ENVOY_VERSION
 	source = versionVarName
 	if v = os.Getenv("ENVOY_VERSION"); v != "" {
 		return
@@ -62,7 +62,7 @@ func getCurrentVersion(homeVersion string) (v, source string, err error) {
 		return
 	}
 
-	// Priority 3: $GETENVOY_HOME/versions
+	// Priority 3: $GETENVOY_HOME/version
 	source = homeVersionFileName
 	v = homeVersion
 	err = nil
