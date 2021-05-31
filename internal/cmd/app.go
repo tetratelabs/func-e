@@ -86,8 +86,7 @@ var helpCommand = &cli.Command{
 		if args.Present() {
 			return cli.ShowCommandHelp(c, args.First())
 		}
-		_ = cli.ShowAppHelp(c)
-		return nil
+		return cli.ShowAppHelp(c)
 	},
 }
 
