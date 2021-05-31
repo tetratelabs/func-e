@@ -46,27 +46,20 @@ func CurrentVersion(homeVersion string) (string, string, error) {
 
 func getCurrentVersion(homeVersion string) (v, source string, err error) {
 	// Priority 1: $ENVOY_VERSION
-	source = versionVarName
-	if v = os.Getenv("ENVOY_VERSION"); v != "" {
-		return
+	if v, ok := os.LookupEnv("ENVOY_VERSION"); ok {
+		return v, versionSourceVersionVar, nil
 	}
 
 	// Priority 2: $PWD/.envoy-version
-	source = wdVersionFileName
-	var data []byte
-	data, err = os.ReadFile(".envoy-version")
+	data, err := os.ReadFile(".envoy-version")
 	if err == nil {
-		v = string(data)
-		return
+		return string(data), versionSourceWDVersionFile, nil
 	} else if !os.IsNotExist(err) {
-		return
+		return "", "", err
 	}
 
 	// Priority 3: $GETENVOY_HOME/version
-	source = homeVersionFileName
-	v = homeVersion
-	err = nil
-	return
+	return homeVersion, versionSourceHomeVersionFile, nil
 }
 
 // VersionUsageList is the priority order of Envoy version sources.
