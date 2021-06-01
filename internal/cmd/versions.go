@@ -82,7 +82,7 @@ func printVersions(vd map[string]string, w io.Writer) {
 	// Build a list of Envoy versions with release date for this platform
 	type versionReleaseDate struct{ version, releaseDate string }
 
-	var rows []versionReleaseDate //nolint:prealloc
+	rows := make([]versionReleaseDate, 0, len(vd))
 	for v, d := range vd {
 		rows = append(rows, versionReleaseDate{v, d})
 	}
