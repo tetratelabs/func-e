@@ -39,7 +39,6 @@ func TestGetEnvoyVersions_NothingYet(t *testing.T) {
 	require.Empty(t, stderr)
 }
 
-// TestGetEnvoyVersions verifies output is sorted
 func TestGetEnvoyVersions_Sorted(t *testing.T) {
 	o, cleanup := setupTest(t)
 	defer cleanup()
