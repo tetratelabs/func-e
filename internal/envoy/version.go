@@ -30,10 +30,8 @@ var (
 	currentVersionHomeDirFile    = filepath.Join("$GETENVOY_HOME", "version")
 )
 
-// GetHomeVersion returns the default version in the "$GETENVOY_HOME" file and path to to it (homeVersionFile).
-// When "v" is empty, homeVersionFile is not yet initialized.
-//
-// If an error is returned, it includes the unexpanded "$GETENVOY_HOME" variable to clarify the intended context.
+// GetHomeVersion returns the default version in the "homeDir" and path to to it (homeVersionFile). When "v" is empty,
+// homeVersionFile is not yet initialized.
 func GetHomeVersion(homeDir string) (v, homeVersionFile string, err error) {
 	v, homeVersionFile, err = getHomeVersion(homeDir)
 	if err == nil && v == "" { // no home version, yet
