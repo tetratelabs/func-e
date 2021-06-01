@@ -8,13 +8,13 @@ VERSION:
    dev
 
 COMMANDS:
-   run        Run Envoy as <version> with <args> as arguments, collecting process state on termination
+   help       Shows how to use a [command]
+   run        Run Envoy with the given [arguments...], collecting process state on termination
    versions   List available Envoy versions
-   install    Download and install a <version> of Envoy
+   install    Download and install a [version] of Envoy
    installed  List installed Envoy versions
 
 GLOBAL OPTIONS:
    --home-dir value            GetEnvoy home directory (location of installed versions and run archives) (default: ${HOME}/.getenvoy) [$GETENVOY_HOME]
    --envoy-versions-url value  URL of Envoy versions JSON (default: https://getenvoy.io/envoy-versions.json) [$ENVOY_VERSIONS_URL]
-   --help, -h                  show help (default: false)
    --version, -v               print the version (default: false)

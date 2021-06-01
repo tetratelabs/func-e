@@ -47,7 +47,7 @@ func TestRunErrors(t *testing.T) {
 			args:           []string{"getenvoy", "--d"},
 			expectedStatus: 1,
 			expectedStderr: `flag provided but not defined: -d
-show usage with: getenvoy -h
+show usage with: getenvoy help
 `,
 		},
 		{
@@ -55,7 +55,7 @@ show usage with: getenvoy -h
 			args:           []string{"getenvoy", "--envoy-versions-url", ".", "list"},
 			expectedStatus: 1,
 			expectedStderr: `"." is not a valid Envoy versions URL
-show usage with: getenvoy -h
+show usage with: getenvoy help
 `,
 		},
 		{
@@ -63,7 +63,7 @@ show usage with: getenvoy -h
 			args:           []string{"getenvoy", "fly"},
 			expectedStatus: 1,
 			expectedStderr: `unknown command "fly"
-show usage with: getenvoy -h
+show usage with: getenvoy help
 `,
 		},
 		{

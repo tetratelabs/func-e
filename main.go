@@ -57,5 +57,5 @@ func run(stdout, stderr io.Writer, args []string) int {
 }
 
 func logUsageError(name string, stderr io.Writer) {
-	fmt.Fprintln(stderr, "show usage with:", name, "-h") //nolint
+	fmt.Fprintln(stderr, "show usage with:", name, "help") //nolint
 }

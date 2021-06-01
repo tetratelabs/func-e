@@ -26,7 +26,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/getenvoy/internal/tar"
-	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
 const terminateTimeout = 2 * time.Minute
@@ -39,8 +38,7 @@ func TestGetEnvoyRun(t *testing.T) {
 
 	c := getEnvoy(`run`)
 	// Below is the minimal config needed to run envoy
-	// TODO allow implicit version #106
-	c.args(version.LastKnownEnvoy, `--config-yaml`, `admin: {access_log_path: '/dev/stdout', address: {socket_address: {address: '127.0.0.1', port_value: 0}}}`)
+	c.args("--config-yaml", "admin: {access_log_path: '/dev/stdout', address: {socket_address: {address: '127.0.0.1', port_value: 0}}}")
 
 	stdout, stderr, terminate := c.start(t, terminateTimeout)
 

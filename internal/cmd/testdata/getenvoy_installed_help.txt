@@ -2,8 +2,4 @@ NAME:
    getenvoy installed - List installed Envoy versions
 
 USAGE:
-   getenvoy installed [command options] [arguments...]
-
-OPTIONS:
-   --help, -h  show help (default: false)
-   
+   getenvoy installed [arguments...]
