@@ -16,10 +16,13 @@ package cmd_test
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/tetratelabs/getenvoy/internal/test"
 	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
@@ -39,18 +42,35 @@ func TestGetEnvoyInstall_VersionValidates(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		test := test // pin! see https://github.com/kyoh86/scopelint for why
+	for _, tc := range tests {
+		tc := tc // pin! see https://github.com/kyoh86/scopelint for why
 
-		t.Run(test.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			c, stdout, stderr := newApp(o)
-			err := c.Run([]string{"getenvoy", "install", test.version})
+			err := c.Run([]string{"getenvoy", "install", tc.version})
 
 			// Verify the command failed with the expected error
-			require.EqualError(t, err, test.expectedErr)
+			require.EqualError(t, err, tc.expectedErr)
 			// GetEnvoy handles logging of errors, so we expect nothing in stdout or stderr
 			require.Empty(t, stdout)
 			require.Empty(t, stderr)
 		})
 	}
+}
+
+func TestGetEnvoyInstall_PreservesReleaseDate(t *testing.T) {
+	o, cleanup := setupTest(t)
+	defer cleanup()
+
+	c, _, _ := newApp(o)
+	require.NoError(t, c.Run([]string{"getenvoy", "install", o.EnvoyVersion}))
+
+	// The directory was created
+	versionDir := filepath.Join(o.HomeDir, "versions", o.EnvoyVersion)
+	require.DirExists(t, versionDir)
+
+	// The directory timestamp matches the fake release date, not the current time
+	f, err := os.Stat(versionDir)
+	require.NoError(t, err)
+	require.Equal(t, f.ModTime().Format("2006-01-02"), test.FakeReleaseDate)
 }

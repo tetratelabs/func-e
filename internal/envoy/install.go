@@ -56,13 +56,13 @@ func InstallIfNeeded(o *globals.GlobalOpts, p, v string) (string, error) {
 		if err = os.MkdirAll(installPath, 0750); err != nil {
 			return "", fmt.Errorf("unable to create directory %q: %w", installPath, err)
 		}
-		if err = os.Chtimes(installPath, mtime, mtime); err != nil {
-			return "", fmt.Errorf("unable to set date of directory %q: %w", installPath, err)
-		}
 
 		fmt.Fprintln(o.Out, "downloading", tarballURL) //nolint
 		if err = untarEnvoy(installPath, tarballURL, o.UserAgent, o.Out); err != nil {
 			return "", err
+		}
+		if err = os.Chtimes(installPath, mtime, mtime); err != nil { // overwrite the mtime to preserve it in the list
+			return "", fmt.Errorf("unable to set date of directory %q: %w", installPath, err)
 		}
 	case err == nil:
 		fmt.Fprintln(o.Out, v, "is already downloaded") //nolint
