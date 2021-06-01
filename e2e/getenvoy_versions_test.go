@@ -15,9 +15,9 @@
 package e2e
 
 import (
+	"bufio"
 	"fmt"
-	"os"
-	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -38,6 +38,17 @@ func TestGetEnvoyVersions_NothingYet(t *testing.T) {
 	require.Empty(t, stderr)
 }
 
+func TestGetEnvoyVersions(t *testing.T) {
+	t.Parallel()
+
+	stdout, stderr, err := getEnvoy("versions").exec()
+
+	require.Regexp(t, "^VERSION\tRELEASE_DATE\n", stdout)
+	require.Regexp(t, fmt.Sprintf("%s\t202[1-9]-[01][0-9]-[0-3][0-9]\n", version.LastKnownEnvoy), stdout)
+	require.Empty(t, stderr)
+	require.NoError(t, err)
+}
+
 func TestGetEnvoyVersions_All(t *testing.T) {
 	t.Parallel()
 
@@ -49,20 +60,23 @@ func TestGetEnvoyVersions_All(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TestGetEnvoyVersions verifies output is sorted
-func TestGetEnvoyVersions(t *testing.T) {
-	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
-	defer removeHomeDir()
+func TestGetEnvoyVersions_AllIncludesInstalled(t *testing.T) {
+	t.Parallel()
 
-	require.NoError(t, os.MkdirAll(filepath.Join(homeDir, "versions", "1.16.1"), 0700))
-	require.NoError(t, os.MkdirAll(filepath.Join(homeDir, "versions", "1.17.2"), 0700))
-
-	stdout, stderr, err := getEnvoy("--home-dir", homeDir, "versions").exec()
-
+	// Cheap test that one includes the other. It doesn't actually parse the output, but the above tests prove the
+	// latest version is in each deviation.
+	allVersions, _, err := getEnvoy("versions", "-a").exec()
 	require.NoError(t, err)
-	require.Equal(t, `VERSION
-1.17.2
-1.16.1
-`, stdout)
-	require.Empty(t, stderr)
+	installedVersions, _, err := getEnvoy("versions").exec()
+	require.NoError(t, err)
+
+	require.Greater(t, countLines(allVersions), countLines(installedVersions), "expected more versions available than installed")
+}
+
+func countLines(stdout string) (count int) {
+	s := bufio.NewScanner(strings.NewReader(stdout))
+	for s.Scan() {
+		count++
+	}
+	return
 }
