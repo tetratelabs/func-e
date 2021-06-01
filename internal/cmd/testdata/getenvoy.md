@@ -39,13 +39,11 @@ Run Envoy with the given [arguments...], collecting process state on termination
 
 ## versions
 
-List available Envoy versions
+List Envoy versions
+
+**--all, -a**: Show all versions including ones not yet installed
 
 ## install
 
 Download and install a [version] of Envoy
-
-## installed
-
-List installed Envoy versions
 

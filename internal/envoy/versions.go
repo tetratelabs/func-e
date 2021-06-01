@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"sort"
+	"time"
 
 	"github.com/tetratelabs/getenvoy/internal/version"
 )
@@ -48,29 +48,15 @@ func GetEnvoyVersions(envoyVersionsURL, userAgent string) (version.EnvoyVersions
 	return result, nil
 }
 
-// PrintVersions retrieves the Envoy versions from the passed location and writes it to the passed writer
-func PrintVersions(vs version.EnvoyVersions, p string, w io.Writer) {
-	// Build a list of Envoy versions with release date for this platform
-	type versionReleaseDate struct{ version, releaseDate string }
-
-	var rows []versionReleaseDate
-	for v, t := range vs.Versions {
-		if _, ok := t.Tarballs[p]; ok {
-			rows = append(rows, versionReleaseDate{v, t.ReleaseDate})
+// AddVersions adds Envoy versions containing a release date for this platform
+func AddVersions(out map[string]string, update map[string]version.EnvoyVersion, p string) error {
+	for k, v := range update {
+		if _, ok := v.Tarballs[p]; ok && out[k] == "" {
+			if _, err := time.Parse("2006-01-02", v.ReleaseDate); err != nil {
+				return fmt.Errorf("invalid releaseDate of version %q for platform %q: %w", k, p, err)
+			}
+			out[k] = v.ReleaseDate
 		}
 	}
-
-	// Sort so that new release dates appear first and on conflict choosing the higher version
-	sort.Slice(rows, func(i, j int) bool {
-		if rows[i].releaseDate == rows[j].releaseDate {
-			return rows[i].version > rows[j].version
-		}
-		return rows[i].releaseDate > rows[j].releaseDate
-	})
-
-	// This doesn't use tabwriter because the columns are likely to remain the same width for the foreseeable future.
-	fmt.Fprintln(w, "VERSION\tRELEASE_DATE") //nolint
-	for _, vr := range rows {                //nolint:gocritic
-		fmt.Fprintf(w, "%s\t%s\n", vr.version, vr.releaseDate) //nolint
-	}
+	return nil
 }

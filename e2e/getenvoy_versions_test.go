@@ -15,6 +15,7 @@
 package e2e
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -22,29 +23,41 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
+	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
-func TestGetEnvoyInstalled_NothingYet(t *testing.T) {
+func TestGetEnvoyVersions_NothingYet(t *testing.T) {
 	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
 	defer removeHomeDir()
 
-	stdout, stderr, err := getEnvoy("--home-dir", homeDir, "installed").exec()
+	stdout, stderr, err := getEnvoy("--home-dir", homeDir, "versions").exec()
 
 	require.NoError(t, err)
-	require.Equal(t, `No envoy versions installed, yet
+	require.Equal(t, `No Envoy versions, yet
 `, stdout)
 	require.Empty(t, stderr)
 }
 
-// TestGetEnvoyInstalled verifies output is sorted
-func TestGetEnvoyInstalled(t *testing.T) {
+func TestGetEnvoyVersions_All(t *testing.T) {
+	t.Parallel()
+
+	stdout, stderr, err := getEnvoy("versions", "-a").exec()
+
+	require.Regexp(t, "^VERSION\tRELEASE_DATE\n", stdout)
+	require.Regexp(t, fmt.Sprintf("%s\t202[1-9]-[01][0-9]-[0-3][0-9]\n", version.LastKnownEnvoy), stdout)
+	require.Empty(t, stderr)
+	require.NoError(t, err)
+}
+
+// TestGetEnvoyVersions verifies output is sorted
+func TestGetEnvoyVersions(t *testing.T) {
 	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
 	defer removeHomeDir()
 
 	require.NoError(t, os.MkdirAll(filepath.Join(homeDir, "versions", "1.16.1"), 0700))
 	require.NoError(t, os.MkdirAll(filepath.Join(homeDir, "versions", "1.17.2"), 0700))
 
-	stdout, stderr, err := getEnvoy("--home-dir", homeDir, "installed").exec()
+	stdout, stderr, err := getEnvoy("--home-dir", homeDir, "versions").exec()
 
 	require.NoError(t, err)
 	require.Equal(t, `VERSION

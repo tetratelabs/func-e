@@ -15,7 +15,6 @@
 package envoy
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -23,66 +22,8 @@ import (
 	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
-func TestPrintVersions(t *testing.T) {
-	tests := []struct {
-		name, platform string
-		versions       version.EnvoyVersions
-		expected       string
-	}{
-		{
-			name:     "darwin",
-			platform: "darwin/amd64",
-			versions: goodVersions,
-			expected: `VERSION	RELEASE_DATE
-1.18.3	2021-05-11
-1.14.7	2021-04-15
-`,
-		},
-		{
-			name:     "linux",
-			platform: "linux/amd64",
-			versions: goodVersions,
-			expected: `VERSION	RELEASE_DATE
-1.18.3	2021-05-11
-1.17.3	2021-05-11
-1.14.7	2021-04-15
-`,
-		},
-		{
-			name:     "unsupported OS",
-			platform: "windows/amd64",
-			versions: goodVersions,
-			expected: `VERSION	RELEASE_DATE
-`,
-		},
-		{
-			name:     "unsupported Arch",
-			platform: "linux/arm64",
-			versions: goodVersions,
-			expected: `VERSION	RELEASE_DATE
-`,
-		},
-		{
-			name:     "empty version list",
-			platform: "darwin/amd64",
-			expected: `VERSION	RELEASE_DATE
-`,
-		},
-	}
-
-	for _, tt := range tests {
-		tc := tt
-		t.Run(tc.name, func(t *testing.T) {
-			out := new(bytes.Buffer)
-			PrintVersions(tc.versions, tc.platform, out)
-			require.Equal(t, tc.expected, out.String())
-		})
-	}
-}
-
-var goodVersions = version.EnvoyVersions{
-	LatestVersion: "1.18.3",
-	Versions: map[string]version.EnvoyVersion{
+func TestAddVersions(t *testing.T) {
+	goodVersions := map[string]version.EnvoyVersion{
 		"1.14.7": {
 			ReleaseDate: "2021-04-15",
 			Tarballs: map[string]string{
@@ -103,5 +44,101 @@ var goodVersions = version.EnvoyVersions{
 				"linux/amd64":  "https://getenvoy.io/versions/1.18.3/envoy-1.18.3-linux-x86_64.tar.gz",
 			},
 		},
-	},
+	}
+
+	tests := []struct {
+		name     string
+		out      map[string]string
+		update   map[string]version.EnvoyVersion
+		platform string
+		expected map[string]string
+	}{
+		{
+			name:     "darwin",
+			out:      map[string]string{},
+			update:   goodVersions,
+			platform: "darwin/amd64",
+			expected: map[string]string{"1.14.7": "2021-04-15", "1.18.3": "2021-05-11"},
+		},
+		{
+			name:     "linux",
+			platform: "linux/amd64",
+			out:      map[string]string{},
+			update:   goodVersions,
+			expected: map[string]string{"1.14.7": "2021-04-15", "1.17.3": "2021-05-11", "1.18.3": "2021-05-11"},
+		},
+		{
+			name:     "already exists",
+			out:      map[string]string{"1.14.7": "2020-01-01"},
+			update:   goodVersions,
+			platform: "darwin/amd64",
+			expected: map[string]string{"1.14.7": "2020-01-01", "1.18.3": "2021-05-11"},
+		},
+		{
+			name:     "unsupported OS",
+			out:      map[string]string{},
+			update:   goodVersions,
+			platform: "windows/amd64",
+			expected: map[string]string{},
+		},
+		{
+			name:     "unsupported Arch",
+			out:      map[string]string{},
+			update:   goodVersions,
+			platform: "linux/arm64",
+			expected: map[string]string{},
+		},
+		{
+			name:     "empty version list",
+			out:      map[string]string{},
+			platform: "darwin/amd64",
+			expected: map[string]string{},
+		},
+	}
+
+	for _, tt := range tests {
+		tc := tt
+		t.Run(tc.name, func(t *testing.T) {
+			require.NoError(t, AddVersions(tc.out, tc.update, tc.platform))
+			require.Equal(t, tc.expected, tc.out)
+		})
+	}
+}
+
+func TestAddVersions_Validates(t *testing.T) {
+	tests := []struct {
+		name   string
+		update map[string]version.EnvoyVersion
+	}{
+		{
+			name: "invalid releaseDate",
+			update: map[string]version.EnvoyVersion{
+				"1.14.7": {
+					ReleaseDate: "ice cream",
+					Tarballs: map[string]string{
+						"darwin/amd64": "https://getenvoy.io/versions/1.14.7/envoy-1.14.7-darwin-x86_64.tar.gz",
+					},
+				},
+			},
+		},
+		{
+			name: "missing releaseDate",
+			update: map[string]version.EnvoyVersion{
+				"1.14.7": {
+					Tarballs: map[string]string{
+						"darwin/amd64": "https://getenvoy.io/versions/1.14.7/envoy-1.14.7-darwin-x86_64.tar.gz",
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		tc := tt
+		t.Run(tc.name, func(t *testing.T) {
+			err := AddVersions(map[string]string{}, tc.update, "darwin/amd64")
+			require.Error(t, err)
+			require.Contains(t, err.Error(), `invalid releaseDate of version "1.14.7" for platform "darwin/amd64":`)
+		})
+	}
 }
