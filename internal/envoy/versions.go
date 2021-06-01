@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"time"
 
 	"github.com/tetratelabs/getenvoy/internal/version"
 )
@@ -46,17 +45,4 @@ func GetEnvoyVersions(envoyVersionsURL, userAgent string) (version.EnvoyVersions
 		return result, fmt.Errorf("error unmarshalling Envoy versions: %w", err)
 	}
 	return result, nil
-}
-
-// AddVersions adds Envoy versions containing a release date for this platform
-func AddVersions(out map[string]string, update map[string]version.EnvoyVersion, p string) error {
-	for k, v := range update {
-		if _, ok := v.Tarballs[p]; ok && out[k] == "" {
-			if _, err := time.Parse("2006-01-02", v.ReleaseDate); err != nil {
-				return fmt.Errorf("invalid releaseDate of version %q for platform %q: %w", k, p, err)
-			}
-			out[k] = v.ReleaseDate
-		}
-	}
-	return nil
 }

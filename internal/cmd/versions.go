@@ -16,15 +16,16 @@ package cmd
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"sort"
+	"time"
 
 	"github.com/urfave/cli/v2"
 
 	"github.com/tetratelabs/getenvoy/internal/envoy"
 	"github.com/tetratelabs/getenvoy/internal/globals"
+	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
 // NewVersionsCmd returns command that lists available Envoy versions for the current platform.
@@ -39,65 +40,79 @@ func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 				Usage:   "Show all versions including ones not yet installed",
 			}},
 		Action: func(c *cli.Context) error {
-			vd := map[string]string{}
-			if err := addInstalledVersions(vd, o.HomeDir); err != nil {
+			rows, err := getInstalledVersions(o.HomeDir)
+			if err != nil {
 				return err
 			}
 			if c.Bool("all") {
 				if ev, err := envoy.GetEnvoyVersions(o.EnvoyVersionsURL, o.UserAgent); err != nil {
 					return err
-				} else if err := envoy.AddVersions(vd, ev.Versions, globals.CurrentPlatform); err != nil {
+				} else if err := addAvailableVersions(&rows, ev.Versions, globals.CurrentPlatform); err != nil {
 					return err
 				}
 			}
-			if len(vd) == 0 {
+
+			if len(rows) == 0 {
 				fmt.Fprintln(c.App.Writer, "No Envoy versions, yet") //nolint
-			} else {
-				printVersions(vd, c.App.Writer)
+				return nil
+			}
+
+			// Sort so that new release dates appear first and on conflict choosing the higher version
+			sort.Slice(rows, func(i, j int) bool {
+				if rows[i].releaseDate == rows[j].releaseDate {
+					return rows[i].version > rows[j].version
+				}
+				return rows[i].releaseDate > rows[j].releaseDate
+			})
+
+			// This doesn't use tabwriter because the columns are likely to remain the same width.
+			fmt.Fprintln(c.App.Writer, "VERSION\tRELEASE_DATE") //nolint
+			for _, vr := range rows {                           //nolint:gocritic
+				fmt.Fprintf(c.App.Writer, "%s\t%s\n", vr.version, vr.releaseDate) //nolint
 			}
 			return nil
 		},
 	}
 }
 
-// addInstalledVersions adds installed Envoy versions
-func addInstalledVersions(vd map[string]string, envoyHome string) error {
-	files, err := os.ReadDir(filepath.Join(envoyHome, "versions"))
+type versionReleaseDate struct {
+	// version ex "1.15.5"
+	version string
+	// releaseDate ex "2021-05-11"
+	releaseDate string
+}
+
+func getInstalledVersions(homeDir string) ([]versionReleaseDate, error) {
+	var rows []versionReleaseDate
+	files, err := os.ReadDir(filepath.Join(homeDir, "versions"))
 	if os.IsNotExist(err) {
-		return nil
+		return rows, nil
 	} else if err != nil {
-		return err
+		return nil, err
 	}
 
 	for _, f := range files {
 		if i, err := f.Info(); f.IsDir() && err == nil {
-			vd[f.Name()] = i.ModTime().Format("2006-01-02")
+			rows = append(rows, versionReleaseDate{f.Name(), i.ModTime().Format("2006-01-02")})
+		}
+	}
+	return rows, nil
+}
+
+// addAvailableVersions adds remote Envoy versions valid for this platform to "vr", if they don't already exist
+func addAvailableVersions(rows *[]versionReleaseDate, remote map[string]version.EnvoyVersion, p string) error {
+	existingVersions := make(map[string]bool)
+	for _, v := range *rows { //nolint:gocritic
+		existingVersions[v.version] = true
+	}
+
+	for k, v := range remote {
+		if _, ok := v.Tarballs[p]; ok && !existingVersions[k] {
+			if _, err := time.Parse("2006-01-02", v.ReleaseDate); err != nil {
+				return fmt.Errorf("invalid releaseDate of version %q for platform %q: %w", k, p, err)
+			}
+			*rows = append(*rows, versionReleaseDate{k, v.ReleaseDate})
 		}
 	}
 	return nil
-}
-
-// printVersions retrieves the Envoy versions from the passed location and writes it to the passed writer
-func printVersions(vd map[string]string, w io.Writer) {
-	// Build a list of Envoy versions with release date for this platform
-	type versionReleaseDate struct{ version, releaseDate string }
-
-	rows := make([]versionReleaseDate, 0, len(vd))
-	for v, d := range vd {
-		rows = append(rows, versionReleaseDate{v, d})
-	}
-
-	// Sort so that new release dates appear first and on conflict choosing the higher version
-	sort.Slice(rows, func(i, j int) bool {
-		if rows[i].releaseDate == rows[j].releaseDate {
-			return rows[i].version > rows[j].version
-		}
-		return rows[i].releaseDate > rows[j].releaseDate
-	})
-
-	// This doesn't use tabwriter because the columns are likely to remain the same width for the foreseeable future.
-	fmt.Fprintln(w, "VERSION\tRELEASE_DATE") //nolint
-	for _, vr := range rows {                //nolint:gocritic
-		fmt.Fprintf(w, "%s\t%s\n", vr.version, vr.releaseDate) //nolint
-	}
 }

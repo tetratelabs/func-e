@@ -55,7 +55,7 @@ func TestGetEnvoyValidateArgs(t *testing.T) {
 	}
 }
 
-func TestGetEnvoyHomeDir(t *testing.T) {
+func TestHomeDir(t *testing.T) {
 	type testCase struct {
 		name string
 		args []string
