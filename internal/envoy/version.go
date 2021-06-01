@@ -25,9 +25,9 @@ import (
 )
 
 var (
-	versionVarName      = "$ENVOY_VERSION"
-	wdVersionFileName   = filepath.Join("$PWD", ".envoy-version")
-	homeVersionFileName = filepath.Join("$GETENVOY_HOME", "version")
+	versionSourceVersionVar      = "$ENVOY_VERSION"
+	versionSourceWDVersionFile   = filepath.Join("$PWD", ".envoy-version")
+	versionSourceHomeVersionFile = filepath.Join("$GETENVOY_HOME", "version")
 )
 
 // CurrentVersion returns the first version in priority of VersionUsageList and its source or an error.
