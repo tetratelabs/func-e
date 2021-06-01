@@ -25,45 +25,75 @@ import (
 )
 
 var (
-	versionSourceVersionVar      = "$ENVOY_VERSION"
-	versionSourceWDVersionFile   = filepath.Join("$PWD", ".envoy-version")
-	versionSourceHomeVersionFile = filepath.Join("$GETENVOY_HOME", "version")
+	currentVersionVar            = "$ENVOY_VERSION"
+	currentVersionWorkingDirFile = filepath.Join("$PWD", ".envoy-version")
+	currentVersionHomeDirFile    = filepath.Join("$GETENVOY_HOME", "version")
 )
 
-// CurrentVersion returns the first version in priority of VersionUsageList and its source or an error.
-func CurrentVersion(homeVersion string) (string, string, error) {
-	v, source, err := getCurrentVersion(homeVersion)
-	if err != nil {
-		return "", "", fmt.Errorf("couldn't read version from %s: %w", source, err)
+// GetHomeVersion returns the default version in the "$GETENVOY_HOME" file and path to to it (homeVersionFile).
+// When "v" is empty, homeVersionFile is not yet initialized.
+//
+// If an error is returned, it includes the unexpanded "$GETENVOY_HOME" variable to clarify the intended context.
+func GetHomeVersion(homeDir string) (v, homeVersionFile string, err error) {
+	v, homeVersionFile, err = getHomeVersion(homeDir)
+	if err == nil && v == "" { // no home version, yet
+		return
 	}
-
-	if matched := globals.EnvoyVersionPattern.MatchString(v); !matched {
-		return "", "", fmt.Errorf("invalid version in %q: %q should look like %q", source, v, version.LastKnownEnvoy)
-	}
-
-	return v, source, err
+	err = verifyVersion(v, currentVersionHomeDirFile, err)
+	return
 }
 
-func getCurrentVersion(homeVersion string) (v, source string, err error) {
+// CurrentVersion returns the first version in priority of VersionUsageList and its source or an error. The "source"
+// and error messages returned include unexpanded variables to clarify the intended context.
+func CurrentVersion(homeDir string) (v, source string, err error) {
+	v, source, err = getCurrentVersion(homeDir)
+	err = verifyVersion(v, source, err)
+	return
+}
+
+func verifyVersion(v, source string, err error) error {
+	if err != nil {
+		return fmt.Errorf("couldn't read version from %s: %w", source, err)
+	}
+	if matched := globals.EnvoyVersionPattern.MatchString(v); !matched {
+		return fmt.Errorf("invalid version in %q: %q should look like %q", source, v, version.LastKnownEnvoy)
+	}
+	return nil
+}
+
+func getCurrentVersion(homeDir string) (v, source string, err error) {
 	// Priority 1: $ENVOY_VERSION
-	if v, ok := os.LookupEnv("ENVOY_VERSION"); ok {
-		return v, versionSourceVersionVar, nil
+	if ev, ok := os.LookupEnv("ENVOY_VERSION"); ok {
+		return ev, currentVersionVar, nil
 	}
 
 	// Priority 2: $PWD/.envoy-version
 	data, err := os.ReadFile(".envoy-version")
 	if err == nil {
-		return string(data), versionSourceWDVersionFile, nil
+		return string(data), currentVersionWorkingDirFile, nil
 	} else if !os.IsNotExist(err) {
-		return "", "", err
+		return "", currentVersionWorkingDirFile, err
 	}
 
 	// Priority 3: $GETENVOY_HOME/version
-	return homeVersion, versionSourceHomeVersionFile, nil
+	source = currentVersionHomeDirFile
+	v, _, err = getHomeVersion(homeDir)
+	return
+}
+
+func getHomeVersion(homeDir string) (v, homeVersionFile string, err error) {
+	homeVersionFile = filepath.Join(homeDir, "version")
+	var data []byte
+	if data, err = os.ReadFile(homeVersionFile); err == nil {
+		v = string(data)
+	} else if os.IsNotExist(err) {
+		err = nil // ok on file-not-found
+	}
+	return
 }
 
 // VersionUsageList is the priority order of Envoy version sources.
 // This includes unresolved variables as it is both used statically for markdown generation, and also at runtime.
 func VersionUsageList() string {
-	return strings.Join([]string{versionVarName, wdVersionFileName, homeVersionFileName}, ", ")
+	return strings.Join([]string{currentVersionVar, currentVersionWorkingDirFile, currentVersionHomeDirFile}, ", ")
 }

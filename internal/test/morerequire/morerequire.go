@@ -56,7 +56,11 @@ func RequireSetenv(t *testing.T, key, value string) func() {
 	err := os.Setenv(key, value)
 	require.NoError(t, err, `error setting env variable %s=%s`, key, value)
 	return func() {
-		err := os.Setenv(key, previous)
+		if previous != "" {
+			err = os.Setenv(key, previous)
+		} else {
+			err = os.Unsetenv(key)
+		}
 		require.NoError(t, err, `error reverting env variable %s=%s`, key, previous)
 	}
 }

@@ -73,7 +73,7 @@ envoy args:%[3]s --admin-address-path admin-address.txt`, o.WorkingDir, o.EnvoyP
 
 func TestGetEnvoyRun_ReadsHomeVersionFile(t *testing.T) {
 	o, cleanup := setupTest(t)
-	o.HomeEnvoyVersion = "" // pretend this is an initial setup
+	o.EnvoyVersion = "" // pretend this is an initial setup
 	o.Out = new(bytes.Buffer)
 	defer cleanup()
 
@@ -84,11 +84,12 @@ func TestGetEnvoyRun_ReadsHomeVersionFile(t *testing.T) {
 
 	// No implicit lookup
 	require.NotContains(t, o.Out.(*bytes.Buffer).String(), "looking up latest version\n")
+	require.Equal(t, version.LastKnownEnvoy, o.EnvoyVersion)
 }
 
 func TestGetEnvoyRun_CreatesHomeVersionFile(t *testing.T) {
 	o, cleanup := setupTest(t)
-	o.HomeEnvoyVersion = "" // pretend this is an initial setup
+	o.EnvoyVersion = "" // pretend this is an initial setup
 	o.Out = new(bytes.Buffer)
 	defer cleanup()
 
@@ -101,14 +102,15 @@ func TestGetEnvoyRun_CreatesHomeVersionFile(t *testing.T) {
 	// We logged the implicit lookup
 	require.Contains(t, o.Out.(*bytes.Buffer).String(), "looking up latest version\n")
 	require.FileExists(t, filepath.Join(o.HomeDir, "version"))
+	require.Equal(t, version.LastKnownEnvoy, o.EnvoyVersion)
 }
 
-func TestGetEnvoyRun_ValidatesHomeVersionContents(t *testing.T) {
+func TestGetEnvoyRun_ValidatesHomeVersion(t *testing.T) {
 	o, cleanup := setupTest(t)
 	o.Out = new(bytes.Buffer)
 	defer cleanup()
 
-	o.HomeEnvoyVersion = ""
+	o.EnvoyVersion = ""
 	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte("a.a.a"), 0600))
 
 	c, _, _ := newApp(o)
@@ -116,6 +118,29 @@ func TestGetEnvoyRun_ValidatesHomeVersionContents(t *testing.T) {
 
 	// Verify the command failed with the expected error
 	require.EqualError(t, err, fmt.Sprintf(`invalid version in "$GETENVOY_HOME/version": "a.a.a" should look like "%s"`, version.LastKnownEnvoy))
+}
+
+// TestGetEnvoyRun_ValidatesWorkingVersion duplicates logic in version_test.go to ensure a non-home version validates.
+func TestGetEnvoyRun_ValidatesWorkingVersion(t *testing.T) {
+	o, cleanup := setupTest(t)
+	o.Out = new(bytes.Buffer)
+	defer cleanup()
+
+	o.EnvoyVersion = ""
+	wd, err := os.Getwd()
+	require.NoError(t, err)
+	defer os.Chdir(wd) //nolint
+
+	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
+	defer removeTempDir()
+	require.NoError(t, os.Chdir(tempDir))
+	require.NoError(t, os.WriteFile(".envoy-version", []byte("b.b.b"), 0600))
+
+	c, _, _ := newApp(o)
+	err = c.Run([]string{"getenvoy", "run"})
+
+	// Verify the command failed with the expected error
+	require.EqualError(t, err, fmt.Sprintf(`invalid version in "$PWD/.envoy-version": "b.b.b" should look like "%s"`, version.LastKnownEnvoy))
 }
 
 func TestGetEnvoyRun_ErrsWhenVersionsServerDown(t *testing.T) {

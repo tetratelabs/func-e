@@ -47,9 +47,9 @@ type GlobalOpts struct {
 	RunOpts
 	// EnvoyVersionsURL is the path to the envoy-versions.json. Defaults to DefaultEnvoyVersionsURL
 	EnvoyVersionsURL string
-	// HomeEnvoyVersion is the default version of Envoy to run. Defaults to the contents of "$HomeDir/versions/version".
+	// EnvoyVersion is the default version of Envoy to run. Defaults to the contents of "$HomeDir/versions/version".
 	// When that file is missing, it is generated from ".latestVersion" from the EnvoyVersionsURL.
-	HomeEnvoyVersion string
+	EnvoyVersion string
 	// HomeDir is an absolute path which most importantly contains "versions" installed from EnvoyVersionsURL. Defaults to DefaultHomeDir
 	HomeDir string
 	// UserAgent is the "User-Agent" header added to all HTTP requests. Defaults to DefaultUserAgent

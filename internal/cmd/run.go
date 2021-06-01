@@ -49,16 +49,17 @@ $ getenvoy run -c ./bootstrap.yaml`, envoy.VersionUsageList()),
 				return NewValidationError(err.Error())
 			}
 
-			if o.HomeEnvoyVersion == "" { // not overridden for tests
+			if o.EnvoyVersion == "" { // not overridden for tests
 				if err := setHomeEnvoyVersion(o); err != nil {
 					return err
 				}
+				v, _, err := envoy.CurrentVersion(o.HomeDir)
+				if err != nil {
+					return NewValidationError(err.Error())
+				}
+				o.EnvoyVersion = v
 			}
-			v, _, err := envoy.CurrentVersion(o.HomeEnvoyVersion)
-			if err != nil {
-				return NewValidationError(err.Error())
-			}
-			envoyVersion = v
+			envoyVersion = o.EnvoyVersion
 			return nil
 		},
 		Action: func(c *cli.Context) error {
@@ -106,15 +107,13 @@ func initializeRunOpts(o *globals.GlobalOpts, platform, version string) error {
 	return nil
 }
 
-// setHomeEnvoyVersion makes sure the $GETENVOY_HOME/version exists and globals.GlobalOpts HomeEnvoyVersion contains it.
+// setHomeEnvoyVersion makes sure the $GETENVOY_HOME/version exists.
 func setHomeEnvoyVersion(o *globals.GlobalOpts) error {
-	// See if there's an existing default version
-	homeVersionFile := filepath.Join(o.HomeDir, "version")
-	if data, err := os.ReadFile(homeVersionFile); err == nil {
-		o.HomeEnvoyVersion = string(data)
+	v, homeVersionFile, err := envoy.GetHomeVersion(o.HomeDir)
+	if err != nil {
+		return NewValidationError(err.Error())
+	} else if v != "" { // home version is already valid
 		return nil
-	} else if !os.IsNotExist(err) {
-		return NewValidationError(`couldn't read version from "$GETENVOY_HOME/version": %s`, err)
 	}
 
 	// First time install: look up the latest version, which may be newer than version.LastKnownEnvoy!
@@ -123,8 +122,6 @@ func setHomeEnvoyVersion(o *globals.GlobalOpts) error {
 	if err != nil {
 		return NewValidationError(`couldn't read latest version from %s: %s`, o.EnvoyVersionsURL, err)
 	}
-	o.HomeEnvoyVersion = m.LatestVersion
-
 	// Persist it for the next invocation
-	return os.WriteFile(homeVersionFile, []byte(o.HomeEnvoyVersion), 0600)
+	return os.WriteFile(homeVersionFile, []byte(m.LatestVersion), 0600)
 }
