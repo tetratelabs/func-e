@@ -99,7 +99,7 @@ func getInstalledVersions(homeDir string) ([]versionReleaseDate, error) {
 	return rows, nil
 }
 
-// addAvailableVersions adds remote Envoy versions valid for this platform to "vr", if they don't already exist
+// addAvailableVersions adds remote Envoy versions valid for this platform to "rows", if they don't already exist
 func addAvailableVersions(rows *[]versionReleaseDate, remote map[string]version.EnvoyVersion, p string) error {
 	existingVersions := make(map[string]bool)
 	for _, v := range *rows { //nolint:gocritic
