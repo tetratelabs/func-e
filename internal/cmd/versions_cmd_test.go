@@ -67,7 +67,7 @@ func TestGetEnvoyVersions_CurrentVersion(t *testing.T) {
 		name, expected string
 		setup          func() func()
 	}{
-		{"no current version", `  1.2.2 2021-01-31
+		{name: "no current version", expected:`  1.2.2 2021-01-31
   1.1.2 2021-01-31
   1.2.1 2021-01-30
 `, func() func() {
