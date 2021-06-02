@@ -73,24 +73,19 @@ func RequireSetenv(t *testing.T, key, value string) func() {
 	}
 }
 
-// RequireChdirIntoTemp creates a new temp directory and cleans it up on the returned function.
-func RequireChdirIntoTemp(t *testing.T) (cleanup func()) {
-	var cleanups []func()
-	cleanup = func() {
-		for i := len(cleanups) - 1; i >= 0; i-- {
-			cleanups[i]()
-		}
-	}
-
+// RequireChdirIntoTemp creates a new temp directory and cleans it up on with the returned function.
+func RequireChdirIntoTemp(t *testing.T) func() {
 	wd, err := os.Getwd()
 	require.NoError(t, err)
-	cleanups = append(cleanups, func() {
-		require.NoError(t, os.Chdir(wd))
-	})
 
 	tempDir, removeTempDir := RequireNewTempDir(t)
-	cleanups = append(cleanups, removeTempDir)
+	if err = os.Chdir(tempDir); err != nil {
+		removeTempDir() // don't leak
+		require.NoError(t, err)
+	}
 
-	require.NoError(t, os.Chdir(tempDir))
-	return
+	return func() {
+		require.NoError(t, os.Chdir(wd))
+		removeTempDir()
+	}
 }
