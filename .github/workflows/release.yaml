@@ -52,7 +52,7 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
-      - name: "Download `getenvoy` binary from GitHub release assets"
+      - name: "Extract `getenvoy` binary from GitHub release assets"
         run: .github/untar-getenvoy-release.sh ${GITHUB_REF#refs/*/}
         env:  # authenticate as the release is a draft
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
