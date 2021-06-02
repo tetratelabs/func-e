@@ -35,7 +35,7 @@ func TestGetEnvoyInstall(t *testing.T) {
 		stdout, stderr, err := getEnvoy("--home-dir", homeDir, "install", version.LastKnownEnvoy).exec()
 
 		require.NoError(t, err)
-		require.Regexp(t, `downloading https:.*tar.*`, stdout)
+		require.Regexp(t, `^downloading https:.*tar.*z\n$`, stdout)
 		require.Empty(t, stderr)
 
 		require.FileExists(t, filepath.Join(homeDir, "versions", version.LastKnownEnvoy, "bin", "envoy"))

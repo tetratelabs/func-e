@@ -17,7 +17,6 @@ package envoy
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -52,7 +51,7 @@ func TestUntarEnvoyError(t *testing.T) {
 
 	url := server.URL + "/file.tar.gz"
 	t.Run("error on incorrect URL", func(t *testing.T) {
-		err := untarEnvoy(dst, url, userAgent, io.Discard)
+		err := untarEnvoy(dst, url, userAgent)
 		require.EqualError(t, err, fmt.Sprintf(`received 404 status code from %s`, url))
 	})
 
@@ -60,7 +59,7 @@ func TestUntarEnvoyError(t *testing.T) {
 		w.WriteHeader(200)
 	}
 	t.Run("error on empty", func(t *testing.T) {
-		err := untarEnvoy(dst, url, userAgent, io.Discard)
+		err := untarEnvoy(dst, url, userAgent)
 		require.EqualError(t, err, fmt.Sprintf(`error untarring %s: EOF`, url))
 	})
 
@@ -69,7 +68,7 @@ func TestUntarEnvoyError(t *testing.T) {
 		w.Write([]byte("mary had a little lamb")) //nolint
 	}
 	t.Run("error on not a tar", func(t *testing.T) {
-		err := untarEnvoy(dst, url, userAgent, io.Discard)
+		err := untarEnvoy(dst, url, userAgent)
 		require.EqualError(t, err, fmt.Sprintf(`error untarring %s: gzip: invalid header`, url))
 	})
 }
@@ -79,11 +78,9 @@ func TestUntarEnvoy(t *testing.T) {
 	o, cleanup := setupInstallTest(t)
 	defer cleanup()
 
-	out := new(bytes.Buffer)
-	err := untarEnvoy(o.tempDir, o.tarballURL, o.UserAgent, out)
+	err := untarEnvoy(o.tempDir, o.tarballURL, o.UserAgent)
 	require.NoError(t, err)
 	require.FileExists(t, filepath.Join(o.tempDir, binEnvoy))
-	require.Contains(t, out.String(), `100% |████████████████████████████████████████|`)
 }
 
 func TestInstallIfNeeded_ErrorOnIncorrectURL(t *testing.T) {
@@ -127,28 +124,6 @@ func TestInstallIfNeeded_Validates(t *testing.T) {
 	}
 }
 
-// progressReader emits a progress bar, when the length is known
-func TestProgressReader(t *testing.T) {
-	var out bytes.Buffer
-	b := []byte{1, 2, 3, 4}
-	br := progressReader(&out, bytes.NewReader(b), int64(len(b)))
-	_, e := io.ReadAll(br)
-
-	require.NoError(t, e)
-	require.Contains(t, out.String(), "100% |████████████████████████████████████████|")
-}
-
-// progressReader emits a spinner with download rate when it doesn't know the length
-func TestProgressReader_UnknownLength(t *testing.T) {
-	var out bytes.Buffer
-	b := []byte{1, 2, 3, 4}
-	br := progressReader(&out, bytes.NewReader(b), -1)
-	_, e := io.ReadAll(br)
-
-	require.NoError(t, e)
-	require.NotContains(t, out.String(), "100% |████████████████████████████████████████|")
-}
-
 func TestInstallIfNeeded(t *testing.T) {
 	o, cleanup := setupInstallTest(t)
 	defer cleanup()
@@ -159,8 +134,7 @@ func TestInstallIfNeeded(t *testing.T) {
 	require.Equal(t, o.EnvoyPath, envoyPath)
 	require.FileExists(t, envoyPath)
 
-	require.Contains(t, out.String(), o.tarballURL)
-	require.Contains(t, out.String(), "100% |████████████████████████████████████████|")
+	require.Equal(t, fmt.Sprintln("downloading", o.tarballURL), out.String())
 }
 
 func TestInstallIfNeeded_NotFound(t *testing.T) {
