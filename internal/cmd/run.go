@@ -26,6 +26,7 @@ import (
 	"github.com/tetratelabs/getenvoy/internal/envoy"
 	"github.com/tetratelabs/getenvoy/internal/envoy/debug"
 	"github.com/tetratelabs/getenvoy/internal/globals"
+	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
 // NewRunCmd create a command responsible for starting an Envoy process
@@ -87,10 +88,10 @@ $ getenvoy run -c ./bootstrap.yaml`, envoy.VersionUsageList()),
 // initializeRunOpts allows us to default values when not overridden for tests.
 // The version parameter correlates with the globals.GlobalOpts EnvoyPath which is installed if needed.
 // Notably, this creates and sets a globals.GlobalOpts WorkingDirectory for Envoy, and any files that precede it.
-func initializeRunOpts(o *globals.GlobalOpts, platform, version string) error {
+func initializeRunOpts(o *globals.GlobalOpts, p, v string) error {
 	runOpts := &o.RunOpts
 	if o.EnvoyPath == "" { // not overridden for tests
-		envoyPath, err := envoy.InstallIfNeeded(o, platform, version)
+		envoyPath, err := envoy.InstallIfNeeded(o, p, v)
 		if err != nil {
 			return err
 		}
@@ -121,7 +122,7 @@ func setHomeEnvoyVersion(o *globals.GlobalOpts) error {
 
 	// First time install: look up the latest version, which may be newer than version.LastKnownEnvoy!
 	fmt.Fprintln(o.Out, "looking up latest version") //nolint
-	m, err := envoy.GetEnvoyVersions(o.EnvoyVersionsURL, o.UserAgent)
+	m, err := envoy.GetEnvoyVersions(o.EnvoyVersionsURL, globals.CurrentPlatform, version.GetEnvoy)
 	if err != nil {
 		return NewValidationError(`couldn't read latest version from %s: %s`, o.EnvoyVersionsURL, err)
 	}

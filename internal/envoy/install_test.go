@@ -35,7 +35,6 @@ import (
 )
 
 func TestUntarEnvoyError(t *testing.T) {
-	userAgent := "test"
 	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
 	dst := filepath.Join(tempDir, "dst")
 	defer removeTempDir()
@@ -52,7 +51,7 @@ func TestUntarEnvoyError(t *testing.T) {
 
 	url := server.URL + "/file.tar.gz"
 	t.Run("error on incorrect URL", func(t *testing.T) {
-		err := untarEnvoy(dst, url, userAgent)
+		err := untarEnvoy(dst, url, globals.CurrentPlatform, version.GetEnvoy)
 		require.EqualError(t, err, fmt.Sprintf(`received 404 status code from %s`, url))
 	})
 
@@ -60,7 +59,7 @@ func TestUntarEnvoyError(t *testing.T) {
 		w.WriteHeader(200)
 	}
 	t.Run("error on empty", func(t *testing.T) {
-		err := untarEnvoy(dst, url, userAgent)
+		err := untarEnvoy(dst, url, globals.CurrentPlatform, version.GetEnvoy)
 		require.EqualError(t, err, fmt.Sprintf(`error untarring %s: EOF`, url))
 	})
 
@@ -69,7 +68,7 @@ func TestUntarEnvoyError(t *testing.T) {
 		w.Write([]byte("mary had a little lamb")) //nolint
 	}
 	t.Run("error on not a tar", func(t *testing.T) {
-		err := untarEnvoy(dst, url, userAgent)
+		err := untarEnvoy(dst, url, globals.CurrentPlatform, version.GetEnvoy)
 		require.EqualError(t, err, fmt.Sprintf(`error untarring %s: gzip: invalid header`, url))
 	})
 }
@@ -79,7 +78,7 @@ func TestUntarEnvoy(t *testing.T) {
 	o, cleanup := setupInstallTest(t)
 	defer cleanup()
 
-	err := untarEnvoy(o.tempDir, o.tarballURL, o.UserAgent)
+	err := untarEnvoy(o.tempDir, o.tarballURL, globals.CurrentPlatform, version.GetEnvoy)
 	require.NoError(t, err)
 	require.FileExists(t, filepath.Join(o.tempDir, binEnvoy))
 }
@@ -228,7 +227,6 @@ func setupInstallTest(t *testing.T) (*installTest, func()) {
 			GlobalOpts: globals.GlobalOpts{
 				HomeDir:          tempDir,
 				EnvoyVersionsURL: versionsServer.URL + "/envoy-versions.json",
-				UserAgent:        globals.DefaultUserAgent,
 				Out:              new(bytes.Buffer),
 				RunOpts: globals.RunOpts{
 					EnvoyPath: filepath.Join(tempDir, "versions", version.LastKnownEnvoy, "bin", "envoy"),

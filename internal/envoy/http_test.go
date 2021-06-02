@@ -20,17 +20,20 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/tetratelabs/getenvoy/internal/globals"
+	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
-func TestHttpGet_AddsUserAgent(t *testing.T) {
-	userAgent := "foo"
-
+func TestHttpGet_AddsDefaultHeaders(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, userAgent, r.UserAgent())
+		for k, v := range map[string]string{"User-Agent": "getenvoy/dev"} {
+			require.Equal(t, v, r.Header.Get(k))
+		}
 	}))
 	defer ts.Close()
 
-	res, err := httpGet(ts.URL, userAgent)
+	res, err := httpGet(ts.URL, globals.CurrentPlatform, version.GetEnvoy)
 	require.NoError(t, err)
 
 	defer res.Body.Close()

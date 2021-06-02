@@ -31,17 +31,12 @@ import (
 // getEnvoyPath holds a path to a 'getenvoy' binary under test.
 var getEnvoyPath = "getenvoy"
 
-// cmdBuilder represents a command builder.
+// cmdBuilder's main function is providing a nice String
 type cmdBuilder struct {
 	cmd *exec.Cmd
 }
 
-// getEnvoy returns a new command builder.
-// Hard-code "User-Agent" HTTP header so that it doesn't interfere with site analytics.
 func getEnvoy(args ...string) *cmdBuilder { //nolint:golint
-	if args[0] != "--version" {
-		args = append([]string{"--internal-user-agent", userAgent}, args...)
-	}
 	return &cmdBuilder{exec.Command(getEnvoyPath, args...)} //nolint:gosec
 }
 

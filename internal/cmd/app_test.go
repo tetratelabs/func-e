@@ -170,40 +170,6 @@ func TestEnvoyVersionsURL(t *testing.T) {
 	}
 }
 
-// TestGetEnvoyUserAgent tests we can re-assign the user-agent, even if this ability is internal.
-func TestGetEnvoyUserAgent(t *testing.T) {
-	type testCase struct {
-		name     string
-		args     []string
-		expected string
-	}
-
-	tests := []testCase{ // we don't test default as that depends on the runtime env
-		{
-			name:     `default is "GetEnvoy/$version ($platform)"`,
-			args:     []string{"getenvoy"},
-			expected: globals.DefaultUserAgent,
-		},
-		{
-			name:     "--internal-user-agent",
-			args:     []string{"getenvoy", "--internal-user-agent", "GetEnvoy/dev"},
-			expected: "GetEnvoy/dev",
-		},
-	}
-
-	for _, tc := range tests {
-		tc := tc // pin! see https://github.com/kyoh86/scopelint for why
-
-		t.Run(tc.name, func(t *testing.T) {
-			o := &globals.GlobalOpts{}
-			err := runTestCommand(t, o, tc.args)
-
-			require.NoError(t, err)
-			require.Equal(t, tc.expected, o.UserAgent)
-		})
-	}
-}
-
 // newApp initializes a command with buffers for stdout and stderr.
 func newApp(o *globals.GlobalOpts) (c *cli.App, stdout, stderr *bytes.Buffer) {
 	stdout = new(bytes.Buffer)

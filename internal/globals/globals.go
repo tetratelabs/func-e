@@ -15,12 +15,9 @@
 package globals
 
 import (
-	"fmt"
 	"io"
 	"regexp"
 	"runtime"
-
-	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
 // RunOpts support invocations of "getenvoy run"
@@ -52,8 +49,6 @@ type GlobalOpts struct {
 	EnvoyVersion string
 	// HomeDir is an absolute path which most importantly contains "versions" installed from EnvoyVersionsURL. Defaults to DefaultHomeDir
 	HomeDir string
-	// UserAgent is the "User-Agent" header added to all HTTP requests. Defaults to DefaultUserAgent
-	UserAgent string
 	// Out is where status messages are written. Defaults to os.Stdout
 	Out io.Writer
 }
@@ -70,8 +65,4 @@ var (
 	EnvoyVersionPattern = regexp.MustCompile(`^[1-9][0-9]*\.[0-9]+\.[0-9]+$`)
 	// CurrentPlatform is the platform of the current process. This is used as a key in EnvoyVersion.Tarballs.
 	CurrentPlatform = runtime.GOOS + "/" + runtime.GOARCH
-	// DefaultUserAgent is the default value for GlobalOpts.UserAgent.
-	// This includes the platform to help differentiate installations in site analytics.
-	// This doesn't normalize the platform value like browsers: we use this to track usage of CurrentPlatform.
-	DefaultUserAgent = fmt.Sprintf("GetEnvoy/%s (%s)", version.GetEnvoy, CurrentPlatform)
 )
