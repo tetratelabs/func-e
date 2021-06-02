@@ -1,3 +1,6 @@
 /.idea
 /coverage.txt
 /dist/
+
+# possible when testing .github/untar-getenvoy-release.sh
+getenvoy

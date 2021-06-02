@@ -52,23 +52,10 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
-      - name: "Get tag name"
-        run: | # Trim "v" prefix in the release tag
-          RELEASE_TAG=${GITHUB_REF#refs/*/}
-          if [[ "${RELEASE_TAG}" = v* ]]; then RELEASE_VERSION="${RELEASE_TAG:1}"; else RELEASE_VERSION="${RELEASE_TAG}"; fi
-          echo "RELEASE_VERSION=${RELEASE_VERSION}" >> $GITHUB_ENV
-          echo "RELEASE_TAG=${RELEASE_TAG}" >> $GITHUB_ENV
-          echo "OS_ARCH=$(go env GOOS)_$(go env GOARCH)" >> $GITHUB_ENV
-
-      - name: "Download `getenvoy` binary from GitHub release assets"
-        env:
-          INPUT_FILE: getenvoy_${{ env.RELEASE_VERSION }}_${{ env.OS_ARCH }}.tar.gz
-          INPUT_VERSION: tags/${{ env.RELEASE_TAG }}
-        run: |  # extract getenvoy to location used in `make e2e`. don't chmod because tar.gz should be correct.
-          curl -s https://raw.githubusercontent.com/dsaltares/fetch-gh-release-asset/0.06/fetch_github_asset.sh | bash
-          dir=dist/getenvoy_${{ env.OS_ARCH }}
-          mkdir -p $dir
-          tar -C $dir -xf ${INPUT_FILE} getenvoy
+      - name: "Extract `getenvoy` binary from GitHub release assets"
+        run: .github/untar-getenvoy-release.sh ${GITHUB_REF#refs/*/}
+        env:  # authenticate as the release is a draft
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: "Run e2e tests using released `getenvoy` binary"
-        run: make e2e
+        run: E2E_GETENVOY_BINARY=$PWD/getenvoy make e2e
