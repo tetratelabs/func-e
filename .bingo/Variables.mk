@@ -17,11 +17,11 @@ GO     ?= $(shell which go)
 #	@echo "Running goimports"
 #	@$(GOIMPORTS) <flags/args..>
 #
-GOIMPORTS := $(GOBIN)/goimports-v0.1.1
+GOIMPORTS := $(GOBIN)/goimports-v0.1.2
 $(GOIMPORTS): $(BINGO_DIR)/goimports.mod
 	@# Install binary/ries using Go 1.14+ build command. This is using bwplotka/bingo-controlled, separate go module with pinned dependencies.
-	@echo "(re)installing $(GOBIN)/goimports-v0.1.1"
-	@cd $(BINGO_DIR) && $(GO) build -mod=mod -modfile=goimports.mod -o=$(GOBIN)/goimports-v0.1.1 "golang.org/x/tools/cmd/goimports"
+	@echo "(re)installing $(GOBIN)/goimports-v0.1.2"
+	@cd $(BINGO_DIR) && $(GO) build -mod=mod -modfile=goimports.mod -o=$(GOBIN)/goimports-v0.1.2 "golang.org/x/tools/cmd/goimports"
 
 GOLANGCI_LINT := $(GOBIN)/golangci-lint-v1.40.1
 $(GOLANGCI_LINT): $(BINGO_DIR)/golangci-lint.mod
