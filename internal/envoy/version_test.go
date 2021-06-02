@@ -116,12 +116,9 @@ func TestWriteCurrentVersion_OverwritesWorkingDirVersion(t *testing.T) {
 	homeVersionFile := filepath.Join(homeDir, "version")
 	require.NoError(t, os.WriteFile(homeVersionFile, []byte("1.1.1"), 0600))
 
-	wd, err := os.Getwd()
-	require.NoError(t, err)
-	defer os.Chdir(wd) //nolint
-
-	removeWd := requireWorkingDirVersion(t, "2.2.2")
-	defer removeWd()
+	revertTempWd := morerequire.RequireChdirIntoTemp(t)
+	defer revertTempWd()
+	require.NoError(t, os.WriteFile(".envoy-version", []byte("2.2.2"), 0600))
 
 	require.NoError(t, WriteCurrentVersion("3.3.3", homeDir))
 	v, src, err := getCurrentVersion(homeDir)
@@ -149,12 +146,9 @@ func TestCurrentVersion(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	wd, err := os.Getwd()
-	require.NoError(t, err)
-	defer os.Chdir(wd) //nolint
-
-	removeWd := requireWorkingDirVersion(t, "2.2.2")
-	defer removeWd()
+	revertTempWd := morerequire.RequireChdirIntoTemp(t)
+	defer revertTempWd()
+	require.NoError(t, os.WriteFile(".envoy-version", []byte("2.2.2"), 0600))
 
 	t.Run("prefers $PWD/.envoy-version over home version", func(t *testing.T) {
 		v, source, err := CurrentVersion(homeDir)
@@ -185,12 +179,9 @@ func TestCurrentVersion_Validates(t *testing.T) {
 		require.EqualError(t, err, fmt.Sprintf(`invalid version in "$GETENVOY_HOME/version": "a.a.a" should look like "%s"`, version.LastKnownEnvoy))
 	})
 
-	wd, err := os.Getwd()
-	require.NoError(t, err)
-	defer os.Chdir(wd) //nolint
-
-	removeWd := requireWorkingDirVersion(t, "b.b.b")
-	defer removeWd()
+	revertTempWd := morerequire.RequireChdirIntoTemp(t)
+	defer revertTempWd()
+	require.NoError(t, os.WriteFile(".envoy-version", []byte("b.b.b"), 0600))
 
 	t.Run("validates $PWD/.envoy-version", func(t *testing.T) {
 		_, _, err := CurrentVersion(homeDir)
@@ -212,11 +203,4 @@ func TestCurrentVersion_Validates(t *testing.T) {
 		_, _, err := CurrentVersion(homeDir)
 		require.EqualError(t, err, fmt.Sprintf(`invalid version in "$ENVOY_VERSION": "c.c.c" should look like "%s"`, version.LastKnownEnvoy))
 	})
-}
-
-func requireWorkingDirVersion(t *testing.T, v string) (removeTempDir func()) {
-	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
-	require.NoError(t, os.Chdir(tempDir))
-	require.NoError(t, os.WriteFile(".envoy-version", []byte(v), 0600))
-	return
 }

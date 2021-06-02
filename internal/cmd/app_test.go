@@ -212,6 +212,7 @@ func newApp(o *globals.GlobalOpts) (c *cli.App, stdout, stderr *bytes.Buffer) {
 	c.Name = "getenvoy"
 	c.Writer = stdout
 	c.ErrWriter = stderr
+	o.Out = stdout
 	return
 }
 

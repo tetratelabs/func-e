@@ -72,3 +72,25 @@ func RequireSetenv(t *testing.T, key, value string) func() {
 		require.NoError(t, err, `error reverting env variable %s=%s`, key, previous)
 	}
 }
+
+// RequireChdirIntoTemp creates a new temp directory and cleans it up on with the returned function.
+func RequireChdirIntoTemp(t *testing.T) (cleanup func()) {
+	var cleanups []func()
+	cleanup = func() {
+		for i := len(cleanups) - 1; i >= 0; i-- {
+			cleanups[i]()
+		}
+	}
+
+	wd, err := os.Getwd()
+	require.NoError(t, err)
+	cleanups = append(cleanups, func() {
+		require.NoError(t, os.Chdir(wd))
+	})
+
+	tempDir, removeTempDir := RequireNewTempDir(t)
+	cleanups = append(cleanups, removeTempDir)
+
+	require.NoError(t, os.Chdir(tempDir))
+	return
+}

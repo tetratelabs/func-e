@@ -32,7 +32,6 @@ func TestGetEnvoyVersions_NothingYet(t *testing.T) {
 	defer cleanup()
 
 	c, stdout, stderr := newApp(o)
-	o.Out = stdout
 	err := c.Run([]string{"getenvoy", "versions"})
 
 	require.NoError(t, err)
@@ -46,7 +45,6 @@ func TestGetEnvoyVersions_NoCurrentVersion(t *testing.T) {
 	require.NoError(t, os.Remove(filepath.Join(o.HomeDir, "version")))
 
 	c, stdout, stderr := newApp(o)
-	o.Out = stdout
 	err := c.Run([]string{"getenvoy", "versions"})
 
 	require.NoError(t, err)
@@ -57,67 +55,58 @@ func TestGetEnvoyVersions_NoCurrentVersion(t *testing.T) {
 	require.Empty(t, stderr)
 }
 
+// TestGetEnvoyVersions_CurrentVersion tests depend on prior state, so execute sequentially. This doesn't use a matrix
+// to improve readability
 func TestGetEnvoyVersions_CurrentVersion(t *testing.T) {
 	o, cleanup := setupTestVersions(t)
 	defer cleanup()
 
-	// These tests depend on prior state, so execute sequentially (don't change the order).
-	// The different version values are intentional to ensure overrides work properly.
-	for _, tt := range []struct {
-		name, expected string
-		setup          func() func()
-	}{
-		{name: "no current version", expected:`  1.2.2 2021-01-31
+	t.Run("no current version", func(t *testing.T) {
+		require.NoError(t, os.Remove(filepath.Join(o.HomeDir, "version")))
+
+		c, stdout, _ := newApp(o)
+		require.NoError(t, c.Run([]string{"getenvoy", "versions"}))
+		require.Equal(t, `  1.2.2 2021-01-31
   1.1.2 2021-01-31
   1.2.1 2021-01-30
-`, func() func() {
-			require.NoError(t, os.Remove(filepath.Join(o.HomeDir, "version")))
-			return nil
-		}},
-		{"set by $GETENVOY_HOME/version", `  1.2.2 2021-01-31
+`, stdout.String())
+	})
+
+	t.Run("set by $GETENVOY_HOME/version", func(t *testing.T) {
+		require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte("1.1.2"), 0600))
+
+		c, stdout, _ := newApp(o)
+		require.NoError(t, c.Run([]string{"getenvoy", "versions"}))
+		require.Equal(t, `  1.2.2 2021-01-31
 * 1.1.2 2021-01-31 (set by $GETENVOY_HOME/version)
   1.2.1 2021-01-30
-`, func() func() {
-			require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte("1.1.2"), 0600))
-			return nil
-		}},
-		{"set by $PWD/.envoy-version", `* 1.2.2 2021-01-31 (set by $PWD/.envoy-version)
+`, stdout.String())
+	})
+
+	t.Run("set by $PWD/.envoy-version", func(t *testing.T) {
+		revertTempWd := morerequire.RequireChdirIntoTemp(t)
+		defer revertTempWd()
+		require.NoError(t, os.WriteFile(".envoy-version", []byte("1.2.2"), 0600))
+
+		c, stdout, _ := newApp(o)
+		require.NoError(t, c.Run([]string{"getenvoy", "versions"}))
+		require.Equal(t, `* 1.2.2 2021-01-31 (set by $PWD/.envoy-version)
   1.1.2 2021-01-31
   1.2.1 2021-01-30
-`, func() func() {
-			wd, err := os.Getwd()
-			require.NoError(t, err)
-			tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
+`, stdout.String())
+	})
 
-			require.NoError(t, os.Chdir(tempDir))
-			require.NoError(t, os.WriteFile(".envoy-version", []byte("1.2.2"), 0600))
-			require.NoError(t, os.Remove(filepath.Join(o.HomeDir, "version")))
-			return func() {
-				require.NoError(t, os.Chdir(wd))
-				removeTempDir()
-			}
-		}},
-		{"set by $ENVOY_VERSION", `  1.2.2 2021-01-31
+	t.Run("set by $ENVOY_VERSION", func(t *testing.T) {
+		revertEnv := morerequire.RequireSetenv(t, "ENVOY_VERSION", "1.2.1")
+		defer revertEnv()
+
+		c, stdout, _ := newApp(o)
+		require.NoError(t, c.Run([]string{"getenvoy", "versions"}))
+		require.Equal(t, `  1.2.2 2021-01-31
   1.1.2 2021-01-31
 * 1.2.1 2021-01-30 (set by $ENVOY_VERSION)
-`, func() func() {
-			return morerequire.RequireSetenv(t, "ENVOY_VERSION", "1.2.1")
-		}},
-	} {
-		tc := tt
-		t.Run(tc.name, func(t *testing.T) {
-			teardown := tc.setup()
-			if teardown != nil {
-				defer teardown()
-			}
-
-			c, stdout, _ := newApp(o)
-			o.Out = stdout
-
-			require.NoError(t, c.Run([]string{"getenvoy", "versions"}))
-			require.Equal(t, tc.expected, stdout.String())
-		})
-	}
+`, stdout.String())
+	})
 }
 
 func TestGetEnvoyVersions_Sorted(t *testing.T) {
@@ -125,7 +114,6 @@ func TestGetEnvoyVersions_Sorted(t *testing.T) {
 	defer cleanup()
 
 	c, stdout, stderr := newApp(o)
-	o.Out = stdout
 	err := c.Run([]string{"getenvoy", "versions"})
 
 	require.NoError(t, err)
@@ -141,7 +129,6 @@ func TestGetEnvoyVersions_All_OnlyRemote(t *testing.T) {
 	defer cleanup()
 
 	c, stdout, stderr := newApp(o)
-	o.Out = stdout
 	err := c.Run([]string{"getenvoy", "versions", "-a"})
 
 	require.NoError(t, err)
@@ -161,7 +148,6 @@ func TestGetEnvoyVersions_All_RemoteIsCurrent(t *testing.T) {
 	expected := fmt.Sprintf("* %s 2020-12-31 (set by $GETENVOY_HOME/version)\n", version.LastKnownEnvoy)
 
 	c, stdout, stderr := newApp(o)
-	o.Out = stdout
 	err := c.Run([]string{"getenvoy", "versions", "-a"})
 
 	require.NoError(t, err)
@@ -174,7 +160,6 @@ func TestGetEnvoyVersions_All_Mixed(t *testing.T) {
 	defer cleanup()
 
 	c, stdout, stderr := newApp(o)
-	o.Out = stdout
 	err := c.Run([]string{"getenvoy", "versions", "-a"})
 
 	require.NoError(t, err)
