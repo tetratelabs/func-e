@@ -6,6 +6,7 @@
 # Crash early on any missing prerequisites
 tag_name=$1
 curl --version >/dev/null
+go version >/dev/null
 jq --version >/dev/null
 tar --version >/dev/null
 
@@ -13,8 +14,7 @@ tar --version >/dev/null
 version=$(echo "${tag_name}" | cut -c2-100) || exit 1
 
 # form the asset name you'd find on the release page
-os_arch=$(go env GOOS)_$(go env GOARCH) || exit 1
-tarball=getenvoy_${version}_${os_arch}.tar.gz
+tarball="getenvoy_${version}_$(go env GOOS)_$(go env GOARCH).tar.gz" || exit 1
 
 # Lookup the last 10 releases, knowing the one we are looking for may not be published.
 # See https://docs.github.com/en/rest/reference/repos#list-releases
