@@ -36,7 +36,7 @@ func InstallIfNeeded(o *globals.GlobalOpts, p, v string) (string, error) {
 	switch {
 	case os.IsNotExist(err):
 		var ev version.EnvoyVersions // Get version metadata for what we will install
-		ev, err = GetEnvoyVersions(o.EnvoyVersionsURL, o.UserAgent)
+		ev, err = GetEnvoyVersions(o.EnvoyVersionsURL, p, v)
 		if err != nil {
 			return "", err
 		}
@@ -54,8 +54,8 @@ func InstallIfNeeded(o *globals.GlobalOpts, p, v string) (string, error) {
 			return "", fmt.Errorf("unable to create directory %q: %w", installPath, err)
 		}
 
-		fmt.Fprintln(o.Out, "downloading", tarballURL) //nolint
-		if err = untarEnvoy(installPath, tarballURL, o.UserAgent); err != nil {
+		fmt.Fprintln(o.Out, "downloading", tarballURL)                   //nolint
+		if err = untarEnvoy(installPath, tarballURL, p, v); err != nil { //nolint
 			return "", err
 		}
 		if err = os.Chtimes(installPath, mtime, mtime); err != nil { // overwrite the mtime to preserve it in the list
@@ -82,8 +82,8 @@ func verifyEnvoy(installPath string) (string, error) {
 	return envoyPath, nil
 }
 
-func untarEnvoy(dst, url, userAgent string) error { // dst, src order like io.Copy
-	resp, err := httpGet(url, userAgent)
+func untarEnvoy(dst, url, p, v string) error { // dst, src order like io.Copy
+	resp, err := httpGet(url, p, v)
 	if err != nil {
 		return err
 	}
