@@ -25,55 +25,67 @@ import (
 	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
-func TestGetInstalledVersions(t *testing.T) {
+func TestGetInstalledVersions_ErrorsWhenFileIsInVersionsDir(t *testing.T) {
 	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
 	defer removeHomeDir()
-
-	t.Run("empty on missing versions dir", func(t *testing.T) {
-		rows, err := getInstalledVersions(homeDir)
-		require.NoError(t, err) // skips instead of crashing
-		require.Empty(t, rows)
-	})
 
 	versionsDir := filepath.Join(homeDir, "versions")
 	require.NoError(t, os.WriteFile(versionsDir, []byte{}, 0700))
 
-	t.Run("error on file at versions dir", func(t *testing.T) {
-		_, err := getInstalledVersions(homeDir)
-		require.Error(t, err)
-	})
+	_, err := getInstalledVersions(homeDir)
+	require.Error(t, err)
+}
 
-	require.NoError(t, os.Remove(versionsDir))
+func TestGetInstalledVersions_MissingOrEmptyVersionsDir(t *testing.T) {
+	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
+	defer removeHomeDir()
+
+	rows, err := getInstalledVersions(homeDir)
+	require.NoError(t, err) // ensures we don't error just because nothing is installed yet.
+	require.Empty(t, rows)
+
+	// Now, create the versions directory but don't add one
+	versionsDir := filepath.Join(homeDir, "versions")
 	require.NoError(t, os.Mkdir(versionsDir, 0700))
 
-	t.Run("empty on empty versions dir", func(t *testing.T) {
-		rows, err := getInstalledVersions(homeDir)
-		require.NoError(t, err) // skips instead of crashing
-		require.Empty(t, rows)
-	})
+	rows, err = getInstalledVersions(homeDir)
+	require.NoError(t, err)
+	require.Empty(t, rows)
+}
 
-	oneOneTwo := filepath.Join(versionsDir, "1.1.2")
+func TestGetInstalledVersions_ReleaseDateFromMtime(t *testing.T) {
+	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
+	defer removeHomeDir()
+
+	oneOneTwo := filepath.Join(homeDir, "versions", "1.1.2")
 	require.NoError(t, os.MkdirAll(oneOneTwo, 0700))
 	morerequire.RequireSetMtime(t, oneOneTwo, "2020-12-31")
 
-	t.Run("release date from mtime", func(t *testing.T) {
-		rows, err := getInstalledVersions(homeDir)
-		require.NoError(t, err) // skips instead of crashing
-		require.EqualValues(t, rows, []versionReleaseDate{{"1.1.2", "2020-12-31"}})
-	})
-
-	oneTwoOne := filepath.Join(versionsDir, "1.2.1")
-	require.NoError(t, os.WriteFile(oneTwoOne, []byte{}, 0700)) // notice a file not a directory!
-	morerequire.RequireSetMtime(t, oneTwoOne, "2020-12-30")
-
-	t.Run("skips file where version should be", func(t *testing.T) {
-		rows, err := getInstalledVersions(homeDir)
-		require.NoError(t, err) // skips instead of crashing
-		require.EqualValues(t, rows, []versionReleaseDate{{"1.1.2", "2020-12-31"}})
-	})
+	rows, err := getInstalledVersions(homeDir)
+	require.NoError(t, err)
+	require.EqualValues(t, rows, []versionReleaseDate{{"1.1.2", "2020-12-31"}})
 }
 
-func TestAddVersions(t *testing.T) {
+func TestGetInstalledVersions_SkipsFileInVersionsDir(t *testing.T) {
+	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
+	defer removeHomeDir()
+
+	// make the versions directory
+	versionsDir := filepath.Join(homeDir, "versions")
+	require.NoError(t, os.Mkdir(versionsDir, 0700))
+
+	// create a file which looks like a version
+	oneOneTwo := filepath.Join(versionsDir, "1.1.2")
+	require.NoError(t, os.WriteFile(oneOneTwo, []byte{}, 0700))
+	morerequire.RequireSetMtime(t, oneOneTwo, "2020-12-31")
+
+	// ensure there are no versions in the output
+	rows, err := getInstalledVersions(homeDir)
+	require.NoError(t, err)
+	require.Empty(t, rows)
+}
+
+func TestAddAvailableVersions(t *testing.T) {
 	goodVersions := map[string]version.EnvoyVersion{
 		"1.14.7": {
 			ReleaseDate: "2021-04-15",
@@ -156,7 +168,7 @@ func TestAddVersions(t *testing.T) {
 	}
 }
 
-func TestAddVersions_Validates(t *testing.T) {
+func TestAddAvailableVersions_Validates(t *testing.T) {
 	tests := []struct {
 		name   string
 		update map[string]version.EnvoyVersion
