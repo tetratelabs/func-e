@@ -16,13 +16,10 @@ package envoy
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
-
-	"github.com/schollz/progressbar/v3"
 
 	"github.com/tetratelabs/getenvoy/internal/globals"
 	"github.com/tetratelabs/getenvoy/internal/tar"
@@ -58,7 +55,7 @@ func InstallIfNeeded(o *globals.GlobalOpts, p, v string) (string, error) {
 		}
 
 		fmt.Fprintln(o.Out, "downloading", tarballURL) //nolint
-		if err = untarEnvoy(installPath, tarballURL, o.UserAgent, o.Out); err != nil {
+		if err = untarEnvoy(installPath, tarballURL, o.UserAgent); err != nil {
 			return "", err
 		}
 		if err = os.Chtimes(installPath, mtime, mtime); err != nil { // overwrite the mtime to preserve it in the list
@@ -85,7 +82,7 @@ func verifyEnvoy(installPath string) (string, error) {
 	return envoyPath, nil
 }
 
-func untarEnvoy(dst, url, userAgent string, out io.Writer) error { // dst, src order like io.Copy
+func untarEnvoy(dst, url, userAgent string) error { // dst, src order like io.Copy
 	resp, err := httpGet(url, userAgent)
 	if err != nil {
 		return err
@@ -96,24 +93,8 @@ func untarEnvoy(dst, url, userAgent string, out io.Writer) error { // dst, src o
 		return fmt.Errorf("received %v status code from %s", resp.StatusCode, url)
 	}
 
-	// Ensure there's a progress while extraction is taking place
-	src := progressReader(out, resp.Body, resp.ContentLength)
-	defer src.Close() //nolint
-
-	if err = tar.Untar(dst, src); err != nil {
+	if err = tar.Untar(dst, resp.Body); err != nil {
 		return fmt.Errorf("error untarring %s: %w", url, err)
 	}
 	return nil
-}
-
-// progressReader will show a spinner or progress bar, depending on if max == -1
-func progressReader(dst io.Writer, src io.Reader, max int64) io.ReadCloser {
-	b := progressbar.NewOptions64(max,
-		progressbar.OptionSetWriter(dst),
-		progressbar.OptionOnCompletion(func() {
-			fmt.Fprint(dst, "\n")
-		}),
-	)
-	br := progressbar.NewReader(src, b)
-	return &br
 }
