@@ -21,7 +21,7 @@ include .bingo/Variables.mk
 ##@ Binary distribution
 
 .PHONY: release
-release:
+release: $(GORELEASER)
 	@echo "--- release ---"
 	@$(GORELEASER) release --rm-dist
 
