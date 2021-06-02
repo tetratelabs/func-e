@@ -58,6 +58,13 @@ func TestGetHomeVersion_Empty(t *testing.T) {
 	}
 }
 
+func TestTrimNewline(t *testing.T) {
+	require.Equal(t, "", trimNewline([]byte{}))
+	require.Equal(t, "", trimNewline([]byte("\n")))
+	require.Equal(t, "1.15.5", trimNewline([]byte("1.15.5")))
+	require.Equal(t, "1.15.5", trimNewline([]byte("1.15.5\n")))
+}
+
 func TestGetHomeVersion(t *testing.T) {
 	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
 	defer removeHomeDir()

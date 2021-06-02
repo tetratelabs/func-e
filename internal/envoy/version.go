@@ -81,7 +81,7 @@ func getCurrentVersion(homeDir string) (v, source string, err error) {
 	// Priority 2: $PWD/.envoy-version
 	data, err := os.ReadFile(".envoy-version")
 	if err == nil {
-		return string(data), CurrentVersionWorkingDirFile, nil
+		return trimNewline(data), CurrentVersionWorkingDirFile, nil
 	} else if !os.IsNotExist(err) {
 		return "", CurrentVersionWorkingDirFile, err
 	}
@@ -96,7 +96,7 @@ func getHomeVersion(homeDir string) (v, homeVersionFile string, err error) {
 	homeVersionFile = filepath.Join(homeDir, "version")
 	var data []byte
 	if data, err = os.ReadFile(homeVersionFile); err == nil {
-		v = string(data)
+		v = trimNewline(data)
 	} else if os.IsNotExist(err) {
 		err = nil // ok on file-not-found
 	}
@@ -107,4 +107,9 @@ func getHomeVersion(homeDir string) (v, homeVersionFile string, err error) {
 // This includes unresolved variables as it is both used statically for markdown generation, and also at runtime.
 func VersionUsageList() string {
 	return strings.Join([]string{currentVersionVar, CurrentVersionWorkingDirFile, CurrentVersionHomeDirFile}, ", ")
+}
+
+// trimNewline allows assignments like `echo 1.15.5 > $GETENVOY_HOME/version`
+func trimNewline(data []byte) string {
+	return strings.TrimSuffix(string(data), "\n")
 }
