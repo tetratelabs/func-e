@@ -25,9 +25,11 @@ import (
 )
 
 var (
-	currentVersionVar            = "$ENVOY_VERSION"
-	currentVersionWorkingDirFile = filepath.Join("$PWD", ".envoy-version")
-	currentVersionHomeDirFile    = filepath.Join("$GETENVOY_HOME", "version")
+	currentVersionVar = "$ENVOY_VERSION"
+	// CurrentVersionWorkingDirFile is used for stable "versions" and "help" output
+	CurrentVersionWorkingDirFile = filepath.Join("$PWD", ".envoy-version")
+	// CurrentVersionHomeDirFile is used for stable "versions" and "help" output
+	CurrentVersionHomeDirFile = filepath.Join("$GETENVOY_HOME", "version")
 )
 
 // GetHomeVersion returns the default version in the "homeDir" and path to to it (homeVersionFile). When "v" is empty,
@@ -37,8 +39,19 @@ func GetHomeVersion(homeDir string) (v, homeVersionFile string, err error) {
 	if err == nil && v == "" { // no home version, yet
 		return
 	}
-	err = verifyVersion(v, currentVersionHomeDirFile, err)
+	err = verifyVersion(v, CurrentVersionHomeDirFile, err)
 	return
+}
+
+// WriteCurrentVersion writes the version to CurrentVersionWorkingDirFile or CurrentVersionHomeDirFile depending on
+// if the former is present.
+func WriteCurrentVersion(v, homeDir string) error {
+	if _, err := os.Stat(".envoy-version"); os.IsNotExist(err) {
+		return os.WriteFile(filepath.Join(homeDir, "version"), []byte(v), 0600)
+	} else if err != nil {
+		return err
+	}
+	return os.WriteFile(".envoy-version", []byte(v), 0600)
 }
 
 // CurrentVersion returns the first version in priority of VersionUsageList and its source or an error. The "source"
@@ -68,13 +81,13 @@ func getCurrentVersion(homeDir string) (v, source string, err error) {
 	// Priority 2: $PWD/.envoy-version
 	data, err := os.ReadFile(".envoy-version")
 	if err == nil {
-		return string(data), currentVersionWorkingDirFile, nil
+		return trimNewline(data), CurrentVersionWorkingDirFile, nil
 	} else if !os.IsNotExist(err) {
-		return "", currentVersionWorkingDirFile, err
+		return "", CurrentVersionWorkingDirFile, err
 	}
 
 	// Priority 3: $GETENVOY_HOME/version
-	source = currentVersionHomeDirFile
+	source = CurrentVersionHomeDirFile
 	v, _, err = getHomeVersion(homeDir)
 	return
 }
@@ -83,7 +96,7 @@ func getHomeVersion(homeDir string) (v, homeVersionFile string, err error) {
 	homeVersionFile = filepath.Join(homeDir, "version")
 	var data []byte
 	if data, err = os.ReadFile(homeVersionFile); err == nil {
-		v = string(data)
+		v = trimNewline(data)
 	} else if os.IsNotExist(err) {
 		err = nil // ok on file-not-found
 	}
@@ -93,5 +106,10 @@ func getHomeVersion(homeDir string) (v, homeVersionFile string, err error) {
 // VersionUsageList is the priority order of Envoy version sources.
 // This includes unresolved variables as it is both used statically for markdown generation, and also at runtime.
 func VersionUsageList() string {
-	return strings.Join([]string{currentVersionVar, currentVersionWorkingDirFile, currentVersionHomeDirFile}, ", ")
+	return strings.Join([]string{currentVersionVar, CurrentVersionWorkingDirFile, CurrentVersionHomeDirFile}, ", ")
+}
+
+// trimNewline allows assignments like `echo 1.15.5 > $GETENVOY_HOME/version`
+func trimNewline(data []byte) string {
+	return strings.TrimSuffix(string(data), "\n")
 }

@@ -16,6 +16,7 @@ package e2e
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
@@ -26,23 +27,29 @@ import (
 	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
-// TestGetEnvoyInstall needs to always execute, so we run it in a separate home directory
-func TestGetEnvoyInstall(t *testing.T) {
+// TestGetEnvoyUse needs to always execute, so we run it in a separate home directory
+func TestGetEnvoyUse(t *testing.T) {
 	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
 	defer removeHomeDir()
 
 	t.Run("not yet installed", func(t *testing.T) {
-		stdout, stderr, err := getEnvoy("--home-dir", homeDir, "install", version.LastKnownEnvoy).exec()
+		stdout, stderr, err := getEnvoy("--home-dir", homeDir, "use", version.LastKnownEnvoy).exec()
 
 		require.NoError(t, err)
 		require.Regexp(t, `^downloading https:.*tar.*z\n$`, stdout)
 		require.Empty(t, stderr)
 
+		// The binary was installed
 		require.FileExists(t, filepath.Join(homeDir, "versions", version.LastKnownEnvoy, "bin", "envoy"))
+
+		// The current version was written
+		f, err := os.ReadFile(filepath.Join(homeDir, "version"))
+		require.NoError(t, err)
+		require.Equal(t, version.LastKnownEnvoy, string(f))
 	})
 
 	t.Run("already installed", func(t *testing.T) {
-		stdout, stderr, err := getEnvoy("--home-dir", homeDir, "install", version.LastKnownEnvoy).exec()
+		stdout, stderr, err := getEnvoy("--home-dir", homeDir, "use", version.LastKnownEnvoy).exec()
 
 		require.NoError(t, err)
 		require.Equal(t, version.LastKnownEnvoy+" is already downloaded\n", stdout)
@@ -50,8 +57,8 @@ func TestGetEnvoyInstall(t *testing.T) {
 	})
 }
 
-func TestGetEnvoyInstall_UnknownVersion(t *testing.T) {
-	stdout, stderr, err := getEnvoy("install", "1.1.1").exec()
+func TestGetEnvoyUse_UnknownVersion(t *testing.T) {
+	stdout, stderr, err := getEnvoy("use", "1.1.1").exec()
 
 	require.EqualError(t, err, "exit status 1")
 	require.Empty(t, stdout)

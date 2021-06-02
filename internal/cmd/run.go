@@ -36,8 +36,11 @@ func NewRunCmd(o *globals.GlobalOpts) *cli.Command {
 		Usage:           "Run Envoy with the given [arguments...], collecting process state on termination",
 		ArgsUsage:       "[arguments...]",
 		SkipFlagParsing: true,
-		Description: fmt.Sprintf(`The version of Envoy run is chosen from %s
-The '[arguments...]' are interpreted by Envoy.
+		Description: fmt.Sprintf(`
+Envoy interprets the '[arguments...]'.
+
+The "use" command primarily controls the version. The first version in %s is
+run, installing on-demand as needed.
 
 Envoy uses $GETENVOY_HOME/runs/$epochtime as the working directory.
 Upon termination, this is archived as $GETENVOY_HOME/runs/$epochtime.tar.gz.

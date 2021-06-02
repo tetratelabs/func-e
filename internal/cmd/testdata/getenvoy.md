@@ -43,7 +43,7 @@ List Envoy versions
 
 **--all, -a**: Show all versions including ones not yet installed
 
-## install
+## use
 
-Download and install a [version] of Envoy
+Sets the current [version] used by the "run" command, installing as necessary
 

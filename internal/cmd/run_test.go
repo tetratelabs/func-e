@@ -17,6 +17,7 @@ package cmd_test
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -53,6 +54,7 @@ func TestGetEnvoyRun(t *testing.T) {
 			defer cleanup()
 
 			c, stdout, stderr := newApp(o)
+			o.Out = io.Discard // don't verify logging
 			err := c.Run(test.args)
 
 			// Verify the command invoked, passing the correct default commandline
@@ -124,20 +126,15 @@ func TestGetEnvoyRun_ValidatesHomeVersion(t *testing.T) {
 func TestGetEnvoyRun_ValidatesWorkingVersion(t *testing.T) {
 	o, cleanup := setupTest(t)
 	o.Out = new(bytes.Buffer)
+	o.EnvoyVersion = ""
 	defer cleanup()
 
-	o.EnvoyVersion = ""
-	wd, err := os.Getwd()
-	require.NoError(t, err)
-	defer os.Chdir(wd) //nolint
-
-	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
-	defer removeTempDir()
-	require.NoError(t, os.Chdir(tempDir))
+	revertTempWd := morerequire.RequireChdirIntoTemp(t)
+	defer revertTempWd()
 	require.NoError(t, os.WriteFile(".envoy-version", []byte("b.b.b"), 0600))
 
 	c, _, _ := newApp(o)
-	err = c.Run([]string{"getenvoy", "run"})
+	err := c.Run([]string{"getenvoy", "run"})
 
 	// Verify the command failed with the expected error
 	require.EqualError(t, err, fmt.Sprintf(`invalid version in "$PWD/.envoy-version": "b.b.b" should look like "%s"`, version.LastKnownEnvoy))

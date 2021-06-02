@@ -19,6 +19,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"text/tabwriter"
 	"time"
 
 	"github.com/urfave/cli/v2"
@@ -44,17 +45,16 @@ func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 			if err != nil {
 				return err
 			}
+
+			// tolerate errors determining current version, as that can be due to initial or out-of-band setup
+			currentVersion, currentVersionSource, _ := envoy.CurrentVersion(o.HomeDir)
+
 			if c.Bool("all") {
 				if ev, err := envoy.GetEnvoyVersions(o.EnvoyVersionsURL, o.UserAgent); err != nil {
 					return err
 				} else if err := addAvailableVersions(&rows, ev.Versions, globals.CurrentPlatform); err != nil {
 					return err
 				}
-			}
-
-			if len(rows) == 0 {
-				fmt.Fprintln(c.App.Writer, "No Envoy versions, yet") //nolint
-				return nil
 			}
 
 			// Sort so that new release dates appear first and on conflict choosing the higher version
@@ -65,12 +65,16 @@ func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 				return rows[i].releaseDate > rows[j].releaseDate
 			})
 
-			// This doesn't use tabwriter because the columns are likely to remain the same width.
-			fmt.Fprintln(c.App.Writer, "VERSION\tRELEASE_DATE") //nolint
-			for _, vr := range rows {                           //nolint:gocritic
-				fmt.Fprintf(c.App.Writer, "%s\t%s\n", vr.version, vr.releaseDate) //nolint
+			// We use a tab writer to ensure we can format the current version
+			w := tabwriter.NewWriter(c.App.Writer, 0, 0, 1, ' ', tabwriter.AlignRight)
+			for _, vr := range rows { //nolint:gocritic
+				if vr.version == currentVersion {
+					fmt.Fprintf(w, "* %s %s (set by %s)\n", vr.version, vr.releaseDate, currentVersionSource) //nolint
+				} else {
+					fmt.Fprintf(w, "  %s %s\n", vr.version, vr.releaseDate) //nolint
+				}
 			}
-			return nil
+			return w.Flush()
 		},
 	}
 }

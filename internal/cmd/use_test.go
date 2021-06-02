@@ -22,11 +22,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/internal/test"
 	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
-func TestGetEnvoyInstall_VersionValidates(t *testing.T) {
+func TestGetEnvoyUse_VersionValidates(t *testing.T) {
 	o, cleanup := setupTest(t)
 	defer cleanup()
 
@@ -47,7 +46,7 @@ func TestGetEnvoyInstall_VersionValidates(t *testing.T) {
 
 		t.Run(tc.name, func(t *testing.T) {
 			c, stdout, stderr := newApp(o)
-			err := c.Run([]string{"getenvoy", "install", tc.version})
+			err := c.Run([]string{"getenvoy", "use", tc.version})
 
 			// Verify the command failed with the expected error
 			require.EqualError(t, err, tc.expectedErr)
@@ -58,19 +57,18 @@ func TestGetEnvoyInstall_VersionValidates(t *testing.T) {
 	}
 }
 
-func TestGetEnvoyInstall_PreservesReleaseDate(t *testing.T) {
+func TestGetEnvoyUse_InstallsAndWritesHomeVersion(t *testing.T) {
 	o, cleanup := setupTest(t)
 	defer cleanup()
 
 	c, _, _ := newApp(o)
-	require.NoError(t, c.Run([]string{"getenvoy", "install", o.EnvoyVersion}))
+	require.NoError(t, c.Run([]string{"getenvoy", "use", o.EnvoyVersion}))
 
-	// The directory was created
-	versionDir := filepath.Join(o.HomeDir, "versions", o.EnvoyVersion)
-	require.DirExists(t, versionDir)
+	// The binary was installed
+	require.FileExists(t, filepath.Join(o.HomeDir, "versions", o.EnvoyVersion, "bin", "envoy"))
 
-	// The directory timestamp matches the fake release date, not the current time
-	f, err := os.Stat(versionDir)
+	// The current version was written
+	f, err := os.ReadFile(filepath.Join(o.HomeDir, "version"))
 	require.NoError(t, err)
-	require.Equal(t, f.ModTime().Format("2006-01-02"), test.FakeReleaseDate)
+	require.Equal(t, o.EnvoyVersion, string(f))
 }
