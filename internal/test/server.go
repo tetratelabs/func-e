@@ -34,10 +34,14 @@ import (
 	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
-// Even though currently binaries are compressed with "xz" more than "gz", using "gz" in tests allows us to re-use
-// tar.TarGz instead of complicating internal utilities or adding dependencies only for tests.
-const archiveFormat = ".tar.gz"
-const versionsPath = "/versions/"
+const (
+	// FakeReleaseDate helps us make sure main code doesn't accidentally write the system time instead of the expected.
+	FakeReleaseDate = "2020-12-31"
+	// Even though currently binaries are compressed with "xz" more than "gz", using "gz" in tests allows us to re-use
+	// tar.TarGz instead of complicating internal utilities or adding dependencies only for tests.
+	archiveFormat = ".tar.gz"
+	versionsPath  = "/versions/"
+)
 
 // RequireEnvoyVersionsTestServer serves "/envoy-versions.json", containing download links a fake Envoy archive.
 func RequireEnvoyVersionsTestServer(t *testing.T, v string) *httptest.Server {
@@ -46,7 +50,7 @@ func RequireEnvoyVersionsTestServer(t *testing.T, v string) *httptest.Server {
 	s.versions = version.EnvoyVersions{
 		LatestVersion: v,
 		Versions: map[string]version.EnvoyVersion{ // hard-code date so that tests don't drift
-			v: {ReleaseDate: "2020-12-31", Tarballs: map[string]string{
+			v: {ReleaseDate: FakeReleaseDate, Tarballs: map[string]string{
 				"linux/" + runtime.GOARCH:  TarballURL(h.URL, "linux", runtime.GOARCH, v),
 				"darwin/" + runtime.GOARCH: TarballURL(h.URL, "darwin", runtime.GOARCH, v),
 			}}},

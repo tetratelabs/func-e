@@ -1,5 +1,0 @@
-NAME:
-   getenvoy installed - List installed Envoy versions
-
-USAGE:
-   getenvoy installed [arguments...]

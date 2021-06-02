@@ -15,12 +15,9 @@
 package e2e
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
 func TestGetEnvoyVersion(t *testing.T) {
@@ -30,17 +27,6 @@ func TestGetEnvoyVersion(t *testing.T) {
 
 	require.Regexp(t, `^getenvoy version ([^\s]+)\n$`, stdout)
 	require.Equal(t, ``, stderr)
-	require.NoError(t, err)
-}
-
-func TestGetEnvoyVersions(t *testing.T) {
-	t.Parallel()
-
-	stdout, stderr, err := getEnvoy("versions").exec()
-
-	require.Regexp(t, "^VERSION\tRELEASE_DATE\n", stdout)
-	require.Regexp(t, fmt.Sprintf("%s\t202[1-9]-[01][0-9]-[0-3][0-9]\n", version.LastKnownEnvoy), stdout)
-	require.Empty(t, stderr)
 	require.NoError(t, err)
 }
 

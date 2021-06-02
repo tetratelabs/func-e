@@ -1,5 +1,9 @@
 NAME:
-   getenvoy versions - List available Envoy versions
+   getenvoy versions - List Envoy versions
 
 USAGE:
-   getenvoy versions [arguments...]
+   getenvoy versions [command options] [arguments...]
+
+OPTIONS:
+   --all, -a  Show all versions including ones not yet installed (default: false)
+   

@@ -68,7 +68,7 @@ show usage with: getenvoy help
 		},
 		{
 			name:           "execution error",
-			args:           []string{"getenvoy", "--envoy-versions-url", server.URL, "versions"},
+			args:           []string{"getenvoy", "--envoy-versions-url", server.URL, "versions", "-a"},
 			expectedStatus: 1,
 			expectedStderr: `error: error unmarshalling Envoy versions: unexpected end of JSON input
 `,

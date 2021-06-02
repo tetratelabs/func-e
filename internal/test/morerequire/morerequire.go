@@ -23,6 +23,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -36,6 +37,13 @@ func RequireNewTempDir(t *testing.T) (string, func()) {
 	return d, func() {
 		os.RemoveAll(d) //nolint
 	}
+}
+
+// RequireSetMtime sets the mtime of the dir given a string formatted date. Ex "2006-01-02"
+func RequireSetMtime(t *testing.T, dir, date string) {
+	td, err := time.Parse("2006-01-02", date)
+	require.NoError(t, err)
+	require.NoError(t, os.Chtimes(dir, td, td))
 }
 
 var (

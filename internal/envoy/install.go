@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/schollz/progressbar/v3"
 
@@ -37,24 +38,31 @@ func InstallIfNeeded(o *globals.GlobalOpts, p, v string) (string, error) {
 	_, err := os.Stat(envoyPath)
 	switch {
 	case os.IsNotExist(err):
-		if err = os.MkdirAll(installPath, 0750); err != nil {
-			return "", fmt.Errorf("unable to create directory %q: %w", installPath, err)
-		}
-
-		var ev version.EnvoyVersions
+		var ev version.EnvoyVersions // Get version metadata for what we will install
 		ev, err = GetEnvoyVersions(o.EnvoyVersionsURL, o.UserAgent)
 		if err != nil {
 			return "", err
 		}
 
-		tarballURL := ev.Versions[v].Tarballs[p]
+		tarballURL := ev.Versions[v].Tarballs[p] // Ensure there is a version for this platform
 		if tarballURL == "" {
 			return "", fmt.Errorf("couldn't find version %q for platform %q", v, p)
+		}
+
+		var mtime time.Time // Create a directory for the version, preserving the release date as its mtime
+		if mtime, err = time.Parse("2006-01-02", ev.Versions[v].ReleaseDate); err != nil {
+			return "", fmt.Errorf("couldn't find releaseDate of version %q for platform %q: %w", v, p, err)
+		}
+		if err = os.MkdirAll(installPath, 0750); err != nil {
+			return "", fmt.Errorf("unable to create directory %q: %w", installPath, err)
 		}
 
 		fmt.Fprintln(o.Out, "downloading", tarballURL) //nolint
 		if err = untarEnvoy(installPath, tarballURL, o.UserAgent, o.Out); err != nil {
 			return "", err
+		}
+		if err = os.Chtimes(installPath, mtime, mtime); err != nil { // overwrite the mtime to preserve it in the list
+			return "", fmt.Errorf("unable to set date of directory %q: %w", installPath, err)
 		}
 	case err == nil:
 		fmt.Fprintln(o.Out, v, "is already downloaded") //nolint
