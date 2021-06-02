@@ -73,7 +73,7 @@ func RequireSetenv(t *testing.T, key, value string) func() {
 	}
 }
 
-// RequireChdirIntoTemp creates a new temp directory and cleans it up on with the returned function.
+// RequireChdirIntoTemp creates a new temp directory and cleans it up on the returned function.
 func RequireChdirIntoTemp(t *testing.T) (cleanup func()) {
 	var cleanups []func()
 	cleanup = func() {
