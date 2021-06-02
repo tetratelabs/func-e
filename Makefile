@@ -47,12 +47,15 @@ test.site:
 	@echo "--- test.site ---"
 	@go test -v ./site
 
-# End-to-end (e2e) tests run against a compiled binary. That dist is lazy built if "make dist" wasn't yet called.
+# End-to-end (e2e) tests run against a compiled binary.
 #
-# For e2e, run only one test at a time, in verbose mode, so that failures are easy to diagnose.
+# When E2E_GETENVOY_BINARY isn't set, the getenvoy binary is built on-demand.
+#
+# Tests run one at a time, in verbose mode, so that failures are easy to diagnose.
 # Note: -failfast helps as it stops at the first error. However, it is not a cacheable flag, so runs won't cache.
+E2E_GETENVOY_BINARY ?= $(BIN)
 .PHONY: e2e
-e2e: $(BIN)
+e2e: $(E2E_GETENVOY_BINARY)
 	@echo "--- e2e ---"
 	@go test -parallel 1 -v -failfast ./e2e
 
