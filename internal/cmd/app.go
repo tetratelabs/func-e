@@ -69,7 +69,7 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 		helpCommand,
 		NewRunCmd(o),
 		NewVersionsCmd(o),
-		NewInstallCmd(o),
+		NewUseCmd(o),
 		NewDocCmd(),
 	}
 	return app

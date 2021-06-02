@@ -24,21 +24,28 @@ import (
 	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
-// NewInstallCmd create a command responsible for downloading and extracting Envoy
-func NewInstallCmd(o *globals.GlobalOpts) *cli.Command {
+// NewUseCmd create a command responsible for downloading and extracting Envoy
+func NewUseCmd(o *globals.GlobalOpts) *cli.Command {
 	return &cli.Command{
-		Name:      "install",
-		Usage:     "Download and install a [version] of Envoy",
+		Name:      "use",
+		Usage:     `Sets the current [version] used by the "run" command, installing as necessary`,
 		ArgsUsage: "[version]",
-		Description: fmt.Sprintf(`The '[version]' is from the "versions" command.
-The Envoy [version] will be installed into $GETENVOY_HOME/versions/[version]
+		Description: fmt.Sprintf(`The '[version]' is from the "versions -a" command.
+The Envoy [version] installs on-demand into $GETENVOY_HOME/versions/[version]
+if needed.
+
+This updates %s or %s with [version],
+depending on which is present.
 
 Example:
-$ getenvoy install %s`, version.LastKnownEnvoy),
+$ getenvoy use %s`, envoy.CurrentVersionWorkingDirFile, envoy.CurrentVersionHomeDirFile, version.LastKnownEnvoy),
 		Before: validateVersionArg,
 		Action: func(c *cli.Context) error {
-			_, err := envoy.InstallIfNeeded(o, globals.CurrentPlatform, c.Args().First())
-			return err
+			v := c.Args().First()
+			if _, err := envoy.InstallIfNeeded(o, globals.CurrentPlatform, v); err != nil {
+				return err
+			}
+			return envoy.WriteCurrentVersion(v, o.HomeDir)
 		},
 	}
 }

@@ -30,51 +30,106 @@ func TestVersionUsageList(t *testing.T) {
 	require.Equal(t, "$ENVOY_VERSION, $PWD/.envoy-version, $GETENVOY_HOME/version", VersionUsageList())
 }
 
-func TestGetHomeVersion(t *testing.T) {
+func TestGetHomeVersion_Empty(t *testing.T) {
 	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
-	removeHomeDir() // delete the home directory
-
-	t.Run("doesn't error on no home dir", func(t *testing.T) {
-		v, homeVersionFile, err := GetHomeVersion(homeDir)
-		require.Empty(t, v)
-		require.Equal(t, filepath.Join(homeDir, "version"), homeVersionFile)
-		require.NoError(t, err)
-	})
-
-	homeDir, removeHomeDir = morerequire.RequireNewTempDir(t)
 	defer removeHomeDir()
 
-	t.Run("doesn't error on no home version file", func(t *testing.T) {
-		v, homeVersionFile, err := GetHomeVersion(homeDir)
-		require.Empty(t, v)
-		require.Equal(t, filepath.Join(homeDir, "version"), homeVersionFile)
-		require.NoError(t, err)
-	})
-
 	homeVersionFile := filepath.Join(homeDir, "version")
-	require.NoError(t, os.WriteFile(homeVersionFile, []byte(""), 0600))
 
-	// This could be considered unexpected, but it is less to code to overwrite on this edge-case
-	t.Run("doesn't error on no empty home version file", func(t *testing.T) {
-		v, _, err := GetHomeVersion(homeDir)
-		require.Empty(t, v)
-		require.NoError(t, err)
-	})
-
-	require.NoError(t, os.WriteFile(homeVersionFile, []byte(version.LastKnownEnvoy), 0600))
-	t.Run("reads valid home version file", func(t *testing.T) {
-		v, _, err := GetHomeVersion(homeDir)
-		require.Equal(t, version.LastKnownEnvoy, v)
-		require.NoError(t, err)
-	})
-
-	require.NoError(t, os.WriteFile(homeVersionFile, []byte("a.a.a"), 0600))
-	t.Run("errors on invalid home version file", func(t *testing.T) {
-		_, _, err := GetHomeVersion(homeDir)
-		require.EqualError(t, err, fmt.Sprintf(`invalid version in "$GETENVOY_HOME/version": "a.a.a" should look like "%s"`, version.LastKnownEnvoy))
-	})
+	for _, tt := range []struct {
+		name  string
+		setup func()
+	}{
+		{"empty home version file", func() {
+			require.NoError(t, os.WriteFile(homeVersionFile, []byte(""), 0600))
+		}},
+		{"missing home version file", func() {
+			require.NoError(t, os.Remove(homeVersionFile))
+		}},
+		{"missing home dir", removeHomeDir},
+	} {
+		tc := tt
+		t.Run(tc.name, func(t *testing.T) {
+			v, hvf, err := GetHomeVersion(homeDir)
+			require.Empty(t, v)
+			require.Equal(t, homeVersionFile, hvf)
+			require.NoError(t, err)
+		})
+	}
 }
 
+func TestGetHomeVersion(t *testing.T) {
+	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
+	defer removeHomeDir()
+
+	homeVersionFile := filepath.Join(homeDir, "version")
+	require.NoError(t, os.WriteFile(homeVersionFile, []byte(version.LastKnownEnvoy), 0600))
+
+	v, hvf, err := GetHomeVersion(homeDir)
+	require.Equal(t, version.LastKnownEnvoy, v)
+	require.Equal(t, homeVersionFile, hvf)
+	require.NoError(t, err)
+}
+
+func TestGetHomeVersion_Validates(t *testing.T) {
+	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
+	defer removeHomeDir()
+
+	homeVersionFile := filepath.Join(homeDir, "version")
+	require.NoError(t, os.WriteFile(homeVersionFile, []byte("a.a.a"), 0600))
+
+	_, _, err := GetHomeVersion(homeDir)
+	require.EqualError(t, err, fmt.Sprintf(`invalid version in "$GETENVOY_HOME/version": "a.a.a" should look like "%s"`, version.LastKnownEnvoy))
+}
+
+func TestWriteCurrentVersion_HomeDir(t *testing.T) {
+	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
+	defer removeHomeDir()
+
+	for _, tt := range []struct{ name, v string }{
+		{"writes initial home version", "1.1.1"},
+		{"overwrites home version", "2.2.2"},
+	} {
+		tc := tt
+		t.Run(tc.name, func(t *testing.T) {
+			require.NoError(t, WriteCurrentVersion(tc.v, homeDir))
+			v, src, err := getCurrentVersion(homeDir)
+			require.NoError(t, err)
+			require.Equal(t, tc.v, v)
+			require.Equal(t, CurrentVersionHomeDirFile, src)
+			require.NoFileExists(t, ".envoy-version")
+		})
+	}
+}
+
+func TestWriteCurrentVersion_OverwritesWorkingDirVersion(t *testing.T) {
+	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
+	defer removeHomeDir()
+
+	homeVersionFile := filepath.Join(homeDir, "version")
+	require.NoError(t, os.WriteFile(homeVersionFile, []byte("1.1.1"), 0600))
+
+	wd, err := os.Getwd()
+	require.NoError(t, err)
+	defer os.Chdir(wd) //nolint
+
+	removeWd := requireWorkingDirVersion(t, "2.2.2")
+	defer removeWd()
+
+	require.NoError(t, WriteCurrentVersion("3.3.3", homeDir))
+	v, src, err := getCurrentVersion(homeDir)
+	require.NoError(t, err)
+	require.Equal(t, "3.3.3", v)
+	require.Equal(t, CurrentVersionWorkingDirFile, src)
+
+	// didn't overwrite the home version
+	v, _, err = getHomeVersion(homeDir)
+	require.NoError(t, err)
+	require.Equal(t, "1.1.1", v)
+}
+
+// TestCurrentVersion is intentionally written in priority order instead of via a matrix. This particularly helps with
+// test setup complexity required to ensure tiered priority (ex layering overridden PWD with an ENV)
 func TestCurrentVersion(t *testing.T) {
 	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
 	defer removeHomeDir()
@@ -91,10 +146,8 @@ func TestCurrentVersion(t *testing.T) {
 	require.NoError(t, err)
 	defer os.Chdir(wd) //nolint
 
-	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
-	defer removeTempDir()
-	require.NoError(t, os.Chdir(tempDir))
-	require.NoError(t, os.WriteFile(".envoy-version", []byte("2.2.2"), 0600))
+	removeWd := requireWorkingDirVersion(t, "2.2.2")
+	defer removeWd()
 
 	t.Run("prefers $PWD/.envoy-version over home version", func(t *testing.T) {
 		v, source, err := CurrentVersion(homeDir)
@@ -114,6 +167,7 @@ func TestCurrentVersion(t *testing.T) {
 	})
 }
 
+// TestCurrentVersion_Validates is intentionally written in priority order instead of via a matrix
 func TestCurrentVersion_Validates(t *testing.T) {
 	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
 	defer removeHomeDir()
@@ -128,10 +182,8 @@ func TestCurrentVersion_Validates(t *testing.T) {
 	require.NoError(t, err)
 	defer os.Chdir(wd) //nolint
 
-	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
-	defer removeTempDir()
-	require.NoError(t, os.Chdir(tempDir))
-	require.NoError(t, os.WriteFile(".envoy-version", []byte("b.b.b"), 0600))
+	removeWd := requireWorkingDirVersion(t, "b.b.b")
+	defer removeWd()
 
 	t.Run("validates $PWD/.envoy-version", func(t *testing.T) {
 		_, _, err := CurrentVersion(homeDir)
@@ -153,4 +205,11 @@ func TestCurrentVersion_Validates(t *testing.T) {
 		_, _, err := CurrentVersion(homeDir)
 		require.EqualError(t, err, fmt.Sprintf(`invalid version in "$ENVOY_VERSION": "c.c.c" should look like "%s"`, version.LastKnownEnvoy))
 	})
+}
+
+func requireWorkingDirVersion(t *testing.T, v string) (removeTempDir func()) {
+	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
+	require.NoError(t, os.Chdir(tempDir))
+	require.NoError(t, os.WriteFile(".envoy-version", []byte(v), 0600))
+	return
 }

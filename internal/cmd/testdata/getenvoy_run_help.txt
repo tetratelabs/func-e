@@ -5,8 +5,10 @@ USAGE:
    getenvoy run [arguments...]
 
 DESCRIPTION:
-   The version of Envoy run is chosen from $ENVOY_VERSION, $PWD/.envoy-version, $GETENVOY_HOME/version
-   The '[arguments...]' are interpreted by Envoy.
+   Envoy interprets the '[arguments...]'.
+   
+   The "use" command primarily controls the version. The first version in $ENVOY_VERSION, $PWD/.envoy-version, $GETENVOY_HOME/version is
+   run, installing on-demand as needed.
    
    Envoy uses $GETENVOY_HOME/runs/$epochtime as the working directory.
    Upon termination, this is archived as $GETENVOY_HOME/runs/$epochtime.tar.gz.

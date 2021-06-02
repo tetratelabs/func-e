@@ -23,6 +23,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -133,6 +134,12 @@ func TestInstallIfNeeded(t *testing.T) {
 	require.NoError(t, e)
 	require.Equal(t, o.EnvoyPath, envoyPath)
 	require.FileExists(t, envoyPath)
+
+	// The version directory timestamp matches the fake release date, not the current time
+	versionDir := strings.Replace(envoyPath, binEnvoy, "", 1)
+	f, err := os.Stat(versionDir)
+	require.NoError(t, err)
+	require.Equal(t, f.ModTime().Format("2006-01-02"), test.FakeReleaseDate)
 
 	require.Equal(t, fmt.Sprintln("downloading", o.tarballURL), out.String())
 }

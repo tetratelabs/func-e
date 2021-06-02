@@ -11,7 +11,7 @@ COMMANDS:
    help      Shows how to use a [command]
    run       Run Envoy with the given [arguments...], collecting process state on termination
    versions  List Envoy versions
-   install   Download and install a [version] of Envoy
+   use       Sets the current [version] used by the "run" command, installing as necessary
 
 GLOBAL OPTIONS:
    --home-dir value            GetEnvoy home directory (location of installed versions and run archives) (default: ${HOME}/.getenvoy) [$GETENVOY_HOME]
