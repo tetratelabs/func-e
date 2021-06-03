@@ -15,6 +15,7 @@
 package cmd
 
 import (
+	"fmt"
 	"net/url"
 	"os/user"
 	"path/filepath"
@@ -34,6 +35,18 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 	app.Name = "getenvoy"
 	app.HelpName = "getenvoy"
 	app.Usage = `Install and run Envoy`
+	// Keep lines at 77 to address leading indent of 3 in help statements
+	// NOTE: remove indenting ourselves after the first line after urfave/cli#1275.
+	app.UsageText = `To run Envoy, execute ` + "`getenvoy run -c your_envoy_config.yaml`" + `. This
+   downloads and installs the latest version of Envoy for you.
+
+   To list versions of Envoy you can use, execute ` + "`getenvoy versions -a`" + `. To
+   choose one, invoke ` + fmt.Sprintf("`getenvoy use %s`", version.LastKnownEnvoy) + `. This installs into
+   ` + fmt.Sprintf("`$GETENVOY_HOME/versions/%s`", version.LastKnownEnvoy) + `, if not already present.
+
+   You may want to override ` + "`$ENVOY_VERSIONS_URL`" + ` to supply custom builds or
+   otherwise control the source of Envoy binaries. When overriding, validate
+   your JSON first: https://getenvoy.io/envoy-versions-schema.json`
 	app.Version = version.GetEnvoy
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
@@ -63,7 +76,6 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 		NewRunCmd(o),
 		NewVersionsCmd(o),
 		NewUseCmd(o),
-		NewDocCmd(),
 	}
 	return app
 }
