@@ -48,19 +48,19 @@ func (r *Runtime) handlePostTermination() error {
 		}
 	}
 
-	if r.opts.DontArchiveWorkingDir {
+	if r.opts.DontArchiveRunDir {
 		return nil
 	}
 
 	// Given ~/.getenvoy/debug/1620955405964267000
-	dirName := filepath.Dir(r.GetWorkingDir())              // ~/.getenvoy/debug
-	baseName := filepath.Base(r.GetWorkingDir())            // 1620955405964267000
+	dirName := filepath.Dir(r.GetRunDir())                  // ~/.getenvoy/debug
+	baseName := filepath.Base(r.GetRunDir())                // 1620955405964267000
 	targzName := filepath.Join(dirName, baseName+".tar.gz") // ~/.getenvoy/debug/1620955405964267000.tar.gz
 
-	if err := tar.TarGz(targzName, r.GetWorkingDir()); err != nil {
-		return fmt.Errorf("unable to archive run directory %v: %w", r.GetWorkingDir(), err)
+	if err := tar.TarGz(targzName, r.GetRunDir()); err != nil {
+		return fmt.Errorf("unable to archive run directory %v: %w", r.GetRunDir(), err)
 	}
-	return os.RemoveAll(r.GetWorkingDir())
+	return os.RemoveAll(r.GetRunDir())
 }
 
 // RegisterPreTermination registers the passed functions to be run after Envoy has started

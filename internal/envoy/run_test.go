@@ -36,8 +36,8 @@ func TestRuntime_Run(t *testing.T) {
 	defer removeTempDir()
 
 	runsDir := filepath.Join(tempDir, "runs")
-	fakeTimestamp := "1619574747231823000"
-	workingDir := filepath.Join(runsDir, fakeTimestamp)
+	runDir := filepath.Join(runsDir, "1619574747231823000") // fake a realistic value
+	adminFlag := fmt.Sprintf("--admin-address-path %s/admin-address.txt", runDir)
 
 	// "quiet" as we aren't testing the environment envoy runs in
 	fakeEnvoy := filepath.Join(tempDir, "quiet")
@@ -54,21 +54,17 @@ func TestRuntime_Run(t *testing.T) {
 		{
 			name: "GetEnvoy Ctrl-C",
 			// Don't warn the user when they exited the process
-			expectedStdout: fmt.Sprintf(`starting: %s
-working directory: %s
-`, fakeEnvoy, workingDir),
+			expectedStdout: fmt.Sprintln("starting:", fakeEnvoy, adminFlag),
 			expectedStderr: "started\ncaught SIGINT\n",
 			expectedHooks:  []string{"preStart", "preTermination", "postTermination"},
 		},
 		// We don't test envoy dying from an external signal as it isn't reported back to the getenvoy process and
 		// Envoy returns exit status zero on anything except kill -9. We can't test kill -9 with a fake shell script.
 		{
-			name:      "Envoy exited with error",
-			terminate: func() { time.Sleep(time.Millisecond * 100) },
-			args:      []string{"quiet_exit=3"},
-			expectedStdout: fmt.Sprintf(`starting: %s quiet_exit=3
-working directory: %s
-`, fakeEnvoy, workingDir),
+			name:           "Envoy exited with error",
+			terminate:      func() { time.Sleep(time.Millisecond * 100) },
+			args:           []string{"quiet_exit=3"},
+			expectedStdout: fmt.Sprintln("starting:", fakeEnvoy, "quiet_exit=3", adminFlag),
 			expectedStderr: "started\n",
 			expectedErr:    "envoy exited with status: 3",
 			expectedHooks:  []string{"preStart"},
@@ -78,8 +74,8 @@ working directory: %s
 	for _, tt := range tests {
 		tc := tt
 		t.Run(tc.name, func(t *testing.T) {
-			o := &globals.RunOpts{EnvoyPath: fakeEnvoy, WorkingDir: workingDir}
-			require.NoError(t, os.MkdirAll(workingDir, 0750))
+			o := &globals.RunOpts{EnvoyPath: fakeEnvoy, RunDir: runDir}
+			require.NoError(t, os.MkdirAll(runDir, 0750))
 
 			stdout := new(bytes.Buffer)
 			stderr := new(bytes.Buffer)
@@ -113,7 +109,7 @@ working directory: %s
 			require.NoError(t, err)
 			require.Equal(t, 1, len(files))
 			archive := filepath.Join(runsDir, files[0].Name())
-			require.Equal(t, filepath.Join(runsDir, fakeTimestamp+".tar.gz"), archive)
+			require.Equal(t, runDir+".tar.gz", archive)
 
 			// Cleanup for the next run
 			require.NoError(t, os.Remove(archive))

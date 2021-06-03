@@ -5,13 +5,14 @@ USAGE:
    getenvoy run [arguments...]
 
 DESCRIPTION:
-   Envoy interprets the '[arguments...]'.
+   To run Envoy, execute `getenvoy run -c your_envoy_config.yaml`. This
+   downloads and installs the latest version of Envoy for you.
    
-   The "use" command primarily controls the version. The first version in $ENVOY_VERSION, $PWD/.envoy-version, $GETENVOY_HOME/version is
-   run, installing on-demand as needed.
+   Envoy runs in the current directory and interprets the '[arguments...]'.
+   The first version in the below is run, controllable by the "use" command:
+   ```
+   $ENVOY_VERSION, $PWD/.envoy-version, $GETENVOY_HOME/version
+   ```
    
-   Envoy uses $GETENVOY_HOME/runs/$epochtime as the working directory.
-   Upon termination, this is archived as $GETENVOY_HOME/runs/$epochtime.tar.gz.
-   
-   Example:
-   $ getenvoy run -c ./bootstrap.yaml
+   getenvoy generates files, e.g. logs, into `$GETENVOY_HOME/runs/$epochtime`.
+   These archive into `$GETENVOY_HOME/runs/$epochtime.tar.gz` upon termination.

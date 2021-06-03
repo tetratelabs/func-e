@@ -38,7 +38,7 @@ var adminAPIPaths = map[string]string{
 
 // enableEnvoyAdminDataCollection is a preset option that registers collection of Envoy Admin API information
 func enableEnvoyAdminDataCollection(r *envoy.Runtime) error {
-	e := envoyAdminDataCollection{r.GetAdminAddress, r.GetWorkingDir()}
+	e := envoyAdminDataCollection{r.GetAdminAddress, r.GetRunDir()}
 	r.RegisterPreTermination(e.retrieveAdminAPIData)
 	return nil
 }

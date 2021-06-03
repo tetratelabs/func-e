@@ -46,7 +46,7 @@ type OpenFileStat struct {
 // enableOpenFilesDataCollection is a preset option that registers collection of statistics of files opened by envoy
 // instance(s).
 func enableOpenFilesDataCollection(r *envoy.Runtime) error {
-	lsofDir := filepath.Join(r.GetWorkingDir(), "lsof")
+	lsofDir := filepath.Join(r.GetRunDir(), "lsof")
 	if err := os.MkdirAll(lsofDir, 0750); err != nil {
 		return fmt.Errorf("unable to create directory %q, so lsof will not be captured: %w", lsofDir, err)
 	}

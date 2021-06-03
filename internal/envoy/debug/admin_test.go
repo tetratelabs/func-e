@@ -32,8 +32,8 @@ import (
 )
 
 func TestEnableEnvoyAdminDataCollection(t *testing.T) {
-	workingDir, removeWorkingDir := morerequire.RequireNewTempDir(t)
-	defer removeWorkingDir()
+	runDir, removeRunDir := morerequire.RequireNewTempDir(t)
+	defer removeRunDir()
 
 	mockAdmin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -41,14 +41,14 @@ func TestEnableEnvoyAdminDataCollection(t *testing.T) {
 	}))
 	defer mockAdmin.Close()
 
-	adminPath := filepath.Join(workingDir, "admin-address.txt")
+	adminPath := filepath.Join(runDir, "admin-address.txt")
 	err := os.WriteFile(adminPath, []byte(mockAdmin.Listener.Addr().String()), 0600)
 	require.NoError(t, err)
 
-	runAndTerminateWithDebug(t, workingDir, enableEnvoyAdminDataCollection, `--admin-address-path`, adminPath)
+	runAndTerminateWithDebug(t, runDir, enableEnvoyAdminDataCollection, `--admin-address-path`, adminPath)
 
 	for _, filename := range adminAPIPaths {
-		path := filepath.Join(workingDir, filename)
+		path := filepath.Join(runDir, filename)
 		f, err := os.Stat(path)
 		require.NoError(t, err, "error stating %v", path)
 		require.NotEmpty(t, f.Size(), "file %v was empty", path)
@@ -56,11 +56,11 @@ func TestEnableEnvoyAdminDataCollection(t *testing.T) {
 }
 
 // runAndTerminateWithDebug is like RequireRunTerminate, except returns a directory populated by the debug plugin.
-func runAndTerminateWithDebug(t *testing.T, workingDir string, debug func(r *envoy.Runtime) error, args ...string) error {
-	fakeEnvoy := filepath.Join(workingDir, "envoy")
+func runAndTerminateWithDebug(t *testing.T, runDir string, debug func(r *envoy.Runtime) error, args ...string) error {
+	fakeEnvoy := filepath.Join(runDir, "envoy")
 	morerequire.RequireCaptureScript(t, fakeEnvoy)
 
-	o := &globals.RunOpts{EnvoyPath: fakeEnvoy, WorkingDir: workingDir, DontArchiveWorkingDir: true}
+	o := &globals.RunOpts{EnvoyPath: fakeEnvoy, RunDir: runDir, DontArchiveRunDir: true}
 
 	stderr := new(bytes.Buffer)
 	r := envoy.NewRuntime(o)

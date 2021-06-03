@@ -42,31 +42,30 @@ func TestGetEnvoyRun(t *testing.T) {
 		{
 			name:              "envoy args",
 			args:              []string{"getenvoy", "run", "-c", "envoy.yaml"},
-			expectedEnvoyArgs: ` -c envoy.yaml`,
+			expectedEnvoyArgs: `-c envoy.yaml `,
 		},
 	}
 
-	for _, test := range tests {
-		test := test // pin! see https://github.com/kyoh86/scopelint for why
+	for _, tc := range tests {
+		tc := tc // pin! see https://github.com/kyoh86/scopelint for why
 
-		t.Run(test.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			o, cleanup := setupTest(t)
 			defer cleanup()
 
 			c, stdout, stderr := newApp(o)
 			o.Out = io.Discard // don't verify logging
-			err := c.Run(test.args)
+			err := c.Run(tc.args)
 
 			// Verify the command invoked, passing the correct default commandline
 			require.NoError(t, err)
 
 			// We expect getenvoy to print the context it will run, and Envoy to execute the same, except adding the
 			// --admin-address-path flag
-			expectedStdout := fmt.Sprintf(`starting: %[2]s%[3]s
-working directory: %[1]s
-envoy wd: %[1]s
-envoy bin: %[2]s
-envoy args:%[3]s --admin-address-path admin-address.txt`, o.WorkingDir, o.EnvoyPath, test.expectedEnvoyArgs)
+			expectedEnvoyArgs := fmt.Sprint(tc.expectedEnvoyArgs, "--admin-address-path ", filepath.Join(o.RunDir, "admin-address.txt"))
+			expectedStdout := fmt.Sprintf(`starting: %[1]s %[2]s
+envoy bin: %[1]s
+envoy args: %[2]s`, o.EnvoyPath, expectedEnvoyArgs)
 			require.Equal(t, expectedStdout+"\n", stdout.String())
 			require.Equal(t, "envoy stderr\n", stderr.String())
 		})

@@ -15,6 +15,7 @@
 package e2e
 
 import (
+	_ "embed" // We embed the config files to make them easier to copy
 	"io"
 	"log"
 	"os"
@@ -26,6 +27,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/getenvoy/internal/tar"
+	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
 )
 
 const terminateTimeout = 2 * time.Minute
@@ -36,9 +38,8 @@ const terminateTimeout = 2 * time.Minute
 func TestGetEnvoyRun(t *testing.T) {
 	t.Parallel() // uses random ports so safe to run parallel
 
-	c := getEnvoy(`run`)
 	// Below is the minimal config needed to run envoy
-	c.args("--config-yaml", "admin: {access_log_path: '/dev/stdout', address: {socket_address: {address: '127.0.0.1', port_value: 0}}}")
+	c := getEnvoy(`run`, "--config-yaml", "admin: {access_log_path: '/dev/stdout', address: {socket_address: {address: '127.0.0.1', port_value: 0}}}")
 
 	stdout, stderr, terminate := c.start(t, terminateTimeout)
 
@@ -50,43 +51,74 @@ func TestGetEnvoyRun(t *testing.T) {
 		}
 	}()
 
-	envoyWorkingDir := requireEnvoyWorkingDir(t, stdout, c)
-	requireEnvoyReady(t, envoyWorkingDir, stderr, c)
+	runDir := requireRunDir(t, stdout, c)
+	requireEnvoyReady(t, runDir, stderr, c)
 
 	log.Printf(`stopping Envoy after running [%v]`, c)
 	terminate()
 	deferredTerminate = nil
 
-	verifyDebugDump(t, envoyWorkingDir, c)
+	verifyDebugDump(t, runDir, c)
 }
 
-func requireEnvoyWorkingDir(t *testing.T, stdout io.Reader, c interface{}) string {
+// staticFilesystemConfig shows envoy reading a file referenced from the CWD
+//go:embed static-filesystem.yaml
+var staticFilesystemConfig []byte
+
+func TestGetEnvoyRun_StaticFilesystem(t *testing.T) {
+	t.Parallel() // uses random ports so safe to run parallel
+
+	revertTempWd := morerequire.RequireChdirIntoTemp(t)
+	defer revertTempWd()
+
+	require.NoError(t, os.WriteFile("envoy.yaml", staticFilesystemConfig, 0600))
+	responseFromWorkingDirectory := []byte("foo")
+	require.NoError(t, os.WriteFile("response.txt", responseFromWorkingDirectory, 0600))
+	c := getEnvoy(`run`, "-c", "envoy.yaml")
+
+	stdout, stderr, terminate := c.start(t, terminateTimeout)
+	defer terminate()
+
+	runDir := requireRunDir(t, stdout, c)
+	admin := requireEnvoyReady(t, runDir, stderr, c)
+
+	mainURL, err := admin.getMainListenerURL()
+	require.NoError(t, err, `couldn't read mainURL after running [%v]`, c)
+
+	body, err := httpGet(mainURL)
+	require.NoError(t, err, `couldn't read %s after running [%v]`, mainURL, c)
+
+	// If this passes, we know Envoy is running in the current directory, so can resolve relative configuration.
+	require.Equal(t, responseFromWorkingDirectory, body, `unexpected content in %s after running [%v]`, mainURL, c)
+}
+
+func requireRunDir(t *testing.T, stdout io.Reader, c interface{}) string {
 	stdoutLines := streamLines(stdout).named("stdout")
-	log.Printf(`waiting for GetEnvoy to log working directory after running [%v]`, c)
-	workingDirectoryPattern := regexp.MustCompile(`working directory: (.*)`)
-	line, err := stdoutLines.FirstMatch(workingDirectoryPattern).Wait(1 * time.Minute)
-	require.NoError(t, err, `error parsing working directory from stdout of [%v]`, c)
-	return workingDirectoryPattern.FindStringSubmatch(line)[1]
+	log.Printf(`waiting for GetEnvoy to log admin address path after running [%v]`, c)
+	adminAddressPathPattern := regexp.MustCompile(`--admin-address-path ([^ ]+)`)
+	line, err := stdoutLines.FirstMatch(adminAddressPathPattern).Wait(1 * time.Minute)
+	require.NoError(t, err, `error parsing admin address path from stdout of [%v]`, c)
+	return filepath.Dir(adminAddressPathPattern.FindStringSubmatch(line)[1])
 }
 
-func requireEnvoyReady(t *testing.T, envoyWorkingDir string, stderr io.Reader, c interface{}) adminAPI {
+func requireEnvoyReady(t *testing.T, runDir string, stderr io.Reader, c interface{}) *adminClient {
 	stderrLines := streamLines(stderr).named("stderr")
 
 	log.Printf(`waiting for Envoy start-up to complete after running [%v]`, c)
 	_, err := stderrLines.FirstMatch(regexp.MustCompile(`starting main dispatch loop`)).Wait(1 * time.Minute)
 	require.NoError(t, err, `error parsing startup from stderr of [%v]`, c)
 
-	adminAddressPath := filepath.Join(envoyWorkingDir, "admin-address.txt")
+	adminAddressPath := filepath.Join(runDir, "admin-address.txt")
 	adminAddress, err := os.ReadFile(adminAddressPath) //nolint:gosec
 	require.NoError(t, err, `error reading admin address file %q after running [%v]`, adminAddressPath, c)
 
-	log.Printf(`waiting for Envoy client to connect after running [%v]`, c)
-	envoyClient, err := newClient(string(adminAddress))
-	require.NoError(t, err, `error from envoy client %s after running [%v]`, adminAddress, c)
+	log.Printf(`waiting for Envoy adminClient to connect after running [%v]`, c)
+	envoyClient, err := newAdminClient(string(adminAddress))
+	require.NoError(t, err, `error from envoy adminClient %s after running [%v]`, adminAddress, c)
 	require.Eventually(t, func() bool {
 		ready, err := envoyClient.isReady()
 		return err == nil && ready
-	}, 1*time.Minute, 100*time.Millisecond, `envoy client %s never ready after running [%v]`, adminAddress, c)
+	}, 1*time.Minute, 100*time.Millisecond, `envoy adminClient %s never ready after running [%v]`, adminAddress, c)
 
 	return envoyClient
 }

@@ -22,37 +22,20 @@ import (
 	"net/http"
 )
 
-// adminAPI represents Envoy Admin API.
-type adminAPI interface {
-	isReady() (bool, error)
-	getStats() (*stats, error)
-}
-
-// stats represents Envoy response to `/stats?format=json` endpoint.
-type stats struct {
-	Metrics []metric `json:"stats"`
-}
-
-// metric represents recorded value of a single metric.
-type metric struct {
-	Name  string  `json:"name"`
-	Value float64 `json:"value"`
-}
-
-// newClient returns a new client for Envoy Admin API.
-func newClient(address string) (adminAPI, error) {
+// newAdminClient returns a new client for Envoy Admin API.
+func newAdminClient(address string) (*adminClient, error) {
 	host, port, err := net.SplitHostPort(address)
 	if err != nil {
 		return nil, err
 	}
-	return &client{baseURL: fmt.Sprintf("http://%s:%s", host, port)}, nil
+	return &adminClient{baseURL: fmt.Sprintf("http://%s:%s", host, port)}, nil
 }
 
-type client struct {
+type adminClient struct {
 	baseURL string
 }
 
-func (c *client) isReady() (bool, error) {
+func (c *adminClient) isReady() (bool, error) {
 	resp, err := http.Get(c.baseURL + "/ready")
 	if err != nil {
 		return false, err
@@ -61,8 +44,34 @@ func (c *client) isReady() (bool, error) {
 	return resp.StatusCode == http.StatusOK, nil
 }
 
-func (c *client) getStats() (*stats, error) {
-	resp, err := http.Get(c.baseURL + "/stats?format=json")
+func (c *adminClient) getMainListenerURL() (string, error) {
+	var s map[string]interface{}
+	if err := c.getJSON("/listeners", &s); err != nil {
+		return "", err
+	}
+
+	// The json structure is deep, so parsing instead of many nested structs
+	for _, s := range s["listener_statuses"].([]interface{}) {
+		l := s.(map[string]interface{})
+		if l["name"] != "main" {
+			continue
+		}
+		port := l["local_address"].(map[string]interface{})["socket_address"].(map[string]interface{})["port_value"]
+		return fmt.Sprintf("http://127.0.0.1:%d", int(port.(float64))), nil
+	}
+	return "", fmt.Errorf("didn't find main port in %+v", s)
+}
+
+func (c *adminClient) getJSON(path string, v interface{}) error {
+	body, err := httpGet(c.baseURL + path + "?format=json")
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(body, v)
+}
+
+func httpGet(url string) ([]byte, error) {
+	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
 	}
@@ -70,14 +79,5 @@ func (c *client) getStats() (*stats, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	var s stats
-	err = json.Unmarshal(body, &s)
-	if err != nil {
-		return nil, err
-	}
-	return &s, nil
+	return io.ReadAll(resp.Body)
 }

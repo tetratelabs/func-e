@@ -26,7 +26,7 @@ import (
 	"github.com/tetratelabs/getenvoy/internal/globals"
 )
 
-// NewRuntime creates a new Runtime that runs envoy in globals.RunOpts WorkingDir
+// NewRuntime creates a new Runtime that runs envoy in globals.RunOpts RunDir
 // opts allows a user running envoy to control the working directory by ID or path, allowing explicit cleanup.
 func NewRuntime(opts *globals.RunOpts) *Runtime {
 	return &Runtime{opts: opts}
@@ -49,9 +49,9 @@ type Runtime struct {
 	preStart, preTermination, postTermination []func() error
 }
 
-// GetWorkingDir returns the run-specific directory files can be written to.
-func (r *Runtime) GetWorkingDir() string {
-	return r.opts.WorkingDir
+// GetRunDir returns the run-specific directory files can be written to.
+func (r *Runtime) GetRunDir() string {
+	return r.opts.RunDir
 }
 
 // GetAdminAddress returns the current admin address in host:port format, or empty if not yet available.

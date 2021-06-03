@@ -24,12 +24,14 @@ import (
 type RunOpts struct {
 	// EnvoyPath is the exec.Cmd path to "envoy". Defaults to "$HomeDir/versions/$version/bin/envoy"
 	EnvoyPath string
-	// WorkingDir is the working directory of EnvoyPath and includes any generated configuration or debug files.
-	// Upon termination, this directory is archived as "../$(basename $WorkingDir).tar.gz"
+	// RunDir is the location any generated configuration or debug files are written.
+	// This is not Envoy's working directory, which remains the same as the $PWD of getenvoy.
+	//
+	// Upon termination, this directory is archived as "../$(basename $RunDir).tar.gz"
 	// Defaults to "$HomeDir/runs/$epochtime"
-	WorkingDir string
-	// DontArchiveWorkingDir is used in testing and prevents archiving the WorkingDir
-	DontArchiveWorkingDir bool
+	RunDir string
+	// DontArchiveRunDir is used in testing and prevents archiving the RunDir
+	DontArchiveRunDir bool
 }
 
 // GlobalOpts represents options that affect more than one getenvoy commands.
