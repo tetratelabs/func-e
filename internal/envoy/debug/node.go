@@ -32,7 +32,7 @@ import (
 
 // enableNodeCollection is a preset option that registers collection of node level information for debugging
 func enableNodeCollection(r *envoy.Runtime) error {
-	nodeDir := filepath.Join(r.GetWorkingDir(), "node")
+	nodeDir := filepath.Join(r.GetRunDir(), "node")
 	if err := os.MkdirAll(nodeDir, 0750); err != nil {
 		return fmt.Errorf("unable to create directory %q, so node data will not be captured: %w", nodeDir, err)
 	}

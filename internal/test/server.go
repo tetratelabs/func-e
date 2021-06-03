@@ -110,7 +110,6 @@ func requireFakeEnvoyTarGz(t *testing.T, v string) []byte {
 	fakeEnvoy := []byte(`#!/bin/sh
 set -ue
 # Echo invocation context to stdout and fake stderr to ensure it is not combined into stdout.
-echo envoy wd: $PWD
 echo envoy bin: $0
 echo envoy args: $@
 echo >&2 envoy stderr

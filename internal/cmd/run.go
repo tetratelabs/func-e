@@ -37,17 +37,16 @@ func NewRunCmd(o *globals.GlobalOpts) *cli.Command {
 		Usage:           "Run Envoy with the given [arguments...], collecting process state on termination",
 		ArgsUsage:       "[arguments...]",
 		SkipFlagParsing: true,
-		Description: fmt.Sprintf(`
-Envoy interprets the '[arguments...]'.
+		Description: `To run Envoy, execute ` + "`getenvoy run -c your_envoy_config.yaml`" + `. This
+downloads and installs the latest version of Envoy for you.
 
-The "use" command primarily controls the version. The first version in %s is
-run, installing on-demand as needed.
+Envoy runs in the current directory and interprets the '[arguments...]'.
+The first version in the below is run, controllable by the "use" command:
+` + fmt.Sprintf("```\n%s\n```", envoy.VersionUsageList()) + `
 
-Envoy uses $GETENVOY_HOME/runs/$epochtime as the working directory.
-Upon termination, this is archived as $GETENVOY_HOME/runs/$epochtime.tar.gz.
-
-Example:
-$ getenvoy run -c ./bootstrap.yaml`, envoy.VersionUsageList()),
+getenvoy generates files, e.g. logs, into ` + "`$GETENVOY_HOME/runs/$epochtime`" + `.
+These archive into ` + "`$GETENVOY_HOME/runs/$epochtime.tar.gz`" + ` upon termination.
+`,
 		Before: func(context *cli.Context) error {
 			if err := os.MkdirAll(o.HomeDir, 0750); err != nil {
 				return NewValidationError(err.Error())
@@ -97,16 +96,15 @@ func initializeRunOpts(o *globals.GlobalOpts, p, v string) error {
 		}
 		o.EnvoyPath = envoyPath
 	}
-	if runOpts.WorkingDir == "" { // not overridden for tests
-		// Historically, the directory run files wrote to was called DebugStore
+	if runOpts.RunDir == "" { // not overridden for tests
 		runID := strconv.FormatInt(time.Now().UnixNano(), 10)
-		workingDir := filepath.Join(filepath.Join(o.HomeDir, "runs"), runID)
+		runDir := filepath.Join(filepath.Join(o.HomeDir, "runs"), runID)
 
 		// When the directory is implicitly generated, we should create it to avoid late errors.
-		if err := os.MkdirAll(workingDir, 0750); err != nil {
-			return NewValidationError("unable to create working directory %q, so we cannot run envoy", workingDir)
+		if err := os.MkdirAll(runDir, 0750); err != nil {
+			return NewValidationError("unable to create working directory %q, so we cannot run envoy", runDir)
 		}
-		runOpts.WorkingDir = workingDir
+		runOpts.RunDir = runDir
 	}
 	return nil
 }

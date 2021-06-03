@@ -16,3 +16,4 @@ last_known_envoy.txt
 
 testdata/
 site/*.json
+e2e/*.yaml

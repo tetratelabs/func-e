@@ -58,16 +58,16 @@ func TestHandlePreStartReturnsError(t *testing.T) {
 }
 
 func TestHandlePreStartEnsuresAdminAddressPath(t *testing.T) {
-	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
-	defer removeTempDir()
+	runDir, removeRunDir := morerequire.RequireNewTempDir(t)
+	defer removeRunDir()
 
-	r := NewRuntime(&globals.RunOpts{WorkingDir: tempDir})
+	r := NewRuntime(&globals.RunOpts{RunDir: runDir})
 	r.cmd = exec.Command("envoy")
 
 	// Verify the admin address path set (same assertion as ensureAdminAddressPath)
 	actualErr := r.handlePreStart()
 	require.NoError(t, actualErr)
-	require.Equal(t, []string{"envoy", "--admin-address-path", "admin-address.txt"}, r.cmd.Args)
+	require.Equal(t, []string{"envoy", "--admin-address-path", filepath.Join(runDir, "admin-address.txt")}, r.cmd.Args)
 }
 
 func TestHandlePreStartEnsuresAdminAddressPathLast(t *testing.T) {
@@ -86,9 +86,10 @@ func TestHandlePreStartEnsuresAdminAddressPathLast(t *testing.T) {
 }
 
 func TestEnsureAdminAddressPath(t *testing.T) {
-	workingDir, removeWorkingDir := morerequire.RequireNewTempDir(t)
-	defer removeWorkingDir()
+	runDir, removeRunDir := morerequire.RequireNewTempDir(t)
+	defer removeRunDir()
 
+	runAdminAddressPath := filepath.Join(runDir, "admin-address.txt")
 	tests := []struct {
 		name                 string
 		args                 []string
@@ -98,14 +99,14 @@ func TestEnsureAdminAddressPath(t *testing.T) {
 		{
 			name:                 "no args",
 			args:                 []string{"envoy"},
-			wantAdminAddressPath: filepath.Join(workingDir, "admin-address.txt"),
-			wantArgs:             []string{"envoy", "--admin-address-path", "admin-address.txt"},
+			wantAdminAddressPath: runAdminAddressPath,
+			wantArgs:             []string{"envoy", "--admin-address-path", runAdminAddressPath},
 		},
 		{
 			name:                 "args",
 			args:                 []string{"envoy", "-c", "/tmp/google_com_proxy.v2.yaml"},
-			wantAdminAddressPath: filepath.Join(workingDir, "admin-address.txt"),
-			wantArgs:             []string{"envoy", "-c", "/tmp/google_com_proxy.v2.yaml", "--admin-address-path", "admin-address.txt"},
+			wantAdminAddressPath: runAdminAddressPath,
+			wantArgs:             []string{"envoy", "-c", "/tmp/google_com_proxy.v2.yaml", "--admin-address-path", runAdminAddressPath},
 		},
 		{
 			name:                 "already",
@@ -118,7 +119,7 @@ func TestEnsureAdminAddressPath(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			r := NewRuntime(&globals.RunOpts{WorkingDir: workingDir})
+			r := NewRuntime(&globals.RunOpts{RunDir: runDir})
 			r.cmd = exec.Command(tt.args[0], tt.args[1:]...)
 
 			err := r.ensureAdminAddressPath()

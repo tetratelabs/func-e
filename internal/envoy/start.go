@@ -55,7 +55,7 @@ func (r *Runtime) ensureAdminAddressPath() error {
 		}
 	}
 	// Envoy's run directory is mutable, so it is fine to write the admin address there.
-	r.cmd.Args = append(r.cmd.Args, flag, "admin-address.txt")
-	r.adminAddressPath = filepath.Join(r.opts.WorkingDir, "admin-address.txt")
+	r.adminAddressPath = filepath.Join(r.opts.RunDir, "admin-address.txt")
+	r.cmd.Args = append(r.cmd.Args, flag, r.adminAddressPath)
 	return nil
 }

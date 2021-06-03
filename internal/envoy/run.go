@@ -30,7 +30,7 @@ func (r *Runtime) Run(ctx context.Context, args []string) (err error) {
 	// We can't use CommandContext even if that seems correct here. The reason is that we need to invoke preTerminate
 	// handlers, and they expect the process to still be running. For example, this allows admin API hooks.
 	cmd := exec.Command(r.opts.EnvoyPath, args...) // #nosec -> users can run whatever binary they like!
-	cmd.Dir = r.opts.WorkingDir
+	cmd.Dir = r.workingDir
 	cmd.Stdout = r.Out
 	cmd.Stderr = r.Err
 	cmd.SysProcAttr = sysProcAttr()
@@ -52,9 +52,7 @@ func (r *Runtime) Run(ctx context.Context, args []string) (err error) {
 	}
 
 	// Print the process line to the console for user knowledge and parsing convenience
-	a := strings.Join(append([]string{r.opts.EnvoyPath}, args...), " ") // ensures no trailing space on empty args
-	fmt.Fprintln(r.Out, "starting:", a)                                 //nolint
-	fmt.Fprintln(r.Out, "working directory:", cmd.Dir)                  //nolint
+	fmt.Fprintln(r.Out, "starting:", strings.Join(r.cmd.Args, " ")) //nolint
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("unable to start Envoy process: %w", err)
 	}
