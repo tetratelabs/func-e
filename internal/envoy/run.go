@@ -30,7 +30,6 @@ func (r *Runtime) Run(ctx context.Context, args []string) (err error) {
 	// We can't use CommandContext even if that seems correct here. The reason is that we need to invoke preTerminate
 	// handlers, and they expect the process to still be running. For example, this allows admin API hooks.
 	cmd := exec.Command(r.opts.EnvoyPath, args...) // #nosec -> users can run whatever binary they like!
-	cmd.Dir = r.workingDir
 	cmd.Stdout = r.Out
 	cmd.Stderr = r.Err
 	cmd.SysProcAttr = sysProcAttr()

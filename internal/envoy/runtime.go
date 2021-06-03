@@ -35,8 +35,6 @@ func NewRuntime(opts *globals.RunOpts) *Runtime {
 // Runtime manages an Envoy lifecycle
 type Runtime struct {
 	opts *globals.RunOpts
-	// workingDir is overridable for tests, and controls the "Dir" of exec.Cmd
-	workingDir string
 
 	cmd *exec.Cmd
 	Out io.Writer
