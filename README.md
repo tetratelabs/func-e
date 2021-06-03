@@ -5,6 +5,11 @@
 
 # GetEnvoy
 
-**GetEnvoy is spread across multiple repos. For more details head over to [GetEnvoy.io](https://getenvoy.io/github).**
+GetEnvoy is a CLI which makes running [Envoy](https://www.envoyproxy.io/) easy.
 
-The GetEnvoy project focuses on building, distributing, deploying and maintaining a fleet of Envoys.
+Ex. The following will install and run the latest version of Envoy for you:
+```bash
+$ getenvoy run -c your_envoy_config.yaml
+```
+
+Have a look at the [Usage Docs](site/usage.md) or https://getenvoy.io for more information.
