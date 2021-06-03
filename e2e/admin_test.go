@@ -70,7 +70,7 @@ func (c *adminClient) getJSON(path string, v interface{}) error {
 	return json.Unmarshal(body, v)
 }
 
-func get(url string) ([]byte, error) {
+func httpGet(url string) ([]byte, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
