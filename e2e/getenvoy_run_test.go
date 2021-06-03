@@ -85,7 +85,7 @@ func TestGetEnvoyRun_StaticFilesystem(t *testing.T) {
 	mainURL, err := admin.getMainListenerURL()
 	require.NoError(t, err, `couldn't read mainURL after running [%v]`, c)
 
-	body, err := get(mainURL)
+	body, err := httpGet(mainURL)
 	require.NoError(t, err, `couldn't read %s after running [%v]`, mainURL, c)
 
 	// If this passes, we know Envoy is running in the current directory, so can resolve relative configuration.

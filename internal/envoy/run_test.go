@@ -36,8 +36,7 @@ func TestRuntime_Run(t *testing.T) {
 	defer removeTempDir()
 
 	runsDir := filepath.Join(tempDir, "runs")
-	fakeTimestamp := "1619574747231823000"
-	runDir := filepath.Join(runsDir, fakeTimestamp)
+	runDir := filepath.Join(runsDir, "1619574747231823000") // fake a realistic value
 	adminFlag := fmt.Sprintf("--admin-address-path %s/admin-address.txt", runDir)
 
 	// "quiet" as we aren't testing the environment envoy runs in
@@ -110,7 +109,7 @@ func TestRuntime_Run(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, 1, len(files))
 			archive := filepath.Join(runsDir, files[0].Name())
-			require.Equal(t, filepath.Join(runsDir, fakeTimestamp+".tar.gz"), archive)
+			require.Equal(t, runDir+".tar.gz", archive)
 
 			// Cleanup for the next run
 			require.NoError(t, os.Remove(archive))

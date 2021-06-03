@@ -63,7 +63,7 @@ func (c *adminClient) getMainListenerURL() (string, error) {
 }
 
 func (c *adminClient) getJSON(path string, v interface{}) error {
-	body, err := get(c.baseURL + path + "?format=json")
+	body, err := httpGet(c.baseURL + path + "?format=json")
 	if err != nil {
 		return err
 	}
