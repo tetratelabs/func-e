@@ -7,7 +7,7 @@ virt: lxd  # faster starting
 language: go
 
 go:
-  - 1.16.4
+  - 1.16.5
 
 git:
   depth: false  # TRAVIS_COMMIT_RANGE requires full commit history.
