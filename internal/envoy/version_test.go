@@ -22,12 +22,14 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/test/morerequire"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
 func TestVersionUsageList(t *testing.T) {
-	require.Equal(t, "$ENVOY_VERSION, $PWD/.envoy-version, $FUNC_E_HOME/version", VersionUsageList())
+	expected := moreos.ReplacePathSeparator("$ENVOY_VERSION, $PWD/.envoy-version, $FUNC_E_HOME/version")
+	require.Equal(t, expected, VersionUsageList())
 }
 
 func TestGetHomeVersion_Empty(t *testing.T) {
@@ -79,7 +81,8 @@ func TestGetHomeVersion_Validates(t *testing.T) {
 	require.NoError(t, os.WriteFile(homeVersionFile, []byte("a.a.a"), 0600))
 
 	_, _, err := GetHomeVersion(homeDir)
-	require.EqualError(t, err, fmt.Sprintf(`invalid version in "%s": "a.a.a" should look like "%s"`, CurrentVersionHomeDirFile, version.LastKnownEnvoy))
+	expectedErr := fmt.Sprintf(`invalid version in "%s": "a.a.a" should look like "%s"`, CurrentVersionHomeDirFile, version.LastKnownEnvoy)
+	require.EqualError(t, err, moreos.ReplacePathSeparator(expectedErr))
 }
 
 func TestWriteCurrentVersion_HomeDir(t *testing.T) {
@@ -172,7 +175,8 @@ func TestCurrentVersion_Validates(t *testing.T) {
 
 	t.Run("validates home version", func(t *testing.T) {
 		_, _, err := CurrentVersion(homeDir)
-		require.EqualError(t, err, fmt.Sprintf(`invalid version in "$FUNC_E_HOME/version": "a.a.a" should look like "%s"`, version.LastKnownEnvoy))
+		expectedErr := fmt.Sprintf(`invalid version in "$FUNC_E_HOME/version": "a.a.a" should look like "%s"`, version.LastKnownEnvoy)
+		require.EqualError(t, err, moreos.ReplacePathSeparator(expectedErr))
 	})
 
 	revertTempWd := morerequire.RequireChdirIntoTemp(t)
@@ -181,7 +185,8 @@ func TestCurrentVersion_Validates(t *testing.T) {
 
 	t.Run("validates $PWD/.envoy-version", func(t *testing.T) {
 		_, _, err := CurrentVersion(homeDir)
-		require.EqualError(t, err, fmt.Sprintf(`invalid version in "$PWD/.envoy-version": "b.b.b" should look like "%s"`, version.LastKnownEnvoy))
+		expectedErr := fmt.Sprintf(`invalid version in "$PWD/.envoy-version": "b.b.b" should look like "%s"`, version.LastKnownEnvoy)
+		require.EqualError(t, err, moreos.ReplacePathSeparator(expectedErr))
 	})
 
 	require.NoError(t, os.Remove(".envoy-version"))
@@ -189,7 +194,8 @@ func TestCurrentVersion_Validates(t *testing.T) {
 
 	t.Run("shows error reading $PWD/.envoy-version", func(t *testing.T) {
 		_, _, err := CurrentVersion(homeDir)
-		require.Contains(t, err.Error(), "couldn't read version from $PWD/.envoy-version")
+		expectedErr := moreos.ReplacePathSeparator("couldn't read version from $PWD/.envoy-version")
+		require.Contains(t, err.Error(), expectedErr)
 	})
 
 	revert := morerequire.RequireSetenv(t, "ENVOY_VERSION", "c.c.c")

@@ -41,7 +41,7 @@ site: $(HUGO)
 
 ##@ Unit and End-to-End tests
 
-TEST_PACKAGES ?= $(shell go list ./... | grep -v -e github.com/tetratelabs/func-e/e2e -e github.com/tetratelabs/func-e/site)
+TEST_PACKAGES ?= . ./internal/...
 .PHONY: test
 test:
 	@echo "--- test ---"

@@ -22,6 +22,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
@@ -65,7 +66,7 @@ func TestFuncEUse_InstallsAndWritesHomeVersion(t *testing.T) {
 	require.NoError(t, c.Run([]string{"func-e", "use", string(o.EnvoyVersion)}))
 
 	// The binary was installed
-	require.FileExists(t, filepath.Join(o.HomeDir, "versions", string(o.EnvoyVersion), "bin", "envoy"))
+	require.FileExists(t, filepath.Join(o.HomeDir, "versions", string(o.EnvoyVersion), "bin", "envoy"+moreos.Exe))
 
 	// The current version was written
 	f, err := os.ReadFile(filepath.Join(o.HomeDir, "version"))

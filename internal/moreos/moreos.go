@@ -15,6 +15,7 @@
 package moreos
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -34,11 +35,59 @@ const (
 	OSWindows = "windows"
 )
 
+// Errorf is like fmt.Errorf except it translates paths with ReplacePathSeparator when Windows.
+// This is needed because by default '\' escapes.
+func Errorf(format string, a ...interface{}) error {
+	err := fmt.Errorf(format, a...)
+	if runtime.GOOS != OSWindows {
+		return err
+	}
+	return errorWithWindowsPathSeparator(err)
+}
+
+func errorWithWindowsPathSeparator(err error) error {
+	wrappedErr := errors.Unwrap(err)
+	msg := withWindowsPathSeparator(err.Error()) // must be done after to avoid escaping '\'
+
+	if wrappedErr == nil {
+		return errors.New(msg)
+	}
+	return &wrapError{msg, wrappedErr}
+}
+
+type wrapError struct {
+	msg string
+	err error
+}
+
+func (e *wrapError) Error() string {
+	return e.msg
+}
+
+func (e *wrapError) Unwrap() error {
+	return e.err
+}
+
+// ReplacePathSeparator returns the input unless it is Windows.
+// When Windows, all '/' characters replace with '\'.
+func ReplacePathSeparator(input string) string {
+	if runtime.GOOS != OSWindows {
+		return input
+	}
+	return withWindowsPathSeparator(input)
+}
+
+func withWindowsPathSeparator(input string) string {
+	return strings.ReplaceAll(input, "/", "\\")
+}
+
 // Sprintf is like Fprintf is like fmt.Sprintf, except any '\n' in the format are converted according to runtime.GOOS.
 // This allows us to be consistent with Envoy, which handles \r\n on Windows.
 // See also https://github.com/golang/go/issues/28822
 func Sprintf(format string, a ...interface{}) string {
-	if runtime.GOOS != OSWindows {
+	// Don't do anything unless we are on windows and the format isn't already correct EOL.
+	// EOL already being correct is a currently unexplained scenario on GitHub Actions windows-latest runner!
+	if runtime.GOOS != OSWindows || strings.Contains(format, "\r\n") {
 		return fmt.Sprintf(format, a...)
 	}
 	return fmt.Sprintf(strings.ReplaceAll(format, "\n", "\r\n"), a...)

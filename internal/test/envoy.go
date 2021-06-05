@@ -90,13 +90,14 @@ func requireBuildFakeEnvoy(t *testing.T) []byte {
 	defer deleteTempDir()
 
 	name := "envoy"
+	bin := name + moreos.Exe
 	src := name + ".go"
 	require.NoError(t, os.WriteFile(filepath.Join(tempDir, src), fakeEnvoySrc, 0600))
-	cmd := exec.Command(goBin, "build", "-o", name, src) //nolint:gosec
+	cmd := exec.Command(goBin, "build", "-o", bin, src) //nolint:gosec
 	cmd.Dir = tempDir
 	out, err := cmd.CombinedOutput()
 	require.NoError(t, err, "couldn't compile %s: %s", src, string(out))
-	bytes, err := os.ReadFile(filepath.Join(tempDir, name))
+	bytes, err := os.ReadFile(filepath.Join(tempDir, bin))
 	require.NoError(t, err)
 	return bytes
 }

@@ -105,7 +105,7 @@ func TestRuntime_Run(t *testing.T) {
 
 			shutdown := tc.shutdown
 			if shutdown == nil {
-				shutdown = interrupt(r)
+				shutdown = ctrlC(r)
 			}
 
 			// tee the error stream so we can look for the "starting main dispatch loop" line without consuming it.
@@ -145,7 +145,7 @@ func TestRuntime_Run(t *testing.T) {
 	}
 }
 
-func interrupt(r *Runtime) func() {
+func ctrlC(r *Runtime) func() {
 	return func() {
 		fakeInterrupt := r.FakeInterrupt
 		if fakeInterrupt != nil {

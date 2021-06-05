@@ -15,21 +15,21 @@
 package envoy
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
-var (
+const (
 	currentVersionVar = "$ENVOY_VERSION"
 	// CurrentVersionWorkingDirFile is used for stable "versions" and "help" output
-	CurrentVersionWorkingDirFile = filepath.Join("$PWD", ".envoy-version")
+	CurrentVersionWorkingDirFile = "$PWD/.envoy-version"
 	// CurrentVersionHomeDirFile is used for stable "versions" and "help" output
-	CurrentVersionHomeDirFile = filepath.Join("$FUNC_E_HOME", "version")
+	CurrentVersionHomeDirFile = "$FUNC_E_HOME/version"
 )
 
 // GetHomeVersion returns the default version in the "homeDir" and path to to it (homeVersionFile). When "v" is empty,
@@ -64,10 +64,10 @@ func CurrentVersion(homeDir string) (v version.Version, source string, err error
 
 func verifyVersion(v version.Version, source string, err error) error {
 	if err != nil {
-		return fmt.Errorf("couldn't read version from %s: %w", source, err)
+		return moreos.Errorf(`couldn't read version from %s: %w`, source, err)
 	}
 	if matched := globals.EnvoyVersionPattern.MatchString(string(v)); !matched {
-		return fmt.Errorf("invalid version in %q: %q should look like %q", source, v, version.LastKnownEnvoy)
+		return moreos.Errorf(`invalid version in %q: %q should look like %q`, source, v, version.LastKnownEnvoy)
 	}
 	return nil
 }
@@ -110,5 +110,7 @@ func getHomeVersion(homeDir string) (v version.Version, homeVersionFile string, 
 // VersionUsageList is the priority order of Envoy version sources.
 // This includes unresolved variables as it is both used statically for markdown generation, and also at runtime.
 func VersionUsageList() string {
-	return strings.Join([]string{currentVersionVar, CurrentVersionWorkingDirFile, CurrentVersionHomeDirFile}, ", ")
+	return moreos.ReplacePathSeparator(
+		strings.Join([]string{currentVersionVar, CurrentVersionWorkingDirFile, CurrentVersionHomeDirFile}, ", "),
+	)
 }

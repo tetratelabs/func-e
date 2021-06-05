@@ -19,6 +19,8 @@ import (
 	"net/url"
 	"os/user"
 	"path/filepath"
+	"runtime"
+	"strings"
 
 	"github.com/urfave/cli/v2"
 
@@ -32,6 +34,7 @@ import (
 func NewApp(o *globals.GlobalOpts) *cli.App {
 	var envoyVersionsURL, homeDir, platform string
 	lastKnownEnvoy := getLastKnownEnvoy(o)
+	lastKnownEnvoyPath := moreos.ReplacePathSeparator(fmt.Sprintf("`$FUNC_E_HOME/versions/%s`", lastKnownEnvoy))
 
 	app := cli.NewApp()
 	app.Name = "func-e"
@@ -44,11 +47,11 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 
    To list versions of Envoy you can use, execute ` + "`func-e versions -a`" + `. To
    choose one, invoke ` + fmt.Sprintf("`func-e use %s`", lastKnownEnvoy) + `. This installs into
-   ` + fmt.Sprintf("`$FUNC_E_HOME/versions/%s`", lastKnownEnvoy) + `, if not already present.
+   ` + lastKnownEnvoyPath + `, if not already present.
 
    You may want to override ` + "`$ENVOY_VERSIONS_URL`" + ` to supply custom builds or
    otherwise control the source of Envoy binaries. When overriding, validate
-   your JSON first: https://archive.tetratelabs.io/release-versions-schema.json
+   your JSON first: ` + globals.DefaultEnvoyVersionsSchemaURL + `
 
    Advanced:
    ` + "`FUNC_E_PLATFORM`" + ` overrides the host OS and architecture of Envoy binaries.
@@ -87,6 +90,9 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 
 	app.HideHelp = true
 	app.CustomAppHelpTemplate = moreos.Sprintf(cli.AppHelpTemplate)
+	if runtime.GOOS == moreos.OSWindows {
+		cli.FlagStringer = stringifyFlagWindows
+	}
 	cli.VersionPrinter = printVersion
 	app.Commands = []*cli.Command{
 		helpCommand,
@@ -168,4 +174,18 @@ func setHomeDir(o *globals.GlobalOpts, homeDir string) error {
 
 func printVersion(c *cli.Context) {
 	moreos.Fprintf(c.App.Writer, "%v version %v\n", c.App.Name, c.App.Version) //nolint
+}
+
+var defaultFlagStringer = cli.FlagStringer
+
+// stringifyFlagWindows is tested by help_test.go. This undoes the default old-school variable format urlfave bakes in
+// in favor of powershell/sh style variable names. See https://github.com/urfave/cli/issues/1288
+func stringifyFlagWindows(f cli.Flag) string {
+	r := defaultFlagStringer(f)
+	if sf, ok := f.(*cli.StringFlag); ok {
+		for _, env := range sf.EnvVars {
+			r = strings.ReplaceAll(r, "%"+env+"%", "$"+env)
+		}
+	}
+	return r
 }

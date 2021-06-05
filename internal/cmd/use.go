@@ -26,20 +26,23 @@ import (
 // NewUseCmd create a command responsible for downloading and extracting Envoy
 func NewUseCmd(o *globals.GlobalOpts) *cli.Command {
 	lastKnownEnvoy := getLastKnownEnvoy(o)
+	versionsDir := moreos.ReplacePathSeparator("$FUNC_E_HOME/versions/")
+	currentVersionWorkingDirFile := moreos.ReplacePathSeparator(envoy.CurrentVersionWorkingDirFile)
+	currentVersionHomeDirFile := moreos.ReplacePathSeparator(envoy.CurrentVersionHomeDirFile)
 
 	return &cli.Command{
 		Name:      "use",
 		Usage:     `Sets the current [version] used by the "run" command`,
 		ArgsUsage: "[version]",
 		Description: moreos.Sprintf(`The '[version]' is from the "versions -a" command.
-The Envoy [version] installs on-demand into $FUNC_E_HOME/versions/[version]
+The Envoy [version] installs on-demand into `+versionsDir+`[version]
 if needed.
 
 This updates %s or %s with [version],
 depending on which is present.
 
 Example:
-$ func-e use %s`, envoy.CurrentVersionWorkingDirFile, envoy.CurrentVersionHomeDirFile, lastKnownEnvoy),
+$ func-e use %s`, currentVersionWorkingDirFile, currentVersionHomeDirFile, lastKnownEnvoy),
 		Before: validateVersionArg,
 		Action: func(c *cli.Context) error {
 			v := version.Version(c.Args().First())

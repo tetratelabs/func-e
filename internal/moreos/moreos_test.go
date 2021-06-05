@@ -16,6 +16,8 @@ package moreos
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -27,6 +29,19 @@ import (
 
 	"github.com/tetratelabs/func-e/internal/test/morerequire"
 )
+
+// TestErrorWithWindowsPathSeparator makes sure errors don't accidentally escape the windows path separator.
+// this is extracted so that maintainers can make sure it works without using windows.
+func TestErrorWithWindowsPathSeparator(t *testing.T) {
+	err := errors.New("/foo/bar is bad")
+	require.EqualError(t, errorWithWindowsPathSeparator(err), `\foo\bar is bad`)
+
+	wrapped := errors.New("bad day")
+	err = fmt.Errorf("/foo/bar is unhappy: %w", wrapped)
+	wErr := errorWithWindowsPathSeparator(err)
+	require.EqualError(t, wErr, `\foo\bar is unhappy: bad day`)
+	require.Same(t, wrapped, errors.Unwrap(wErr))
+}
 
 func TestIsExecutable(t *testing.T) {
 	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
@@ -54,6 +69,17 @@ func TestIsExecutable_Not(t *testing.T) {
 	require.False(t, isExecutable(f))
 }
 
+func TestReplacePathSeparator(t *testing.T) {
+	path := "/foo/bar"
+
+	expected := path
+	if runtime.GOOS == OSWindows {
+		expected = "\\foo\\bar"
+	}
+
+	require.Equal(t, expected, ReplacePathSeparator(path))
+}
+
 func TestSprintf(t *testing.T) {
 	template := "%s\n\n%s\n"
 
@@ -63,6 +89,9 @@ func TestSprintf(t *testing.T) {
 	}
 
 	require.Equal(t, expected, Sprintf(template, "foo", "bar"))
+
+	// ensure idempotent
+	require.Equal(t, expected, expected)
 }
 
 func TestFprintf(t *testing.T) {
@@ -85,6 +114,9 @@ func TestFprintf(t *testing.T) {
 func TestSprintf_IdiomaticPerOS(t *testing.T) {
 	stdout := new(bytes.Buffer)
 	cmd := exec.Command("echo", "cats")
+	if runtime.GOOS == OSWindows {
+		cmd = exec.Command("cmd", "/c", "echo", "cats")
+	}
 	cmd.Stdout = stdout
 	require.NoError(t, cmd.Run())
 	require.Equal(t, Sprintf("cats\n"), stdout.String())

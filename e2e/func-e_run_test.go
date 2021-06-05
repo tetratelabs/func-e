@@ -119,6 +119,7 @@ func envoyRunTest(t *testing.T, test func(context.Context, *funcE, *adminClient)
 				log.Printf("waiting for Envoy stdout to match %q after running [%v]", envoyStartedLine, c)
 			}
 		}
+		log.Printf("done stdout loop for func-e after running [%v]", c)
 	}()
 
 	go func() {
@@ -133,9 +134,11 @@ func envoyRunTest(t *testing.T, test func(context.Context, *funcE, *adminClient)
 				go runTestAndInterruptEnvoy(ctx, t, c, test) // don't block printing stderr!
 			}
 		}
+		log.Printf("done stderr loop for func-e after running [%v]", c)
 	}()
 
 	err = c.cmd.Wait() // This won't hang forever because newFuncE started it with a context timeout!
+	log.Printf("done waiting for func-e after running [%v]", c)
 	require.NoError(t, err)
 
 	// Ensure the Envoy process was terminated
@@ -150,7 +153,7 @@ func envoyRunTest(t *testing.T, test func(context.Context, *funcE, *adminClient)
 
 func runTestAndInterruptEnvoy(ctx context.Context, t *testing.T, c *funcE, test func(context.Context, *funcE, *adminClient)) {
 	defer func() {
-		log.Printf("shutting down Envoy after running [%v]", c)
+		log.Printf("interrupting func-e after running [%v]", c)
 		require.NoError(t, moreos.Interrupt(c.cmd.Process), "error shutting down Envoy after running [%v]", c)
 	}()
 	a := requireEnvoyReady(ctx, t, c)

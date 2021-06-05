@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -41,10 +43,23 @@ func TestFuncEHelp(t *testing.T) {
 			if command != "" {
 				expected = fmt.Sprintf("func-e_%s_help.txt", command)
 			}
-
 			bytes, err := os.ReadFile(filepath.Join("testdata", expected))
 			require.NoError(t, err)
-			require.Equal(t, moreos.Sprintf(string(bytes)), stdout.String())
+			expectedStdout := moreos.Sprintf(string(bytes))
+			if runtime.GOOS == moreos.OSWindows {
+				expectedStdout = strings.ReplaceAll(expectedStdout, "/", "\\")
+				// As most maintainers don't use Windows, it is easier to revert piece-wise
+				for _, original := range []string{
+					globals.DefaultEnvoyVersionsURL,
+					globals.DefaultEnvoyVersionsSchemaURL,
+					"darwin/arm64",
+					"$GOOS/$GOARCH",
+				} {
+					toRevert := strings.ReplaceAll(original, "/", "\\")
+					expectedStdout = strings.ReplaceAll(expectedStdout, toRevert, original)
+				}
+			}
+			require.Equal(t, expectedStdout, stdout.String())
 		})
 	}
 }

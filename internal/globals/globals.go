@@ -19,6 +19,7 @@ import (
 	"regexp"
 	"runtime"
 
+	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
@@ -63,15 +64,17 @@ type GlobalOpts struct {
 }
 
 const (
-	// DefaultHomeDir is the default value for GlobalOpts.HomeDir
-	DefaultHomeDir = "${HOME}/.func-e"
 	// DefaultEnvoyVersionsURL is the default value for GlobalOpts.EnvoyVersionsURL
 	DefaultEnvoyVersionsURL = "https://archive.tetratelabs.io/envoy/envoy-versions.json"
+	// DefaultEnvoyVersionsSchemaURL is the JSON schema used to validate GlobalOpts.EnvoyVersionsURL
+	DefaultEnvoyVersionsSchemaURL = "https://archive.tetratelabs.io/release-versions-schema.json"
 	// DefaultPlatform is the current platform of the host machine
 	DefaultPlatform = version.Platform(runtime.GOOS + "/" + runtime.GOARCH)
 )
 
 var (
+	// DefaultHomeDir is the default value for GlobalOpts.HomeDir
+	DefaultHomeDir = moreos.ReplacePathSeparator("${HOME}/.func-e")
 	// EnvoyVersionPattern is used to validate versions and is the same pattern as release-versions-schema.json.
 	EnvoyVersionPattern = regexp.MustCompile(`^[1-9][0-9]*\.[0-9]+\.[0-9]+(_debug)?$`)
 )

@@ -27,6 +27,7 @@ import (
 
 	"github.com/tetratelabs/func-e/internal/envoy"
 	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/test"
 	"github.com/tetratelabs/func-e/internal/test/morerequire"
 )
@@ -57,7 +58,7 @@ func TestEnableEnvoyAdminDataCollection(t *testing.T) {
 
 // runWithShutdownHook is like RequireRun, except invokes the hook on shutdown
 func runWithShutdownHook(t *testing.T, runDir string, hook func(r *envoy.Runtime) error, args ...string) error {
-	fakeEnvoy := filepath.Join(runDir, "envoy")
+	fakeEnvoy := filepath.Join(runDir, "envoy"+moreos.Exe)
 	test.RequireFakeEnvoy(t, fakeEnvoy)
 
 	o := &globals.RunOpts{EnvoyPath: fakeEnvoy, RunDir: runDir, DontArchiveRunDir: true}

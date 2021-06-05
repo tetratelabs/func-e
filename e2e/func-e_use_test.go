@@ -15,7 +15,6 @@
 package e2e
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -37,7 +36,7 @@ func TestFuncEUse(t *testing.T) {
 		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", string(version.LastKnownEnvoy))
 
 		require.NoError(t, err)
-		require.Regexp(t, `^downloading https:.*tar.*z\n$`, stdout)
+		require.Regexp(t, `^downloading https:.*tar.*z\r?\n$`, stdout)
 		require.Empty(t, stderr)
 
 		// The binary was installed
@@ -54,7 +53,7 @@ func TestFuncEUse(t *testing.T) {
 		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", string(version.LastKnownEnvoy))
 
 		require.NoError(t, err)
-		require.Equal(t, fmt.Sprintf("%s is already downloaded\n", version.LastKnownEnvoy), stdout)
+		require.Equal(t, moreos.Sprintf("%s is already downloaded\n", version.LastKnownEnvoy), stdout)
 		require.Empty(t, stderr)
 	})
 }
@@ -65,6 +64,6 @@ func TestFuncEUse_UnknownVersion(t *testing.T) {
 
 	require.EqualError(t, err, "exit status 1")
 	require.Empty(t, stdout)
-	require.Equal(t, fmt.Sprintf(`error: couldn't find version "%s" for platform "%s/%s"
+	require.Equal(t, moreos.Sprintf(`error: couldn't find version "%s" for platform "%s/%s"
 `, v, runtime.GOOS, runtime.GOARCH), stderr)
 }
