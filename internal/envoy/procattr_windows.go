@@ -1,4 +1,4 @@
-// Copyright 2019 Tetrate
+// Copyright 2021 Tetrate
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !linux
-
 package envoy
 
 import (
@@ -21,8 +19,7 @@ import (
 )
 
 func sysProcAttr() *syscall.SysProcAttr {
-	// TODO: Add a test for "getenvoy run" kill -9, that checks if the child envoy process remains running.
-	return &syscall.SysProcAttr{
-		Setpgid: true, // equivalent to setpgrp() syscall
-	}
+	// TODO: We don't use syscall.CREATE_NEW_PROCESS_GROUP because we want external killing of getenvoy to kill the
+	// spawned process. If we put this in a new process group, that wouldn't happen. Either way this is as yet untested.
+	return &syscall.SysProcAttr{}
 }
