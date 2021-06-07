@@ -30,7 +30,7 @@ import (
 	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
 )
 
-const terminateTimeout = 2 * time.Minute
+const shutdownTimeout = 2 * time.Minute
 
 // TestGetEnvoyRun runs the equivalent of "getenvoy run"
 //
@@ -41,22 +41,22 @@ func TestGetEnvoyRun(t *testing.T) {
 	// Below is the minimal config needed to run envoy
 	c := getEnvoy(`run`, "--config-yaml", "admin: {access_log_path: '/dev/stdout', address: {socket_address: {address: '127.0.0.1', port_value: 0}}}")
 
-	stdout, stderr, terminate := c.start(t, terminateTimeout)
+	stdout, stderr, shutdown := c.start(t, shutdownTimeout)
 
 	// The underlying call is conditional to ensure errors that raise before we stop the server, stop it.
-	deferredTerminate := terminate
+	deferredShutdown := shutdown
 	defer func() {
-		if deferredTerminate != nil {
-			deferredTerminate()
+		if deferredShutdown != nil {
+			deferredShutdown()
 		}
 	}()
 
 	runDir := requireRunDir(t, stdout, c)
 	requireEnvoyReady(t, runDir, stderr, c)
 
-	log.Printf(`stopping Envoy after running [%v]`, c)
-	terminate()
-	deferredTerminate = nil
+	log.Printf(`shutting down Envoy after running [%v]`, c)
+	shutdown()
+	deferredShutdown = nil
 
 	verifyDebugDump(t, runDir, c)
 }
@@ -76,8 +76,8 @@ func TestGetEnvoyRun_StaticFilesystem(t *testing.T) {
 	require.NoError(t, os.WriteFile("response.txt", responseFromWorkingDirectory, 0600))
 	c := getEnvoy(`run`, "-c", "envoy.yaml")
 
-	stdout, stderr, terminate := c.start(t, terminateTimeout)
-	defer terminate()
+	stdout, stderr, shutdown := c.start(t, shutdownTimeout)
+	defer shutdown()
 
 	runDir := requireRunDir(t, stdout, c)
 	admin := requireEnvoyReady(t, runDir, stderr, c)
@@ -130,15 +130,15 @@ func verifyDebugDump(t *testing.T, workingDir string, c interface{}) {
 	defer os.Remove(runArchive) //nolint
 
 	src, err := os.Open(runArchive)
-	require.NoError(t, err, "error opening %s after stopping [%v]", runArchive, c)
+	require.NoError(t, err, "error opening %s after shutdown [%v]", runArchive, c)
 	err = tar.Untar(workingDir, src)
-	require.NoError(t, err, "error restoring %s from %s after stopping [%v]", workingDir, runArchive, c)
+	require.NoError(t, err, "error restoring %s from %s after shutdown [%v]", workingDir, runArchive, c)
 
 	// ensure the minimum contents exist
-	for _, filename := range []string{"config_dump.json", "stats.json"} {
+	for _, filename := range []string{"stdout.log", "stderr.log", "config_dump.json", "stats.json"} {
 		path := filepath.Join(workingDir, filename)
 		f, err := os.Stat(path)
-		require.NoError(t, err, `run archive %s doesn't contain %s after stopping [%v]`, runArchive, filename, c)
-		require.NotEmpty(t, f.Size(), `%s was empty after stopping [%v]`, filename, c)
+		require.NoError(t, err, `run archive %s doesn't contain %s after shutdown [%v]`, runArchive, filename, c)
+		require.NotEmpty(t, f.Size(), `%s was empty after shutdown [%v]`, filename, c)
 	}
 }

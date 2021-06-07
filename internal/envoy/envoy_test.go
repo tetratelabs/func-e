@@ -1,4 +1,4 @@
-// Copyright 2019 Tetrate
+// Copyright 2021 Tetrate
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,24 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package debug
+package envoy
 
 import (
-	"path/filepath"
 	"testing"
-
-	"github.com/stretchr/testify/require"
-
-	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
 )
 
-func TestEnableEnvoyLogCollection(t *testing.T) {
-	workingDir, removeWorkingDir := morerequire.RequireNewTempDir(t)
-	defer removeWorkingDir()
-
-	runAndTerminateWithDebug(t, workingDir, enableEnvoyLogCollection)
-
-	for _, filename := range []string{"logs/access.log", "logs/error.log"} {
-		require.FileExists(t, filepath.Join(workingDir, filename))
+// RequireEnvoyPid returns the pid of the child process
+func RequireEnvoyPid(t *testing.T, r *Runtime) int {
+	if r.cmd == nil || r.cmd.Process == nil {
+		t.Fatal("envoy process not yet started")
 	}
+	return r.cmd.Process.Pid
 }

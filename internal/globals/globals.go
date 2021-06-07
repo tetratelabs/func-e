@@ -24,10 +24,10 @@ import (
 type RunOpts struct {
 	// EnvoyPath is the exec.Cmd path to "envoy". Defaults to "$HomeDir/versions/$version/bin/envoy"
 	EnvoyPath string
-	// RunDir is the location any generated configuration or debug files are written.
+	// RunDir is the location any generated files are written.
 	// This is not Envoy's working directory, which remains the same as the $PWD of getenvoy.
 	//
-	// Upon termination, this directory is archived as "../$(basename $RunDir).tar.gz"
+	// Upon shutdown, this directory is archived as "../$(basename $RunDir).tar.gz"
 	// Defaults to "$HomeDir/runs/$epochtime"
 	RunDir string
 	// DontArchiveRunDir is used in testing and prevents archiving the RunDir

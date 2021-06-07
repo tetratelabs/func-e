@@ -15,7 +15,7 @@ your JSON first: https://getenvoy.io/envoy-versions-schema.json
 | Name | Usage |
 | ---- | ----- |
 | help | Shows how to use a [command] |
-| run | Run Envoy with the given [arguments...], collecting process state on termination |
+| run | Run Envoy with the given [arguments...], running shutdown hooks on Ctrl-C |
 | versions | List Envoy versions |
 | use | Sets the current [version] used by the "run" command, installing as necessary |
 | --version, -v | Print the version of GetEnvoy |

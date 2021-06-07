@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package debug
+package shutdown
 
 import (
 	"context"
@@ -24,20 +24,8 @@ import (
 	"github.com/tetratelabs/getenvoy/internal/envoy"
 )
 
-// EnableAll enables all debug options and returns a possibly empty list of errors.
-func EnableAll(r *envoy.Runtime) []error {
-	var errs []error
-	for _, debug := range []func(*envoy.Runtime) error{
-		enableEnvoyAdminDataCollection,
-		enableEnvoyLogCollection,
-		enableNodeCollection,
-	} {
-		if err := debug(r); err != nil {
-			errs = append(errs, err)
-		}
-	}
-	return errs
-}
+// EnableHooks is a list of functions that enable shutdown hooks
+var EnableHooks = []func(*envoy.Runtime) error{enableEnvoyAdminDataCollection, enableNodeCollection}
 
 // wrapError wraps an error from using "gopsutil" or returns nil on "not implemented yet".
 // We don't err on unimplemented because we don't want to disturb users for unresolvable reasons.

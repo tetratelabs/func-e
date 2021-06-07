@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -70,6 +71,28 @@ envoy args: %[2]s`, o.EnvoyPath, expectedEnvoyArgs)
 			require.Equal(t, "envoy stderr\n", stderr.String())
 		})
 	}
+}
+
+func TestGetEnvoyRun_TeesConsoleToLogs(t *testing.T) {
+	o, cleanup := setupTest(t)
+	defer cleanup()
+
+	c, stdout, stderr := newApp(o)
+	o.Out = io.Discard         // stdout/stderr only includes what envoy writes, not our status messages
+	o.DontArchiveRunDir = true // we need to read-back the log files
+	err := c.Run([]string{"getenvoy", "run"})
+
+	require.NoError(t, err)
+
+	have, err := ioutil.ReadFile(filepath.Join(o.RunDir, "stdout.log"))
+	require.NoError(t, err)
+	require.NotEmpty(t, stdout.String()) // sanity check
+	require.Equal(t, stdout.String(), string(have))
+
+	have, err = ioutil.ReadFile(filepath.Join(o.RunDir, "stderr.log"))
+	require.NoError(t, err)
+	require.NotEmpty(t, stderr.String()) // sanity check
+	require.Equal(t, stderr.String(), string(have))
 }
 
 func TestGetEnvoyRun_ReadsHomeVersionFile(t *testing.T) {

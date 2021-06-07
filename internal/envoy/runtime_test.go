@@ -1,4 +1,4 @@
-// Copyright 2019 Tetrate
+// Copyright 2021 Tetrate
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@
 package envoy
 
 import (
-	"errors"
 	"os/exec"
 	"path/filepath"
 	"testing"
@@ -25,65 +24,6 @@ import (
 	"github.com/tetratelabs/getenvoy/internal/globals"
 	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
 )
-
-func TestHandlePreStartReturnsOnFirstError(t *testing.T) {
-	r := NewRuntime(nil)
-	err1, err2 := errors.New("1"), errors.New("2")
-	r.RegisterPreStart(func() error {
-		return err1
-	})
-	r.RegisterPreStart(func() error {
-		return err2
-	})
-
-	actualErr := r.handlePreStart()
-	require.Equal(t, err1, actualErr)
-}
-
-func TestHandlePreStartReturnsError(t *testing.T) {
-	r := NewRuntime(&globals.RunOpts{})
-	first := false
-	err := errors.New("1")
-	r.RegisterPreStart(func() error {
-		first = true
-		return nil
-	})
-	r.RegisterPreStart(func() error {
-		return err
-	})
-
-	actualErr := r.handlePreStart()
-	require.Equal(t, true, first)
-	require.Equal(t, err, actualErr)
-}
-
-func TestHandlePreStartEnsuresAdminAddressPath(t *testing.T) {
-	runDir, removeRunDir := morerequire.RequireNewTempDir(t)
-	defer removeRunDir()
-
-	r := NewRuntime(&globals.RunOpts{RunDir: runDir})
-	r.cmd = exec.Command("envoy")
-
-	// Verify the admin address path set (same assertion as ensureAdminAddressPath)
-	actualErr := r.handlePreStart()
-	require.NoError(t, actualErr)
-	require.Equal(t, []string{"envoy", "--admin-address-path", filepath.Join(runDir, "admin-address.txt")}, r.cmd.Args)
-}
-
-func TestHandlePreStartEnsuresAdminAddressPathLast(t *testing.T) {
-	r := NewRuntime(&globals.RunOpts{})
-	r.cmd = exec.Command("envoy")
-
-	r.RegisterPreStart(func() error {
-		r.AppendArgs([]string{"--admin-address-path", "/tmp/admin.txt"})
-		return nil
-	})
-
-	actualErr := r.handlePreStart()
-	require.NoError(t, actualErr)
-	require.Equal(t, "/tmp/admin.txt", r.adminAddressPath)
-	require.Equal(t, []string{"envoy", "--admin-address-path", "/tmp/admin.txt"}, r.cmd.Args)
-}
 
 func TestEnsureAdminAddressPath(t *testing.T) {
 	runDir, removeRunDir := morerequire.RequireNewTempDir(t)
@@ -130,7 +70,7 @@ func TestEnsureAdminAddressPath(t *testing.T) {
 	}
 }
 
-func TestEnsureAdminAddressPathValidateExisting(t *testing.T) {
+func TestEnsureAdminAddressPath_ValidateExisting(t *testing.T) {
 	tests := []struct {
 		name        string
 		args        []string

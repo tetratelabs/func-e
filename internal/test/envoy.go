@@ -30,8 +30,8 @@ type Runner interface {
 	Run(ctx context.Context, args []string) (err error)
 }
 
-// RequireRunTerminate executes Run on the given Runtime and terminates it after starting.
-func RequireRunTerminate(t *testing.T, terminate func(), r Runner, stderr io.Reader, args ...string) (err error) {
+// RequireRun executes Run on the given Runtime and calls shutdown after it started.
+func RequireRun(t *testing.T, shutdown func(), r Runner, stderr io.Reader, args ...string) (err error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		err = r.Run(ctx, args)
@@ -44,7 +44,7 @@ func RequireRunTerminate(t *testing.T, terminate func(), r Runner, stderr io.Rea
 		return err != nil && strings.Contains(string(b), "started\n")
 	}, 2*time.Second, 100*time.Millisecond, "never started process")
 
-	terminate()
+	shutdown()
 
 	select { // Await run completion
 	case <-time.After(10 * time.Second):

@@ -43,9 +43,12 @@ func TestGetEnvoyHelp(t *testing.T) {
 				expected = fmt.Sprintf("getenvoy_%s_help.txt", command)
 			}
 
-			want, err := os.ReadFile(filepath.Join("testdata", expected))
+			bytes, err := os.ReadFile(filepath.Join("testdata", expected))
+			want := strings.ReplaceAll(string(bytes), "{VERSION}", version.GetEnvoy)
+			want = strings.ReplaceAll(want, "{ENVOY_VERSION}", version.LastKnownEnvoy)
+
 			require.NoError(t, err)
-			require.Equal(t, strings.ReplaceAll(string(want), "{ENVOY_VERSION}", version.LastKnownEnvoy), stdout.String())
+			require.Equal(t, want, stdout.String())
 		})
 	}
 }

@@ -16,12 +16,12 @@ package envoy
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	"github.com/tetratelabs/getenvoy/internal/globals"
 )
@@ -46,7 +46,7 @@ type Runtime struct {
 	// End-to-end tests should kill the getenvoy process to achieve the same.
 	FakeInterrupt context.CancelFunc
 
-	preStart, preTermination, postTermination []func() error
+	shutdownHooks []func() error
 }
 
 // GetRunDir returns the run-specific directory files can be written to.
@@ -54,8 +54,31 @@ func (r *Runtime) GetRunDir() string {
 	return r.opts.RunDir
 }
 
+// ensureAdminAddressPath sets the "--admin-address-path" flag so that it can be used in /ready checks. If a value
+// already exists, it will be returned. Otherwise, the flag will be set to the file "admin-address.txt" in the
+// run directory. We don't use the working directory as sometimes that is a source directory.
+//
+// Notably, this allows ephemeral admin ports via bootstrap configuration admin/port_value=0 (minimum Envoy 1.12 for macOS support)
+func (r *Runtime) ensureAdminAddressPath() error {
+	args := r.cmd.Args
+	flag := `--admin-address-path`
+	for i, a := range args {
+		if a == flag {
+			if i+1 == len(args) || args[i+1] == "" {
+				return fmt.Errorf(`missing value to argument %q`, flag)
+			}
+			r.adminAddressPath = args[i+1]
+			return nil
+		}
+	}
+	// Envoy's run directory is mutable, so it is fine to write the admin address there.
+	r.adminAddressPath = filepath.Join(r.opts.RunDir, "admin-address.txt")
+	r.cmd.Args = append(r.cmd.Args, flag, r.adminAddressPath)
+	return nil
+}
+
 // GetAdminAddress returns the current admin address in host:port format, or empty if not yet available.
-// Exported for debug.EnableEnvoyAdminDataCollection, which is always on due to debug.EnableAll.
+// Exported for shutdown.enableEnvoyAdminDataCollection, which is always on due to shutdown.EnableHooks.
 func (r *Runtime) GetAdminAddress() (string, error) {
 	if r.adminAddress != "" { // We don't expect the admin address to change once written, so cache it.
 		return r.adminAddress, nil
@@ -69,12 +92,4 @@ func (r *Runtime) GetAdminAddress() (string, error) {
 	}
 	r.adminAddress = string(adminAddress)
 	return r.adminAddress, nil
-}
-
-// GetEnvoyPid returns the pid of the child process
-func (r *Runtime) GetEnvoyPid() (int, error) {
-	if r.cmd == nil || r.cmd.Process == nil {
-		return 0, errors.New("envoy process not yet started")
-	}
-	return r.cmd.Process.Pid, nil
 }
