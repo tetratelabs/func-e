@@ -22,29 +22,29 @@ include .bingo/Variables.mk
 
 .PHONY: release
 release: $(GORELEASER)
-	@echo "--- release ---"
-	@$(GORELEASER) release --rm-dist
+	@echo "--- $@ ---"
+	@"$(GORELEASER)" release --rm-dist
 
 GOOS := $(shell go env GOOS)
 GOARCH := $(shell go env GOARCH)
 BIN := dist/getenvoy_$(GOOS)_$(GOARCH)
 bin $(BIN): $(GORELEASER)
-	@echo "--- bin ---"
-	@$(GORELEASER) build --snapshot --rm-dist
+	@echo "--- $@ ---"
+	@"$(GORELEASER)" build --snapshot --rm-dist
 
 ##@ Unit, Site and End-to-End tests
 
 TEST_PACKAGES ?= $(shell go list ./... | grep -v -e github.com/tetratelabs/getenvoy/e2e -e github.com/tetratelabs/getenvoy/site)
 .PHONY: test
 test:
-	@echo "--- test ---"
+	@echo "--- $@ ---"
 	@go test $(TEST_PACKAGES)
 
 # Site tests check the contents of the site directory
 
 .PHONY: test.site
 test.site:
-	@echo "--- test.site ---"
+	@echo "--- $@ ---"
 	@go test -v ./site
 
 # End-to-end (e2e) tests run against a compiled binary.
@@ -56,7 +56,7 @@ test.site:
 E2E_GETENVOY_BINARY ?= $(BIN)
 .PHONY: e2e
 e2e: $(E2E_GETENVOY_BINARY)
-	@echo "--- e2e ---"
+	@echo "--- $@ ---"
 	@go test -parallel 1 -v -failfast ./e2e
 
 ##@ Code quality and integrity
@@ -64,28 +64,28 @@ e2e: $(E2E_GETENVOY_BINARY)
 COVERAGE_PACKAGES ?= $(shell echo $(TEST_PACKAGES)| tr -s " " ",")
 .PHONY: coverage
 coverage:
-	@echo "--- coverage ---"
+	@echo "--- $@ ---"
 	@go test -coverprofile=coverage.txt -covermode=atomic --coverpkg $(COVERAGE_PACKAGES) $(TEST_PACKAGES)
 	@go tool cover -func coverage.txt
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT) $(LICENSER) $(GORELEASER) .golangci.yml .goreleaser.yaml ## Run the linters
-	@echo "--- lint ---"
-	@$(LICENSER) verify -r .
-	@$(GOLANGCI_LINT) run --timeout 5m --config .golangci.yml ./...
-	@$(GORELEASER) check -q
+	@echo "--- $@ ---"
+	@"$(LICENSER)" verify -r .
+	@"$(GOLANGCI_LINT)" run --timeout 5m --config .golangci.yml ./...
+	@"$(GORELEASER)" check -q
 
 # The goimports tool does not arrange imports in 3 blocks if there are already more than three blocks.
 # To avoid that, before running it, we collapse all imports in one block, then run the formatter.
 .PHONY: format
 format: $(GOIMPORTS) ## Format all Go code
-	@echo "--- format ---"
-	@$(LICENSER) apply -r "Tetrate"
+	@echo "--- $@ ---"
+	@"$(LICENSER)" apply -r "Tetrate"
 	@find . -type f -name '*.go' | xargs gofmt -s -w
 	@for f in `find . -name '*.go'`; do \
 	    awk '/^import \($$/,/^\)$$/{if($$0=="")next}{print}' $$f > /tmp/fmt; \
 	    mv /tmp/fmt $$f; \
-	    $(GOIMPORTS) -w -local github.com/tetratelabs/getenvoy $$f; \
+	    "$(GOIMPORTS)" -w -local github.com/tetratelabs/getenvoy $$f; \
 	done
 
 # Enforce go version matches what's in go.mod when running `make check` assuming the following:
@@ -97,6 +97,7 @@ GO_VERSION := $(shell go version)
 .PHONY: check
 check:  ## CI blocks merge until this passes. If this fails, run "make check" locally and commit the difference.
 # case statement because /bin/sh cannot do prefix comparison, awk is awkward and assuming /bin/bash is brittle
+	@echo "--- $@ ---"
 	@case "$(GO_VERSION)" in $(EXPECTED_GO_VERSION_PREFIX)* ) ;; * ) \
 		echo "Expected 'go version' to start with $(EXPECTED_GO_VERSION_PREFIX), but it didn't: $(GO_VERSION)"; \
 		exit 1; \
@@ -115,4 +116,4 @@ clean: $(GOLANGCI_LINT) ## Clean all binaries
 	@echo "--- $@ ---"
 	@rm -rf dist coverage.txt
 	@go clean -testcache
-	@$(GOLANGCI_LINT) cache clean
+	@"$(GOLANGCI_LINT)" cache clean
