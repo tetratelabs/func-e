@@ -17,7 +17,6 @@ package envoy
 import (
 	"context"
 	"fmt"
-	"io"
 	"os/exec"
 	"os/signal"
 	"strings"
@@ -93,19 +92,4 @@ func awaitAdminAddress(sigCtx context.Context, r *Runtime) {
 		}
 		time.Sleep(200 * time.Millisecond)
 	}
-}
-
-// SetStdout writes the stdout of Envoy to the passed writer
-func (r *Runtime) SetStdout(fn func(io.Writer) io.Writer) {
-	r.cmd.Stdout = fn(r.cmd.Stdout)
-}
-
-// SetStderr writes the stderr of Envoy to the passed writer
-func (r *Runtime) SetStderr(fn func(io.Writer) io.Writer) {
-	r.cmd.Stderr = fn(r.cmd.Stderr)
-}
-
-// AppendArgs appends the passed args to the child process' args
-func (r *Runtime) AppendArgs(args []string) {
-	r.cmd.Args = append(r.cmd.Args, args...)
 }

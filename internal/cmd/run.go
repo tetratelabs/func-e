@@ -87,8 +87,10 @@ state. Upon exit, this archives as ` + "`$GETENVOY_HOME/runs/$epochtime.tar.gz`"
 			defer stderrLog.Close() //nolint
 			r.Err = io.MultiWriter(c.App.ErrWriter, stderrLog)
 
-			for _, err := range shutdown.EnableAll(r) {
-				fmt.Fprintln(r.Out, "failed to enable shutdown hook:", err) //nolint
+			for _, enableShutdownHook := range shutdown.EnableHooks {
+				if err := enableShutdownHook(r); err != nil {
+					fmt.Fprintln(r.Out, "failed to enable shutdown hook:", err) //nolint
+				}
 			}
 
 			return r.Run(c.Context, c.Args().Slice())
