@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"syscall"
 	"time"
 
@@ -40,13 +41,19 @@ func (r *Runtime) handleShutdown(ctx context.Context) {
 
 	fmt.Fprintf(r.Out, "invoking shutdown hooks with deadline %s\n", deadline.Format(dateFormat)) //nolint
 
-	// Run each hook, logging each error
+	// Run each hook in parallel, logging each error
+	var wg sync.WaitGroup
+	wg.Add(len(r.shutdownHooks))
 	for _, f := range r.shutdownHooks {
 		f := f // pin! see https://github.com/kyoh86/scopelint for why
-		if err := f(timeout); err != nil {
-			fmt.Fprintln(r.Out, "failed shutdown hook:", err) //nolint
-		}
+		go func() {
+			defer wg.Done()
+			if err := f(timeout); err != nil {
+				fmt.Fprintln(r.Out, "failed shutdown hook:", err) //nolint
+			}
+		}()
 	}
+	wg.Wait()
 }
 
 func (r *Runtime) interruptEnvoy() {
