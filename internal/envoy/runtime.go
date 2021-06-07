@@ -79,7 +79,7 @@ func (r *Runtime) ensureAdminAddressPath() error {
 }
 
 // GetAdminAddress returns the current admin address in host:port format, or empty if not yet available.
-// Exported for shutdown.enableEnvoyAdminDataCollection, which is always on due to shutdown.EnableAll.
+// Exported for shutdown.enableEnvoyAdminDataCollection, which is always on due to shutdown.EnableHooks.
 func (r *Runtime) GetAdminAddress() (string, error) {
 	if r.adminAddress != "" { // We don't expect the admin address to change once written, so cache it.
 		return r.adminAddress, nil
