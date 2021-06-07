@@ -31,7 +31,6 @@ func EnableAll(r *envoy.Runtime) []error {
 		enableEnvoyAdminDataCollection,
 		enableEnvoyLogCollection,
 		enableNodeCollection,
-		enableOpenFilesDataCollection,
 	} {
 		if err := debug(r); err != nil {
 			errs = append(errs, err)
