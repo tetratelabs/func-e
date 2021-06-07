@@ -11,3 +11,4 @@ reference as a variable like `$(GOIMPORTS)`.
 
 This differs slightly from the defaults of the Bingo project:
 * ENV variable support is not included as this project only uses `make`
+* Quotes more in `Variables.mk` for windows per https://github.com/bwplotka/bingo/issues/26
