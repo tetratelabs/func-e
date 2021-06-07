@@ -22,7 +22,6 @@ import (
 	"path/filepath"
 	"syscall"
 	"text/tabwriter"
-	"time"
 
 	"github.com/shirou/gopsutil/v3/net"
 	"github.com/shirou/gopsutil/v3/process"
@@ -47,18 +46,12 @@ type nodeCollection struct {
 	nodeDir string
 }
 
-// Don't wait forever. This has hung on macOS before
-const processTimeout = 3 * time.Second
-
-func (n *nodeCollection) ps() error {
+func (n *nodeCollection) ps(ctx context.Context) error {
 	f, err := os.Create(filepath.Join(n.nodeDir, "ps.txt"))
 	if err != nil {
 		return fmt.Errorf("unable to create file to write ps output to: %w", err)
 	}
 	defer f.Close() //nolint
-
-	ctx, cancel := context.WithTimeout(context.Background(), processTimeout)
-	defer cancel()
 
 	processes, err := process.ProcessesWithContext(ctx)
 	if err == nil {
@@ -183,8 +176,8 @@ func printProcessTable(out io.Writer, parsed []*proc) error {
 	return w.Flush()
 }
 
-func (n *nodeCollection) networkInterfaces() error {
-	result, err := net.Interfaces()
+func (n *nodeCollection) networkInterfaces(ctx context.Context) error {
+	result, err := net.InterfacesWithContext(ctx)
 	if err != nil {
 		return fmt.Errorf("unable to list network interfaces: %w", err)
 	}
@@ -217,8 +210,8 @@ var typeMap = map[uint32]string{
 	syscall.SOCK_DGRAM:  "SOCK_DGRAM",
 }
 
-func (n *nodeCollection) activeConnections() error {
-	cs, err := net.Connections("all")
+func (n *nodeCollection) activeConnections(ctx context.Context) error {
+	cs, err := net.ConnectionsWithContext(ctx, "all")
 	if err != nil {
 		return fmt.Errorf("unable to list network connections: %w", err)
 	}

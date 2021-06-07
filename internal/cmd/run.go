@@ -15,6 +15,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -49,13 +50,13 @@ While Envoy is running, the run directory (` + "`$GETENVOY_HOME/runs/$epochtime`
 includes minimally "stdout.log" and "stderr.log". On Ctrl-C, shutdown hooks
 write troubleshooting files, including admin endpoints, network and process
 state. Upon exit, this archives as ` + "`$GETENVOY_HOME/runs/$epochtime.tar.gz`",
-		Before: func(context *cli.Context) error {
+		Before: func(c *cli.Context) error {
 			if err := os.MkdirAll(o.HomeDir, 0750); err != nil {
 				return NewValidationError(err.Error())
 			}
 
 			if o.EnvoyVersion == "" { // not overridden for tests
-				if err := setHomeEnvoyVersion(o); err != nil {
+				if err := setHomeEnvoyVersion(c.Context, o); err != nil {
 					return err
 				}
 				v, _, err := envoy.CurrentVersion(o.HomeDir)
@@ -68,7 +69,7 @@ state. Upon exit, this archives as ` + "`$GETENVOY_HOME/runs/$epochtime.tar.gz`"
 			return nil
 		},
 		Action: func(c *cli.Context) error {
-			if err := initializeRunOpts(o, globals.CurrentPlatform, envoyVersion); err != nil {
+			if err := initializeRunOpts(c.Context, o, globals.CurrentPlatform, envoyVersion); err != nil {
 				return err
 			}
 			r := envoy.NewRuntime(&o.RunOpts)
@@ -102,10 +103,10 @@ state. Upon exit, this archives as ` + "`$GETENVOY_HOME/runs/$epochtime.tar.gz`"
 // initializeRunOpts allows us to default values when not overridden for tests.
 // The version parameter correlates with the globals.GlobalOpts EnvoyPath which is installed if needed.
 // Notably, this creates and sets a globals.GlobalOpts WorkingDirectory for Envoy, and any files that precede it.
-func initializeRunOpts(o *globals.GlobalOpts, p, v string) error {
+func initializeRunOpts(ctx context.Context, o *globals.GlobalOpts, p, v string) error {
 	runOpts := &o.RunOpts
 	if o.EnvoyPath == "" { // not overridden for tests
-		envoyPath, err := envoy.InstallIfNeeded(o, p, v)
+		envoyPath, err := envoy.InstallIfNeeded(ctx, o, p, v)
 		if err != nil {
 			return err
 		}
@@ -125,7 +126,7 @@ func initializeRunOpts(o *globals.GlobalOpts, p, v string) error {
 }
 
 // setHomeEnvoyVersion makes sure the $GETENVOY_HOME/version exists.
-func setHomeEnvoyVersion(o *globals.GlobalOpts) error {
+func setHomeEnvoyVersion(ctx context.Context, o *globals.GlobalOpts) error {
 	v, homeVersionFile, err := envoy.GetHomeVersion(o.HomeDir)
 	if err != nil {
 		return NewValidationError(err.Error())
@@ -135,7 +136,7 @@ func setHomeEnvoyVersion(o *globals.GlobalOpts) error {
 
 	// First time install: look up the latest version, which may be newer than version.LastKnownEnvoy!
 	fmt.Fprintln(o.Out, "looking up latest version") //nolint
-	m, err := envoy.GetEnvoyVersions(o.EnvoyVersionsURL, globals.CurrentPlatform, version.GetEnvoy)
+	m, err := envoy.GetEnvoyVersions(ctx, o.EnvoyVersionsURL, globals.CurrentPlatform, version.GetEnvoy)
 	if err != nil {
 		return NewValidationError(`couldn't read latest version from %s: %s`, o.EnvoyVersionsURL, err)
 	}

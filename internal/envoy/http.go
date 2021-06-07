@@ -15,15 +15,16 @@
 package envoy
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
 )
 
 // httpGet adds the userAgent header to the request, so that we can tell what is a dev build vs release.
-func httpGet(url, platform, version string) (*http.Response, error) {
+func httpGet(ctx context.Context, url, platform, version string) (*http.Response, error) {
 	// #nosec -> url can be anywhere by design
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, err
 	}

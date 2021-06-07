@@ -16,6 +16,7 @@ package envoy_test
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -83,10 +84,10 @@ func TestRuntime_Run(t *testing.T) {
 			r.Out = stdout
 			r.Err = stderr
 			var haveShutdownHook bool
-			r.RegisterShutdownHook(func() error {
+			r.RegisterShutdownHook(func(_ context.Context) error {
 				pid := envoy.RequireEnvoyPid(t, r)
 				_, err := os.FindProcess(pid)
-				require.NoError(t, err, "shutdownHooks called after process shutdown")
+				require.NoError(t, err, "shutdownHook called after process shutdown")
 				haveShutdownHook = true
 				return nil
 			})

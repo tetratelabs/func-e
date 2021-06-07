@@ -15,6 +15,7 @@
 package shutdown
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -48,22 +49,26 @@ type envoyAdminDataCollection struct {
 	workingDir      string
 }
 
-func (e *envoyAdminDataCollection) retrieveAdminAPIData() error {
+func (e *envoyAdminDataCollection) retrieveAdminAPIData(ctx context.Context) error {
 	adminAddress, err := e.getAdminAddress()
 	if err != nil {
 		return fmt.Errorf("unable to capture Envoy configuration and metrics: %w", err)
 	}
+
+	// Save each admin API path to a file, returning on first error
 	for p, f := range adminAPIPaths {
 		url := fmt.Sprintf("http://%s/%v", adminAddress, p)
 		file := filepath.Join(e.workingDir, f)
-		if err := copyURLToFile(url, file); err != nil {
-			return err
+
+		if err := copyURLToFile(ctx, url, file); err != nil {
+			return err // first error
 		}
 	}
+
 	return nil
 }
 
-func copyURLToFile(url, fullPath string) error {
+func copyURLToFile(ctx context.Context, url, fullPath string) error {
 	// #nosec -> e.workingDir is allowed to be anywhere
 	f, err := os.OpenFile(fullPath, os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
@@ -72,16 +77,20 @@ func copyURLToFile(url, fullPath string) error {
 	defer f.Close() //nolint
 
 	// #nosec -> adminAddress is written by Envoy and the paths are hard-coded
-	resp, err := http.Get(url)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return fmt.Errorf("could not create request %v: %w", url, err)
+	}
+	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("could not read %v: %w", url, err)
 	}
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("received %v from %v", resp.StatusCode, url)
-	}
-	defer resp.Body.Close() //nolint
+	defer res.Body.Close() //nolint
 
-	if _, err := io.Copy(f, resp.Body); err != nil {
+	if res.StatusCode != http.StatusOK {
+		return fmt.Errorf("received %v from %v", res.StatusCode, url)
+	}
+	if _, err := io.Copy(f, res.Body); err != nil {
 		return fmt.Errorf("could not write response body of %v: %w", url, err)
 	}
 	return nil

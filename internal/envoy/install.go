@@ -15,6 +15,7 @@
 package envoy
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -29,14 +30,14 @@ import (
 const binEnvoy = "bin/envoy"
 
 // InstallIfNeeded downloads an Envoy binary corresponding to the given version and returns a path to it or an error.
-func InstallIfNeeded(o *globals.GlobalOpts, p, v string) (string, error) {
+func InstallIfNeeded(ctx context.Context, o *globals.GlobalOpts, p, v string) (string, error) {
 	installPath := filepath.Join(o.HomeDir, "versions", v)
 	envoyPath := filepath.Join(installPath, binEnvoy)
 	_, err := os.Stat(envoyPath)
 	switch {
 	case os.IsNotExist(err):
 		var ev version.EnvoyVersions // Get version metadata for what we will install
-		ev, err = GetEnvoyVersions(o.EnvoyVersionsURL, p, v)
+		ev, err = GetEnvoyVersions(ctx, o.EnvoyVersionsURL, p, v)
 		if err != nil {
 			return "", err
 		}
@@ -54,8 +55,8 @@ func InstallIfNeeded(o *globals.GlobalOpts, p, v string) (string, error) {
 			return "", fmt.Errorf("unable to create directory %q: %w", installPath, err)
 		}
 
-		fmt.Fprintln(o.Out, "downloading", tarballURL)                   //nolint
-		if err = untarEnvoy(installPath, tarballURL, p, v); err != nil { //nolint
+		fmt.Fprintln(o.Out, "downloading", tarballURL)                        //nolint
+		if err = untarEnvoy(ctx, installPath, tarballURL, p, v); err != nil { //nolint
 			return "", err
 		}
 		if err = os.Chtimes(installPath, mtime, mtime); err != nil { // overwrite the mtime to preserve it in the list
@@ -82,8 +83,8 @@ func verifyEnvoy(installPath string) (string, error) {
 	return envoyPath, nil
 }
 
-func untarEnvoy(dst, url, p, v string) error { // dst, src order like io.Copy
-	resp, err := httpGet(url, p, v)
+func untarEnvoy(ctx context.Context, dst, url, p, v string) error { // dst, src order like io.Copy
+	resp, err := httpGet(ctx, url, p, v)
 	if err != nil {
 		return err
 	}

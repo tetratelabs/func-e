@@ -73,7 +73,7 @@ func (r *Runtime) Run(ctx context.Context, args []string) (err error) {
 		return r.archiveRunDir()
 	}
 
-	r.handleShutdown()
+	r.handleShutdown(ctx)
 
 	// Block until the process is complete. This ensures file descriptors are closed.
 	<-waitCtx.Done()
