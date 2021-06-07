@@ -22,6 +22,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/tetratelabs/getenvoy/internal/envoy"
 )
 
@@ -55,17 +57,18 @@ func (e *envoyAdminDataCollection) retrieveAdminAPIData(ctx context.Context) err
 		return fmt.Errorf("unable to capture Envoy configuration and metrics: %w", err)
 	}
 
-	// Save each admin API path to a file, returning on first error
+	// Save each admin API path to a file in parallel returning on first error
+	// Execute all admin fetches in parallel
+	g, ctx := errgroup.WithContext(ctx)
 	for p, f := range adminAPIPaths {
 		url := fmt.Sprintf("http://%s/%v", adminAddress, p)
 		file := filepath.Join(e.workingDir, f)
 
-		if err := copyURLToFile(ctx, url, file); err != nil {
-			return err // first error
-		}
+		g.Go(func() error {
+			return copyURLToFile(ctx, url, file)
+		})
 	}
-
-	return nil
+	return g.Wait() // first error
 }
 
 func copyURLToFile(ctx context.Context, url, fullPath string) error {
