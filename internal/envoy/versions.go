@@ -15,6 +15,7 @@
 package envoy
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -24,10 +25,10 @@ import (
 )
 
 // GetEnvoyVersions returns a version map from a remote URL. eg globals.DefaultEnvoyVersionsURL.
-func GetEnvoyVersions(envoyVersionsURL, p, v string) (version.EnvoyVersions, error) {
+func GetEnvoyVersions(ctx context.Context, envoyVersionsURL, p, v string) (version.EnvoyVersions, error) {
 	result := version.EnvoyVersions{}
 	// #nosec => This is by design, users can call out to wherever they like!
-	resp, err := httpGet(envoyVersionsURL, p, v)
+	resp, err := httpGet(ctx, envoyVersionsURL, p, v)
 	if err != nil {
 		return result, err
 	}

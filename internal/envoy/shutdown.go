@@ -15,34 +15,50 @@
 package envoy
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"syscall"
+	"time"
 
 	"github.com/tetratelabs/getenvoy/internal/tar"
 )
 
 // RegisterShutdownHook registers the passed functions to be run after Envoy has started
 // and just before GetEnvoy instructs Envoy to exit
-func (r *Runtime) RegisterShutdownHook(f ...func() error) {
+func (r *Runtime) RegisterShutdownHook(f ...func(context.Context) error) {
 	r.shutdownHooks = append(r.shutdownHooks, f...)
 }
 
-func (r *Runtime) handleShutdown() {
+func (r *Runtime) handleShutdown(ctx context.Context) {
 	defer r.interruptEnvoy() // Ensure the SIGINT forwards to Envoy even if a shutdown hook panics
 
-	fmt.Fprintln(r.Out, "invoking shutdown hooks") //nolint
+	deadline := time.Now().Add(shutdownTimeout)
+	timeout, cancel := context.WithDeadline(ctx, deadline)
+	defer cancel()
+
+	fmt.Fprintf(r.Out, "invoking shutdown hooks with deadline %s\n", deadline.Format(dateFormat)) //nolint
+
+	// Run each hook in parallel, logging each error
+	var wg sync.WaitGroup
+	wg.Add(len(r.shutdownHooks))
 	for _, f := range r.shutdownHooks {
-		if err := f(); err != nil {
-			fmt.Fprintln(r.Out, "failed shutdown hook:", err) //nolint
-		}
+		f := f // pin! see https://github.com/kyoh86/scopelint for why
+		go func() {
+			defer wg.Done()
+			if err := f(timeout); err != nil {
+				fmt.Fprintln(r.Out, "failed shutdown hook:", err) //nolint
+			}
+		}()
 	}
+	wg.Wait()
 }
 
 func (r *Runtime) interruptEnvoy() {
 	p := r.cmd.Process
-	fmt.Fprintln(r.Out, "shutting down envoy") //nolint
+	fmt.Fprintf(r.Out, "sending interrupt to envoy (pid=%d)\n", p.Pid) //nolint
 	_ = p.Signal(syscall.SIGINT)
 }
 

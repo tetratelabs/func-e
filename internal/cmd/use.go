@@ -42,7 +42,7 @@ $ getenvoy use %s`, envoy.CurrentVersionWorkingDirFile, envoy.CurrentVersionHome
 		Before: validateVersionArg,
 		Action: func(c *cli.Context) error {
 			v := c.Args().First()
-			if _, err := envoy.InstallIfNeeded(o, globals.CurrentPlatform, v); err != nil {
+			if _, err := envoy.InstallIfNeeded(c.Context, o, globals.CurrentPlatform, v); err != nil {
 				return err
 			}
 			return envoy.WriteCurrentVersion(v, o.HomeDir)

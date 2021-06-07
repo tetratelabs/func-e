@@ -16,6 +16,7 @@ package envoy
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -35,6 +36,7 @@ import (
 )
 
 func TestUntarEnvoyError(t *testing.T) {
+	ctx := context.Background()
 	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
 	dst := filepath.Join(tempDir, "dst")
 	defer removeTempDir()
@@ -51,7 +53,7 @@ func TestUntarEnvoyError(t *testing.T) {
 
 	url := server.URL + "/file.tar.gz"
 	t.Run("error on incorrect URL", func(t *testing.T) {
-		err := untarEnvoy(dst, url, globals.CurrentPlatform, version.GetEnvoy)
+		err := untarEnvoy(ctx, dst, url, globals.CurrentPlatform, version.GetEnvoy)
 		require.EqualError(t, err, fmt.Sprintf(`received 404 status code from %s`, url))
 	})
 
@@ -59,7 +61,7 @@ func TestUntarEnvoyError(t *testing.T) {
 		w.WriteHeader(200)
 	}
 	t.Run("error on empty", func(t *testing.T) {
-		err := untarEnvoy(dst, url, globals.CurrentPlatform, version.GetEnvoy)
+		err := untarEnvoy(ctx, dst, url, globals.CurrentPlatform, version.GetEnvoy)
 		require.EqualError(t, err, fmt.Sprintf(`error untarring %s: EOF`, url))
 	})
 
@@ -68,7 +70,7 @@ func TestUntarEnvoyError(t *testing.T) {
 		w.Write([]byte("mary had a little lamb")) //nolint
 	}
 	t.Run("error on not a tar", func(t *testing.T) {
-		err := untarEnvoy(dst, url, globals.CurrentPlatform, version.GetEnvoy)
+		err := untarEnvoy(ctx, dst, url, globals.CurrentPlatform, version.GetEnvoy)
 		require.EqualError(t, err, fmt.Sprintf(`error untarring %s: gzip: invalid header`, url))
 	})
 }
@@ -78,7 +80,7 @@ func TestUntarEnvoy(t *testing.T) {
 	o, cleanup := setupInstallTest(t)
 	defer cleanup()
 
-	err := untarEnvoy(o.tempDir, o.tarballURL, globals.CurrentPlatform, version.GetEnvoy)
+	err := untarEnvoy(o.ctx, o.tempDir, o.tarballURL, globals.CurrentPlatform, version.GetEnvoy)
 	require.NoError(t, err)
 	require.FileExists(t, filepath.Join(o.tempDir, binEnvoy))
 }
@@ -89,7 +91,7 @@ func TestInstallIfNeeded_ErrorOnIncorrectURL(t *testing.T) {
 
 	o.EnvoyVersionsURL += "/varsionz.json"
 
-	_, err := InstallIfNeeded(&o.GlobalOpts, runtime.GOOS, version.LastKnownEnvoy)
+	_, err := InstallIfNeeded(o.ctx, &o.GlobalOpts, runtime.GOOS, version.LastKnownEnvoy)
 	require.EqualError(t, err, "received 404 status code from "+o.EnvoyVersionsURL)
 	require.Empty(t, o.Out.(*bytes.Buffer))
 }
@@ -117,7 +119,7 @@ func TestInstallIfNeeded_Validates(t *testing.T) {
 		tc := tt
 		t.Run(tc.name, func(t *testing.T) {
 			o.Out = new(bytes.Buffer)
-			_, e := InstallIfNeeded(&o.GlobalOpts, tc.goos, tc.version)
+			_, e := InstallIfNeeded(o.ctx, &o.GlobalOpts, tc.goos, tc.version)
 			require.EqualError(t, e, tc.expectedErr)
 			require.Empty(t, o.Out.(*bytes.Buffer))
 		})
@@ -129,7 +131,7 @@ func TestInstallIfNeeded(t *testing.T) {
 	defer cleanup()
 	out := o.Out.(*bytes.Buffer)
 
-	envoyPath, e := InstallIfNeeded(&o.GlobalOpts, globals.CurrentPlatform, version.LastKnownEnvoy)
+	envoyPath, e := InstallIfNeeded(o.ctx, &o.GlobalOpts, globals.CurrentPlatform, version.LastKnownEnvoy)
 	require.NoError(t, e)
 	require.Equal(t, o.EnvoyPath, envoyPath)
 	require.FileExists(t, envoyPath)
@@ -148,11 +150,11 @@ func TestInstallIfNeeded_NotFound(t *testing.T) {
 	defer cleanup()
 
 	t.Run("unknown version", func(t *testing.T) {
-		_, e := InstallIfNeeded(&o.GlobalOpts, "darwin/amd64", "1.1.1")
+		_, e := InstallIfNeeded(o.ctx, &o.GlobalOpts, "darwin/amd64", "1.1.1")
 		require.EqualError(t, e, `couldn't find version "1.1.1" for platform "darwin/amd64"`)
 	})
 	t.Run("unknown platform", func(t *testing.T) {
-		_, e := InstallIfNeeded(&o.GlobalOpts, "windows/arm64", version.LastKnownEnvoy)
+		_, e := InstallIfNeeded(o.ctx, &o.GlobalOpts, "windows/arm64", version.LastKnownEnvoy)
 		require.EqualError(t, e, fmt.Sprintf(`couldn't find version "%s" for platform "windows/arm64"`, version.LastKnownEnvoy))
 	})
 }
@@ -168,7 +170,7 @@ func TestInstallIfNeeded_AlreadyExists(t *testing.T) {
 	envoyStat, err := os.Stat(o.EnvoyPath)
 	require.NoError(t, err)
 
-	envoyPath, e := InstallIfNeeded(&o.GlobalOpts, runtime.GOOS, version.LastKnownEnvoy)
+	envoyPath, e := InstallIfNeeded(o.ctx, &o.GlobalOpts, runtime.GOOS, version.LastKnownEnvoy)
 	require.NoError(t, e)
 	require.Equal(t, fmt.Sprintln(version.LastKnownEnvoy, "is already downloaded"), out.String())
 
@@ -208,6 +210,7 @@ func TestVerifyEnvoy(t *testing.T) {
 }
 
 type installTest struct {
+	ctx context.Context
 	globals.GlobalOpts
 	tempDir, tarballURL string
 }
@@ -222,6 +225,7 @@ func setupInstallTest(t *testing.T) (*installTest, func()) {
 	tearDown = append(tearDown, versionsServer.Close)
 
 	return &installTest{
+			ctx:        context.Background(),
 			tempDir:    tempDir,
 			tarballURL: test.TarballURL(versionsServer.URL, runtime.GOOS, runtime.GOARCH, version.LastKnownEnvoy),
 			GlobalOpts: globals.GlobalOpts{

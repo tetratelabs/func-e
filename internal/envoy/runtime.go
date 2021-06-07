@@ -22,8 +22,16 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 
 	"github.com/tetratelabs/getenvoy/internal/globals"
+)
+
+const (
+	// Don't wait forever. This has hung on macOS before
+	shutdownTimeout = 5 * time.Second
+	// Match envoy's log format field
+	dateFormat = "[2006-01-02 15:04:05.999]"
 )
 
 // NewRuntime creates a new Runtime that runs envoy in globals.RunOpts RunDir
@@ -46,7 +54,7 @@ type Runtime struct {
 	// End-to-end tests should kill the getenvoy process to achieve the same.
 	FakeInterrupt context.CancelFunc
 
-	shutdownHooks []func() error
+	shutdownHooks []func(context.Context) error
 }
 
 // GetRunDir returns the run-specific directory files can be written to.
