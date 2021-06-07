@@ -56,7 +56,6 @@ func TestUsageMarkdownMatchesCommands(t *testing.T) {
 	want = strings.ReplaceAll(want, "   ", "") // remove leading indent until urfave/cli#1275
 
 	have, err := os.ReadFile(siteMarkdownFile)
-
 	require.NoError(t, err)
 	require.Equal(t, want, string(have))
 }

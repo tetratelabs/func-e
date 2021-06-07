@@ -24,7 +24,7 @@ import (
 	"github.com/tetratelabs/getenvoy/internal/envoy"
 )
 
-// EnableHooks is a list of functions that enable hooks in this package
+// EnableHooks is a list of functions that enable shutdown hooks
 var EnableHooks = []func(*envoy.Runtime) error{enableEnvoyAdminDataCollection, enableNodeCollection}
 
 // wrapError wraps an error from using "gopsutil" or returns nil on "not implemented yet".
