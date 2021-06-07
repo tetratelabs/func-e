@@ -16,7 +16,6 @@ package envoy
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -93,12 +92,4 @@ func (r *Runtime) GetAdminAddress() (string, error) {
 	}
 	r.adminAddress = string(adminAddress)
 	return r.adminAddress, nil
-}
-
-// GetEnvoyPid returns the pid of the child process
-func (r *Runtime) GetEnvoyPid() (int, error) {
-	if r.cmd == nil || r.cmd.Process == nil {
-		return 0, errors.New("envoy process not yet started")
-	}
-	return r.cmd.Process.Pid, nil
 }

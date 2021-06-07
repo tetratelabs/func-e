@@ -84,9 +84,8 @@ func TestRuntime_Run(t *testing.T) {
 			r.Err = stderr
 			var haveShutdownHook bool
 			r.RegisterShutdownHook(func() error {
-				pid, err := r.GetEnvoyPid()
-				require.NoError(t, err, "shutdownHooks was called before process was started")
-				_, err = os.FindProcess(pid)
+				pid := envoy.RequireEnvoyPid(t, r)
+				_, err := os.FindProcess(pid)
 				require.NoError(t, err, "shutdownHooks called after process shutdown")
 				haveShutdownHook = true
 				return nil
