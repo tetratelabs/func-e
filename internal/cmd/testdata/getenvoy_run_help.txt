@@ -1,5 +1,5 @@
 NAME:
-   getenvoy run - Run Envoy with the given [arguments...], collecting process state on termination
+   getenvoy run - Run Envoy with the given [arguments...], running shutdown hooks on Ctrl-C
 
 USAGE:
    getenvoy run [arguments...]
@@ -14,5 +14,7 @@ DESCRIPTION:
    $ENVOY_VERSION, $PWD/.envoy-version, $GETENVOY_HOME/version
    ```
    
-   getenvoy generates files, e.g. logs, into `$GETENVOY_HOME/runs/$epochtime`.
-   These archive into `$GETENVOY_HOME/runs/$epochtime.tar.gz` upon termination.
+   While Envoy is running, the run directory (`$GETENVOY_HOME/runs/$epochtime`)
+   includes minimally "stdout.log" and "stderr.log". On Ctrl-C, shutdown hooks
+   write troubleshooting files, including admin endpoints, network and process
+   state. Upon exit, this archives as `$GETENVOY_HOME/runs/$epochtime.tar.gz`

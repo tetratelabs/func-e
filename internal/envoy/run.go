@@ -25,17 +25,17 @@ import (
 	"time"
 )
 
-// Run execs the binary at the path with the args passed. It is a blocking function that can be terminated via SIGINT.
+// Run execs the binary at the path with the args passed. It is a blocking function that can be shutdown via SIGINT.
 func (r *Runtime) Run(ctx context.Context, args []string) (err error) {
-	// We can't use CommandContext even if that seems correct here. The reason is that we need to invoke preTerminate
-	// handlers, and they expect the process to still be running. For example, this allows admin API hooks.
+	// We can't use CommandContext even if that seems correct here. The reason is that we need to invoke shutdown hooks,
+	// and they expect the process to still be running. For example, this allows admin API hooks.
 	cmd := exec.Command(r.opts.EnvoyPath, args...) // #nosec -> users can run whatever binary they like!
 	cmd.Stdout = r.Out
 	cmd.Stderr = r.Err
 	cmd.SysProcAttr = sysProcAttr()
 	r.cmd = cmd
 
-	// suppress any error and replace it with the envoy exit status when > 1
+	// Suppress any error and replace it with the envoy exit status when > 1
 	defer func() {
 		if cmd.ProcessState != nil && cmd.ProcessState.ExitCode() > 0 {
 			if err != nil {
@@ -45,8 +45,7 @@ func (r *Runtime) Run(ctx context.Context, args []string) (err error) {
 		}
 	}()
 
-	err = r.handlePreStart()
-	if err != nil {
+	if err := r.ensureAdminAddressPath(); err != nil {
 		return err
 	}
 
@@ -61,7 +60,7 @@ func (r *Runtime) Run(ctx context.Context, args []string) (err error) {
 	defer waitCancel()
 	r.FakeInterrupt = sigCancel
 
-	// wait in a goroutine. We may need to kill the process if a signal occurs first.
+	// Wait in a goroutine. We may need to kill the process if a signal occurs first.
 	go func() {
 		defer waitCancel()
 		_ = r.cmd.Wait() // Envoy logs like "caught SIGINT" or "caught ENVOY_SIGTERM", so we don't repeat logging here.
@@ -71,16 +70,16 @@ func (r *Runtime) Run(ctx context.Context, args []string) (err error) {
 
 	// Block until we receive SIGINT or are canceled because Envoy has died
 	<-sigCtx.Done()
-	if cmd.ProcessState != nil {
-		return r.handlePostTermination()
+	if cmd.ProcessState != nil && !r.opts.DontArchiveRunDir {
+		return r.archiveRunDir()
 	}
 
-	r.handleTermination()
+	r.handleShutdown()
 
 	// Block until the process is complete. This ensures file descriptors are closed.
 	<-waitCtx.Done()
 
-	return r.handlePostTermination()
+	return r.archiveRunDir()
 }
 
 // awaitAdminAddress waits up to 2 seconds for the admin address to be available and logs it.

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package debug
+package shutdown
 
 import (
 	"bytes"
@@ -45,7 +45,7 @@ func TestEnableEnvoyAdminDataCollection(t *testing.T) {
 	err := os.WriteFile(adminPath, []byte(mockAdmin.Listener.Addr().String()), 0600)
 	require.NoError(t, err)
 
-	runAndTerminateWithDebug(t, runDir, enableEnvoyAdminDataCollection, `--admin-address-path`, adminPath)
+	runWithShutdownHook(t, runDir, enableEnvoyAdminDataCollection, `--admin-address-path`, adminPath)
 
 	for _, filename := range adminAPIPaths {
 		path := filepath.Join(runDir, filename)
@@ -55,8 +55,8 @@ func TestEnableEnvoyAdminDataCollection(t *testing.T) {
 	}
 }
 
-// runAndTerminateWithDebug is like RequireRunTerminate, except returns a directory populated by the debug plugin.
-func runAndTerminateWithDebug(t *testing.T, runDir string, debug func(r *envoy.Runtime) error, args ...string) error {
+// runWithShutdownHook is like RequireRun, except invokes the hook on shutdown
+func runWithShutdownHook(t *testing.T, runDir string, hook func(r *envoy.Runtime) error, args ...string) error {
 	fakeEnvoy := filepath.Join(runDir, "envoy")
 	morerequire.RequireCaptureScript(t, fakeEnvoy)
 
@@ -66,9 +66,9 @@ func runAndTerminateWithDebug(t *testing.T, runDir string, debug func(r *envoy.R
 	r := envoy.NewRuntime(o)
 	r.Out = io.Discard
 	r.Err = stderr
-	require.NoError(t, debug(r))
+	require.NoError(t, hook(r))
 
-	return test.RequireRunTerminate(t, func() {
+	return test.RequireRun(t, func() {
 		fakeInterrupt := r.FakeInterrupt
 		if fakeInterrupt != nil {
 			fakeInterrupt()

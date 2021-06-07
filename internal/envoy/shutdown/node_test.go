@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package debug
+package shutdown
 
 import (
 	"encoding/json"
@@ -30,7 +30,7 @@ func TestEnableNodeCollection(t *testing.T) {
 	workingDir, removeWorkingDir := morerequire.RequireNewTempDir(t)
 	defer removeWorkingDir()
 
-	runAndTerminateWithDebug(t, workingDir, enableNodeCollection)
+	runWithShutdownHook(t, workingDir, enableNodeCollection)
 
 	files := [...]string{"node/ps.txt", "node/network_interface.json", "node/connections.json"}
 	for _, file := range files {

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package debug
+package shutdown
 
 import (
 	"fmt"
@@ -39,7 +39,7 @@ var adminAPIPaths = map[string]string{
 // enableEnvoyAdminDataCollection is a preset option that registers collection of Envoy Admin API information
 func enableEnvoyAdminDataCollection(r *envoy.Runtime) error {
 	e := envoyAdminDataCollection{r.GetAdminAddress, r.GetRunDir()}
-	r.RegisterPreTermination(e.retrieveAdminAPIData)
+	r.RegisterShutdownHook(e.retrieveAdminAPIData)
 	return nil
 }
 

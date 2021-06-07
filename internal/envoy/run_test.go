@@ -46,28 +46,27 @@ func TestRuntime_Run(t *testing.T) {
 	tests := []struct {
 		name                           string
 		args                           []string
-		terminate                      func()
+		shutdown                       func()
 		expectedStdout, expectedStderr string
 		expectedErr                    string
-		expectedHooks                  []string
+		wantShutdownHook               bool
 	}{
 		{
 			name: "GetEnvoy Ctrl-C",
 			// Don't warn the user when they exited the process
-			expectedStdout: fmt.Sprintln("starting:", fakeEnvoy, adminFlag),
-			expectedStderr: "started\ncaught SIGINT\n",
-			expectedHooks:  []string{"preStart", "preTermination", "postTermination"},
+			expectedStdout:   fmt.Sprintln("starting:", fakeEnvoy, adminFlag),
+			expectedStderr:   "started\ncaught SIGINT\n",
+			wantShutdownHook: true,
 		},
 		// We don't test envoy dying from an external signal as it isn't reported back to the getenvoy process and
 		// Envoy returns exit status zero on anything except kill -9. We can't test kill -9 with a fake shell script.
 		{
 			name:           "Envoy exited with error",
-			terminate:      func() { time.Sleep(time.Millisecond * 100) },
+			shutdown:       func() { time.Sleep(time.Millisecond * 100) },
 			args:           []string{"quiet_exit=3"},
 			expectedStdout: fmt.Sprintln("starting:", fakeEnvoy, "quiet_exit=3", adminFlag),
 			expectedStderr: "started\n",
 			expectedErr:    "envoy exited with status: 3",
-			expectedHooks:  []string{"preStart"},
 		},
 	}
 
@@ -79,17 +78,29 @@ func TestRuntime_Run(t *testing.T) {
 
 			stdout := new(bytes.Buffer)
 			stderr := new(bytes.Buffer)
-			r, hooksCalled := newRuntimeWithMockHooks(t, stdout, stderr, o)
 
-			terminate := tc.terminate
-			if terminate == nil {
-				terminate = interrupt(r)
+			r := envoy.NewRuntime(o)
+			r.Out = stdout
+			r.Err = stderr
+			var haveShutdownHook bool
+			r.RegisterShutdownHook(func() error {
+				pid, err := r.GetEnvoyPid()
+				require.NoError(t, err, "shutdownHooks was called before process was started")
+				_, err = os.FindProcess(pid)
+				require.NoError(t, err, "shutdownHooks called after process shutdown")
+				haveShutdownHook = true
+				return nil
+			})
+
+			shutdown := tc.shutdown
+			if shutdown == nil {
+				shutdown = interrupt(r)
 			}
 
 			// tee the error stream so we can look for the "started" line without consuming it.
 			errCopy := new(bytes.Buffer)
 			r.Err = io.MultiWriter(r.Err, errCopy)
-			err := test.RequireRunTerminate(t, terminate, r, errCopy, tc.args...)
+			err := test.RequireRun(t, shutdown, r, errCopy, tc.args...)
 
 			if tc.expectedErr == "" {
 				require.NoError(t, err)
@@ -98,7 +109,7 @@ func TestRuntime_Run(t *testing.T) {
 			}
 
 			// Assert appropriate hooks are called
-			require.Equal(t, tc.expectedHooks, *hooksCalled)
+			require.Equal(t, tc.wantShutdownHook, haveShutdownHook)
 
 			// Validate we ran what we thought we did
 			require.Equal(t, tc.expectedStdout, stdout.String())
@@ -124,34 +135,4 @@ func interrupt(r *envoy.Runtime) func() {
 			fakeInterrupt()
 		}
 	}
-}
-
-// This ensures functions are called in the correct order
-func newRuntimeWithMockHooks(t *testing.T, stdout, stderr io.Writer, o *globals.RunOpts) (*envoy.Runtime, *[]string) {
-	r := envoy.NewRuntime(o)
-	r.Out = stdout
-	r.Err = stderr
-	var hooks []string
-	r.RegisterPreStart(func() error {
-		_, err := r.GetEnvoyPid()
-		require.Error(t, err, "preTermination was called after process was started")
-		hooks = append(hooks, "preStart")
-		return nil
-	})
-
-	r.RegisterPreTermination(func() error {
-		pid, err := r.GetEnvoyPid()
-		require.NoError(t, err, "preTermination was called before process was started")
-		_, err = os.FindProcess(pid)
-		require.NoError(t, err, "preTermination was called after process was terminated")
-		hooks = append(hooks, "preTermination")
-		return nil
-	})
-
-	r.RegisterPreTermination(func() error {
-		hooks = append(hooks, "postTermination")
-		return nil
-	})
-
-	return r, &hooks
 }

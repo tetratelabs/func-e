@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package debug
+package shutdown
 
 import (
 	"context"
@@ -29,7 +29,6 @@ func EnableAll(r *envoy.Runtime) []error {
 	var errs []error
 	for _, debug := range []func(*envoy.Runtime) error{
 		enableEnvoyAdminDataCollection,
-		enableEnvoyLogCollection,
 		enableNodeCollection,
 	} {
 		if err := debug(r); err != nil {

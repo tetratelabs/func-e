@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package debug
+package shutdown
 
 import (
 	"context"
@@ -37,9 +37,9 @@ func enableNodeCollection(r *envoy.Runtime) error {
 		return fmt.Errorf("unable to create directory %q, so node data will not be captured: %w", nodeDir, err)
 	}
 	n := nodeCollection{nodeDir}
-	r.RegisterPreTermination(n.ps)
-	r.RegisterPreTermination(n.networkInterfaces)
-	r.RegisterPreTermination(n.activeConnections)
+	r.RegisterShutdownHook(n.ps)
+	r.RegisterShutdownHook(n.networkInterfaces)
+	r.RegisterShutdownHook(n.activeConnections)
 	return nil
 }
 

@@ -53,7 +53,7 @@ func (b *cmdBuilder) exec() (string, string, error) {
 	return stdout.String(), stderr.String(), err
 }
 
-func (b *cmdBuilder) start(t *testing.T, terminateTimeout time.Duration) (io.Reader, io.Reader, func()) {
+func (b *cmdBuilder) start(t *testing.T, shutdownTimeout time.Duration) (io.Reader, io.Reader, func()) {
 	stdout := newSyncBuffer()
 	stderr := newSyncBuffer()
 	b.cmd.Stdout = io.MultiWriter(os.Stdout, stdout) // we want to see full `getenvoy` output in the test log
@@ -68,13 +68,13 @@ func (b *cmdBuilder) start(t *testing.T, terminateTimeout time.Duration) (io.Rea
 
 	return stdout, stderr, func() {
 		err := b.cmd.Process.Signal(syscall.SIGTERM)
-		require.NoError(t, err, `error terminating [%v]`, b.cmd)
+		require.NoError(t, err, `error shutting down [%v]`, b.cmd)
 
 		select {
 		case err := <-errc:
 			require.NoError(t, err, `error running [%v]`, b.cmd)
-		case <-time.After(terminateTimeout):
-			t.Fatal(fmt.Sprintf("getenvoy command didn't exit gracefully within %s", terminateTimeout))
+		case <-time.After(shutdownTimeout):
+			t.Fatal(fmt.Sprintf("getenvoy command didn't exit gracefully within %s", shutdownTimeout))
 		}
 	}
 }
