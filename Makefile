@@ -30,7 +30,7 @@ GOARCH := $(shell go env GOARCH)
 BIN := dist/getenvoy_$(GOOS)_$(GOARCH)
 bin $(BIN): $(GORELEASER)
 	@echo "--- bin ---"
-	@$(GORELEASER) build --snapshot --rm-dist
+	@$(GORELEASER) build --snapshot --single-target --rm-dist
 
 ##@ Unit, Site and End-to-End tests
 
