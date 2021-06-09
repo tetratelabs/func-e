@@ -50,7 +50,7 @@ type Runtime struct {
 
 	adminAddress, adminAddressPath string
 
-	// FakeInterrupt is exposed for unit tests to pretend "getenvoy run" received an interrupt or a ctrl-c.
+	// FakeInterrupt is exposed for unit tests to pretend "getenvoy run" received a Ctrl+C or Ctrl+Break.
 	// End-to-end tests should kill the getenvoy process to achieve the same.
 	FakeInterrupt context.CancelFunc
 

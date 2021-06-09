@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package envoy_test
+package envoy
 
 import (
 	"bytes"
@@ -26,7 +26,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/internal/envoy"
 	"github.com/tetratelabs/getenvoy/internal/globals"
 	"github.com/tetratelabs/getenvoy/internal/test"
 	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
@@ -40,9 +39,8 @@ func TestRuntime_Run(t *testing.T) {
 	runDir := filepath.Join(runsDir, "1619574747231823000") // fake a realistic value
 	adminFlag := fmt.Sprintf("--admin-address-path %s/admin-address.txt", runDir)
 
-	// "quiet" as we aren't testing the environment envoy runs in
-	fakeEnvoy := filepath.Join(tempDir, "quiet")
-	morerequire.RequireCaptureScript(t, fakeEnvoy)
+	fakeEnvoy := filepath.Join(tempDir, "envoy")
+	test.RequireFakeEnvoy(t, fakeEnvoy)
 
 	tests := []struct {
 		name                           string
@@ -53,10 +51,11 @@ func TestRuntime_Run(t *testing.T) {
 		wantShutdownHook               bool
 	}{
 		{
-			name: "GetEnvoy Ctrl-C",
+			name: "GetEnvoy Ctrl+C",
+			args: []string{"-c", "envoy.yaml"},
 			// Don't warn the user when they exited the process
-			expectedStdout:   fmt.Sprintln("starting:", fakeEnvoy, adminFlag),
-			expectedStderr:   "started\ncaught SIGINT\n",
+			expectedStdout:   fmt.Sprintln("starting:", fakeEnvoy, "-c", "envoy.yaml", adminFlag) + "GET /ready HTTP/1.1\n",
+			expectedStderr:   "initializing epoch 0\nstarting main dispatch loop\ncaught SIGINT\nexiting\n",
 			wantShutdownHook: true,
 		},
 		// We don't test envoy dying from an external signal as it isn't reported back to the getenvoy process and
@@ -64,10 +63,10 @@ func TestRuntime_Run(t *testing.T) {
 		{
 			name:           "Envoy exited with error",
 			shutdown:       func() { time.Sleep(time.Millisecond * 100) },
-			args:           []string{"quiet_exit=3"},
-			expectedStdout: fmt.Sprintln("starting:", fakeEnvoy, "quiet_exit=3", adminFlag),
-			expectedStderr: "started\n",
-			expectedErr:    "envoy exited with status: 3",
+			args:           []string{}, // no config file!
+			expectedStdout: fmt.Sprintln("starting:", fakeEnvoy, adminFlag),
+			expectedStderr: "initializing epoch 0\nexiting\nAt least one of --config-path or --config-yaml or Options::configProto() should be non-empty\n",
+			expectedErr:    "envoy exited with status: 1",
 		},
 	}
 
@@ -80,12 +79,12 @@ func TestRuntime_Run(t *testing.T) {
 			stdout := new(bytes.Buffer)
 			stderr := new(bytes.Buffer)
 
-			r := envoy.NewRuntime(o)
+			r := NewRuntime(o)
 			r.Out = stdout
 			r.Err = stderr
 			var haveShutdownHook bool
 			r.RegisterShutdownHook(func(_ context.Context) error {
-				pid := envoy.RequireEnvoyPid(t, r)
+				pid := requireEnvoyPid(t, r)
 				_, err := os.FindProcess(pid)
 				require.NoError(t, err, "shutdownHook called after process shutdown")
 				haveShutdownHook = true
@@ -97,7 +96,7 @@ func TestRuntime_Run(t *testing.T) {
 				shutdown = interrupt(r)
 			}
 
-			// tee the error stream so we can look for the "started" line without consuming it.
+			// tee the error stream so we can look for the "starting main dispatch loop" line without consuming it.
 			errCopy := new(bytes.Buffer)
 			r.Err = io.MultiWriter(r.Err, errCopy)
 			err := test.RequireRun(t, shutdown, r, errCopy, tc.args...)
@@ -107,6 +106,12 @@ func TestRuntime_Run(t *testing.T) {
 			} else {
 				require.EqualError(t, err, tc.expectedErr)
 			}
+
+			// Ensure envoy was run with the expected environment
+			require.Empty(t, r.cmd.Dir) // envoy runs in the same directory as getenvoy
+			expectedArgs := append([]string{fakeEnvoy}, tc.args...)
+			expectedArgs = append(expectedArgs, "--admin-address-path", filepath.Join(runDir, "admin-address.txt"))
+			require.Equal(t, expectedArgs, r.cmd.Args)
 
 			// Assert appropriate hooks are called
 			require.Equal(t, tc.wantShutdownHook, haveShutdownHook)
@@ -128,11 +133,18 @@ func TestRuntime_Run(t *testing.T) {
 	}
 }
 
-func interrupt(r *envoy.Runtime) func() {
+func interrupt(r *Runtime) func() {
 	return func() {
 		fakeInterrupt := r.FakeInterrupt
 		if fakeInterrupt != nil {
 			fakeInterrupt()
 		}
 	}
+}
+
+func requireEnvoyPid(t *testing.T, r *Runtime) int {
+	if r.cmd == nil || r.cmd.Process == nil {
+		t.Fatal("envoy process not yet started")
+	}
+	return r.cmd.Process.Pid
 }

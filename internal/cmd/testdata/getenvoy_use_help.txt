@@ -1,5 +1,5 @@
 NAME:
-   getenvoy use - Sets the current [version] used by the "run" command, installing as necessary
+   getenvoy use - Sets the current [version] used by the "run" command
 
 USAGE:
    getenvoy use [version]

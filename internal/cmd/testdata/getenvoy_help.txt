@@ -18,9 +18,9 @@ VERSION:
 
 COMMANDS:
    help      Shows how to use a [command]
-   run       Run Envoy with the given [arguments...], running shutdown hooks on Ctrl-C
+   run       Run Envoy with the given [arguments...] until interrupted
    versions  List Envoy versions
-   use       Sets the current [version] used by the "run" command, installing as necessary
+   use       Sets the current [version] used by the "run" command
 
 GLOBAL OPTIONS:
    --home-dir value            GetEnvoy home directory (location of installed versions and run archives) (default: ${HOME}/.getenvoy) [$GETENVOY_HOME]

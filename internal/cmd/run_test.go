@@ -16,6 +16,7 @@ package cmd_test
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -24,53 +25,42 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/urfave/cli/v2"
 
+	rootcmd "github.com/tetratelabs/getenvoy/internal/cmd"
 	"github.com/tetratelabs/getenvoy/internal/globals"
+	"github.com/tetratelabs/getenvoy/internal/test"
 	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
 	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
+// Runner allows us to not introduce dependency cycles on envoy.Runtime
+type runner struct {
+	c *cli.App
+}
+
+func (r *runner) Run(ctx context.Context, args []string) error {
+	return r.c.RunContext(ctx, args)
+}
+
+// TestGetEnvoyRun executes envoy then cancels the context. This results in no stdout
 func TestGetEnvoyRun(t *testing.T) {
-	tests := []struct {
-		name              string
-		args              []string
-		expectedEnvoyArgs string
-	}{
-		{
-			name: "no envoy args",
-			args: []string{"getenvoy", "run"},
-		},
-		{
-			name:              "envoy args",
-			args:              []string{"getenvoy", "run", "-c", "envoy.yaml"},
-			expectedEnvoyArgs: `-c envoy.yaml `,
-		},
-	}
+	o, cleanup := setupTest(t)
+	defer cleanup()
 
-	for _, tc := range tests {
-		tc := tc // pin! see https://github.com/kyoh86/scopelint for why
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+	c := rootcmd.NewApp(o)
 
-		t.Run(tc.name, func(t *testing.T) {
-			o, cleanup := setupTest(t)
-			defer cleanup()
+	args := []string{"getenvoy", "run", "-c", "envoy.yaml"}
+	// tee the error stream so we can look for the "starting main dispatch loop" line without consuming it.
+	errCopy := new(bytes.Buffer)
+	c.ErrWriter = io.MultiWriter(stderr, errCopy)
+	err := test.RequireRun(t, nil, &runner{c}, errCopy, args...)
 
-			c, stdout, stderr := newApp(o)
-			o.Out = io.Discard // don't verify logging
-			err := c.Run(tc.args)
-
-			// Verify the command invoked, passing the correct default commandline
-			require.NoError(t, err)
-
-			// We expect getenvoy to print the context it will run, and Envoy to execute the same, except adding the
-			// --admin-address-path flag
-			expectedEnvoyArgs := fmt.Sprint(tc.expectedEnvoyArgs, "--admin-address-path ", filepath.Join(o.RunDir, "admin-address.txt"))
-			expectedStdout := fmt.Sprintf(`starting: %[1]s %[2]s
-envoy bin: %[1]s
-envoy args: %[2]s`, o.EnvoyPath, expectedEnvoyArgs)
-			require.Equal(t, expectedStdout+"\n", stdout.String())
-			require.Equal(t, "envoy stderr\n", stderr.String())
-		})
-	}
+	require.NoError(t, err)
+	require.Empty(t, stdout)
+	require.Equal(t, "initializing epoch 0\nstarting main dispatch loop\n", stderr.String())
 }
 
 func TestGetEnvoyRun_TeesConsoleToLogs(t *testing.T) {
@@ -80,9 +70,7 @@ func TestGetEnvoyRun_TeesConsoleToLogs(t *testing.T) {
 	c, stdout, stderr := newApp(o)
 	o.Out = io.Discard         // stdout/stderr only includes what envoy writes, not our status messages
 	o.DontArchiveRunDir = true // we need to read-back the log files
-	err := c.Run([]string{"getenvoy", "run"})
-
-	require.NoError(t, err)
+	runWithoutConfig(t, c)
 
 	have, err := ioutil.ReadFile(filepath.Join(o.RunDir, "stdout.log"))
 	require.NoError(t, err)
@@ -104,7 +92,7 @@ func TestGetEnvoyRun_ReadsHomeVersionFile(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte(version.LastKnownEnvoy), 0600))
 
 	c, _, _ := newApp(o)
-	require.NoError(t, c.Run([]string{"getenvoy", "run"}))
+	runWithoutConfig(t, c)
 
 	// No implicit lookup
 	require.NotContains(t, o.Out.(*bytes.Buffer).String(), "looking up latest version\n")
@@ -121,12 +109,17 @@ func TestGetEnvoyRun_CreatesHomeVersionFile(t *testing.T) {
 	require.NoError(t, os.RemoveAll(o.HomeDir))
 
 	c, _, _ := newApp(o)
-	require.NoError(t, c.Run([]string{"getenvoy", "run"}))
+	runWithoutConfig(t, c)
 
 	// We logged the implicit lookup
 	require.Contains(t, o.Out.(*bytes.Buffer).String(), "looking up latest version\n")
 	require.FileExists(t, filepath.Join(o.HomeDir, "version"))
 	require.Equal(t, version.LastKnownEnvoy, o.EnvoyVersion)
+}
+
+// runWithoutConfig intentionally has envoy quit. This allows tests to not have to interrupt envoy to proceed.
+func runWithoutConfig(t *testing.T, c *cli.App) {
+	require.EqualError(t, c.Run([]string{"getenvoy", "run"}), "envoy exited with status: 1")
 }
 
 func TestGetEnvoyRun_ValidatesHomeVersion(t *testing.T) {

@@ -28,7 +28,7 @@ import (
 func NewUseCmd(o *globals.GlobalOpts) *cli.Command {
 	return &cli.Command{
 		Name:      "use",
-		Usage:     `Sets the current [version] used by the "run" command, installing as necessary`,
+		Usage:     `Sets the current [version] used by the "run" command`,
 		ArgsUsage: "[version]",
 		Description: fmt.Sprintf(`The '[version]' is from the "versions -a" command.
 The Envoy [version] installs on-demand into $GETENVOY_HOME/versions/[version]
