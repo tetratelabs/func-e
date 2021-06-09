@@ -17,8 +17,6 @@
 package morerequire
 
 import (
-	// Embedding the capture script is easier than file I/O each time it is used.
-	_ "embed"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -44,18 +42,6 @@ func RequireSetMtime(t *testing.T, dir, date string) {
 	td, err := time.Parse("2006-01-02", date)
 	require.NoError(t, err)
 	require.NoError(t, os.Chtimes(dir, td, td))
-}
-
-var (
-	// captureScript is a test script used for capturing arguments and signals. If it receives an argument "exit=N",
-	// where N is a code number, the script exits with that status. Otherwise it sleeps until a signal interrupts it.
-	//go:embed testdata/capture.sh
-	captureScript []byte
-)
-
-// RequireCaptureScript writes captureScript to the given path
-func RequireCaptureScript(t *testing.T, path string) {
-	require.NoError(t, os.WriteFile(path, captureScript, 0700)) //nolint:gosec
 }
 
 // RequireSetenv will os.Setenv the given key and value. The function returned reverts to the original.

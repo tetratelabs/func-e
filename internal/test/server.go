@@ -106,15 +106,7 @@ func requireFakeEnvoyTarGz(t *testing.T, v string) []byte {
 	// construct the platform directory based on the input version
 	installDir := filepath.Join(tempDir, v)
 	require.NoError(t, os.MkdirAll(filepath.Join(installDir, "bin"), 0700)) //nolint:gosec
-	// go:embed doesn't allow us to retain execute bit, so it is simpler to inline this.
-	fakeEnvoy := []byte(`#!/bin/sh
-set -ue
-# Echo invocation context to stdout and fake stderr to ensure it is not combined into stdout.
-echo envoy bin: $0
-echo envoy args: $@
-echo >&2 envoy stderr
-`)
-	require.NoError(t, os.WriteFile(filepath.Join(installDir, "bin", "envoy"), fakeEnvoy, 0700)) //nolint:gosec
+	RequireFakeEnvoy(t, filepath.Join(installDir, "bin", "envoy"))
 
 	// tar.gz the platform dir
 	tempGz := filepath.Join(tempDir, "envoy.tar.gz")

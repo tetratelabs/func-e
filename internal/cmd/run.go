@@ -36,20 +36,22 @@ func NewRunCmd(o *globals.GlobalOpts) *cli.Command {
 	var envoyVersion string
 	cmd := &cli.Command{
 		Name:            "run",
-		Usage:           "Run Envoy with the given [arguments...], running shutdown hooks on Ctrl-C",
+		Usage:           "Run Envoy with the given [arguments...] until interrupted",
 		ArgsUsage:       "[arguments...]",
 		SkipFlagParsing: true,
-		Description: `To run Envoy, execute ` + "`getenvoy run -c your_envoy_config.yaml`" + `. This
-downloads and installs the latest version of Envoy for you.
+		Description: `To run Envoy, execute ` + "`getenvoy run -c your_envoy_config.yaml`" + `.
 
-Envoy runs in the current directory and interprets the '[arguments...]'.
 The first version in the below is run, controllable by the "use" command:
 ` + fmt.Sprintf("```\n%s\n```", envoy.VersionUsageList()) + `
+The version to use is downloaded and installed, if necessary.
 
-While Envoy is running, the run directory (` + "`$GETENVOY_HOME/runs/$epochtime`" + `)
-includes minimally "stdout.log" and "stderr.log". On Ctrl-C, shutdown hooks
-write troubleshooting files, including admin endpoints, network and process
-state. Upon exit, this archives as ` + "`$GETENVOY_HOME/runs/$epochtime.tar.gz`",
+Envoy interprets the '[arguments...]' and runs in the current working
+directory (aka $CWD) until getenvoy is interrupted (ex Ctrl+C, Ctrl+Break).
+
+Console output is captured as "stdout.log" and "stderr.log" in the run
+directory (` + "`$GETENVOY_HOME/runs/$epochtime`" + `). When interrupted,
+shutdown hooks write files, including admin endpoints, network and process
+state. Upon exit, these zip into ` + "`$GETENVOY_HOME/runs/$epochtime.tar.gz`",
 		Before: func(c *cli.Context) error {
 			if err := os.MkdirAll(o.HomeDir, 0750); err != nil {
 				return NewValidationError(err.Error())

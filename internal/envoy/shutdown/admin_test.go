@@ -58,7 +58,7 @@ func TestEnableEnvoyAdminDataCollection(t *testing.T) {
 // runWithShutdownHook is like RequireRun, except invokes the hook on shutdown
 func runWithShutdownHook(t *testing.T, runDir string, hook func(r *envoy.Runtime) error, args ...string) error {
 	fakeEnvoy := filepath.Join(runDir, "envoy")
-	morerequire.RequireCaptureScript(t, fakeEnvoy)
+	test.RequireFakeEnvoy(t, fakeEnvoy)
 
 	o := &globals.RunOpts{EnvoyPath: fakeEnvoy, RunDir: runDir, DontArchiveRunDir: true}
 
