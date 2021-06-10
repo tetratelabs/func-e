@@ -49,8 +49,11 @@ func TestGetEnvoyRun(t *testing.T) {
 
 	// Below is the minimal config needed to run Envoy 1.18+, non-windows <1.18 need access_log_path: '/dev/stdout'
 	args := []string{"run", "--config-yaml", "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 0}}}"}
-	c := envoyRunTest(t, nil, args...)
-	verifyDebugDump(t, filepath.Dir(c.adminAddressPath), c)
+
+	c, runArchive := envoyRunTest(t, nil, args...)
+	defer os.Remove(runArchive) //nolint
+
+	verifyRunArchive(t, runArchive, c)
 }
 
 func TestGetEnvoyRun_StaticFilesystem(t *testing.T) {
@@ -63,7 +66,7 @@ func TestGetEnvoyRun_StaticFilesystem(t *testing.T) {
 	responseFromRunDirectory := []byte("foo")
 	require.NoError(t, os.WriteFile("response.txt", responseFromRunDirectory, 0600))
 
-	envoyRunTest(t, func(c *getEnvoy, a *adminClient) {
+	_, runArchive := envoyRunTest(t, func(c *getEnvoy, a *adminClient) {
 		mainURL, err := a.getMainListenerURL()
 		require.NoError(t, err, `couldn't read mainURL after running [%v]`, c)
 
@@ -73,11 +76,16 @@ func TestGetEnvoyRun_StaticFilesystem(t *testing.T) {
 		// If this passes, we know Envoy is running in the current directory, so can resolve relative configuration.
 		require.Equal(t, responseFromRunDirectory, body, `unexpected content in %s after running [%v]`, mainURL, c)
 	}, "run", "-c", "envoy.yaml")
+
+	require.NoError(t, os.Remove(runArchive))
 }
 
-// envoyRunTest runs the given args. If the process successfully starts, it blocks until the adminClient is available.
-// The process is interrupted when the test completes, or a timeout occurs.
-func envoyRunTest(t *testing.T, test func(*getEnvoy, *adminClient), args ...string) *getEnvoy {
+// envoyRunTest runs the given args and the test function once envoy is available. This returns the command and the path
+// to the run archive.
+//
+// If the process successfully starts, this blocks until the adminClient is available.  The process is interrupted when
+// the test completes, or a timeout occurs.
+func envoyRunTest(t *testing.T, test func(*getEnvoy, *adminClient), args ...string) (*getEnvoy, string) {
 	c, cancel := newGetEnvoy(args...)
 	defer cancel()
 
@@ -93,6 +101,7 @@ func envoyRunTest(t *testing.T, test func(*getEnvoy, *adminClient), args ...stri
 	require.NoError(t, err)
 
 	log.Printf(`waiting for getenvoy stdout to match %q after running [%v]`, adminAddressPathPattern, c)
+	var adminAddressPath string
 	go func() {
 		for outLines.Scan() {
 			l := outLines.Text()
@@ -100,9 +109,8 @@ func envoyRunTest(t *testing.T, test func(*getEnvoy, *adminClient), args ...stri
 
 			// getenvoy has unit tests that ensure --admin-address-path is always set. However, we can't read the
 			// contents until Envoy creates it. This only ensures we know the file name.
-			if strings.Contains(l, "--admin-address-path") {
-				require.True(t, adminAddressPathPattern.MatchString(l), `error parsing admin address path from %s of [%v]`, l, c)
-				c.adminAddressPath = adminAddressPathPattern.FindStringSubmatch(l)[1]
+			if adminAddressPathPattern.MatchString(l) {
+				adminAddressPath = adminAddressPathPattern.FindStringSubmatch(l)[1]
 				log.Printf(`waiting for Envoy stdout to match %q after running [%v]`, envoyStartedLine, c)
 			}
 		}
@@ -115,23 +123,25 @@ func envoyRunTest(t *testing.T, test func(*getEnvoy, *adminClient), args ...stri
 
 			// When we get to this line, we can assume Envoy started properly. Run the test
 			if strings.Contains(l, envoyStartedLine) {
-				require.NotEmpty(t, c.adminAddressPath, "expected adminAddressPath to be set")
-				go runTestAndInterruptEnvoy(t, c, test) // don't block stderr when the test is running
+				require.NotEmpty(t, adminAddressPath, "expected adminAddressPath to be set")
+				go runTestAndInterruptEnvoy(t, c, adminAddressPath, test) // don't block stderr when the test is running
 			}
 		}
 	}()
 
 	err = c.cmd.Wait() // This won't hang forever because newGetEnvoy started it with a context timeout!
 	require.NoError(t, err)
-	return c
+
+	// return the run archive location
+	return c, filepath.Dir(adminAddressPath) + ".tar.gz"
 }
 
-func runTestAndInterruptEnvoy(t *testing.T, c *getEnvoy, test func(*getEnvoy, *adminClient)) {
+func runTestAndInterruptEnvoy(t *testing.T, c *getEnvoy, adminAddressPath string, test func(*getEnvoy, *adminClient)) {
 	defer func() {
 		log.Printf(`shutting down Envoy after running [%v]`, c)
 		_ = c.cmd.Process.Signal(syscall.SIGTERM)
 	}()
-	a := requireEnvoyReady(t, c.adminAddressPath, c)
+	a := requireEnvoyReady(t, adminAddressPath, c)
 	if test != nil {
 		test(c, a)
 	}
@@ -152,14 +162,14 @@ func requireEnvoyReady(t *testing.T, adminAddressPath string, c interface{}) *ad
 	return envoyClient
 }
 
-func verifyDebugDump(t *testing.T, runDir string, c interface{}) {
-	// Run deletes the working directory after making a tar.gz with the same name.
-	// Restore it so assertions can read the contents later.
-	runArchive := filepath.Join(runDir + ".tar.gz")
-	defer os.Remove(runArchive) //nolint
+// Run deletes the run directory after making a tar.gz with the same name. This extracts it and tests the contents.
+func verifyRunArchive(t *testing.T, runArchive string, c interface{}) {
+	runDir, removeRunDir := morerequire.RequireNewTempDir(t)
+	defer removeRunDir()
 
 	src, err := os.Open(runArchive)
 	require.NoError(t, err, "error opening %s after shutdown [%v]", runArchive, c)
+
 	err = tar.Untar(runDir, src)
 	require.NoError(t, err, "error restoring %s from %s after shutdown [%v]", runDir, runArchive, c)
 

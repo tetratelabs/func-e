@@ -132,15 +132,12 @@ func readGetEnvoyPath() (string, error) {
 	return path, nil
 }
 
-// getEnvoy's main function is providing a nice String
-type getEnvoy struct {
-	cmd              *exec.Cmd
-	adminAddressPath string
-}
+type getEnvoy struct{ cmd *exec.Cmd }
 
+// newGetEnvoy creates an exec.Cmd which will timeout instead of hang forever
 func newGetEnvoy(args ...string) (*getEnvoy, func()) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-	return &getEnvoy{exec.CommandContext(ctx, getEnvoyPath, args...), ""}, cancel //nolint:gosec
+	return &getEnvoy{exec.CommandContext(ctx, getEnvoyPath, args...)}, cancel //nolint:gosec
 }
 
 func (b *getEnvoy) String() string {
