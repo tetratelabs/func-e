@@ -29,6 +29,13 @@
         "linux/amd64": "https://dl.getenvoy.io/public/raw/files/getenvoy-envoy-1.15.5.p0.g623479e-1p74.gbb8060d-linux-glibc-release-x86_64.tar.xz"
       }
     },
+    "1.16.3": {
+      "releaseDate": "2021-04-15",
+      "tarballs": {
+        "linux/amd64": "https://dl.getenvoy.io/public/raw/files/getenvoy-envoy-1.16.3.p0.gc4b7ab8-1p74.gbb8060d-darwin-release-x86_64.tar.xz",
+        "darwin/amd64": "https://dl.getenvoy.io/public/raw/files/getenvoy-envoy-1.16.3.p0.gc4b7ab8-1p74.gbb8060d-linux-glibc-release-x86_64.tar.xz"
+      }
+    },
     "1.16.4": {
       "releaseDate": "2021-05-11",
       "tarballs": {
