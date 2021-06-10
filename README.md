@@ -5,11 +5,17 @@
 
 # GetEnvoy
 
-GetEnvoy is a CLI which makes running [Envoy](https://www.envoyproxy.io/) easy.
+GetEnvoy makes running [Envoy®](https://www.envoyproxy.io/) easy.
 
-Ex. The following will install and run the latest version of Envoy for you:
+The quickest way to try the command-line interface is an in-lined configuration.
 ```bash
-$ getenvoy run -c your_envoy_config.yaml
+# Download the latest release as /usr/local/bin/getenvoy https://github.com/tetratelabs/getenvoy/releases
+$ curl -L https://getenvoy.io/install.sh | bash -s -- -b /usr/local/bin
+# Run the admin server on http://localhost:9901
+$ getenvoy run --config-yaml "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 9901}}}"
 ```
 
-Have a look at the [Usage Docs](site/usage.md) or https://getenvoy.io for more information.
+Run `getenvoy help` or have a look at the [Usage Docs](site/usage.md) for more information.
+
+-----
+Envoy® is a registered trademark of The Linux Foundation in the United States and/or other countries
