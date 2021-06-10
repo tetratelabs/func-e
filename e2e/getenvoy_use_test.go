@@ -33,7 +33,7 @@ func TestGetEnvoyUse(t *testing.T) {
 	defer removeHomeDir()
 
 	t.Run("not yet installed", func(t *testing.T) {
-		stdout, stderr, err := getEnvoy("--home-dir", homeDir, "use", version.LastKnownEnvoy).exec()
+		stdout, stderr, err := getEnvoyExec("--home-dir", homeDir, "use", version.LastKnownEnvoy)
 
 		require.NoError(t, err)
 		require.Regexp(t, `^downloading https:.*tar.*z\n$`, stdout)
@@ -49,7 +49,7 @@ func TestGetEnvoyUse(t *testing.T) {
 	})
 
 	t.Run("already installed", func(t *testing.T) {
-		stdout, stderr, err := getEnvoy("--home-dir", homeDir, "use", version.LastKnownEnvoy).exec()
+		stdout, stderr, err := getEnvoyExec("--home-dir", homeDir, "use", version.LastKnownEnvoy)
 
 		require.NoError(t, err)
 		require.Equal(t, version.LastKnownEnvoy+" is already downloaded\n", stdout)
@@ -58,7 +58,7 @@ func TestGetEnvoyUse(t *testing.T) {
 }
 
 func TestGetEnvoyUse_UnknownVersion(t *testing.T) {
-	stdout, stderr, err := getEnvoy("use", "1.1.1").exec()
+	stdout, stderr, err := getEnvoyExec("use", "1.1.1")
 
 	require.EqualError(t, err, "exit status 1")
 	require.Empty(t, stdout)

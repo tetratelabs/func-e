@@ -1,4 +1,4 @@
-// Copyright 2020 Tetrate
+// Copyright 2021 Tetrate
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,17 +23,9 @@ import (
 func TestGetEnvoyVersion(t *testing.T) {
 	t.Parallel()
 
-	stdout, stderr, err := getEnvoy("--version").exec()
+	stdout, stderr, err := getEnvoyExec("--version")
 
 	require.Regexp(t, `^getenvoy version ([^\s]+)\n$`, stdout)
 	require.Equal(t, ``, stderr)
 	require.NoError(t, err)
-}
-
-func TestGetEnvoyString(t *testing.T) {
-	t.Parallel()
-
-	g := getEnvoy("--version")
-
-	require.Regexp(t, `.*getenvoy --version$`, g.String())
 }

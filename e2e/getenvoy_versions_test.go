@@ -30,7 +30,7 @@ func TestGetEnvoyVersions_NothingYet(t *testing.T) {
 	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
 	defer removeHomeDir()
 
-	stdout, stderr, err := getEnvoy("--home-dir", homeDir, "versions").exec()
+	stdout, stderr, err := getEnvoyExec("--home-dir", homeDir, "versions")
 
 	require.NoError(t, err)
 	require.Empty(t, stdout)
@@ -40,7 +40,7 @@ func TestGetEnvoyVersions_NothingYet(t *testing.T) {
 func TestGetEnvoyVersions(t *testing.T) {
 	t.Parallel()
 
-	stdout, stderr, err := getEnvoy("versions").exec()
+	stdout, stderr, err := getEnvoyExec("versions")
 
 	require.Regexp(t, fmt.Sprintf("[ *] %s 202[1-9]-[01][0-9]-[0-3][0-9].*\n", version.LastKnownEnvoy), stdout)
 	require.Empty(t, stderr)
@@ -50,7 +50,7 @@ func TestGetEnvoyVersions(t *testing.T) {
 func TestGetEnvoyVersions_All(t *testing.T) {
 	t.Parallel()
 
-	stdout, stderr, err := getEnvoy("versions", "-a").exec()
+	stdout, stderr, err := getEnvoyExec("versions", "-a")
 
 	require.Regexp(t, fmt.Sprintf("[ *] %s 202[1-9]-[01][0-9]-[0-3][0-9].*\n", version.LastKnownEnvoy), stdout)
 	require.Empty(t, stderr)
@@ -62,9 +62,9 @@ func TestGetEnvoyVersions_AllIncludesInstalled(t *testing.T) {
 
 	// Cheap test that one includes the other. It doesn't actually parse the output, but the above tests prove the
 	// latest version is in each deviation.
-	allVersions, _, err := getEnvoy("versions", "-a").exec()
+	allVersions, _, err := getEnvoyExec("versions", "-a")
 	require.NoError(t, err)
-	installedVersions, _, err := getEnvoy("versions").exec()
+	installedVersions, _, err := getEnvoyExec("versions")
 	require.NoError(t, err)
 
 	require.Greater(t, countLines(allVersions), countLines(installedVersions), "expected more versions available than installed")

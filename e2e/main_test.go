@@ -15,15 +15,19 @@
 package e2e
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 )
 
 //nolint:golint
@@ -33,7 +37,10 @@ const (
 	envoyVersionsJSON      = "../site/envoy-versions.json"
 )
 
-var expectedMockHeaders = map[string]string{"User-Agent": "getenvoy/dev"}
+var (
+	getEnvoyPath        = "getenvoy" // getEnvoyPath holds a path to a 'getenvoy' binary under test.
+	expectedMockHeaders = map[string]string{"User-Agent": "getenvoy/dev"}
+)
 
 // TestMain ensures the "getenvoy" binary is valid.
 func TestMain(m *testing.M) {
@@ -44,7 +51,7 @@ func TestMain(m *testing.M) {
 	}
 	getEnvoyPath = path
 
-	versionLine, _, err := getEnvoy("--version").exec()
+	versionLine, _, err := getEnvoyExec("--version")
 	if err != nil {
 		exitOnInvalidBinary(err)
 	}
@@ -74,7 +81,7 @@ func mockEnvoyVersionsServer() (*httptest.Server, error) {
 	}
 
 	defer f.Close() // nolint
-	bytes, err := io.ReadAll(f)
+	b, err := io.ReadAll(f)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +98,7 @@ func mockEnvoyVersionsServer() (*httptest.Server, error) {
 		}
 		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(200)
-		w.Write(bytes) //nolint
+		w.Write(b) //nolint
 	}))
 	return ts, nil
 }
@@ -123,4 +130,30 @@ func readGetEnvoyPath() (string, error) {
 		return "", fmt.Errorf("%s is not executable. Correct environment variable %s", path, getenvoyBinaryEnvKey)
 	}
 	return path, nil
+}
+
+// getEnvoy's main function is providing a nice String
+type getEnvoy struct {
+	cmd              *exec.Cmd
+	adminAddressPath string
+}
+
+func newGetEnvoy(args ...string) (*getEnvoy, func()) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	return &getEnvoy{exec.CommandContext(ctx, getEnvoyPath, args...), ""}, cancel //nolint:gosec
+}
+
+func (b *getEnvoy) String() string {
+	return strings.Join(b.cmd.Args, " ")
+}
+
+func getEnvoyExec(args ...string) (string, string, error) {
+	g, cancel := newGetEnvoy(args...)
+	defer cancel()
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+	g.cmd.Stdout = io.MultiWriter(os.Stdout, stdout) // we want to see full `getenvoy` output in the test log
+	g.cmd.Stderr = io.MultiWriter(os.Stderr, stderr)
+	err := g.cmd.Run()
+	return stdout.String(), stderr.String(), err
 }
