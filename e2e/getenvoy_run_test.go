@@ -38,8 +38,8 @@ const shutdownTimeout = 2 * time.Minute
 func TestGetEnvoyRun(t *testing.T) {
 	t.Parallel() // uses random ports so safe to run parallel
 
-	// Below is the minimal config needed to run envoy
-	c := getEnvoy(`run`, "--config-yaml", "admin: {access_log_path: '/dev/stdout', address: {socket_address: {address: '127.0.0.1', port_value: 0}}}")
+	// Below is the minimal config needed to run envoy 1.18+, non-windows <1.18 need access_log_path: '/dev/stdout'
+	c := getEnvoy(`run`, "--config-yaml", "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 0}}}")
 
 	stdout, stderr, shutdown := c.start(t, shutdownTimeout)
 
