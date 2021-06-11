@@ -12,13 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !linux
-
 package moreos
 
 import (
 	"os"
 	"syscall"
+)
+
+const (
+	ln  = "\n"
+	exe = ""
 )
 
 func processGroupAttr() *syscall.SysProcAttr {
@@ -27,4 +30,8 @@ func processGroupAttr() *syscall.SysProcAttr {
 
 func interrupt(p *os.Process) error {
 	return p.Signal(syscall.SIGINT)
+}
+
+func isExecutable(f os.FileInfo) bool {
+	return f.Mode()&0111 != 0
 }

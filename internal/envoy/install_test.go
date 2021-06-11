@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -91,7 +90,7 @@ func TestInstallIfNeeded_ErrorOnIncorrectURL(t *testing.T) {
 
 	o.EnvoyVersionsURL += "/varsionz.json"
 
-	_, err := InstallIfNeeded(o.ctx, &o.GlobalOpts, runtime.GOOS, version.LastKnownEnvoy)
+	_, err := InstallIfNeeded(o.ctx, &o.GlobalOpts, globals.CurrentPlatform, version.LastKnownEnvoy)
 	require.EqualError(t, err, "received 404 status code from "+o.EnvoyVersionsURL)
 	require.Empty(t, o.Out.(*bytes.Buffer))
 }
@@ -109,9 +108,9 @@ func TestInstallIfNeeded_Validates(t *testing.T) {
 		},
 		{
 			name:        "unsupported OS",
-			goos:        "windows",
+			goos:        "solaris",
 			version:     version.LastKnownEnvoy,
-			expectedErr: fmt.Sprintf(`couldn't find version %q for platform "windows"`, version.LastKnownEnvoy),
+			expectedErr: fmt.Sprintf(`couldn't find version %q for platform "solaris"`, version.LastKnownEnvoy),
 		},
 	}
 
@@ -154,8 +153,8 @@ func TestInstallIfNeeded_NotFound(t *testing.T) {
 		require.EqualError(t, e, `couldn't find version "1.1.1" for platform "darwin/amd64"`)
 	})
 	t.Run("unknown platform", func(t *testing.T) {
-		_, e := InstallIfNeeded(o.ctx, &o.GlobalOpts, "windows/arm64", version.LastKnownEnvoy)
-		require.EqualError(t, e, fmt.Sprintf(`couldn't find version "%s" for platform "windows/arm64"`, version.LastKnownEnvoy))
+		_, e := InstallIfNeeded(o.ctx, &o.GlobalOpts, "solaris/amd64", version.LastKnownEnvoy)
+		require.EqualError(t, e, fmt.Sprintf(`couldn't find version "%s" for platform "solaris/amd64"`, version.LastKnownEnvoy))
 	})
 }
 
@@ -165,12 +164,12 @@ func TestInstallIfNeeded_AlreadyExists(t *testing.T) {
 	out := o.Out.(*bytes.Buffer)
 
 	require.NoError(t, os.MkdirAll(filepath.Dir(o.EnvoyPath), 0700))
-	require.NoError(t, ioutil.WriteFile(o.EnvoyPath, []byte("fake"), 0700))
+	require.NoError(t, os.WriteFile(o.EnvoyPath, []byte("fake"), 0700))
 
 	envoyStat, err := os.Stat(o.EnvoyPath)
 	require.NoError(t, err)
 
-	envoyPath, e := InstallIfNeeded(o.ctx, &o.GlobalOpts, runtime.GOOS, version.LastKnownEnvoy)
+	envoyPath, e := InstallIfNeeded(o.ctx, &o.GlobalOpts, globals.CurrentPlatform, version.LastKnownEnvoy)
 	require.NoError(t, e)
 	require.Equal(t, fmt.Sprintln(version.LastKnownEnvoy, "is already downloaded"), out.String())
 
@@ -190,22 +189,22 @@ func TestVerifyEnvoy(t *testing.T) {
 	t.Run("envoy binary doesn't exist", func(t *testing.T) {
 		EnvoyPath, e := verifyEnvoy(envoyPath)
 		require.Empty(t, EnvoyPath)
-		require.Contains(t, e.Error(), "no such file or directory")
+		require.Contains(t, e.Error(), "file")
 	})
 
-	expectedEnvoyPath := filepath.Join(envoyPath, "bin", "envoy")
-	require.NoError(t, os.WriteFile(expectedEnvoyPath, []byte{}, 0600))
-	t.Run("envoy binary not executable", func(t *testing.T) {
-		EnvoyPath, e := verifyEnvoy(envoyPath)
-		require.Empty(t, EnvoyPath)
-		require.EqualError(t, e, fmt.Sprintf(`envoy binary not executable at %q`, expectedEnvoyPath))
-	})
-
-	require.NoError(t, os.Chmod(expectedEnvoyPath, 0750))
+	expectedEnvoyPath := filepath.Join(envoyPath, binEnvoy)
+	require.NoError(t, os.WriteFile(expectedEnvoyPath, []byte{}, 0700))
 	t.Run("envoy binary ok", func(t *testing.T) {
 		EnvoyPath, e := verifyEnvoy(envoyPath)
 		require.Equal(t, expectedEnvoyPath, EnvoyPath)
 		require.Nil(t, e)
+	})
+
+	t.Run("envoy binary not executable", func(t *testing.T) {
+		require.NoError(t, os.Chmod(expectedEnvoyPath, 0600))
+		EnvoyPath, e := verifyEnvoy(envoyPath)
+		require.Empty(t, EnvoyPath)
+		require.EqualError(t, e, fmt.Sprintf(`envoy binary not executable at %q`, expectedEnvoyPath))
 	})
 }
 
@@ -233,7 +232,7 @@ func setupInstallTest(t *testing.T) (*installTest, func()) {
 				EnvoyVersionsURL: versionsServer.URL + "/envoy-versions.json",
 				Out:              new(bytes.Buffer),
 				RunOpts: globals.RunOpts{
-					EnvoyPath: filepath.Join(tempDir, "versions", version.LastKnownEnvoy, "bin", "envoy"),
+					EnvoyPath: filepath.Join(tempDir, "versions", version.LastKnownEnvoy, binEnvoy),
 				},
 			},
 		}, func() {

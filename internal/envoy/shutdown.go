@@ -28,8 +28,8 @@ import (
 
 // RegisterShutdownHook registers the passed functions to be run after Envoy has started
 // and just before GetEnvoy instructs Envoy to exit
-func (r *Runtime) RegisterShutdownHook(f ...func(context.Context) error) {
-	r.shutdownHooks = append(r.shutdownHooks, f...)
+func (r *Runtime) RegisterShutdownHook(f func(context.Context) error) {
+	r.shutdownHooks = append(r.shutdownHooks, f)
 }
 
 func (r *Runtime) handleShutdown(ctx context.Context) {

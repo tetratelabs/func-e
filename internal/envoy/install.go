@@ -23,11 +23,12 @@ import (
 	"time"
 
 	"github.com/tetratelabs/getenvoy/internal/globals"
+	"github.com/tetratelabs/getenvoy/internal/moreos"
 	"github.com/tetratelabs/getenvoy/internal/tar"
 	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
-const binEnvoy = "bin/envoy"
+var binEnvoy = filepath.Join("bin", "envoy"+moreos.Exe)
 
 // InstallIfNeeded downloads an Envoy binary corresponding to the given version and returns a path to it or an error.
 func InstallIfNeeded(ctx context.Context, o *globals.GlobalOpts, p, v string) (string, error) {
@@ -77,7 +78,7 @@ func verifyEnvoy(installPath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if stat.Mode()&0111 == 0 {
+	if !moreos.IsExecutable(stat) {
 		return "", fmt.Errorf("envoy binary not executable at %q", envoyPath)
 	}
 	return envoyPath, nil

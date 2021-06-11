@@ -132,7 +132,8 @@ func TestUntar(t *testing.T) {
 
 // requireTestFiles ensures the given directory includes the testdata/foo directory
 func requireTestFiles(t *testing.T, dst string) {
-	for _, path := range []string{"bar.sh", "bar/baz.txt"} {
+	// NOTE: this will not include empty.txt as we don't want to clutter the tar with empty files
+	for _, path := range []string{"bar.sh", filepath.Join("bar", "baz.txt")} {
 		want, e := os.Stat(filepath.Join("testdata", "foo", path))
 		require.NoError(t, e)
 		have, e := os.Stat(filepath.Join(dst, path))

@@ -19,6 +19,11 @@ import (
 	"syscall"
 )
 
+const (
+	ln  = "\n"
+	exe = ""
+)
+
 func processGroupAttr() *syscall.SysProcAttr {
 	// Pdeathsig aims to ensure the process group is cleaned up even if this process dies
 	return &syscall.SysProcAttr{Setpgid: true, Pdeathsig: syscall.SIGTERM}
@@ -26,4 +31,8 @@ func processGroupAttr() *syscall.SysProcAttr {
 
 func interrupt(p *os.Process) error {
 	return p.Signal(syscall.SIGINT)
+}
+
+func isExecutable(f os.FileInfo) bool {
+	return f.Mode()&0111 != 0
 }

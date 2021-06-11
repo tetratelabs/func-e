@@ -125,6 +125,7 @@ func TarGz(dst, src string) error { //nolint dst, src order like io.Copy
 
 	// Recurse through the path including all files and directories
 	return fs.WalkDir(srcFS, basePath, func(path string, d os.DirEntry, err error) error {
+		path = filepath.ToSlash(path) // normalize to unix slashes
 		if err != nil {
 			return err
 		}
@@ -139,6 +140,10 @@ func TarGz(dst, src string) error { //nolint dst, src order like io.Copy
 			return err
 		}
 
+		if !info.IsDir() && header.Size == 0 { // skip empty files
+			return nil
+		}
+
 		// Ensure the destination file starts at the intended path
 		header.Name = path
 		if err := tw.WriteHeader(header); err != nil {
@@ -148,17 +153,20 @@ func TarGz(dst, src string) error { //nolint dst, src order like io.Copy
 		if info.IsDir() {
 			return nil // nothing to write
 		}
-		return copy(tw, srcFS, path)
+		if err := copy(tw, srcFS, header.Name, header.Size); err != nil {
+			return err
+		}
+		return tw.Flush()
 	})
 }
 
 // Copy the contents of the file into the tar without buffering
-func copy(dst io.Writer, src fs.FS, path string) error { // dst, src order like io.Copy
+func copy(dst io.Writer, src fs.FS, path string, n int64) error { // dst, src order like io.Copy
 	f, err := src.Open(path) //nolint:gosec
 	if err != nil {
 		return err
 	}
 	defer f.Close() //nolint
-	_, err = io.Copy(dst, f)
+	_, err = io.CopyN(dst, f, n)
 	return err
 }

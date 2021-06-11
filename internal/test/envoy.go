@@ -52,7 +52,7 @@ func RequireRun(t *testing.T, shutdown func(), r Runner, stderr io.Reader, args 
 	reader := bufio.NewReader(stderr)
 	require.Eventually(t, func() bool {
 		b, err := reader.Peek(512)
-		return err != nil && strings.Contains(string(b), "initializing epoch 0\n")
+		return err != nil && strings.Contains(string(b), "initializing epoch 0")
 	}, 2*time.Second, 100*time.Millisecond, "never started process")
 
 	shutdown()
