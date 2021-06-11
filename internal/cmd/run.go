@@ -90,6 +90,12 @@ state. On exit, these archive into ` + "`$GETENVOY_HOME/runs/$epochtime.tar.gz`"
 			defer stderrLog.Close() //nolint
 			r.Err = io.MultiWriter(c.App.ErrWriter, stderrLog)
 
+			// Ensure console redirect files close before we attempt to archive them
+			r.RegisterShutdownHook(func(ctx context.Context) error {
+				stdoutLog.Close() // nolint
+				return stderrLog.Close()
+			})
+
 			for _, enableShutdownHook := range shutdown.EnableHooks {
 				if err := enableShutdownHook(r); err != nil {
 					fmt.Fprintln(r.Out, "failed to enable shutdown hook:", err) //nolint

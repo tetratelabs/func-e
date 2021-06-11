@@ -23,6 +23,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/tetratelabs/getenvoy/internal/moreos"
 	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
 	"github.com/tetratelabs/getenvoy/internal/version"
 )
@@ -40,7 +41,8 @@ func TestGetEnvoyUse(t *testing.T) {
 		require.Empty(t, stderr)
 
 		// The binary was installed
-		require.FileExists(t, filepath.Join(homeDir, "versions", version.LastKnownEnvoy, "bin", "envoy"))
+		envoyBin := filepath.Join(homeDir, "versions", version.LastKnownEnvoy, "bin", "envoy"+moreos.Exe)
+		require.FileExists(t, envoyBin)
 
 		// The current version was written
 		f, err := os.ReadFile(filepath.Join(homeDir, "version"))

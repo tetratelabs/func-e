@@ -19,6 +19,13 @@ import (
 	"syscall"
 )
 
+const (
+	// LineSeparator is the runtime.GOOS-specific new line or line feed. Ex. "\n"
+	LineSeparator = ln
+	// Exe is the runtime.GOOS-specific suffix for executables. Ex. "" unless windows which is ".exe"
+	Exe = exe
+)
+
 // ProcessGroupAttr sets attributes that ensure exec.Cmd doesn't propagate signals from getenvoy by default.
 // This is used to ensure shutdown hooks can apply
 func ProcessGroupAttr() *syscall.SysProcAttr {
@@ -28,4 +35,9 @@ func ProcessGroupAttr() *syscall.SysProcAttr {
 // Interrupt attempts to interrupt the process. It doesn't necessarily kill it.
 func Interrupt(p *os.Process) error {
 	return interrupt(p) // un-exported to prevent godoc drift
+}
+
+// IsExecutable returns true if the input can be run as an exec.Cmd
+func IsExecutable(f os.FileInfo) bool {
+	return isExecutable(f)
 }

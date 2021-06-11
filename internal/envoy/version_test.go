@@ -58,13 +58,6 @@ func TestGetHomeVersion_Empty(t *testing.T) {
 	}
 }
 
-func TestTrimNewline(t *testing.T) {
-	require.Equal(t, "", trimNewline([]byte{}))
-	require.Equal(t, "", trimNewline([]byte("\n")))
-	require.Equal(t, "1.15.5", trimNewline([]byte("1.15.5")))
-	require.Equal(t, "1.15.5", trimNewline([]byte("1.15.5\n")))
-}
-
 func TestGetHomeVersion(t *testing.T) {
 	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
 	defer removeHomeDir()
@@ -86,7 +79,7 @@ func TestGetHomeVersion_Validates(t *testing.T) {
 	require.NoError(t, os.WriteFile(homeVersionFile, []byte("a.a.a"), 0600))
 
 	_, _, err := GetHomeVersion(homeDir)
-	require.EqualError(t, err, fmt.Sprintf(`invalid version in "$GETENVOY_HOME/version": "a.a.a" should look like "%s"`, version.LastKnownEnvoy))
+	require.EqualError(t, err, fmt.Sprintf(`invalid version in "%s": "a.a.a" should look like "%s"`, CurrentVersionHomeDirFile, version.LastKnownEnvoy))
 }
 
 func TestWriteCurrentVersion_HomeDir(t *testing.T) {
@@ -142,7 +135,7 @@ func TestCurrentVersion(t *testing.T) {
 	t.Run("defaults to home version", func(t *testing.T) {
 		v, source, err := CurrentVersion(homeDir)
 		require.Equal(t, "1.1.1", v)
-		require.Equal(t, "$GETENVOY_HOME/version", source)
+		require.Equal(t, CurrentVersionHomeDirFile, source)
 		require.NoError(t, err)
 	})
 
@@ -153,7 +146,7 @@ func TestCurrentVersion(t *testing.T) {
 	t.Run("prefers $PWD/.envoy-version over home version", func(t *testing.T) {
 		v, source, err := CurrentVersion(homeDir)
 		require.Equal(t, "2.2.2", v)
-		require.Equal(t, "$PWD/.envoy-version", source)
+		require.Equal(t, CurrentVersionWorkingDirFile, source)
 		require.NoError(t, err)
 	})
 
@@ -163,7 +156,7 @@ func TestCurrentVersion(t *testing.T) {
 	t.Run("prefers $ENVOY_VERSION over $PWD/.envoy-version", func(t *testing.T) {
 		v, source, err := CurrentVersion(homeDir)
 		require.Equal(t, "3.3.3", v)
-		require.Equal(t, "$ENVOY_VERSION", source)
+		require.Equal(t, currentVersionVar, source)
 		require.NoError(t, err)
 	})
 }

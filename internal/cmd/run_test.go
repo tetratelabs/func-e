@@ -19,7 +19,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -29,10 +28,13 @@ import (
 
 	rootcmd "github.com/tetratelabs/getenvoy/internal/cmd"
 	"github.com/tetratelabs/getenvoy/internal/globals"
+	"github.com/tetratelabs/getenvoy/internal/moreos"
 	"github.com/tetratelabs/getenvoy/internal/test"
 	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
 	"github.com/tetratelabs/getenvoy/internal/version"
 )
+
+const ln = moreos.LineSeparator
 
 // Runner allows us to not introduce dependency cycles on envoy.Runtime
 type runner struct {
@@ -60,7 +62,7 @@ func TestGetEnvoyRun(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Empty(t, stdout)
-	require.Equal(t, "initializing epoch 0\nstarting main dispatch loop\n", stderr.String())
+	require.Equal(t, fmt.Sprintf("initializing epoch 0%[1]sstarting main dispatch loop%[1]s", ln), stderr.String())
 }
 
 func TestGetEnvoyRun_TeesConsoleToLogs(t *testing.T) {
@@ -72,12 +74,12 @@ func TestGetEnvoyRun_TeesConsoleToLogs(t *testing.T) {
 	o.DontArchiveRunDir = true // we need to read-back the log files
 	runWithoutConfig(t, c)
 
-	have, err := ioutil.ReadFile(filepath.Join(o.RunDir, "stdout.log"))
+	have, err := os.ReadFile(filepath.Join(o.RunDir, "stdout.log"))
 	require.NoError(t, err)
-	require.NotEmpty(t, stdout.String()) // sanity check
-	require.Equal(t, stdout.String(), string(have))
+	require.NotEmpty(t, stdout.String())               // sanity check
+	require.Contains(t, stdout.String(), string(have)) // stdout will be more than in the log as getenvoy writes to it.
 
-	have, err = ioutil.ReadFile(filepath.Join(o.RunDir, "stderr.log"))
+	have, err = os.ReadFile(filepath.Join(o.RunDir, "stderr.log"))
 	require.NoError(t, err)
 	require.NotEmpty(t, stderr.String()) // sanity check
 	require.Equal(t, stderr.String(), string(have))
@@ -95,7 +97,7 @@ func TestGetEnvoyRun_ReadsHomeVersionFile(t *testing.T) {
 	runWithoutConfig(t, c)
 
 	// No implicit lookup
-	require.NotContains(t, o.Out.(*bytes.Buffer).String(), "looking up latest version\n")
+	require.NotContains(t, o.Out.(*bytes.Buffer).String(), "looking up latest version"+ln)
 	require.Equal(t, version.LastKnownEnvoy, o.EnvoyVersion)
 }
 
@@ -112,7 +114,7 @@ func TestGetEnvoyRun_CreatesHomeVersionFile(t *testing.T) {
 	runWithoutConfig(t, c)
 
 	// We logged the implicit lookup
-	require.Contains(t, o.Out.(*bytes.Buffer).String(), "looking up latest version\n")
+	require.Contains(t, o.Out.(*bytes.Buffer).String(), "looking up latest version"+ln)
 	require.FileExists(t, filepath.Join(o.HomeDir, "version"))
 	require.Equal(t, version.LastKnownEnvoy, o.EnvoyVersion)
 }
@@ -167,6 +169,6 @@ func TestGetEnvoyRun_ErrsWhenVersionsServerDown(t *testing.T) {
 	c, _, _ := newApp(o)
 	err := c.Run([]string{"getenvoy", "run"})
 
-	require.Contains(t, o.Out.(*bytes.Buffer).String(), "looking up latest version\n")
+	require.Contains(t, o.Out.(*bytes.Buffer).String(), "looking up latest version"+ln)
 	require.Contains(t, err.Error(), fmt.Sprintf(`couldn't read latest version from %s`, o.EnvoyVersionsURL))
 }

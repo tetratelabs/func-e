@@ -28,6 +28,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/tetratelabs/getenvoy/internal/moreos"
 	"github.com/tetratelabs/getenvoy/internal/tar"
 	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
 	"github.com/tetratelabs/getenvoy/internal/version"
@@ -106,7 +107,7 @@ func requireFakeEnvoyTarGz(t *testing.T, v string) []byte {
 	// construct the platform directory based on the input version
 	installDir := filepath.Join(tempDir, v)
 	require.NoError(t, os.MkdirAll(filepath.Join(installDir, "bin"), 0700)) //nolint:gosec
-	RequireFakeEnvoy(t, filepath.Join(installDir, "bin", "envoy"))
+	RequireFakeEnvoy(t, filepath.Join(installDir, "bin", "envoy"+moreos.Exe))
 
 	// tar.gz the platform dir
 	tempGz := filepath.Join(tempDir, "envoy.tar.gz")

@@ -129,7 +129,7 @@ func readGetEnvoyPath() (string, error) {
 	}
 	// While "make bin" should result in correct permissions, double-check as some tools lose them, such as
 	// https://github.com/actions/upload-artifact#maintaining-file-permissions-and-case-sensitive-files
-	if stat.Mode()&0111 == 0 {
+	if !moreos.IsExecutable(stat) {
 		return "", fmt.Errorf("%s is not executable. Correct environment variable %s", path, getenvoyBinaryEnvKey)
 	}
 	return path, nil
