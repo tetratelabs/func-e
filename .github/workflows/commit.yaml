@@ -66,6 +66,7 @@ jobs:
         run: make e2e
 
       - name: "Generate coverage report" # only once (not per OS)
+        if: runner.os == 'Linux'
         run: make coverage
 
       - name: "Upload coverage report" # only on master push and only once (not per OS)
