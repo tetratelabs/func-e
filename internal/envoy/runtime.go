@@ -37,7 +37,7 @@ const (
 // NewRuntime creates a new Runtime that runs envoy in globals.RunOpts RunDir
 // opts allows a user running envoy to control the working directory by ID or path, allowing explicit cleanup.
 func NewRuntime(opts *globals.RunOpts) *Runtime {
-	return &Runtime{opts: opts}
+	return &Runtime{opts: opts, pidPath: filepath.Join(opts.RunDir, "envoy.pid")}
 }
 
 // Runtime manages an Envoy lifecycle
@@ -48,7 +48,7 @@ type Runtime struct {
 	Out io.Writer
 	Err io.Writer
 
-	adminAddress, adminAddressPath string
+	adminAddress, adminAddressPath, pidPath string
 
 	// FakeInterrupt is exposed for unit tests to pretend "getenvoy run" received a Ctrl+C or Ctrl+Break.
 	// End-to-end tests should kill the getenvoy process to achieve the same.

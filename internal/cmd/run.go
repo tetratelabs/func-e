@@ -48,10 +48,10 @@ The version to use is downloaded and installed, if necessary.
 Envoy interprets the '[arguments...]' and runs in the current working
 directory (aka $CWD) until getenvoy is interrupted (ex Ctrl+C, Ctrl+Break).
 
-Console output is captured as "stdout.log" and "stderr.log" in the run
-directory (` + "`$GETENVOY_HOME/runs/$epochtime`" + `). When interrupted,
-shutdown hooks write files, including admin endpoints, network and process
-state. Upon exit, these zip into ` + "`$GETENVOY_HOME/runs/$epochtime.tar.gz`",
+Envoy's process ID and console output write to "envoy.pid", stdout.log" and
+"stderr.log" in the run directory (` + "`$GETENVOY_HOME/runs/$epochtime`" + `).
+When interrupted, shutdown hooks write files including network and process
+state. On exit, these archive into ` + "`$GETENVOY_HOME/runs/$epochtime.tar.gz`",
 		Before: func(c *cli.Context) error {
 			if err := os.MkdirAll(o.HomeDir, 0750); err != nil {
 				return NewValidationError(err.Error())

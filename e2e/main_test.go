@@ -28,6 +28,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/tetratelabs/getenvoy/internal/moreos"
 )
 
 //nolint:golint
@@ -35,6 +37,7 @@ const (
 	getenvoyBinaryEnvKey   = "E2E_GETENVOY_BINARY"
 	envoyVersionsURLEnvKey = "ENVOY_VERSIONS_URL"
 	envoyVersionsJSON      = "../site/envoy-versions.json"
+	runTimeout             = 2 * time.Minute
 )
 
 var (
@@ -59,7 +62,7 @@ func TestMain(m *testing.M) {
 	if _, ok := os.LookupEnv(envoyVersionsURLEnvKey); !ok && strings.Contains(versionLine, "SNAPSHOT") {
 		s, err := mockEnvoyVersionsServer() // no defer s.Close() because os.Exit() subverts it
 		if err != nil {
-			fmt.Fprintf(os.Stderr, `failed to serve %s: %v`, envoyVersionsJSON, err)
+			fmt.Fprintf(os.Stderr, "failed to serve %s: %v", envoyVersionsJSON, err)
 			os.Exit(1)
 		}
 		os.Setenv(envoyVersionsURLEnvKey, s.URL)
@@ -92,7 +95,7 @@ func mockEnvoyVersionsServer() (*httptest.Server, error) {
 			h := r.Header.Get(k)
 			if h != v {
 				w.WriteHeader(500)
-				w.Write([]byte(fmt.Sprintf(`invalid %q: %s != %s\n`, k, h, v))) //nolint
+				w.Write([]byte(fmt.Sprintf("invalid %q: %s != %s\n", k, h, v))) //nolint
 				return
 			}
 		}
@@ -132,12 +135,16 @@ func readGetEnvoyPath() (string, error) {
 	return path, nil
 }
 
-type getEnvoy struct{ cmd *exec.Cmd }
+type getEnvoy struct {
+	cmd      *exec.Cmd
+	runDir   string
+	envoyPid int32
+}
 
-// newGetEnvoy creates an exec.Cmd which will timeout instead of hang forever
-func newGetEnvoy(args ...string) (*getEnvoy, func()) {
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-	return &getEnvoy{exec.CommandContext(ctx, getEnvoyPath, args...)}, cancel //nolint:gosec
+func newGetEnvoy(ctx context.Context, args ...string) *getEnvoy {
+	cmd := exec.CommandContext(ctx, getEnvoyPath, args...)
+	cmd.SysProcAttr = moreos.ProcessGroupAttr()
+	return &getEnvoy{cmd: cmd}
 }
 
 func (b *getEnvoy) String() string {
@@ -145,8 +152,7 @@ func (b *getEnvoy) String() string {
 }
 
 func getEnvoyExec(args ...string) (string, string, error) {
-	g, cancel := newGetEnvoy(args...)
-	defer cancel()
+	g := newGetEnvoy(context.Background(), args...)
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
 	g.cmd.Stdout = io.MultiWriter(os.Stdout, stdout) // we want to see full `getenvoy` output in the test log

@@ -12,20 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package e2e
+package moreos
 
 import (
-	"testing"
-
-	"github.com/stretchr/testify/require"
+	"os"
+	"syscall"
 )
 
-func TestGetEnvoyVersion(t *testing.T) {
-	t.Parallel()
+// ProcessGroupAttr sets attributes that ensure exec.Cmd doesn't propagate signals from getenvoy by default.
+// This is used to ensure shutdown hooks can apply
+func ProcessGroupAttr() *syscall.SysProcAttr {
+	return processGroupAttr() // un-exported to prevent godoc drift
+}
 
-	stdout, stderr, err := getEnvoyExec("--version")
-
-	require.Regexp(t, `^getenvoy version ([^\s]+)\n$`, stdout)
-	require.Empty(t, stderr)
-	require.NoError(t, err)
+// Interrupt attempts to interrupt the process. It doesn't necessarily kill it.
+func Interrupt(p *os.Process) error {
+	return interrupt(p) // un-exported to prevent godoc drift
 }

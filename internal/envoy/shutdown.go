@@ -20,9 +20,9 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"syscall"
 	"time"
 
+	"github.com/tetratelabs/getenvoy/internal/moreos"
 	"github.com/tetratelabs/getenvoy/internal/tar"
 )
 
@@ -59,7 +59,9 @@ func (r *Runtime) handleShutdown(ctx context.Context) {
 func (r *Runtime) interruptEnvoy() {
 	p := r.cmd.Process
 	fmt.Fprintf(r.Out, "sending interrupt to envoy (pid=%d)\n", p.Pid) //nolint
-	_ = p.Signal(syscall.SIGINT)
+	if err := moreos.Interrupt(p); err != nil {
+		fmt.Fprintln(r.Out, "warning:", err) //nolint
+	}
 }
 
 func (r *Runtime) archiveRunDir() error {

@@ -15,6 +15,7 @@
 package e2e
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -35,18 +36,14 @@ type adminClient struct {
 	baseURL string
 }
 
-func (c *adminClient) isReady() (bool, error) {
-	resp, err := http.Get(c.baseURL + "/ready")
-	if err != nil {
-		return false, err
-	}
-	defer resp.Body.Close() //nolint:errcheck
-	return resp.StatusCode == http.StatusOK, nil
+func (c *adminClient) isReady(ctx context.Context) bool {
+	_, err := httpGet(ctx, c.baseURL+"/ready")
+	return err == nil
 }
 
-func (c *adminClient) getMainListenerURL() (string, error) {
+func (c *adminClient) getMainListenerURL(ctx context.Context) (string, error) {
 	var s map[string]interface{}
-	if err := c.getJSON("/listeners", &s); err != nil {
+	if err := c.getJSON(ctx, "/listeners", &s); err != nil {
 		return "", err
 	}
 
@@ -62,16 +59,23 @@ func (c *adminClient) getMainListenerURL() (string, error) {
 	return "", fmt.Errorf("didn't find main port in %+v", s)
 }
 
-func (c *adminClient) getJSON(path string, v interface{}) error {
-	body, err := httpGet(c.baseURL + path + "?format=json")
+func (c *adminClient) getJSON(ctx context.Context, path string, v interface{}) error {
+	body, err := httpGet(ctx, c.baseURL+path+"?format=json")
 	if err != nil {
 		return err
 	}
 	return json.Unmarshal(body, v)
 }
 
-func httpGet(url string) ([]byte, error) {
-	resp, err := http.Get(url)
+func httpGet(ctx context.Context, url string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
 	if err != nil {
 		return nil, err
 	}
