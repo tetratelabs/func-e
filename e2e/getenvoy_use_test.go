@@ -58,10 +58,11 @@ func TestGetEnvoyUse(t *testing.T) {
 }
 
 func TestGetEnvoyUse_UnknownVersion(t *testing.T) {
-	stdout, stderr, err := getEnvoyExec("use", "1.1.1")
+	v := "1.1.1"
+	stdout, stderr, err := getEnvoyExec("use", v)
 
 	require.EqualError(t, err, "exit status 1")
 	require.Empty(t, stdout)
-	require.Equal(t, fmt.Sprintf(`error: couldn't find version "1.1.1" for platform "%s/%s"
-`, runtime.GOOS, runtime.GOARCH), stderr)
+	require.Equal(t, fmt.Sprintf(`error: couldn't find version "%s" for platform "%s/%s"
+`, v, runtime.GOOS, runtime.GOARCH), stderr)
 }

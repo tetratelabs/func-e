@@ -21,9 +21,11 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 
+	"github.com/shirou/gopsutil/v3/process"
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/getenvoy/internal/globals"
@@ -85,8 +87,17 @@ func TestRuntime_Run(t *testing.T) {
 			var haveShutdownHook bool
 			r.RegisterShutdownHook(func(_ context.Context) error {
 				pid := requireEnvoyPid(t, r)
-				_, err := os.FindProcess(pid)
+
+				// Validate envoy.pid was written
+				pidText, err := os.ReadFile(r.pidPath)
+				require.NoError(t, err)
+				require.Equal(t, strconv.Itoa(pid), string(pidText))
+				require.Greater(t, pid, 1)
+
+				// Ensure the process can still be looked up (ex it didn't die from accidental signal propagation)
+				_, err = process.NewProcess(int32(pid)) // because os.FindProcess is no-op in Linux!
 				require.NoError(t, err, "shutdownHook called after process shutdown")
+
 				haveShutdownHook = true
 				return nil
 			})

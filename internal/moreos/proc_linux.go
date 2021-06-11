@@ -1,4 +1,4 @@
-// Copyright 2019 Tetrate
+// Copyright 2021 Tetrate
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,13 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package envoy
+package moreos
 
-import "syscall"
+import (
+	"os"
+	"syscall"
+)
 
-func sysProcAttr() *syscall.SysProcAttr {
-	return &syscall.SysProcAttr{
-		Setpgid:   true,            // equivalent to setpgrp() syscall
-		Pdeathsig: syscall.SIGTERM, // ensure the child Envoy process is cleaned up even if we die
-	}
+func processGroupAttr() *syscall.SysProcAttr {
+	// Pdeathsig aims to ensure the process group is cleaned up even if this process dies
+	return &syscall.SysProcAttr{Setpgid: true, Pdeathsig: syscall.SIGTERM}
+}
+
+func interrupt(p *os.Process) error {
+	return p.Signal(syscall.SIGINT)
 }

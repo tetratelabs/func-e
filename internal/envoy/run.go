@@ -17,11 +17,15 @@ package envoy
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/tetratelabs/getenvoy/internal/moreos"
 )
 
 // Run execs the binary at the path with the args passed. It is a blocking function that can be shutdown via SIGINT.
@@ -31,7 +35,7 @@ func (r *Runtime) Run(ctx context.Context, args []string) (err error) {
 	cmd := exec.Command(r.opts.EnvoyPath, args...) // #nosec -> users can run whatever binary they like!
 	cmd.Stdout = r.Out
 	cmd.Stderr = r.Err
-	cmd.SysProcAttr = sysProcAttr()
+	cmd.SysProcAttr = moreos.ProcessGroupAttr()
 	r.cmd = cmd
 
 	// Suppress any error and replace it with the envoy exit status when > 1
@@ -52,6 +56,11 @@ func (r *Runtime) Run(ctx context.Context, args []string) (err error) {
 	fmt.Fprintln(r.Out, "starting:", strings.Join(r.cmd.Args, " ")) //nolint
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("unable to start Envoy process: %w", err)
+	}
+
+	// Warn, but don't fail if we can't write the pid file for some reason
+	if err := os.WriteFile(r.pidPath, []byte(strconv.Itoa(cmd.Process.Pid)), 0600); err != nil {
+		fmt.Fprintln(r.Out, "warning:", err) //nolint
 	}
 
 	waitCtx, waitCancel := context.WithCancel(ctx)

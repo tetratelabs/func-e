@@ -101,3 +101,8 @@ func TestEnsureAdminAddressPath_ValidateExisting(t *testing.T) {
 		})
 	}
 }
+
+func TestPidFilePath(t *testing.T) {
+	r := NewRuntime(&globals.RunOpts{RunDir: "run"})
+	require.Equal(t, filepath.Join("run", "envoy.pid"), r.pidPath)
+}
