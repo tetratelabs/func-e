@@ -69,7 +69,7 @@ func TestEnvoyVersionsJson(t *testing.T) {
 	for v, ev := range evs.Versions {
 		require.NotEmptyf(t, releaseDates[v], "version %s is not a published envoyproxy/proxy release", v)
 		require.Equalf(t, releaseDates[v], ev.ReleaseDate, "releaseDate for %s doesn't match envoyproxy/proxy", v)
-		require.GreaterOrEqualf(t, len(ev.Tarballs), 2, "expected at least two platforms for version %s", v)
+		require.GreaterOrEqualf(t, len(ev.Tarballs), 1, "expected at least one platforms for version %s", v)
 
 		for p, tb := range ev.Tarballs {
 			tests = append(tests, testCase{v, p, tb})
@@ -94,7 +94,7 @@ func TestEnvoyVersionsJson(t *testing.T) {
 
 // getEnvoyReleases returns release metadata we can use to verify ours
 func getEnvoyReleaseDates() (map[string]string, error) {
-	url := "https://api.github.com/repos/envoyproxy/envoy/releases"
+	url := "https://api.github.com/repos/envoyproxy/envoy/releases?per_page=100"
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
