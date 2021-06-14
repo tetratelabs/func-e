@@ -9,3 +9,12 @@ Latest master merge:
 * https://getenvoy.io/envoy-versions-schema.json -> [./envoy-versions-schema.json](envoy-versions-schema.json)
 * https://www.getenvoy.io/usage/ -> [./usage.md](usage.md)
   * this is verified by [usage_md_test.go](../internal/cmd/usage_md_test.go)
+
+## Temporary releases
+
+We are still lacking images for linux/arm64 and windows/amd64. The following can be used temporarily, not in production.
+
+```
+export ENVOY_VERSIONS_URL=https://raw.githubusercontent.com/tetratelabs/temprepo/master/envoy-versions.json
+getenvoy versions -a
+```
