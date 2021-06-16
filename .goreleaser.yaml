@@ -34,7 +34,7 @@ brews:
   - name: getenvoy
     tap:
       owner: tetratelabs
-      name: getenvoy
+      name: homebrew-getenvoy
       # Use token other than the default one (which is limited in scope to
       # https://github.com/tetratelabs/getenvoy only)
       token: "{{ .Env.HOMEBREW_GETENVOY_GITHUB_TOKEN }}"
