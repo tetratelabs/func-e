@@ -20,6 +20,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path"
 	"strings"
 	"testing"
 
@@ -51,19 +52,16 @@ func TestEnvoyVersionsJson(t *testing.T) {
 	data, err := os.ReadFile(envoyVersionsPath)
 	require.NoError(t, err)
 
-	evs := version.EnvoyVersions{}
+	evs := version.ReleaseVersions{}
 	err = json.Unmarshal(data, &evs)
 	require.NoErrorf(t, err, "error parsing json from %s", envoyVersionsPath)
-	require.Greaterf(t, len(evs.Versions), 2, "expected more than two versions")
+	require.NotZerof(t, len(evs.Versions), "expected at least one versions")
 
-	require.NotEmptyf(t, evs.LatestVersion, "latest version isn't in %s", envoyVersionsPath)
-	require.Containsf(t, evs.Versions, evs.LatestVersion, "latest version isn't in the version list of %s", envoyVersionsPath)
-	require.Equalf(t, evs.LatestVersion, version.LastKnownEnvoy, "version.LastKnownEnvoy doesn't match latest version in %s", envoyVersionsPath)
-
-	// Ensure there's an option besides the latest version
-	require.GreaterOrEqualf(t, len(evs.Versions), 2, "expected more than two versions")
-
-	type testCase struct{ version, platform, tarballURL string }
+	type testCase struct {
+		version    version.Version
+		platform   version.Platform
+		tarballURL version.TarballURL
+	}
 
 	var tests []testCase
 	for v, ev := range evs.Versions {
@@ -80,8 +78,13 @@ func TestEnvoyVersionsJson(t *testing.T) {
 		name := fmt.Sprintf("%s-%s", tc.version, tc.platform)
 		tarballURL := tc.tarballURL
 		t.Run(name, func(t *testing.T) {
-			require.Regexpf(t, "https://.*.tar.(gz|xz)", tarballURL, "expected an https tar.gz or xz %s", tarballURL)
-			res, err := http.Head(tarballURL)
+			require.Regexpf(t, "^https://.+/[a-zA-Z0-9-_.]+[.]tar[.][gx]z$", tarballURL, "expected an https tar.gz or xz %s", tarballURL)
+			tarball := version.Tarball(path.Base(string(tarballURL)))
+			require.Containsf(t, evs.SHA256Sums, tarball, "expected sha256Sums to include %s", tarball)
+			require.Regexpf(t, "^[0-9a-f]{64}$", evs.SHA256Sums[tarball], "unexpected SHA256Sum %s", tarballURL)
+
+			// We don't validate the SHA256Sum every time because it would consume a lot of bandwidth.
+			res, err := http.Head(string(tarballURL))
 			require.NoErrorf(t, err, "error from HEAD %s", tarballURL)
 			defer res.Body.Close() //nolint
 
@@ -92,8 +95,22 @@ func TestEnvoyVersionsJson(t *testing.T) {
 	}
 }
 
+func TestEnvoyVersionsJson_Latest(t *testing.T) {
+	data, err := os.ReadFile(envoyVersionsPath)
+	require.NoError(t, err)
+
+	evs := version.ReleaseVersions{}
+	err = json.Unmarshal(data, &evs)
+	require.NoErrorf(t, err, "error parsing json from %s", envoyVersionsPath)
+	require.NotZero(t, len(evs.Versions), "expected at least one versions")
+
+	require.NotEmptyf(t, evs.LatestVersion, "latest version isn't in %s", envoyVersionsPath)
+	require.Containsf(t, evs.Versions, evs.LatestVersion, "latest version isn't in the version list of %s", envoyVersionsPath)
+	require.Equalf(t, evs.LatestVersion, version.LastKnownEnvoy, "version.LastKnownEnvoy doesn't match latest version in %s", envoyVersionsPath)
+}
+
 // getEnvoyReleases returns release metadata we can use to verify ours
-func getEnvoyReleaseDates() (map[string]string, error) {
+func getEnvoyReleaseDates() (map[version.Version]version.ReleaseDate, error) {
 	url := "https://api.github.com/repos/envoyproxy/envoy/releases?per_page=100"
 	resp, err := http.Get(url)
 	if err != nil {
@@ -114,13 +131,13 @@ func getEnvoyReleaseDates() (map[string]string, error) {
 		return nil, fmt.Errorf("error unmarshalling GitHub Releases: %w", err)
 	}
 
-	m := map[string]string{}
+	m := map[version.Version]version.ReleaseDate{}
 	for _, r := range releases { //nolint:gocritic
 		if r.Draft || r.PreRelease {
 			continue
 		}
 		// clean inputs "v1.15.4" -> "2021-05-11T19:11:09Z" into "1.15.4" -> "2021-05-11"
-		m[strings.TrimPrefix(r.Name, "v")] = r.PublishedAt[0:10]
+		m[version.Version(strings.TrimPrefix(r.Name, "v"))] = version.ReleaseDate(r.PublishedAt[0:10])
 	}
 	return m, nil
 }

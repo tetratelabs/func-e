@@ -1,65 +1,90 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
-  "id": "https://www.getenvoy.io/envoyVersions",
+  "id": "https://www.getenvoy.io/releaseVersions",
   "type": "object",
-  "title": "EnvoyVersions",
-  "description": "EnvoyVersions include metadata about the latest version and all available tarball URLs",
+  "title": "ReleaseVersions",
+  "description": "ReleaseVersions primarily maps Version to TarballURL and tracks the LatestVersion",
   "properties": {
     "latestVersion": {
       "title": "LatestVersion",
-      "description": "LatestVersion is the latest stable version. See https://github.com/envoyproxy/envoy/blob/main/RELEASES.md",
-      "type": "string",
-      "pattern": "^[1-9][0-9]*\\.[0-9]+\\.[0-9]+$"
+      "description": "LatestVersion is the latest stable Version",
+      "$ref": "#/definitions/Version"
     },
     "versions": {
       "type": "object",
       "title": "Versions",
-      "description": "Versions are all stable versions of Envoy keyed on version number (without a 'v' prefix)",
+      "description": "maps a Version to its Release",
       "minProperties": 1,
       "propertyNames": {
-        "pattern": "^[1-9][0-9]*\\.[0-9]+\\.[0-9]+$"
+        "$ref": "#/definitions/Version"
       },
       "additionalProperties": {
-        "$ref": "#/definitions/EnvoyVersion"
+        "$ref": "#/definitions/Release"
       }
+    },
+    "SHA256Sums": {
+      "type": "object",
+      "title": "SHA-256 sums",
+      "description": "maps a Tarball to its SHA256Sum",
+      "minProperties": 1,
+      "propertyNames": {
+        "$ref": "#/definitions/Tarball"
+      },
+      "additionalProperties": {
+        "$ref": "#/definitions/SHA256Sum"
+      },
+      "examples": [
+        {
+          "envoy-v1.18.3-windows-amd64.tar.xz": "1274f55b3022bc1331aed41089f189094e00729981fe132ce00aac6272ea0770"
+        }
+      ]
     }
   },
   "examples": [
     {
       "latestVersion": "1.18.3",
       "versions": {
-        "1.14.6": {
-          "releaseDate": "2021-04-16",
+        "1.15.5": {
+          "releaseDate": "2021-05-11",
           "tarballs": {
-            "darwin/amd64": "https://getenvoy.io/versions/1.14.6/envoy-1.14.6-darwin-x86_64.tar.gz",
-            "linux/amd64": "https://getenvoy.io/versions/1.14.6/envoy-1.14.6-linux-x86_64.tar.gz"
+            "darwin/amd64": "https://archive.tetratelabs.io/envoy/v1.15.5/envoy-v1.15.5-darwin-amd64.tar.xz",
+            "linux/amd64": "https://archive.tetratelabs.io/envoy/v1.15.5/envoy-v1.15.5-linux-amd64.tar.xz",
+            "linux/arm64": "https://archive.tetratelabs.io/envoy/v1.15.5/envoy-v1.15.5-linux-arm64.tar.xz"
           }
         },
         "1.18.3": {
           "releaseDate": "2021-05-11",
           "tarballs": {
-            "darwin/amd64": "https://getenvoy.io/versions/1.18.3/envoy-1.18.3-darwin-x86_64.tar.gz",
-            "linux/amd64": "https://getenvoy.io/versions/1.18.3/envoy-1.18.3-linux-x86_64.tar.gz",
+            "darwin/amd64": "https://archive.tetratelabs.io/envoy/v1.18.3/envoy-v1.18.3-darwin-amd64.tar.xz",
+            "linux/amd64": "https://archive.tetratelabs.io/envoy/v1.18.3/envoy-v1.18.3-linux-amd64.tar.xz",
+            "linux/arm64": "https://archive.tetratelabs.io/envoy/v1.18.3/envoy-v1.18.3-linux-arm64.tar.xz",
+            "windows/amd64": "https://archive.tetratelabs.io/envoy/v1.18.3/envoy-v1.18.3-windows-amd64.tar.xz"
           }
         }
+      },
+      "sha256sums": {
+        "envoy-v1.15.5-darwin-amd64.tar.xz": "8c6710c4380eb13c1748a44864af146a6bae75145a1a7dd590e3fcb61de71a84",
+        "envoy-v1.15.5-linux-amd64.tar.xz": "227c6166d4fb73e6d8ef8976549536a50fa9e5b0fdc6984190524d829a33b9b2",
+        "envoy-v1.15.5-linux-arm64.tar.xz": "dd9ae8dc76cd7704f22c51a7ec282c0af53e5facc16116be1cf9d396f792cef2",
+        "envoy-v1.18.3-darwin-amd64.tar.xz": "cb27be135f0d48167b756d17fa9117ed6295ee3f69e4db7900b94ddffef463e1",
+        "envoy-v1.18.3-linux-amd64.tar.xz": "10e1c6bc354018578f02c97358d3bbc9a26d4989cf752963611e69dac52656f4",
+        "envoy-v1.18.3-linux-arm64.tar.xz": "367d61bf246d56cc24949574977edefa4649ad2072c08d57a8bd63c44d991d25",
+        "envoy-v1.18.3-windows-amd64.tar.xz": "1274f55b3022bc1331aed41089f189094e00729981fe132ce00aac6272ea0770"
       }
     }
   ],
   "definitions": {
-    "EnvoyVersion": {
+    "Release": {
       "type": "object",
-      "title": "EnvoyVersion",
-      "description" : "EnvoyVersion is the release date and tarballs for this version, keyed on platform",
+      "title": "Release",
+      "description": "primarily maps available Tarballs for a Version",
       "properties": {
         "releaseDate": {
-          "title": "ReleaseDate",
-          "description": "ReleaseDate is the date of the version tag https://github.com/envoyproxy/envoy/versions",
-          "type": "string",
-          "format": "date"
+          "$ref": "#/definitions/ReleaseDate"
         },
         "tarballs": {
           "title": "Tarballs",
-          "description": "Tarballs available by platform",
+          "description": "Tarballs available by Platform",
           "type": "object",
           "minProperties": 1,
           "propertyNames": {
@@ -73,7 +98,7 @@
       },
       "required": [
         "releaseDate",
-        "downloads"
+        "tarballs"
       ]
     },
     "Platform": {
@@ -82,15 +107,56 @@
       "type": "string",
       "examples": [
         "darwin/amd64",
+        "darwin/arm64",
         "linux/amd64",
-        "linux/arm64"
+        "linux/arm64",
+        "windows/amd64"
+      ]
+    },
+    "ReleaseDate": {
+      "title": "ReleaseDate",
+      "description": "the publish date of the release Version",
+      "type": "string",
+      "format": "date",
+      "examples": [
+        "2021-05-11"
+      ]
+    },
+    "SHA256Sum": {
+      "type": "string",
+      "title": "SHA-256 sum",
+      "description": "SHA-256 lower-hex hash",
+      "pattern": "^[0-9a-f]{64}$",
+      "examples": [
+        "1274f55b3022bc1331aed41089f189094e00729981fe132ce00aac6272ea0770"
+      ]
+    },
+    "Tarball": {
+      "title": "Tarball Name",
+      "description": "Name of the tar.gz or tar.xz archive. Minimum contents are ${dist}/bin/${bin}[.exe]",
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9-_.]+[.]tar[.][gx]z$",
+      "examples": [
+        "https://archive.tetratelabs.io/envoy/v1.18.3/envoy-v1.18.3-darwin-amd64.tar.xz"
       ]
     },
     "TarballURL": {
       "title": "Tarball URL",
-      "description": "URL of the tar.gz or tar.xz that bundles Envoy. Minimum contents are $version/bin/envoy",
+      "description": "HTTPS URL to the Tarball. SHA256Sums must include its base name",
       "type": "string",
-      "format": "uri"
+      "format": "uri",
+      "examples": [
+        "envoy-v1.18.3-darwin-amd64.tar.xz"
+      ]
+    },
+    "Version": {
+      "title": "Version",
+      "description": "a release version from https://github.com/${GITHUB_REPOSITORY}/releases, without a 'v' prefix.",
+      "type": "string",
+      "pattern": "^[1-9][0-9]*\\.[0-9]+\\.[0-9]+$",
+      "examples": [
+        "1.18.3"
+      ]
     }
   }
 }

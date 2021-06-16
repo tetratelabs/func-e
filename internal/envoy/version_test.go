@@ -86,7 +86,10 @@ func TestWriteCurrentVersion_HomeDir(t *testing.T) {
 	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
 	defer removeHomeDir()
 
-	for _, tt := range []struct{ name, v string }{
+	for _, tt := range []struct {
+		name string
+		v    version.Version
+	}{
 		{"writes initial home version", "1.1.1"},
 		{"overwrites home version", "2.2.2"},
 	} {
@@ -116,13 +119,13 @@ func TestWriteCurrentVersion_OverwritesWorkingDirVersion(t *testing.T) {
 	require.NoError(t, WriteCurrentVersion("3.3.3", homeDir))
 	v, src, err := getCurrentVersion(homeDir)
 	require.NoError(t, err)
-	require.Equal(t, "3.3.3", v)
+	require.Equal(t, version.Version("3.3.3"), v)
 	require.Equal(t, CurrentVersionWorkingDirFile, src)
 
 	// didn't overwrite the home version
 	v, _, err = getHomeVersion(homeDir)
 	require.NoError(t, err)
-	require.Equal(t, "1.1.1", v)
+	require.Equal(t, version.Version("1.1.1"), v)
 }
 
 // TestCurrentVersion is intentionally written in priority order instead of via a matrix. This particularly helps with
@@ -134,7 +137,7 @@ func TestCurrentVersion(t *testing.T) {
 
 	t.Run("defaults to home version", func(t *testing.T) {
 		v, source, err := CurrentVersion(homeDir)
-		require.Equal(t, "1.1.1", v)
+		require.Equal(t, version.Version("1.1.1"), v)
 		require.Equal(t, CurrentVersionHomeDirFile, source)
 		require.NoError(t, err)
 	})
@@ -145,7 +148,7 @@ func TestCurrentVersion(t *testing.T) {
 
 	t.Run("prefers $PWD/.envoy-version over home version", func(t *testing.T) {
 		v, source, err := CurrentVersion(homeDir)
-		require.Equal(t, "2.2.2", v)
+		require.Equal(t, version.Version("2.2.2"), v)
 		require.Equal(t, CurrentVersionWorkingDirFile, source)
 		require.NoError(t, err)
 	})
@@ -155,7 +158,7 @@ func TestCurrentVersion(t *testing.T) {
 
 	t.Run("prefers $ENVOY_VERSION over $PWD/.envoy-version", func(t *testing.T) {
 		v, source, err := CurrentVersion(homeDir)
-		require.Equal(t, "3.3.3", v)
+		require.Equal(t, version.Version("3.3.3"), v)
 		require.Equal(t, currentVersionVar, source)
 		require.NoError(t, err)
 	})

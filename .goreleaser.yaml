@@ -17,7 +17,7 @@ project_name: getenvoy
 builds:
   - binary: getenvoy
     # Updates the version so that `getenvoy -v` prints out the release version instead of "dev"
-    ldflags: "-s -w -X github.com/tetratelabs/getenvoy/internal/version.GetEnvoy={{.Version}}"
+    ldflags: "-s -w -X github.com/tetratelabs/getenvoy/internal/version.getEnvoy={{.Version}}"
     main: .
     env:
       - CGO_ENABLED=0

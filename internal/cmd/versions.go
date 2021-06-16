@@ -80,10 +80,8 @@ func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 }
 
 type versionReleaseDate struct {
-	// version ex "1.15.5"
-	version string
-	// releaseDate ex "2021-05-11"
-	releaseDate string
+	version     version.Version
+	releaseDate version.ReleaseDate
 }
 
 func getInstalledVersions(homeDir string) ([]versionReleaseDate, error) {
@@ -97,22 +95,25 @@ func getInstalledVersions(homeDir string) ([]versionReleaseDate, error) {
 
 	for _, f := range files {
 		if i, err := f.Info(); f.IsDir() && err == nil {
-			rows = append(rows, versionReleaseDate{f.Name(), i.ModTime().Format("2006-01-02")})
+			rows = append(rows, versionReleaseDate{
+				version.Version(f.Name()),
+				version.ReleaseDate(i.ModTime().Format("2006-01-02")),
+			})
 		}
 	}
 	return rows, nil
 }
 
 // addAvailableVersions adds remote Envoy versions valid for this platform to "rows", if they don't already exist
-func addAvailableVersions(rows *[]versionReleaseDate, remote map[string]version.EnvoyVersion, p string) error {
-	existingVersions := make(map[string]bool)
+func addAvailableVersions(rows *[]versionReleaseDate, remote map[version.Version]version.Release, p version.Platform) error {
+	existingVersions := make(map[version.Version]bool)
 	for _, v := range *rows { //nolint:gocritic
 		existingVersions[v.version] = true
 	}
 
 	for k, v := range remote {
 		if _, ok := v.Tarballs[p]; ok && !existingVersions[k] {
-			if _, err := time.Parse("2006-01-02", v.ReleaseDate); err != nil {
+			if _, err := time.Parse("2006-01-02", string(v.ReleaseDate)); err != nil {
 				return fmt.Errorf("invalid releaseDate of version %q for platform %q: %w", k, p, err)
 			}
 			*rows = append(*rows, versionReleaseDate{k, v.ReleaseDate})

@@ -15,12 +15,14 @@
 package test
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -36,7 +38,7 @@ import (
 
 const (
 	// FakeReleaseDate helps us make sure main code doesn't accidentally write the system time instead of the expected.
-	FakeReleaseDate = "2020-12-31"
+	FakeReleaseDate = version.ReleaseDate("2020-12-31")
 	// Even though currently binaries are compressed with "xz" more than "gz", using "gz" in tests allows us to re-use
 	// tar.TarGz instead of complicating internal utilities or adding dependencies only for tests.
 	archiveFormat = ".tar.gz"
@@ -44,33 +46,41 @@ const (
 )
 
 // RequireEnvoyVersionsTestServer serves "/envoy-versions.json", containing download links a fake Envoy archive.
-func RequireEnvoyVersionsTestServer(t *testing.T, v string) *httptest.Server {
+func RequireEnvoyVersionsTestServer(t *testing.T, v version.Version) *httptest.Server {
 	s := &server{t: t}
 	h := httptest.NewServer(s)
-	s.versions = version.EnvoyVersions{
+	s.versions = version.ReleaseVersions{
 		LatestVersion: v,
-		Versions: map[string]version.EnvoyVersion{ // hard-code date so that tests don't drift
-			v: {ReleaseDate: FakeReleaseDate, Tarballs: map[string]string{
-				"linux/" + runtime.GOARCH:  TarballURL(h.URL, "linux", runtime.GOARCH, v),
-				"darwin/" + runtime.GOARCH: TarballURL(h.URL, "darwin", runtime.GOARCH, v),
+		Versions: map[version.Version]version.Release{ // hard-code date so that tests don't drift
+			v: {ReleaseDate: FakeReleaseDate, Tarballs: map[version.Platform]version.TarballURL{
+				version.Platform("linux/" + runtime.GOARCH):   TarballURL(h.URL, "linux", runtime.GOARCH, v),
+				version.Platform("darwin/" + runtime.GOARCH):  TarballURL(h.URL, "darwin", runtime.GOARCH, v),
+				version.Platform("windows/" + runtime.GOARCH): TarballURL(h.URL, "windows", runtime.GOARCH, v),
 			}}},
+		SHA256Sums: map[version.Tarball]version.SHA256Sum{},
+	}
+	fakeEnvoyTarGz, sha256Sum := RequireFakeEnvoyTarGz(s.t, v)
+	s.fakeEnvoyTarGz = fakeEnvoyTarGz
+	for _, u := range s.versions.Versions[v].Tarballs {
+		s.versions.SHA256Sums[version.Tarball(path.Base(string(u)))] = sha256Sum
 	}
 	return h
 }
 
 // TarballURL gives the expected download URL for the given runtime.GOOS and Envoy version.
-func TarballURL(baseURL, goos, goarch, v string) string {
+func TarballURL(baseURL, goos, goarch string, v version.Version) version.TarballURL {
 	var arch = "x86_64"
 	if goarch != "arm64" {
 		arch = goarch
 	}
-	return fmt.Sprintf("%s%s%s/envoy-%s-%s-%s%s", baseURL, versionsPath, v, v, goos, arch, archiveFormat)
+	return version.TarballURL(fmt.Sprintf("%s%s%s/envoy-%s-%s-%s%s", baseURL, versionsPath, v, v, goos, arch, archiveFormat))
 }
 
 // server represents an HTTP server serving GetEnvoy versions.
 type server struct {
-	t        *testing.T
-	versions version.EnvoyVersions
+	t              *testing.T
+	versions       version.ReleaseVersions
+	fakeEnvoyTarGz []byte
 }
 
 func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -87,7 +97,7 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		require.Regexpf(s.t, `^1\.[1-9][0-9]\.[0-9]+$`, v, "unsupported version in uri %q", subpath)
 
 		w.WriteHeader(http.StatusOK)
-		_, err := w.Write(requireFakeEnvoyTarGz(s.t, v))
+		_, err := w.Write(s.fakeEnvoyTarGz)
 		require.NoError(s.t, err)
 	default:
 		w.WriteHeader(http.StatusNotFound)
@@ -100,12 +110,13 @@ func (s *server) getEnvoyVersions() []byte {
 	return data
 }
 
-func requireFakeEnvoyTarGz(t *testing.T, v string) []byte {
+// RequireFakeEnvoyTarGz makes a fake envoy.tar.gz
+func RequireFakeEnvoyTarGz(t *testing.T, v version.Version) ([]byte, version.SHA256Sum) {
 	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
 	defer removeTempDir()
 
 	// construct the platform directory based on the input version
-	installDir := filepath.Join(tempDir, v)
+	installDir := filepath.Join(tempDir, string(v))
 	require.NoError(t, os.MkdirAll(filepath.Join(installDir, "bin"), 0700)) //nolint:gosec
 	RequireFakeEnvoy(t, filepath.Join(installDir, "bin", "envoy"+moreos.Exe))
 
@@ -120,5 +131,5 @@ func requireFakeEnvoyTarGz(t *testing.T, v string) []byte {
 	defer f.Close() // nolint
 	b, err := io.ReadAll(f)
 	require.NoError(t, err)
-	return b
+	return b, version.SHA256Sum(fmt.Sprintf("%x", sha256.Sum256(b)))
 }

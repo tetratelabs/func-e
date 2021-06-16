@@ -18,6 +18,8 @@ import (
 	"io"
 	"regexp"
 	"runtime"
+
+	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
 // RunOpts support invocations of "getenvoy run"
@@ -48,7 +50,7 @@ type GlobalOpts struct {
 	EnvoyVersionsURL string
 	// EnvoyVersion is the default version of Envoy to run. Defaults to the contents of "$HomeDir/versions/version".
 	// When that file is missing, it is generated from ".latestVersion" from the EnvoyVersionsURL.
-	EnvoyVersion string
+	EnvoyVersion version.Version
 	// HomeDir is an absolute path which most importantly contains "versions" installed from EnvoyVersionsURL. Defaults to DefaultHomeDir
 	HomeDir string
 	// Out is where status messages are written. Defaults to os.Stdout
@@ -66,5 +68,5 @@ var (
 	// EnvoyVersionPattern is used to validate versions and is the same pattern as envoy-versions-schema.json.
 	EnvoyVersionPattern = regexp.MustCompile(`^[1-9][0-9]*\.[0-9]+\.[0-9]+$`)
 	// CurrentPlatform is the platform of the current process. This is used as a key in EnvoyVersion.Tarballs.
-	CurrentPlatform = runtime.GOOS + "/" + runtime.GOARCH
+	CurrentPlatform = version.Platform(runtime.GOOS + "/" + runtime.GOARCH)
 )

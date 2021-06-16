@@ -16,9 +16,13 @@ package envoy
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
+	"hash"
+	"io"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"time"
 
@@ -31,13 +35,13 @@ import (
 var binEnvoy = filepath.Join("bin", "envoy"+moreos.Exe)
 
 // InstallIfNeeded downloads an Envoy binary corresponding to the given version and returns a path to it or an error.
-func InstallIfNeeded(ctx context.Context, o *globals.GlobalOpts, p, v string) (string, error) {
-	installPath := filepath.Join(o.HomeDir, "versions", v)
+func InstallIfNeeded(ctx context.Context, o *globals.GlobalOpts, p version.Platform, v version.Version) (string, error) {
+	installPath := filepath.Join(o.HomeDir, "versions", string(v))
 	envoyPath := filepath.Join(installPath, binEnvoy)
 	_, err := os.Stat(envoyPath)
 	switch {
 	case os.IsNotExist(err):
-		var ev version.EnvoyVersions // Get version metadata for what we will install
+		var ev version.ReleaseVersions // Get version metadata for what we will install
 		ev, err = GetEnvoyVersions(ctx, o.EnvoyVersionsURL, p, v)
 		if err != nil {
 			return "", err
@@ -48,16 +52,22 @@ func InstallIfNeeded(ctx context.Context, o *globals.GlobalOpts, p, v string) (s
 			return "", fmt.Errorf("couldn't find version %q for platform %q", v, p)
 		}
 
+		tarball := version.Tarball(path.Base(string(tarballURL)))
+		sha256Sum := ev.SHA256Sums[tarball]
+		if len(sha256Sum) != 64 {
+			return "", fmt.Errorf("couldn't find sha256Sum of version %q for platform %q: %w", v, p, err)
+		}
+
 		var mtime time.Time // Create a directory for the version, preserving the release date as its mtime
-		if mtime, err = time.Parse("2006-01-02", ev.Versions[v].ReleaseDate); err != nil {
+		if mtime, err = time.Parse("2006-01-02", string(ev.Versions[v].ReleaseDate)); err != nil {
 			return "", fmt.Errorf("couldn't find releaseDate of version %q for platform %q: %w", v, p, err)
 		}
 		if err = os.MkdirAll(installPath, 0750); err != nil {
 			return "", fmt.Errorf("unable to create directory %q: %w", installPath, err)
 		}
 
-		fmt.Fprintln(o.Out, "downloading", tarballURL)                        //nolint
-		if err = untarEnvoy(ctx, installPath, tarballURL, p, v); err != nil { //nolint
+		fmt.Fprintln(o.Out, "downloading", tarballURL)                                   //nolint
+		if err = untarEnvoy(ctx, installPath, tarballURL, sha256Sum, p, v); err != nil { //nolint
 			return "", err
 		}
 		if err = os.Chtimes(installPath, mtime, mtime); err != nil { // overwrite the mtime to preserve it in the list
@@ -84,19 +94,42 @@ func verifyEnvoy(installPath string) (string, error) {
 	return envoyPath, nil
 }
 
-func untarEnvoy(ctx context.Context, dst, url, p, v string) error { // dst, src order like io.Copy
-	resp, err := httpGet(ctx, url, p, v)
+type digester struct {
+	r io.Reader
+	h hash.Hash
+	e error
+}
+
+func (d *digester) Read(p []byte) (n int, err error) {
+	n, err = d.r.Read(p)
+	if n > 0 {
+		_, d.e = d.h.Write(p[:n])
+	}
+	return
+}
+
+func untarEnvoy(ctx context.Context, dst string, src version.TarballURL, // dst, src order like io.Copy
+	sha256Sum version.SHA256Sum, p version.Platform, v version.Version) error {
+	res, err := httpGet(ctx, string(src), p, v)
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close() //nolint
+	defer res.Body.Close() //nolint
 
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("received %v status code from %s", resp.StatusCode, url)
+	if res.StatusCode != http.StatusOK {
+		return fmt.Errorf("received %v status code from %s", res.StatusCode, src)
 	}
 
-	if err = tar.Untar(dst, resp.Body); err != nil {
-		return fmt.Errorf("error untarring %s: %w", url, err)
+	d := digester{res.Body, sha256.New(), nil}
+	if err = tar.Untar(dst, &d); err != nil {
+		return fmt.Errorf("error untarring %s: %w", src, err)
+	}
+	if d.e != nil {
+		return fmt.Errorf("error computing SHA-256 from %s: %w", src, d.e)
+	}
+	sum := version.SHA256Sum(fmt.Sprintf("%x", d.h.Sum(nil)))
+	if sum != sha256Sum {
+		return fmt.Errorf("expected SHA-256 sum %q, but have %q from %s", sha256Sum, sum, src)
 	}
 	return nil
 }

@@ -86,23 +86,23 @@ func TestGetInstalledVersions_SkipsFileInVersionsDir(t *testing.T) {
 }
 
 func TestAddAvailableVersions(t *testing.T) {
-	goodVersions := map[string]version.EnvoyVersion{
+	goodVersions := map[version.Version]version.Release{
 		"1.14.7": {
 			ReleaseDate: "2021-04-15",
-			Tarballs: map[string]string{
+			Tarballs: map[version.Platform]version.TarballURL{
 				"darwin/amd64": "https://getenvoy.io/versions/1.14.7/envoy-1.14.7-darwin-x86_64.tar.gz",
 				"linux/amd64":  "https://getenvoy.io/versions/1.14.7/envoy-1.14.7-linux-x86_64.tar.gz",
 			},
 		},
 		"1.17.3": {
 			ReleaseDate: "2021-05-11",
-			Tarballs: map[string]string{
+			Tarballs: map[version.Platform]version.TarballURL{
 				"linux/amd64": "https://getenvoy.io/versions/1.17.3/envoy-1.17.3-linux-x86_64.tar.gz",
 			},
 		},
 		"1.18.3": {
 			ReleaseDate: "2021-05-11",
-			Tarballs: map[string]string{
+			Tarballs: map[version.Platform]version.TarballURL{
 				"darwin/amd64": "https://getenvoy.io/versions/1.18.3/envoy-1.18.3-darwin-x86_64.tar.gz",
 				"linux/amd64":  "https://getenvoy.io/versions/1.18.3/envoy-1.18.3-linux-x86_64.tar.gz",
 			},
@@ -112,8 +112,8 @@ func TestAddAvailableVersions(t *testing.T) {
 	tests := []struct {
 		name     string
 		existing []versionReleaseDate
-		update   map[string]version.EnvoyVersion
-		platform string
+		update   map[version.Version]version.Release
+		platform version.Platform
 		expected []versionReleaseDate
 	}{
 		{
@@ -171,14 +171,14 @@ func TestAddAvailableVersions(t *testing.T) {
 func TestAddAvailableVersions_Validates(t *testing.T) {
 	tests := []struct {
 		name   string
-		update map[string]version.EnvoyVersion
+		update map[version.Version]version.Release
 	}{
 		{
 			name: "invalid releaseDate",
-			update: map[string]version.EnvoyVersion{
+			update: map[version.Version]version.Release{
 				"1.14.7": {
 					ReleaseDate: "ice cream",
-					Tarballs: map[string]string{
+					Tarballs: map[version.Platform]version.TarballURL{
 						"darwin/amd64": "https://getenvoy.io/versions/1.14.7/envoy-1.14.7-darwin-x86_64.tar.gz",
 					},
 				},
@@ -186,9 +186,9 @@ func TestAddAvailableVersions_Validates(t *testing.T) {
 		},
 		{
 			name: "missing releaseDate",
-			update: map[string]version.EnvoyVersion{
+			update: map[version.Version]version.Release{
 				"1.14.7": {
-					Tarballs: map[string]string{
+					Tarballs: map[version.Platform]version.TarballURL{
 						"darwin/amd64": "https://getenvoy.io/versions/1.14.7/envoy-1.14.7-darwin-x86_64.tar.gz",
 					},
 				},
