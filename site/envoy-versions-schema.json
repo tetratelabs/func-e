@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft-07/schema#",
   "id": "https://www.getenvoy.io/releaseVersions",
   "type": "object",
-  "title": "Releases",
-  "description": "Releases primarily maps Version to TarballURL and tracks the LatestVersion",
+  "title": "ReleaseVersions",
+  "description": "ReleaseVersions primarily maps Version to TarballURL and tracks the LatestVersion",
   "properties": {
     "latestVersion": {
       "title": "LatestVersion",
