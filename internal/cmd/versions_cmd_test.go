@@ -140,7 +140,7 @@ func TestGetEnvoyVersions_All_RemoteIsCurrent(t *testing.T) {
 	o, cleanup := setupTest(t)
 	defer cleanup()
 
-	versionDir := filepath.Join(o.HomeDir, "versions", version.LastKnownEnvoy)
+	versionDir := filepath.Join(o.HomeDir, "versions", string(version.LastKnownEnvoy))
 	require.NoError(t, os.MkdirAll(versionDir, 0700))
 	morerequire.RequireSetMtime(t, versionDir, "2020-12-31")
 	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte(version.LastKnownEnvoy), 0600))

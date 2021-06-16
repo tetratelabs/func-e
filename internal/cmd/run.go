@@ -33,7 +33,7 @@ import (
 
 // NewRunCmd create a command responsible for starting an Envoy process
 func NewRunCmd(o *globals.GlobalOpts) *cli.Command {
-	var envoyVersion string
+	var envoyVersion version.Version
 	cmd := &cli.Command{
 		Name:            "run",
 		Usage:           "Run Envoy with the given [arguments...] until interrupted",
@@ -111,7 +111,7 @@ state. On exit, these archive into ` + "`$GETENVOY_HOME/runs/$epochtime.tar.gz`"
 // initializeRunOpts allows us to default values when not overridden for tests.
 // The version parameter correlates with the globals.GlobalOpts EnvoyPath which is installed if needed.
 // Notably, this creates and sets a globals.GlobalOpts WorkingDirectory for Envoy, and any files that precede it.
-func initializeRunOpts(ctx context.Context, o *globals.GlobalOpts, p, v string) error {
+func initializeRunOpts(ctx context.Context, o *globals.GlobalOpts, p version.Platform, v version.Version) error {
 	runOpts := &o.RunOpts
 	if o.EnvoyPath == "" { // not overridden for tests
 		envoyPath, err := envoy.InstallIfNeeded(ctx, o, p, v)

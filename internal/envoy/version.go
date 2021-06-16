@@ -34,7 +34,7 @@ var (
 
 // GetHomeVersion returns the default version in the "homeDir" and path to to it (homeVersionFile). When "v" is empty,
 // homeVersionFile is not yet initialized.
-func GetHomeVersion(homeDir string) (v, homeVersionFile string, err error) {
+func GetHomeVersion(homeDir string) (v version.Version, homeVersionFile string, err error) {
 	v, homeVersionFile, err = getHomeVersion(homeDir)
 	if err == nil && v == "" { // no home version, yet
 		return
@@ -45,7 +45,7 @@ func GetHomeVersion(homeDir string) (v, homeVersionFile string, err error) {
 
 // WriteCurrentVersion writes the version to CurrentVersionWorkingDirFile or CurrentVersionHomeDirFile depending on
 // if the former is present.
-func WriteCurrentVersion(v, homeDir string) error {
+func WriteCurrentVersion(v version.Version, homeDir string) error {
 	if _, err := os.Stat(".envoy-version"); os.IsNotExist(err) {
 		return os.WriteFile(filepath.Join(homeDir, "version"), []byte(v), 0600)
 	} else if err != nil {
@@ -56,32 +56,36 @@ func WriteCurrentVersion(v, homeDir string) error {
 
 // CurrentVersion returns the first version in priority of VersionUsageList and its source or an error. The "source"
 // and error messages returned include unexpanded variables to clarify the intended context.
-func CurrentVersion(homeDir string) (v, source string, err error) {
+func CurrentVersion(homeDir string) (v version.Version, source string, err error) {
 	v, source, err = getCurrentVersion(homeDir)
 	err = verifyVersion(v, source, err)
 	return
 }
 
-func verifyVersion(v, source string, err error) error {
+func verifyVersion(v version.Version, source string, err error) error {
 	if err != nil {
 		return fmt.Errorf("couldn't read version from %s: %w", source, err)
 	}
-	if matched := globals.EnvoyVersionPattern.MatchString(v); !matched {
+	if matched := globals.EnvoyVersionPattern.MatchString(string(v)); !matched {
 		return fmt.Errorf("invalid version in %q: %q should look like %q", source, v, version.LastKnownEnvoy)
 	}
 	return nil
 }
 
-func getCurrentVersion(homeDir string) (v, source string, err error) {
+func getCurrentVersion(homeDir string) (v version.Version, source string, err error) {
 	// Priority 1: $ENVOY_VERSION
 	if ev, ok := os.LookupEnv("ENVOY_VERSION"); ok {
-		return ev, currentVersionVar, nil
+		v = version.Version(ev)
+		source = currentVersionVar
+		return
 	}
 
 	// Priority 2: $PWD/.envoy-version
 	data, err := os.ReadFile(".envoy-version")
 	if err == nil {
-		return strings.TrimSpace(string(data)), CurrentVersionWorkingDirFile, nil
+		v = version.Version(strings.TrimSpace(string(data)))
+		source = CurrentVersionWorkingDirFile
+		return
 	} else if !os.IsNotExist(err) {
 		return "", CurrentVersionWorkingDirFile, err
 	}
@@ -92,11 +96,11 @@ func getCurrentVersion(homeDir string) (v, source string, err error) {
 	return
 }
 
-func getHomeVersion(homeDir string) (v, homeVersionFile string, err error) {
+func getHomeVersion(homeDir string) (v version.Version, homeVersionFile string, err error) {
 	homeVersionFile = filepath.Join(homeDir, "version")
 	var data []byte
 	if data, err = os.ReadFile(homeVersionFile); err == nil {
-		v = strings.TrimSpace(string(data))
+		v = version.Version(strings.TrimSpace(string(data)))
 	} else if os.IsNotExist(err) {
 		err = nil // ok on file-not-found
 	}

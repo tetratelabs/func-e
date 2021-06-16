@@ -46,8 +46,8 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 
    You may want to override ` + "`$ENVOY_VERSIONS_URL`" + ` to supply custom builds or
    otherwise control the source of Envoy binaries. When overriding, validate
-   your JSON first: https://getenvoy.io/envoy-versions-schema.json`
-	app.Version = version.GetEnvoy
+   your JSON first: https://getenvoy.io/release-versions-schema.json`
+	app.Version = string(version.GetEnvoy)
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
 			Name:        "home-dir",

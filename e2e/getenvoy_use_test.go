@@ -34,27 +34,27 @@ func TestGetEnvoyUse(t *testing.T) {
 	defer removeHomeDir()
 
 	t.Run("not yet installed", func(t *testing.T) {
-		stdout, stderr, err := getEnvoyExec("--home-dir", homeDir, "use", version.LastKnownEnvoy)
+		stdout, stderr, err := getEnvoyExec("--home-dir", homeDir, "use", string(version.LastKnownEnvoy))
 
 		require.NoError(t, err)
 		require.Regexp(t, `^downloading https:.*tar.*z\n$`, stdout)
 		require.Empty(t, stderr)
 
 		// The binary was installed
-		envoyBin := filepath.Join(homeDir, "versions", version.LastKnownEnvoy, "bin", "envoy"+moreos.Exe)
+		envoyBin := filepath.Join(homeDir, "versions", string(version.LastKnownEnvoy), "bin", "envoy"+moreos.Exe)
 		require.FileExists(t, envoyBin)
 
 		// The current version was written
 		f, err := os.ReadFile(filepath.Join(homeDir, "version"))
 		require.NoError(t, err)
-		require.Equal(t, version.LastKnownEnvoy, string(f))
+		require.Equal(t, version.LastKnownEnvoy, version.Version(f))
 	})
 
 	t.Run("already installed", func(t *testing.T) {
-		stdout, stderr, err := getEnvoyExec("--home-dir", homeDir, "use", version.LastKnownEnvoy)
+		stdout, stderr, err := getEnvoyExec("--home-dir", homeDir, "use", string(version.LastKnownEnvoy))
 
 		require.NoError(t, err)
-		require.Equal(t, version.LastKnownEnvoy+" is already downloaded\n", stdout)
+		require.Equal(t, fmt.Sprintf("%s is already downloaded\n", version.LastKnownEnvoy), stdout)
 		require.Empty(t, stderr)
 	})
 }

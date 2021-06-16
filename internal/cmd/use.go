@@ -41,7 +41,7 @@ Example:
 $ getenvoy use %s`, envoy.CurrentVersionWorkingDirFile, envoy.CurrentVersionHomeDirFile, version.LastKnownEnvoy),
 		Before: validateVersionArg,
 		Action: func(c *cli.Context) error {
-			v := c.Args().First()
+			v := version.Version(c.Args().First())
 			if _, err := envoy.InstallIfNeeded(c.Context, o, globals.CurrentPlatform, v); err != nil {
 				return err
 			}

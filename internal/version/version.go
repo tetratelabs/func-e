@@ -12,40 +12,62 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package version declares types for each string to keep strict coupling to the JSON schema
 package version
 
 import _ "embed" // We embed the Envoy version so that we can cache it in CI
 
-// GetEnvoy is the version of the CLI, used in help statements and HTTP requests via "User-Agent".
-// Override this via "-X github.com/tetratelabs/getenvoy/internal/version.GetEnvoy=XXX"
-var GetEnvoy = "dev"
+var getEnvoy = "dev"
 
-// LastKnownEnvoy is the last known Envoy version, used to ensure help statements aren't out-of-date.
+// GetEnvoy is the version of the CLI, used in help statements and HTTP requests via "User-Agent".
+// Override this via "-X github.com/tetratelabs/getenvoy/internal/version.getEnvoy=XXX"
+var GetEnvoy = Version(getEnvoy)
+
+//go:embed last_known_envoy.txt
+var lastKnownEnvoy string
+
+// LastKnownEnvoy is the last known Envoy Version, used to ensure help statements aren't out-of-date.
 // This is derived from /site/envoy-versions.json, but not used directly because go:embed requires a file read from the
 // current directory tree.
 //
 // This is different than the "latestVersion" because this is built into the binary. For example, after the binary is
 // built, a more recent "latestVersion" can be used, even if the help statements only know about the one from compile
 // time.
-//go:embed last_known_envoy.txt
-var LastKnownEnvoy string
+var LastKnownEnvoy = Version(lastKnownEnvoy)
 
-// EnvoyVersions include metadata about the latest version and all available tarball URLs
-type EnvoyVersions struct {
-	// LatestVersion is the latest stable version. See https://github.com/envoyproxy/envoy/blob/main/RELEASES.md
-	LatestVersion string
-	// Versions are all stable versions of Envoy keyed on version number (without a 'v' prefix)
-	Versions map[string]EnvoyVersion
+// ReleaseVersions primarily maps Version to TarballURL and tracks the LatestVersion
+type ReleaseVersions struct {
+	// LatestVersion is the latest stable Version
+	LatestVersion Version `json:"latestVersion"`
+	// Versions maps a Version to its Release
+	Versions map[Version]Release `json:"versions"`
+	// SHA256Sums maps a Tarball to its SHA256Sum
+	SHA256Sums map[Tarball]SHA256Sum `json:"sha256sums"`
 }
 
-// EnvoyVersion is the release date and tarballs for this version, keyed on platform
-type EnvoyVersion struct {
-	// ReleaseDate is the date of the version tag https://github.com/envoyproxy/envoy/versions. Ex. "2021-04-16"
-	ReleaseDate string `json:"releaseDate"`
+// Version is a release version from https://github.com/envoyproxy/envoy/releases, without a 'v' prefix. Ex "1.18.3"
+type Version string
 
-	// Tarballs is a map of platform to tarball URL
-	// platform is '$os/$arch' where $os is the supported operating system (runtime.GOOS) and $arch
-	// is the supported architecture (runtime.GOARCH). Ex "darwin/amd64"
-	// tarball URL is the URL of the tar.gz or tar.xz that bundles Envoy. Minimum contents are "$version/bin/envoy".
-	Tarballs map[string]string `json:"tarballs,omitempty"`
+// Platform encodes 'runtime.GOOS/runtime.GOARCH'. Ex "darwin/amd64"
+type Platform string
+
+// Tarball is the name of the tar.gz or tar.xz archive. Ex. "envoy-v1.18.3-linux-amd64.tar.xz"
+// Minimum contents are "${dist}/bin/envoy[.exe]" Ex. "envoy-v1.18.3-linux-amd64/bin/envoy"
+type Tarball string
+
+// TarballURL is the HTTPS URL to the Tarball. SHA256Sums must include its base name.
+type TarballURL string
+
+// SHA256Sum is a SHA-256 lower-hex hash. Ex. "1274f55b3022bc1331aed41089f189094e00729981fe132ce00aac6272ea0770"
+type SHA256Sum string
+
+// ReleaseDate is the publish date of the release Version. Ex. "2021-05-11"
+type ReleaseDate string
+
+// Release primarily maps available Tarballs for a Version
+type Release struct {
+	ReleaseDate
+
+	// Tarballs are the Tarballs available by Platform
+	Tarballs map[Platform]TarballURL `json:"tarballs,omitempty"`
 }

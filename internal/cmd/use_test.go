@@ -62,13 +62,13 @@ func TestGetEnvoyUse_InstallsAndWritesHomeVersion(t *testing.T) {
 	defer cleanup()
 
 	c, _, _ := newApp(o)
-	require.NoError(t, c.Run([]string{"getenvoy", "use", o.EnvoyVersion}))
+	require.NoError(t, c.Run([]string{"getenvoy", "use", string(o.EnvoyVersion)}))
 
 	// The binary was installed
-	require.FileExists(t, filepath.Join(o.HomeDir, "versions", o.EnvoyVersion, "bin", "envoy"))
+	require.FileExists(t, filepath.Join(o.HomeDir, "versions", string(o.EnvoyVersion), "bin", "envoy"))
 
 	// The current version was written
 	f, err := os.ReadFile(filepath.Join(o.HomeDir, "version"))
 	require.NoError(t, err)
-	require.Equal(t, o.EnvoyVersion, string(f))
+	require.Equal(t, o.EnvoyVersion, version.Version(f))
 }

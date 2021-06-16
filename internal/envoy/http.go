@@ -19,16 +19,18 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+
+	"github.com/tetratelabs/getenvoy/internal/version"
 )
 
 // httpGet adds the userAgent header to the request, so that we can tell what is a dev build vs release.
-func httpGet(ctx context.Context, url, platform, version string) (*http.Response, error) {
+func httpGet(ctx context.Context, url string, p version.Platform, v version.Version) (*http.Response, error) {
 	// #nosec -> url can be anywhere by design
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Add("User-Agent", userAgent(platform, version))
+	req.Header.Add("User-Agent", userAgent(p, v))
 	return http.DefaultClient.Do(req)
 }
 
@@ -39,9 +41,9 @@ func httpGet(ctx context.Context, url, platform, version string) (*http.Response
 //
 // Note: Analytics may not work out-of-box. For example, Netlify does not support server-side analytics on 'User-Agent',
 // and even its 'Referer' analytics are limited to requests to HTML resources.
-func userAgent(platform, version string) string {
-	if !strings.HasPrefix(version, "v") || strings.Contains(version, "SNAPSHOT") {
+func userAgent(p version.Platform, v version.Version) string {
+	if !strings.HasPrefix(string(v), "v") || strings.Contains(string(v), "SNAPSHOT") {
 		return "getenvoy/dev"
 	}
-	return fmt.Sprintf("getenvoy/%s (%s)", version, platform)
+	return fmt.Sprintf("getenvoy/%s (%s)", v, p)
 }
