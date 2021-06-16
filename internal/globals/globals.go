@@ -65,7 +65,7 @@ const (
 )
 
 var (
-	// EnvoyVersionPattern is used to validate versions and is the same pattern as release-versions-schema.json.
+	// EnvoyVersionPattern is used to validate versions and is the same pattern as envoy-versions-schema.json.
 	EnvoyVersionPattern = regexp.MustCompile(`^[1-9][0-9]*\.[0-9]+\.[0-9]+$`)
 	// CurrentPlatform is the platform of the current process. This is used as a key in EnvoyVersion.Tarballs.
 	CurrentPlatform = version.Platform(runtime.GOOS + "/" + runtime.GOARCH)

@@ -54,7 +54,7 @@ func InstallIfNeeded(ctx context.Context, o *globals.GlobalOpts, p version.Platf
 
 		tarball := version.Tarball(path.Base(string(tarballURL)))
 		sha256Sum := ev.SHA256Sums[tarball]
-		if sha256Sum == "" {
+		if len(sha256Sum) != 64 {
 			return "", fmt.Errorf("couldn't find sha256Sum of version %q for platform %q: %w", v, p, err)
 		}
 

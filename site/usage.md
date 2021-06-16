@@ -8,7 +8,7 @@ choose one, invoke `getenvoy use 1.18.3`. This installs into
 
 You may want to override `$ENVOY_VERSIONS_URL` to supply custom builds or
 otherwise control the source of Envoy binaries. When overriding, validate
-your JSON first: https://getenvoy.io/release-versions-schema.json
+your JSON first: https://getenvoy.io/envoy-versions-schema.json
 
 # Commands
 

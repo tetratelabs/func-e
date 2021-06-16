@@ -66,7 +66,7 @@ type ReleaseDate string
 
 // Release primarily maps available Tarballs for a Version
 type Release struct {
-	ReleaseDate
+	ReleaseDate ReleaseDate
 
 	// Tarballs are the Tarballs available by Platform
 	Tarballs map[Platform]TarballURL `json:"tarballs,omitempty"`

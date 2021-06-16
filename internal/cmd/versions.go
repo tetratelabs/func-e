@@ -59,19 +59,19 @@ func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 
 			// Sort so that new release dates appear first and on conflict choosing the higher version
 			sort.Slice(rows, func(i, j int) bool {
-				if rows[i].ReleaseDate == rows[j].ReleaseDate {
-					return rows[i].Version > rows[j].Version
+				if rows[i].releaseDate == rows[j].releaseDate {
+					return rows[i].version > rows[j].version
 				}
-				return rows[i].ReleaseDate > rows[j].ReleaseDate
+				return rows[i].releaseDate > rows[j].releaseDate
 			})
 
 			// We use a tab writer to ensure we can format the current version
 			w := tabwriter.NewWriter(c.App.Writer, 0, 0, 1, ' ', tabwriter.AlignRight)
 			for _, vr := range rows { //nolint:gocritic
-				if vr.Version == currentVersion {
-					fmt.Fprintf(w, "* %s %s (set by %s)\n", vr.Version, vr.ReleaseDate, currentVersionSource) //nolint
+				if vr.version == currentVersion {
+					fmt.Fprintf(w, "* %s %s (set by %s)\n", vr.version, vr.releaseDate, currentVersionSource) //nolint
 				} else {
-					fmt.Fprintf(w, "  %s %s\n", vr.Version, vr.ReleaseDate) //nolint
+					fmt.Fprintf(w, "  %s %s\n", vr.version, vr.releaseDate) //nolint
 				}
 			}
 			return w.Flush()
@@ -80,8 +80,8 @@ func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 }
 
 type versionReleaseDate struct {
-	version.Version
-	version.ReleaseDate
+	version     version.Version
+	releaseDate version.ReleaseDate
 }
 
 func getInstalledVersions(homeDir string) ([]versionReleaseDate, error) {
@@ -108,7 +108,7 @@ func getInstalledVersions(homeDir string) ([]versionReleaseDate, error) {
 func addAvailableVersions(rows *[]versionReleaseDate, remote map[version.Version]version.Release, p version.Platform) error {
 	existingVersions := make(map[version.Version]bool)
 	for _, v := range *rows { //nolint:gocritic
-		existingVersions[v.Version] = true
+		existingVersions[v.version] = true
 	}
 
 	for k, v := range remote {
