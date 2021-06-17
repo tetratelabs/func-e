@@ -8,7 +8,7 @@ choose one, invoke `getenvoy use 1.18.3`. This installs into
 
 You may want to override `$ENVOY_VERSIONS_URL` to supply custom builds or
 otherwise control the source of Envoy binaries. When overriding, validate
-your JSON first: https://getenvoy.io/envoy-versions-schema.json
+your JSON first: https://archive.tetratelabs.io/release-versions-schema.json
 
 # Commands
 
@@ -25,4 +25,4 @@ your JSON first: https://getenvoy.io/envoy-versions-schema.json
 | Name | Usage | Default |
 | ---- | ----- | ------- |
 | GETENVOY_HOME | GetEnvoy home directory (location of installed versions and run archives) | ${HOME}/.getenvoy |
-| ENVOY_VERSIONS_URL | URL of Envoy versions JSON | https://getenvoy.io/envoy-versions.json |
+| ENVOY_VERSIONS_URL | URL of Envoy versions JSON | https://archive.tetratelabs.io/envoy/envoy-versions.json |

@@ -32,20 +32,13 @@ bin $(BIN): $(GORELEASER)
 	@echo "--- bin ---"
 	@$(GORELEASER) build --snapshot --single-target --rm-dist
 
-##@ Unit, Site and End-to-End tests
+##@ Unit and End-to-End tests
 
 TEST_PACKAGES ?= $(shell go list ./... | grep -v -e github.com/tetratelabs/getenvoy/e2e -e github.com/tetratelabs/getenvoy/site)
 .PHONY: test
 test:
 	@echo "--- test ---"
 	@go test $(TEST_PACKAGES)
-
-# Site tests check the contents of the site directory
-
-.PHONY: test.site
-test.site:
-	@echo "--- test.site ---"
-	@go test -v ./site
 
 # End-to-end (e2e) tests run against a compiled binary.
 #
@@ -103,6 +96,9 @@ check:  ## CI blocks merge until this passes. If this fails, run "make check" lo
 	esac
 	@$(MAKE) lint
 	@$(MAKE) format
+# this will taint if we are behind from latest binary. printf avoids adding a newline to the file
+    @curl -fsSL https://archive.tetratelabs.io/envoy/envoy-versions.json |jq -er .latestVersion|xargs printf "%s" \
+         >./internal/version/last_known_envoy.txt
 	@go mod tidy
 	@if [ ! -z "`git status -s`" ]; then \
 		echo "The following differences will fail CI until committed:"; \

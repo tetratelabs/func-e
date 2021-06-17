@@ -9,13 +9,9 @@ language: go
 go:
   - 1.16.5
 
-env:  # site/envoy-versions.json doesn't yet include arm64
-  - ENVOY_VERSIONS_URL=https://raw.githubusercontent.com/tetratelabs/temprepo/master/envoy-versions.json
-
 git:
   depth: false  # TRAVIS_COMMIT_RANGE requires full commit history.
 
-if: branch = master AND tag IS blank AND type IN (push, pull_request)
 before_install: |  # Prevent test build of a documentation-only change.
   make check || travis_terminate 1
   if [ -n "${TRAVIS_COMMIT_RANGE}" ] && ! git diff --name-only "${TRAVIS_COMMIT_RANGE}" -- | grep -qv '\.md$'; then
