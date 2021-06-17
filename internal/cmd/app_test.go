@@ -125,9 +125,9 @@ func TestEnvoyVersionsURL(t *testing.T) {
 
 	tests := []testCase{ // we don't test default as that depends on the runtime env
 		{
-			name:     "default is https://getenvoy.io/envoy-versions.json",
+			name:     "default is https://archive.tetratelabs.io/envoy/envoy-versions.json",
 			args:     []string{"getenvoy"},
-			expected: "https://getenvoy.io/envoy-versions.json",
+			expected: "https://archive.tetratelabs.io/envoy/envoy-versions.json",
 		},
 		{
 			name: "ENVOY_VERSIONS_URL env",

@@ -11,9 +11,9 @@ make e2e
 
 You can override the binary tested by setting `E2E_GETENVOY_BINARY` to an alternative location, for example a release.
 
-If the `getenvoy` version is a snapshot and the `ENVOY_VERSIONS_URL` environment variable is unset, tests run against
-the local [envoy-versions.json](../site/envoy-versions.json). This allows local development and pull requests to verify
-changes prior to deployment to getenvoy.io.
+If the `getenvoy` version is a snapshot and "envoy-versions.json" exists, tests run against the local. This allows local
+development and pull requests to verify changes not yet [published](https://archive.tetratelabs.io/envoy/envoy-versions.json)
+or those that effect the [schema](https://archive.tetratelabs.io/release-versions-schema.json).
 
 ## Version of Envoy under test
 The envoy version used in tests default to [/internal/version/last_known_envoy.txt](../internal/version/last_known_envoy.txt).

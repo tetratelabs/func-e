@@ -9,9 +9,6 @@ language: go
 go:
   - 1.16.5
 
-env:  # site/envoy-versions.json doesn't yet include arm64
-  - ENVOY_VERSIONS_URL=https://raw.githubusercontent.com/tetratelabs/temprepo/master/envoy-versions.json
-
 git:
   depth: false  # TRAVIS_COMMIT_RANGE requires full commit history.
 

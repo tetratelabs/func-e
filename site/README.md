@@ -4,17 +4,5 @@ The following files are hosted on https://getenvoy.io, specifically via [Netlify
 
 Latest master merge:
 * https://getenvoy.io/install.sh -> [./install.sh](install.sh)
-* https://getenvoy.io/envoy-versions.json -> [./envoy-versions.json](envoy-versions.json)
-  * this is verified by [envoy-versions_test.go](envoy-versions_test.go)
-* https://getenvoy.io/envoy-versions-schema.json -> [./envoy-versions-schema.json](envoy-versions-schema.json)
 * https://www.getenvoy.io/usage/ -> [./usage.md](usage.md)
   * this is verified by [usage_md_test.go](../internal/cmd/usage_md_test.go)
-
-## Temporary releases
-
-We are still lacking images for linux/arm64 and windows/amd64. The following can be used temporarily, not in production.
-
-```
-export ENVOY_VERSIONS_URL=https://raw.githubusercontent.com/tetratelabs/temprepo/master/envoy-versions.json
-getenvoy versions -a
-```

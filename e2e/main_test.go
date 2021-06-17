@@ -36,7 +36,7 @@ import (
 const (
 	getenvoyBinaryEnvKey   = "E2E_GETENVOY_BINARY"
 	envoyVersionsURLEnvKey = "ENVOY_VERSIONS_URL"
-	envoyVersionsJSON      = "../site/envoy-versions.json"
+	envoyVersionsJSON      = "envoy-versions.json"
 	runTimeout             = 2 * time.Minute
 )
 
@@ -59,10 +59,11 @@ func TestMain(m *testing.M) {
 		exitOnInvalidBinary(err)
 	}
 
-	if _, ok := os.LookupEnv(envoyVersionsURLEnvKey); !ok && strings.Contains(versionLine, "SNAPSHOT") {
+	// Allow local file override when a SNAPSHOT version
+	if _, err := os.Stat(envoyVersionsJSON); err == nil && strings.Contains(versionLine, "SNAPSHOT") {
 		s, err := mockEnvoyVersionsServer() // no defer s.Close() because os.Exit() subverts it
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to serve %s: %v", envoyVersionsJSON, err)
+			fmt.Fprintf(os.Stderr, "failed to serve %s: %v\n", envoyVersionsJSON, err)
 			os.Exit(1)
 		}
 		os.Setenv(envoyVersionsURLEnvKey, s.URL)
@@ -71,7 +72,7 @@ func TestMain(m *testing.M) {
 }
 
 func exitOnInvalidBinary(err error) {
-	fmt.Fprintf(os.Stderr, `failed to start e2e tests due to an invalid "getenvoy" binary: %v`, err)
+	fmt.Fprintf(os.Stderr, `failed to start e2e tests due to an invalid "getenvoy" binary: %v\n`, err)
 	os.Exit(1)
 }
 
