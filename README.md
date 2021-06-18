@@ -12,7 +12,7 @@ The quickest way to try the command-line interface is an in-lined configuration.
 # Download the latest release as /usr/local/bin/getenvoy https://github.com/tetratelabs/getenvoy/releases
 $ curl -L https://getenvoy.io/install.sh | bash -s -- -b /usr/local/bin
 # Run the admin server on http://localhost:9901
-$ getenvoy run --config-yaml "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 9901}}}"
+$ getenvoy run standard:1.18.2 -- --config-yaml "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 9901}}}"
 ```
 
 Run `getenvoy help` or have a look at the [Usage Docs](site/usage.md) for more information.
