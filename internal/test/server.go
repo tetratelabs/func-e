@@ -30,6 +30,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/tetratelabs/getenvoy/internal/globals"
 	"github.com/tetratelabs/getenvoy/internal/moreos"
 	"github.com/tetratelabs/getenvoy/internal/tar"
 	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
@@ -94,7 +95,7 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		require.True(s.t, strings.HasSuffix(subpath, archiveFormat), "unexpected uri %q: expected archive suffix %q", subpath, archiveFormat)
 
 		v := strings.Split(subpath, "/")[0]
-		require.Regexpf(s.t, `^1\.[1-9][0-9]\.[0-9]+$`, v, "unsupported version in uri %q", subpath)
+		require.Regexpf(s.t, globals.EnvoyVersionPattern, v, "unsupported version in uri %q", subpath)
 
 		w.WriteHeader(http.StatusOK)
 		_, err := w.Write(s.fakeEnvoyTarGz)
