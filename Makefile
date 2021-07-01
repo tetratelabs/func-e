@@ -102,8 +102,7 @@ check:  ## CI blocks merge until this passes. If this fails, run "make check" lo
 	@go mod tidy
 	@if [ ! -z "`git status -s`" ]; then \
 		echo "The following differences will fail CI until committed:"; \
-		git diff; \
-		exit 1; \
+		git diff --exit-code; \
 	fi
 
 .PHONY: clean
