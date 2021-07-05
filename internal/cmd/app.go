@@ -22,8 +22,8 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/tetratelabs/getenvoy/internal/globals"
-	"github.com/tetratelabs/getenvoy/internal/version"
+	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/version"
 )
 
 // NewApp create a new root command. The globals.GlobalOpts parameter allows tests to scope overrides, which avoids
@@ -32,29 +32,29 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 	var homeDir, envoyVersionsURL string
 
 	app := cli.NewApp()
-	app.Name = "getenvoy"
-	app.HelpName = "getenvoy"
+	app.Name = "func-e"
+	app.HelpName = "func-e"
 	app.Usage = `Install and run Envoy`
 	// Keep lines at 77 to address leading indent of 3 in help statements
 	// NOTE: remove indenting ourselves after the first line after urfave/cli#1275.
-	app.UsageText = `To run Envoy, execute ` + "`getenvoy run -c your_envoy_config.yaml`" + `. This
+	app.UsageText = `To run Envoy, execute ` + "`func-e run -c your_envoy_config.yaml`" + `. This
    downloads and installs the latest version of Envoy for you.
 
-   To list versions of Envoy you can use, execute ` + "`getenvoy versions -a`" + `. To
-   choose one, invoke ` + fmt.Sprintf("`getenvoy use %s`", version.LastKnownEnvoy) + `. This installs into
-   ` + fmt.Sprintf("`$GETENVOY_HOME/versions/%s`", version.LastKnownEnvoy) + `, if not already present.
+   To list versions of Envoy you can use, execute ` + "`func-e versions -a`" + `. To
+   choose one, invoke ` + fmt.Sprintf("`func-e use %s`", version.LastKnownEnvoy) + `. This installs into
+   ` + fmt.Sprintf("`$FUNC-E_HOME/versions/%s`", version.LastKnownEnvoy) + `, if not already present.
 
    You may want to override ` + "`$ENVOY_VERSIONS_URL`" + ` to supply custom builds or
    otherwise control the source of Envoy binaries. When overriding, validate
    your JSON first: https://archive.tetratelabs.io/release-versions-schema.json`
-	app.Version = string(version.GetEnvoy)
+	app.Version = string(version.FuncE)
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
 			Name:        "home-dir",
-			Usage:       "GetEnvoy home directory (location of installed versions and run archives)",
+			Usage:       "func-e home directory (location of installed versions and run archives)",
 			DefaultText: globals.DefaultHomeDir,
 			Destination: &homeDir,
-			EnvVars:     []string{"GETENVOY_HOME"},
+			EnvVars:     []string{"FUNC-E_HOME"},
 		},
 		&cli.StringFlag{
 			Name:        "envoy-versions-url",
@@ -117,9 +117,9 @@ func setHomeDir(o *globals.GlobalOpts, homeDir string) error {
 	if homeDir == "" {
 		u, err := user.Current()
 		if err != nil || u.HomeDir == "" {
-			return NewValidationError("unable to determine home directory. Set GETENVOY_HOME instead: %v", err)
+			return NewValidationError("unable to determine home directory. Set FUNC-E_HOME instead: %v", err)
 		}
-		o.HomeDir = filepath.Join(u.HomeDir, ".getenvoy")
+		o.HomeDir = filepath.Join(u.HomeDir, ".func-e")
 	} else {
 		abs, err := filepath.Abs(homeDir)
 		if err != nil {

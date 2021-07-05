@@ -4,13 +4,13 @@
 
 ### How to Build
 
-#### getenvoy binary
+#### func-e binary
 
 Run:
 ```shell
 make build
 ```
-which will produce a binary at `./build/bin/$(go env GOOS)/$(go env GOARCH)/getenvoy`.
+which will produce a binary at `./build/bin/$(go env GOOS)/$(go env GOARCH)/func-e`.
 
 ### How to run Unit Tests
 

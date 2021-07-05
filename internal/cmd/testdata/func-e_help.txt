@@ -1,13 +1,13 @@
 NAME:
-   getenvoy - Install and run Envoy
+   func-e - Install and run Envoy
 
 USAGE:
-   To run Envoy, execute `getenvoy run -c your_envoy_config.yaml`. This
+   To run Envoy, execute `func-e run -c your_envoy_config.yaml`. This
    downloads and installs the latest version of Envoy for you.
 
-   To list versions of Envoy you can use, execute `getenvoy versions -a`. To
-   choose one, invoke `getenvoy use {ENVOY_VERSION}`. This installs into
-   `$GETENVOY_HOME/versions/{ENVOY_VERSION}`, if not already present.
+   To list versions of Envoy you can use, execute `func-e versions -a`. To
+   choose one, invoke `func-e use {ENVOY_VERSION}`. This installs into
+   `$FUNC-E_HOME/versions/{ENVOY_VERSION}`, if not already present.
 
    You may want to override `$ENVOY_VERSIONS_URL` to supply custom builds or
    otherwise control the source of Envoy binaries. When overriding, validate
@@ -23,6 +23,6 @@ COMMANDS:
    use       Sets the current [version] used by the "run" command
 
 GLOBAL OPTIONS:
-   --home-dir value            GetEnvoy home directory (location of installed versions and run archives) (default: ${HOME}/.getenvoy) [$GETENVOY_HOME]
+   --home-dir value            func-e home directory (location of installed versions and run archives) (default: ${HOME}/.func-e) [$FUNC-E_HOME]
    --envoy-versions-url value  URL of Envoy versions JSON (default: https://archive.tetratelabs.io/envoy/envoy-versions.json) [$ENVOY_VERSIONS_URL]
    --version, -v               print the version (default: false)

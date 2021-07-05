@@ -31,9 +31,9 @@ import (
 	"github.com/shirou/gopsutil/v3/process"
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/internal/moreos"
-	"github.com/tetratelabs/getenvoy/internal/tar"
-	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
+	"github.com/tetratelabs/func-e/internal/moreos"
+	"github.com/tetratelabs/func-e/internal/tar"
+	"github.com/tetratelabs/func-e/internal/test/morerequire"
 )
 
 var (
@@ -46,10 +46,10 @@ var (
 	minRunArgs = []string{"run", "--config-yaml", "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 0}}}"}
 )
 
-// TestGetEnvoyRun runs the equivalent of "getenvoy run"
+// TestFuncERun runs the equivalent of "func-e run"
 //
 // See TestMain for general notes on about the test runtime.
-func TestGetEnvoyRun(t *testing.T) {
+func TestFuncERun(t *testing.T) {
 	t.Parallel() // uses random ports so safe to run parallel
 
 	cmd, cleanup := envoyRunTest(t, nil, minRunArgs...)
@@ -58,7 +58,7 @@ func TestGetEnvoyRun(t *testing.T) {
 	verifyRunArchive(t, cmd)
 }
 
-func TestGetEnvoyRun_StaticFilesystem(t *testing.T) {
+func TestFuncERun_StaticFilesystem(t *testing.T) {
 	t.Parallel() // uses random ports so safe to run parallel
 
 	revertTempWd := morerequire.RequireChdirIntoTemp(t)
@@ -68,7 +68,7 @@ func TestGetEnvoyRun_StaticFilesystem(t *testing.T) {
 	responseFromRunDirectory := []byte("foo")
 	require.NoError(t, os.WriteFile("response.txt", responseFromRunDirectory, 0600))
 
-	_, cleanup := envoyRunTest(t, func(ctx context.Context, c *getEnvoy, a *adminClient) {
+	_, cleanup := envoyRunTest(t, func(ctx context.Context, c *funcE, a *adminClient) {
 		mainURL, err := a.getMainListenerURL(ctx)
 		require.NoError(t, err, "couldn't read mainURL after running [%v]", c)
 
@@ -87,11 +87,11 @@ func TestGetEnvoyRun_StaticFilesystem(t *testing.T) {
 //
 // If the process successfully starts, this blocks until the adminClient is available.  The process is interrupted when
 // the test completes, or a timeout occurs.
-func envoyRunTest(t *testing.T, test func(context.Context, *getEnvoy, *adminClient), args ...string) (*getEnvoy, func()) {
+func envoyRunTest(t *testing.T, test func(context.Context, *funcE, *adminClient), args ...string) (*funcE, func()) {
 	ctx, cancel := context.WithTimeout(context.Background(), runTimeout)
 	defer cancel()
 
-	c := newGetEnvoy(ctx, args...)
+	c := newFuncE(ctx, args...)
 
 	stdout, out := c.cmd.StdoutPipe()
 	outLines := bufio.NewScanner(stdout)
@@ -104,14 +104,14 @@ func envoyRunTest(t *testing.T, test func(context.Context, *getEnvoy, *adminClie
 	err = c.cmd.Start()
 	require.NoError(t, err)
 
-	log.Printf("waiting for getenvoy stdout to match %q after running [%v]", adminAddressPathPattern, c)
+	log.Printf("waiting for func-e stdout to match %q after running [%v]", adminAddressPathPattern, c)
 	var adminAddressPath string
 	go func() {
 		for outLines.Scan() {
 			l := outLines.Text()
 			fmt.Fprintln(os.Stdout, l) // echo to the person watching the test
 
-			// getenvoy has unit tests that ensure --admin-address-path is always set. However, we can't read the
+			// func-e has unit tests that ensure --admin-address-path is always set. However, we can't read the
 			// contents until Envoy creates it. This only ensures we know the file name.
 			if adminAddressPathPattern.MatchString(l) {
 				adminAddressPath = adminAddressPathPattern.FindStringSubmatch(l)[1]
@@ -135,12 +135,12 @@ func envoyRunTest(t *testing.T, test func(context.Context, *getEnvoy, *adminClie
 		}
 	}()
 
-	err = c.cmd.Wait() // This won't hang forever because newGetEnvoy started it with a context timeout!
+	err = c.cmd.Wait() // This won't hang forever because newFuncE started it with a context timeout!
 	require.NoError(t, err)
 
 	// Ensure the Envoy process was terminated
 	_, err = process.NewProcessWithContext(ctx, c.envoyPid) // because os.FindProcess is no-op in Linux!
-	require.Error(t, err, "expected GetEnvoy to terminate Envoy after running [%v]", c)
+	require.Error(t, err, "expected func-e to terminate Envoy after running [%v]", c)
 
 	return c, func() {
 		// this may not be present if the process was kill -9'd so don't error
@@ -148,7 +148,7 @@ func envoyRunTest(t *testing.T, test func(context.Context, *getEnvoy, *adminClie
 	}
 }
 
-func runTestAndInterruptEnvoy(ctx context.Context, t *testing.T, c *getEnvoy, test func(context.Context, *getEnvoy, *adminClient)) {
+func runTestAndInterruptEnvoy(ctx context.Context, t *testing.T, c *funcE, test func(context.Context, *funcE, *adminClient)) {
 	defer func() {
 		log.Printf("shutting down Envoy after running [%v]", c)
 		require.NoError(t, moreos.Interrupt(c.cmd.Process), "error shutting down Envoy after running [%v]", c)
@@ -159,7 +159,7 @@ func runTestAndInterruptEnvoy(ctx context.Context, t *testing.T, c *getEnvoy, te
 	}
 }
 
-func requireEnvoyReady(ctx context.Context, t *testing.T, c *getEnvoy) *adminClient {
+func requireEnvoyReady(ctx context.Context, t *testing.T, c *funcE) *adminClient {
 	adminAddressPath := filepath.Join(c.runDir, "admin-address.txt")
 	adminAddress, err := os.ReadFile(adminAddressPath) //nolint:gosec
 	require.NoError(t, err, "error reading admin address file %q after running [%v]", adminAddressPath, c)
@@ -175,7 +175,7 @@ func requireEnvoyReady(ctx context.Context, t *testing.T, c *getEnvoy) *adminCli
 }
 
 // requireEnvoyPid ensures $runDir/envoy.pid was written and is valid
-func requireEnvoyPid(t *testing.T, c *getEnvoy) {
+func requireEnvoyPid(t *testing.T, c *funcE) {
 	pidPath := filepath.Join(c.runDir, "envoy.pid")
 	pidTxt, err := os.ReadFile(pidPath)
 	require.NoError(t, err, "couldn't read %s after running [%v]", pidPath, c)
@@ -186,7 +186,7 @@ func requireEnvoyPid(t *testing.T, c *getEnvoy) {
 }
 
 // Run deletes the run directory after making a tar.gz with the same name. This extracts it and tests the contents.
-func verifyRunArchive(t *testing.T, c *getEnvoy) {
+func verifyRunArchive(t *testing.T, c *funcE) {
 	runDir, removeRunDir := morerequire.RequireNewTempDir(t)
 	defer removeRunDir()
 

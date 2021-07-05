@@ -25,14 +25,14 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
 
-	rootcmd "github.com/tetratelabs/getenvoy/internal/cmd"
-	"github.com/tetratelabs/getenvoy/internal/globals"
-	"github.com/tetratelabs/getenvoy/internal/test"
-	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
-	"github.com/tetratelabs/getenvoy/internal/version"
+	rootcmd "github.com/tetratelabs/func-e/internal/cmd"
+	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/test"
+	"github.com/tetratelabs/func-e/internal/test/morerequire"
+	"github.com/tetratelabs/func-e/internal/version"
 )
 
-func TestGetEnvoyValidateArgs(t *testing.T) {
+func TestFuncEValidateArgs(t *testing.T) {
 	tests := []struct {
 		name        string
 		args        []string
@@ -40,7 +40,7 @@ func TestGetEnvoyValidateArgs(t *testing.T) {
 	}{
 		{
 			name:        "--envoy-versions-url not a URL",
-			args:        []string{"getenvoy", "--envoy-versions-url", "/not/url"},
+			args:        []string{"func-e", "--envoy-versions-url", "/not/url"},
 			expectedErr: `"/not/url" is not a valid Envoy versions URL`,
 		},
 	}
@@ -69,28 +69,28 @@ func TestHomeDir(t *testing.T) {
 
 	tests := []testCase{ // we don't test default as that depends on the runtime env
 		{
-			name:     "default is ~/.getenvoy",
-			args:     []string{"getenvoy"},
-			expected: filepath.Join(u.HomeDir, ".getenvoy"),
+			name:     "default is ~/.func-e",
+			args:     []string{"func-e"},
+			expected: filepath.Join(u.HomeDir, ".func-e"),
 		},
 		{
-			name: "GETENVOY_HOME env",
-			args: []string{"getenvoy"},
+			name: "FUNC-E_HOME env",
+			args: []string{"func-e"},
 			setup: func() func() {
-				return morerequire.RequireSetenv(t, "GETENVOY_HOME", "/from/GETENVOY_HOME/env")
+				return morerequire.RequireSetenv(t, "FUNC-E_HOME", "/from/FUNC-E_HOME/env")
 			},
-			expected: "/from/GETENVOY_HOME/env",
+			expected: "/from/FUNC-E_HOME/env",
 		},
 		{
 			name:     "--home-dir arg",
-			args:     []string{"getenvoy", "--home-dir", "/from/home-dir/arg"},
+			args:     []string{"func-e", "--home-dir", "/from/home-dir/arg"},
 			expected: "/from/home-dir/arg",
 		},
 		{
-			name: "prioritizes --home-dir arg over GETENVOY_HOME env",
-			args: []string{"getenvoy", "--home-dir", "/from/home-dir/arg"},
+			name: "prioritizes --home-dir arg over FUNC-E_HOME env",
+			args: []string{"func-e", "--home-dir", "/from/home-dir/arg"},
 			setup: func() func() {
-				return morerequire.RequireSetenv(t, "GETENVOY_HOME", "/from/GETENVOY_HOME/env")
+				return morerequire.RequireSetenv(t, "FUNC-E_HOME", "/from/FUNC-E_HOME/env")
 			},
 			expected: "/from/home-dir/arg",
 		},
@@ -126,12 +126,12 @@ func TestEnvoyVersionsURL(t *testing.T) {
 	tests := []testCase{ // we don't test default as that depends on the runtime env
 		{
 			name:     "default is https://archive.tetratelabs.io/envoy/envoy-versions.json",
-			args:     []string{"getenvoy"},
+			args:     []string{"func-e"},
 			expected: "https://archive.tetratelabs.io/envoy/envoy-versions.json",
 		},
 		{
 			name: "ENVOY_VERSIONS_URL env",
-			args: []string{"getenvoy"},
+			args: []string{"func-e"},
 			setup: func() func() {
 				return morerequire.RequireSetenv(t, "ENVOY_VERSIONS_URL", "http://ENVOY_VERSIONS_URL/env")
 			},
@@ -139,12 +139,12 @@ func TestEnvoyVersionsURL(t *testing.T) {
 		},
 		{
 			name:     "--envoy-versions-url flag",
-			args:     []string{"getenvoy", "--envoy-versions-url", "http://versions/arg"},
+			args:     []string{"func-e", "--envoy-versions-url", "http://versions/arg"},
 			expected: "http://versions/arg",
 		},
 		{
 			name: "prioritizes --envoy-versions-url arg over ENVOY_VERSIONS_URL env",
-			args: []string{"getenvoy", "--envoy-versions-url", "http://versions/arg"},
+			args: []string{"func-e", "--envoy-versions-url", "http://versions/arg"},
 			setup: func() func() {
 				return morerequire.RequireSetenv(t, "ENVOY_VERSIONS_URL", "http://ENVOY_VERSIONS_URL/env")
 			},
@@ -175,7 +175,7 @@ func newApp(o *globals.GlobalOpts) (c *cli.App, stdout, stderr *bytes.Buffer) {
 	stdout = new(bytes.Buffer)
 	stderr = new(bytes.Buffer)
 	c = rootcmd.NewApp(o)
-	c.Name = "getenvoy"
+	c.Name = "func-e"
 	c.Writer = stdout
 	c.ErrWriter = stderr
 	o.Out = stdout

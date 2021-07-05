@@ -23,7 +23,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
+	"github.com/tetratelabs/func-e/internal/test/morerequire"
 )
 
 func TestEnableNodeCollection(t *testing.T) {

@@ -25,10 +25,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/internal/envoy"
-	"github.com/tetratelabs/getenvoy/internal/globals"
-	"github.com/tetratelabs/getenvoy/internal/test"
-	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
+	"github.com/tetratelabs/func-e/internal/envoy"
+	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/test"
+	"github.com/tetratelabs/func-e/internal/test/morerequire"
 )
 
 func TestEnableEnvoyAdminDataCollection(t *testing.T) {

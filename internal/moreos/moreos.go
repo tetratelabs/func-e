@@ -26,7 +26,7 @@ const (
 	Exe = exe
 )
 
-// ProcessGroupAttr sets attributes that ensure exec.Cmd doesn't propagate signals from getenvoy by default.
+// ProcessGroupAttr sets attributes that ensure exec.Cmd doesn't propagate signals from func-e by default.
 // This is used to ensure shutdown hooks can apply
 func ProcessGroupAttr() *syscall.SysProcAttr {
 	return processGroupAttr() // un-exported to prevent godoc drift

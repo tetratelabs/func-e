@@ -28,10 +28,10 @@ import (
 	"github.com/shirou/gopsutil/v3/process"
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/internal/globals"
-	"github.com/tetratelabs/getenvoy/internal/moreos"
-	"github.com/tetratelabs/getenvoy/internal/test"
-	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
+	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/moreos"
+	"github.com/tetratelabs/func-e/internal/test"
+	"github.com/tetratelabs/func-e/internal/test/morerequire"
 )
 
 const ln = moreos.LineSeparator
@@ -56,14 +56,14 @@ func TestRuntime_Run(t *testing.T) {
 		wantShutdownHook               bool
 	}{
 		{
-			name: "GetEnvoy Ctrl+C",
+			name: "func-e Ctrl+C",
 			args: []string{"-c", "envoy.yaml"},
 			// Don't warn the user when they exited the process
 			expectedStdout:   fmt.Sprintln("starting:", fakeEnvoy, "-c", "envoy.yaml", adminFlag) + "GET /ready HTTP/1.1" + ln,
 			expectedStderr:   fmt.Sprintf("initializing epoch 0%[1]sstarting main dispatch loop%[1]scaught SIGINT%[1]sexiting%[1]s", ln),
 			wantShutdownHook: true,
 		},
-		// We don't test envoy dying from an external signal as it isn't reported back to the getenvoy process and
+		// We don't test envoy dying from an external signal as it isn't reported back to the func-e process and
 		// Envoy returns exit status zero on anything except kill -9. We can't test kill -9 with a fake shell script.
 		{
 			name:           "Envoy exited with error",
@@ -122,7 +122,7 @@ func TestRuntime_Run(t *testing.T) {
 			}
 
 			// Ensure envoy was run with the expected environment
-			require.Empty(t, r.cmd.Dir) // envoy runs in the same directory as getenvoy
+			require.Empty(t, r.cmd.Dir) // envoy runs in the same directory as func-e
 			expectedArgs := append([]string{fakeEnvoy}, tc.args...)
 			expectedArgs = append(expectedArgs, "--admin-address-path", filepath.Join(runDir, "admin-address.txt"))
 			require.Equal(t, expectedArgs, r.cmd.Args)

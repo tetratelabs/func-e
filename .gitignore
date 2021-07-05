@@ -2,5 +2,5 @@
 /coverage.txt
 /dist/
 
-# possible when testing .github/untar-getenvoy-release.sh
-getenvoy
+# possible when testing .github/untar_func-e_release.sh
+func-e

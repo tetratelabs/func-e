@@ -26,12 +26,12 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
 
-	rootcmd "github.com/tetratelabs/getenvoy/internal/cmd"
-	"github.com/tetratelabs/getenvoy/internal/globals"
-	"github.com/tetratelabs/getenvoy/internal/moreos"
-	"github.com/tetratelabs/getenvoy/internal/test"
-	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
-	"github.com/tetratelabs/getenvoy/internal/version"
+	rootcmd "github.com/tetratelabs/func-e/internal/cmd"
+	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/moreos"
+	"github.com/tetratelabs/func-e/internal/test"
+	"github.com/tetratelabs/func-e/internal/test/morerequire"
+	"github.com/tetratelabs/func-e/internal/version"
 )
 
 const ln = moreos.LineSeparator
@@ -45,8 +45,8 @@ func (r *runner) Run(ctx context.Context, args []string) error {
 	return r.c.RunContext(ctx, args)
 }
 
-// TestGetEnvoyRun executes envoy then cancels the context. This results in no stdout
-func TestGetEnvoyRun(t *testing.T) {
+// TestFuncERun executes envoy then cancels the context. This results in no stdout
+func TestFuncERun(t *testing.T) {
 	o, cleanup := setupTest(t)
 	defer cleanup()
 
@@ -54,7 +54,7 @@ func TestGetEnvoyRun(t *testing.T) {
 	stderr := new(bytes.Buffer)
 	c := rootcmd.NewApp(o)
 
-	args := []string{"getenvoy", "run", "-c", "envoy.yaml"}
+	args := []string{"func-e", "run", "-c", "envoy.yaml"}
 	// tee the error stream so we can look for the "starting main dispatch loop" line without consuming it.
 	errCopy := new(bytes.Buffer)
 	c.ErrWriter = io.MultiWriter(stderr, errCopy)
@@ -65,7 +65,7 @@ func TestGetEnvoyRun(t *testing.T) {
 	require.Equal(t, fmt.Sprintf("initializing epoch 0%[1]sstarting main dispatch loop%[1]s", ln), stderr.String())
 }
 
-func TestGetEnvoyRun_TeesConsoleToLogs(t *testing.T) {
+func TestFuncERun_TeesConsoleToLogs(t *testing.T) {
 	o, cleanup := setupTest(t)
 	defer cleanup()
 
@@ -77,7 +77,7 @@ func TestGetEnvoyRun_TeesConsoleToLogs(t *testing.T) {
 	have, err := os.ReadFile(filepath.Join(o.RunDir, "stdout.log"))
 	require.NoError(t, err)
 	require.NotEmpty(t, stdout.String())               // sanity check
-	require.Contains(t, stdout.String(), string(have)) // stdout will be more than in the log as getenvoy writes to it.
+	require.Contains(t, stdout.String(), string(have)) // stdout will be more than in the log as func-e writes to it.
 
 	have, err = os.ReadFile(filepath.Join(o.RunDir, "stderr.log"))
 	require.NoError(t, err)
@@ -85,7 +85,7 @@ func TestGetEnvoyRun_TeesConsoleToLogs(t *testing.T) {
 	require.Equal(t, stderr.String(), string(have))
 }
 
-func TestGetEnvoyRun_ReadsHomeVersionFile(t *testing.T) {
+func TestFuncERun_ReadsHomeVersionFile(t *testing.T) {
 	o, cleanup := setupTest(t)
 	o.EnvoyVersion = "" // pretend this is an initial setup
 	o.Out = new(bytes.Buffer)
@@ -101,7 +101,7 @@ func TestGetEnvoyRun_ReadsHomeVersionFile(t *testing.T) {
 	require.Equal(t, version.LastKnownEnvoy, o.EnvoyVersion)
 }
 
-func TestGetEnvoyRun_CreatesHomeVersionFile(t *testing.T) {
+func TestFuncERun_CreatesHomeVersionFile(t *testing.T) {
 	o, cleanup := setupTest(t)
 	o.EnvoyVersion = "" // pretend this is an initial setup
 	o.Out = new(bytes.Buffer)
@@ -121,10 +121,10 @@ func TestGetEnvoyRun_CreatesHomeVersionFile(t *testing.T) {
 
 // runWithoutConfig intentionally has envoy quit. This allows tests to not have to interrupt envoy to proceed.
 func runWithoutConfig(t *testing.T, c *cli.App) {
-	require.EqualError(t, c.Run([]string{"getenvoy", "run"}), "envoy exited with status: 1")
+	require.EqualError(t, c.Run([]string{"func-e", "run"}), "envoy exited with status: 1")
 }
 
-func TestGetEnvoyRun_ValidatesHomeVersion(t *testing.T) {
+func TestFuncERun_ValidatesHomeVersion(t *testing.T) {
 	o, cleanup := setupTest(t)
 	o.Out = new(bytes.Buffer)
 	defer cleanup()
@@ -133,14 +133,14 @@ func TestGetEnvoyRun_ValidatesHomeVersion(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte("a.a.a"), 0600))
 
 	c, _, _ := newApp(o)
-	err := c.Run([]string{"getenvoy", "run"})
+	err := c.Run([]string{"func-e", "run"})
 
 	// Verify the command failed with the expected error
-	require.EqualError(t, err, fmt.Sprintf(`invalid version in "$GETENVOY_HOME/version": "a.a.a" should look like "%s"`, version.LastKnownEnvoy))
+	require.EqualError(t, err, fmt.Sprintf(`invalid version in "$FUNC-E_HOME/version": "a.a.a" should look like "%s"`, version.LastKnownEnvoy))
 }
 
-// TestGetEnvoyRun_ValidatesWorkingVersion duplicates logic in version_test.go to ensure a non-home version validates.
-func TestGetEnvoyRun_ValidatesWorkingVersion(t *testing.T) {
+// TestFuncERun_ValidatesWorkingVersion duplicates logic in version_test.go to ensure a non-home version validates.
+func TestFuncERun_ValidatesWorkingVersion(t *testing.T) {
 	o, cleanup := setupTest(t)
 	o.Out = new(bytes.Buffer)
 	o.EnvoyVersion = ""
@@ -151,13 +151,13 @@ func TestGetEnvoyRun_ValidatesWorkingVersion(t *testing.T) {
 	require.NoError(t, os.WriteFile(".envoy-version", []byte("b.b.b"), 0600))
 
 	c, _, _ := newApp(o)
-	err := c.Run([]string{"getenvoy", "run"})
+	err := c.Run([]string{"func-e", "run"})
 
 	// Verify the command failed with the expected error
 	require.EqualError(t, err, fmt.Sprintf(`invalid version in "$PWD/.envoy-version": "b.b.b" should look like "%s"`, version.LastKnownEnvoy))
 }
 
-func TestGetEnvoyRun_ErrsWhenVersionsServerDown(t *testing.T) {
+func TestFuncERun_ErrsWhenVersionsServerDown(t *testing.T) {
 	tempDir, deleteTempDir := morerequire.RequireNewTempDir(t)
 	defer deleteTempDir()
 
@@ -167,7 +167,7 @@ func TestGetEnvoyRun_ErrsWhenVersionsServerDown(t *testing.T) {
 		Out:              new(bytes.Buffer),
 	}
 	c, _, _ := newApp(o)
-	err := c.Run([]string{"getenvoy", "run"})
+	err := c.Run([]string{"func-e", "run"})
 
 	require.Contains(t, o.Out.(*bytes.Buffer).String(), "looking up latest version"+ln)
 	require.Contains(t, err.Error(), fmt.Sprintf(`couldn't read latest version from %s`, o.EnvoyVersionsURL))

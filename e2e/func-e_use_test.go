@@ -23,18 +23,18 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/internal/moreos"
-	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
-	"github.com/tetratelabs/getenvoy/internal/version"
+	"github.com/tetratelabs/func-e/internal/moreos"
+	"github.com/tetratelabs/func-e/internal/test/morerequire"
+	"github.com/tetratelabs/func-e/internal/version"
 )
 
-// TestGetEnvoyUse needs to always execute, so we run it in a separate home directory
-func TestGetEnvoyUse(t *testing.T) {
+// TestFuncEUse needs to always execute, so we run it in a separate home directory
+func TestFuncEUse(t *testing.T) {
 	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
 	defer removeHomeDir()
 
 	t.Run("not yet installed", func(t *testing.T) {
-		stdout, stderr, err := getEnvoyExec("--home-dir", homeDir, "use", string(version.LastKnownEnvoy))
+		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", string(version.LastKnownEnvoy))
 
 		require.NoError(t, err)
 		require.Regexp(t, `^downloading https:.*tar.*z\n$`, stdout)
@@ -51,7 +51,7 @@ func TestGetEnvoyUse(t *testing.T) {
 	})
 
 	t.Run("already installed", func(t *testing.T) {
-		stdout, stderr, err := getEnvoyExec("--home-dir", homeDir, "use", string(version.LastKnownEnvoy))
+		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", string(version.LastKnownEnvoy))
 
 		require.NoError(t, err)
 		require.Equal(t, fmt.Sprintf("%s is already downloaded\n", version.LastKnownEnvoy), stdout)
@@ -59,9 +59,9 @@ func TestGetEnvoyUse(t *testing.T) {
 	})
 }
 
-func TestGetEnvoyUse_UnknownVersion(t *testing.T) {
+func TestFuncEUse_UnknownVersion(t *testing.T) {
 	v := "1.1.1"
-	stdout, stderr, err := getEnvoyExec("use", v)
+	stdout, stderr, err := funcEExec("use", v)
 
 	require.EqualError(t, err, "exit status 1")
 	require.Empty(t, stdout)

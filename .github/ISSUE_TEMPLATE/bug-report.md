@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Create a report to help us improve GetEnvoy.
+about: Create a report to help us improve func-e.
 title: ''
 labels: bug
 assignees: ''

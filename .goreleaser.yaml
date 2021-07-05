@@ -13,11 +13,11 @@
 # limitations under the License.
 
 # See http://goreleaser.com for valid values
-project_name: getenvoy
+project_name: func-e
 builds:
-  - binary: getenvoy
-    # Updates the version so that `getenvoy -v` prints out the release version instead of "dev"
-    ldflags: "-s -w -X github.com/tetratelabs/getenvoy/internal/version.getEnvoy={{.Version}}"
+  - binary: func-e
+    # Updates the version so that `func-e -v` prints out the release version instead of "dev"
+    ldflags: "-s -w -X github.com/tetratelabs/func-e/internal/version.funcE={{.Version}}"
     main: .
     env:
       - CGO_ENABLED=0
@@ -31,18 +31,18 @@ release:
   # Create a draft release in GitHub. We can write release notes manually.
   draft: true
 brews:
-  - name: getenvoy
+  - name: func-e
     tap:
       owner: tetratelabs
-      name: homebrew-getenvoy
+      name: homebrew-func-e
       # Use token other than the default one (which is limited in scope to
-      # https://github.com/tetratelabs/getenvoy only)
-      token: "{{ .Env.HOMEBREW_GETENVOY_GITHUB_TOKEN }}"
+      # https://github.com/tetratelabs/func-e only)
+      token: "{{ .Env.HOMEBREW_FUNC-E_GITHUB_TOKEN }}"
     folder: Formula
-    homepage: https://github.com/tetratelabs/getenvoy
+    homepage: https://github.com/tetratelabs/func-e
     description: Install and run Envoy
     license: Apache-2.0
     install: |  # TODO: add shell completion post-install
-      bin.install "getenvoy"
+      bin.install "func-e"
     test: |
-      system "#{bin}/getenvoy -v"
+      system "#{bin}/func-e -v"

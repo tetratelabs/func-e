@@ -1,4 +1,4 @@
-module github.com/tetratelabs/getenvoy
+module github.com/tetratelabs/func-e
 
 // This project uses go:embed, so requires minimally go 1.16
 go 1.16

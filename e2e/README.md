@@ -1,17 +1,17 @@
-# GetEnvoy End-to-end (e2e) tests
+# func-e End-to-end (e2e) tests
 
-This directory holds the end-to-end tests for `getenvoy`.
+This directory holds the end-to-end tests for `func-e`.
 
-By default, end-to-end (e2e) tests verify a `getenvoy` binary built from [main.go](../main.go)
+By default, end-to-end (e2e) tests verify a `func-e` binary built from [main.go](../main.go)
 
 Ex run this from the project root:
 ```shell
 make e2e
 ```
 
-You can override the binary tested by setting `E2E_GETENVOY_BINARY` to an alternative location, for example a release.
+You can override the binary tested by setting `E2E_FUNC-E_BINARY` to an alternative location, for example a release.
 
-If the `getenvoy` version is a snapshot and "envoy-versions.json" exists, tests run against the local. This allows local
+If the `func-e` version is a snapshot and "envoy-versions.json" exists, tests run against the local. This allows local
 development and pull requests to verify changes not yet [published](https://archive.tetratelabs.io/envoy/envoy-versions.json)
 or those that effect the [schema](https://archive.tetratelabs.io/release-versions-schema.json).
 
@@ -21,7 +21,7 @@ The envoy version used in tests default to [/internal/version/last_known_envoy.t
 ## Development Notes
 
 ### Don't share add code to /internal only used here
-This is an end-to-end test of the `getenvoy` binary: it is easy to get confused about what is happening when some code
+This is an end-to-end test of the `func-e` binary: it is easy to get confused about what is happening when some code
 is in the binary and other shared. To avoid confusion, only use code in [/internal](../internal) on an exception basis.
 
 We historically added functions into main only for e2e and left them after they became unused. Adding code into

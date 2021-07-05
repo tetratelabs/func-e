@@ -21,8 +21,8 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	cmdutil "github.com/tetratelabs/getenvoy/internal/cmd"
-	"github.com/tetratelabs/getenvoy/internal/globals"
+	cmdutil "github.com/tetratelabs/func-e/internal/cmd"
+	"github.com/tetratelabs/func-e/internal/globals"
 )
 
 func main() {

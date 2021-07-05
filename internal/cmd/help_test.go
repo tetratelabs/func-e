@@ -23,28 +23,28 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/internal/globals"
-	"github.com/tetratelabs/getenvoy/internal/version"
+	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/version"
 )
 
-func TestGetEnvoyHelp(t *testing.T) {
+func TestFuncEHelp(t *testing.T) {
 	for _, command := range []string{"", "use", "versions", "run"} {
 		command := command
 		t.Run(command, func(t *testing.T) {
 			c, stdout, _ := newApp(&globals.GlobalOpts{})
-			args := []string{"getenvoy"}
+			args := []string{"func-e"}
 			if command != "" {
-				args = []string{"getenvoy", "help", command}
+				args = []string{"func-e", "help", command}
 			}
 			require.NoError(t, c.Run(args))
 
-			expected := "getenvoy_help.txt"
+			expected := "func-e_help.txt"
 			if command != "" {
-				expected = fmt.Sprintf("getenvoy_%s_help.txt", command)
+				expected = fmt.Sprintf("func-e_%s_help.txt", command)
 			}
 
 			bytes, err := os.ReadFile(filepath.Join("testdata", expected))
-			want := strings.ReplaceAll(string(bytes), "{VERSION}", string(version.GetEnvoy))
+			want := strings.ReplaceAll(string(bytes), "{VERSION}", string(version.FuncE))
 			want = strings.ReplaceAll(want, "{ENVOY_VERSION}", string(version.LastKnownEnvoy))
 
 			require.NoError(t, err)

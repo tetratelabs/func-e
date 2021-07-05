@@ -29,32 +29,32 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tetratelabs/getenvoy/internal/moreos"
+	"github.com/tetratelabs/func-e/internal/moreos"
 )
 
 //nolint:golint
 const (
-	getenvoyBinaryEnvKey   = "E2E_GETENVOY_BINARY"
+	funcEBinaryEnvKey      = "E2E_FUNC-E_BINARY"
 	envoyVersionsURLEnvKey = "ENVOY_VERSIONS_URL"
 	envoyVersionsJSON      = "envoy-versions.json"
 	runTimeout             = 2 * time.Minute
 )
 
 var (
-	getEnvoyPath        = "getenvoy" // getEnvoyPath holds a path to a 'getenvoy' binary under test.
-	expectedMockHeaders = map[string]string{"User-Agent": "getenvoy/dev"}
+	funcEPath           = "func-e" // funcEPath holds a path to a 'func-e' binary under test.
+	expectedMockHeaders = map[string]string{"User-Agent": "func-e/dev"}
 )
 
-// TestMain ensures the "getenvoy" binary is valid.
+// TestMain ensures the "func-e" binary is valid.
 func TestMain(m *testing.M) {
 	// As this is an e2e test, we execute all tests with a binary compiled earlier.
-	path, err := readGetEnvoyPath()
+	path, err := readFuncEPath()
 	if err != nil {
 		exitOnInvalidBinary(err)
 	}
-	getEnvoyPath = path
+	funcEPath = path
 
-	versionLine, _, err := getEnvoyExec("--version")
+	versionLine, _, err := funcEExec("--version")
 	if err != nil {
 		exitOnInvalidBinary(err)
 	}
@@ -72,7 +72,7 @@ func TestMain(m *testing.M) {
 }
 
 func exitOnInvalidBinary(err error) {
-	fmt.Fprintf(os.Stderr, `failed to start e2e tests due to an invalid "getenvoy" binary: %v\n`, err)
+	fmt.Fprintf(os.Stderr, `failed to start e2e tests due to an invalid "func-e" binary: %v\n`, err)
 	os.Exit(1)
 }
 
@@ -107,56 +107,56 @@ func mockEnvoyVersionsServer() (*httptest.Server, error) {
 	return ts, nil
 }
 
-// readGetEnvoyPath reads E2E_GETENVOY_BINARY or defaults to "$PWD/dist/getenvoy_$GOOS_$GOARCH/getenvoy"
+// readFuncEPath reads E2E_FUNC-E_BINARY or defaults to "$PWD/dist/func-e_$GOOS_$GOARCH/func-e"
 // An error is returned if the value isn't an executable file.
-func readGetEnvoyPath() (string, error) {
-	path := os.Getenv(getenvoyBinaryEnvKey)
+func readFuncEPath() (string, error) {
+	path := os.Getenv(funcEBinaryEnvKey)
 	if path == "" {
 		// Assemble the default created by "make bin"
-		relativePath := filepath.Join("..", "dist", fmt.Sprintf("getenvoy_%s_%s", runtime.GOOS, runtime.GOARCH), "getenvoy")
+		relativePath := filepath.Join("..", "dist", fmt.Sprintf("func-e_%s_%s", runtime.GOOS, runtime.GOARCH), "func-e")
 		abs, err := filepath.Abs(relativePath)
 		if err != nil {
-			return "", fmt.Errorf("%s didn't resolve to a valid path. Correct environment variable %s", path, getenvoyBinaryEnvKey)
+			return "", fmt.Errorf("%s didn't resolve to a valid path. Correct environment variable %s", path, funcEBinaryEnvKey)
 		}
 		path = abs
 	}
 
 	stat, err := os.Stat(path)
 	if err != nil && os.IsNotExist(err) {
-		return "", fmt.Errorf("%s doesn't exist. Correct environment variable %s", path, getenvoyBinaryEnvKey)
+		return "", fmt.Errorf("%s doesn't exist. Correct environment variable %s", path, funcEBinaryEnvKey)
 	}
 	if stat.IsDir() {
-		return "", fmt.Errorf("%s is not a file. Correct environment variable %s", path, getenvoyBinaryEnvKey)
+		return "", fmt.Errorf("%s is not a file. Correct environment variable %s", path, funcEBinaryEnvKey)
 	}
 	// While "make bin" should result in correct permissions, double-check as some tools lose them, such as
 	// https://github.com/actions/upload-artifact#maintaining-file-permissions-and-case-sensitive-files
 	if !moreos.IsExecutable(stat) {
-		return "", fmt.Errorf("%s is not executable. Correct environment variable %s", path, getenvoyBinaryEnvKey)
+		return "", fmt.Errorf("%s is not executable. Correct environment variable %s", path, funcEBinaryEnvKey)
 	}
 	return path, nil
 }
 
-type getEnvoy struct {
+type funcE struct {
 	cmd      *exec.Cmd
 	runDir   string
 	envoyPid int32
 }
 
-func newGetEnvoy(ctx context.Context, args ...string) *getEnvoy {
-	cmd := exec.CommandContext(ctx, getEnvoyPath, args...)
+func newFuncE(ctx context.Context, args ...string) *funcE {
+	cmd := exec.CommandContext(ctx, funcEPath, args...)
 	cmd.SysProcAttr = moreos.ProcessGroupAttr()
-	return &getEnvoy{cmd: cmd}
+	return &funcE{cmd: cmd}
 }
 
-func (b *getEnvoy) String() string {
+func (b *funcE) String() string {
 	return strings.Join(b.cmd.Args, " ")
 }
 
-func getEnvoyExec(args ...string) (string, string, error) {
-	g := newGetEnvoy(context.Background(), args...)
+func funcEExec(args ...string) (string, string, error) {
+	g := newFuncE(context.Background(), args...)
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
-	g.cmd.Stdout = io.MultiWriter(os.Stdout, stdout) // we want to see full `getenvoy` output in the test log
+	g.cmd.Stdout = io.MultiWriter(os.Stdout, stdout) // we want to see full `func-e` output in the test log
 	g.cmd.Stderr = io.MultiWriter(os.Stderr, stderr)
 	err := g.cmd.Run()
 	return stdout.String(), stderr.String(), err

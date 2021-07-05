@@ -20,12 +20,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGetEnvoyVersion(t *testing.T) {
+func TestFuncEVersion(t *testing.T) {
 	t.Parallel()
 
-	stdout, stderr, err := getEnvoyExec("--version")
+	stdout, stderr, err := funcEExec("--version")
 
-	require.Regexp(t, `^getenvoy version ([^\s]+)\n$`, stdout)
+	require.Regexp(t, `^func-e version ([^\s]+)\n$`, stdout)
 	require.Empty(t, stderr)
 	require.NoError(t, err)
 }

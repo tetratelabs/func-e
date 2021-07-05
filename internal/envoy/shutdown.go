@@ -22,12 +22,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/tetratelabs/getenvoy/internal/moreos"
-	"github.com/tetratelabs/getenvoy/internal/tar"
+	"github.com/tetratelabs/func-e/internal/moreos"
+	"github.com/tetratelabs/func-e/internal/tar"
 )
 
 // RegisterShutdownHook registers the passed functions to be run after Envoy has started
-// and just before GetEnvoy instructs Envoy to exit
+// and just before func-e instructs Envoy to exit
 func (r *Runtime) RegisterShutdownHook(f func(context.Context) error) {
 	r.shutdownHooks = append(r.shutdownHooks, f)
 }
@@ -69,10 +69,10 @@ func (r *Runtime) archiveRunDir() error {
 		return nil
 	}
 
-	// Given ~/.getenvoy/debug/1620955405964267000
-	dirName := filepath.Dir(r.GetRunDir())                  // ~/.getenvoy/runs
+	// Given ~/.func-e/debug/1620955405964267000
+	dirName := filepath.Dir(r.GetRunDir())                  // ~/.func-e/runs
 	baseName := filepath.Base(r.GetRunDir())                // 1620955405964267000
-	targzName := filepath.Join(dirName, baseName+".tar.gz") // ~/.getenvoy/runs/1620955405964267000.tar.gz
+	targzName := filepath.Join(dirName, baseName+".tar.gz") // ~/.func-e/runs/1620955405964267000.tar.gz
 
 	if err := tar.TarGz(targzName, r.GetRunDir()); err != nil {
 		return fmt.Errorf("unable to archive run directory %v: %w", r.GetRunDir(), err)
