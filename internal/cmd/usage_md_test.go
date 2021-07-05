@@ -32,7 +32,7 @@ func TestUsageMarkdownMatchesCommands(t *testing.T) {
 	// Use a custom markdown template
 	old := cli.MarkdownDocTemplate
 	defer func() { cli.MarkdownDocTemplate = old }()
-	cli.MarkdownDocTemplate = `# func-e CLI Overview
+	cli.MarkdownDocTemplate = `# func-e Overview
 {{ .App.UsageText }}
 
 # Commands

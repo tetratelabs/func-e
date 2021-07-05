@@ -1,4 +1,4 @@
-# func-e CLI Overview
+# func-e Overview
 To run Envoy, execute `func-e run -c your_envoy_config.yaml`. This
 downloads and installs the latest version of Envoy for you.
 
