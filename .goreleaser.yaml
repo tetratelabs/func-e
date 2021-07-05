@@ -30,19 +30,4 @@ builds:
 release:
   # Create a draft release in GitHub. We can write release notes manually.
   draft: true
-brews:
-  - name: func-e
-    tap:
-      owner: tetratelabs
-      name: homebrew-func-e
-      # Use token other than the default one (which is limited in scope to
-      # https://github.com/tetratelabs/func-e only)
-      token: "{{ .Env.HOMEBREW_FUNC-E_GITHUB_TOKEN }}"
-    folder: Formula
-    homepage: https://github.com/tetratelabs/func-e
-    description: Install and run Envoy
-    license: Apache-2.0
-    install: |  # TODO: add shell completion post-install
-      bin.install "func-e"
-    test: |
-      system "#{bin}/func-e -v"
+
