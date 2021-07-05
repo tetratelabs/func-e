@@ -22,12 +22,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
-	"github.com/tetratelabs/getenvoy/internal/version"
+	"github.com/tetratelabs/func-e/internal/test/morerequire"
+	"github.com/tetratelabs/func-e/internal/version"
 )
 
 func TestVersionUsageList(t *testing.T) {
-	require.Equal(t, "$ENVOY_VERSION, $PWD/.envoy-version, $GETENVOY_HOME/version", VersionUsageList())
+	require.Equal(t, "$ENVOY_VERSION, $PWD/.envoy-version, $FUNC-E_HOME/version", VersionUsageList())
 }
 
 func TestGetHomeVersion_Empty(t *testing.T) {
@@ -172,7 +172,7 @@ func TestCurrentVersion_Validates(t *testing.T) {
 
 	t.Run("validates home version", func(t *testing.T) {
 		_, _, err := CurrentVersion(homeDir)
-		require.EqualError(t, err, fmt.Sprintf(`invalid version in "$GETENVOY_HOME/version": "a.a.a" should look like "%s"`, version.LastKnownEnvoy))
+		require.EqualError(t, err, fmt.Sprintf(`invalid version in "$FUNC-E_HOME/version": "a.a.a" should look like "%s"`, version.LastKnownEnvoy))
 	})
 
 	revertTempWd := morerequire.RequireChdirIntoTemp(t)

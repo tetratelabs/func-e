@@ -12,8 +12,8 @@ env:
   GO_VERSION: "1.16.5"
 
 jobs:
-  getenvoy:
-    name: "Release `getenvoy` CLI"
+  func-e:
+    name: "Release `func-e` CLI"
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout"
@@ -30,13 +30,13 @@ jobs:
       - name: "Run GoReleaser"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HOMEBREW_GETENVOY_GITHUB_TOKEN: ${{ secrets.GETENVOY_CI_GITHUB_TOKEN }}
+          HOMEBREW_FUNC-E_GITHUB_TOKEN: ${{ secrets.FUNC-E_CI_GITHUB_TOKEN }}
         run: make release
 
   e2e:
     name: Run e2e tests (${{ matrix.os }})
     needs:
-      - getenvoy
+      - func-e
     runs-on: ${{ matrix.os }}
     timeout-minutes: 90  # instead of 360 by default
     strategy:
@@ -52,10 +52,10 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
-      - name: "Extract `getenvoy` binary from GitHub release assets"
-        run: .github/untar-getenvoy-release.sh ${GITHUB_REF#refs/*/}
+      - name: "Extract `func-e` binary from GitHub release assets"
+        run: .github/untar_func-e_release.sh ${GITHUB_REF#refs/*/}
         env:  # authenticate as the release is a draft
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: "Run e2e tests using released `getenvoy` binary"
-        run: E2E_GETENVOY_BINARY=$PWD/getenvoy make e2e
+      - name: "Run e2e tests using released `func-e` binary"
+        run: E2E_FUNC-E_BINARY=$PWD/func-e make e2e

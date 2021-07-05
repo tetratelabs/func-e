@@ -22,7 +22,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
 
-	"github.com/tetratelabs/getenvoy/internal/globals"
+	"github.com/tetratelabs/func-e/internal/globals"
 )
 
 const siteMarkdownFile = "../../site/usage.md"
@@ -32,7 +32,7 @@ func TestUsageMarkdownMatchesCommands(t *testing.T) {
 	// Use a custom markdown template
 	old := cli.MarkdownDocTemplate
 	defer func() { cli.MarkdownDocTemplate = old }()
-	cli.MarkdownDocTemplate = `# GetEnvoy CLI Overview
+	cli.MarkdownDocTemplate = `# func-e CLI Overview
 {{ .App.UsageText }}
 
 # Commands
@@ -41,7 +41,7 @@ func TestUsageMarkdownMatchesCommands(t *testing.T) {
 | ---- | ----- |
 {{range $index, $cmd := .App.VisibleCommands}}{{if $index}}
 {{end}}| {{$cmd.Name}} | {{$cmd.Usage}} |{{end}}
-| --version, -v | Print the version of GetEnvoy |
+| --version, -v | Print the version of func-e |
 
 # Environment Variables
 

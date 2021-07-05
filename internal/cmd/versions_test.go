@@ -21,8 +21,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
-	"github.com/tetratelabs/getenvoy/internal/version"
+	"github.com/tetratelabs/func-e/internal/test/morerequire"
+	"github.com/tetratelabs/func-e/internal/version"
 )
 
 func TestGetInstalledVersions_ErrorsWhenFileIsInVersionsDir(t *testing.T) {
@@ -90,21 +90,21 @@ func TestAddAvailableVersions(t *testing.T) {
 		"1.14.7": {
 			ReleaseDate: "2021-04-15",
 			Tarballs: map[version.Platform]version.TarballURL{
-				"darwin/amd64": "https://getenvoy.io/versions/1.14.7/envoy-1.14.7-darwin-x86_64.tar.gz",
-				"linux/amd64":  "https://getenvoy.io/versions/1.14.7/envoy-1.14.7-linux-x86_64.tar.gz",
+				"darwin/amd64": "https://func-e.io/versions/1.14.7/envoy-1.14.7-darwin-x86_64.tar.gz",
+				"linux/amd64":  "https://func-e.io/versions/1.14.7/envoy-1.14.7-linux-x86_64.tar.gz",
 			},
 		},
 		"1.17.3": {
 			ReleaseDate: "2021-05-11",
 			Tarballs: map[version.Platform]version.TarballURL{
-				"linux/amd64": "https://getenvoy.io/versions/1.17.3/envoy-1.17.3-linux-x86_64.tar.gz",
+				"linux/amd64": "https://func-e.io/versions/1.17.3/envoy-1.17.3-linux-x86_64.tar.gz",
 			},
 		},
 		"1.18.3": {
 			ReleaseDate: "2021-05-11",
 			Tarballs: map[version.Platform]version.TarballURL{
-				"darwin/amd64": "https://getenvoy.io/versions/1.18.3/envoy-1.18.3-darwin-x86_64.tar.gz",
-				"linux/amd64":  "https://getenvoy.io/versions/1.18.3/envoy-1.18.3-linux-x86_64.tar.gz",
+				"darwin/amd64": "https://func-e.io/versions/1.18.3/envoy-1.18.3-darwin-x86_64.tar.gz",
+				"linux/amd64":  "https://func-e.io/versions/1.18.3/envoy-1.18.3-linux-x86_64.tar.gz",
 			},
 		},
 	}
@@ -179,7 +179,7 @@ func TestAddAvailableVersions_Validates(t *testing.T) {
 				"1.14.7": {
 					ReleaseDate: "ice cream",
 					Tarballs: map[version.Platform]version.TarballURL{
-						"darwin/amd64": "https://getenvoy.io/versions/1.14.7/envoy-1.14.7-darwin-x86_64.tar.gz",
+						"darwin/amd64": "https://func-e.io/versions/1.14.7/envoy-1.14.7-darwin-x86_64.tar.gz",
 					},
 				},
 			},
@@ -189,7 +189,7 @@ func TestAddAvailableVersions_Validates(t *testing.T) {
 			update: map[version.Version]version.Release{
 				"1.14.7": {
 					Tarballs: map[version.Platform]version.TarballURL{
-						"darwin/amd64": "https://getenvoy.io/versions/1.14.7/envoy-1.14.7-darwin-x86_64.tar.gz",
+						"darwin/amd64": "https://func-e.io/versions/1.14.7/envoy-1.14.7-darwin-x86_64.tar.gz",
 					},
 				},
 			},

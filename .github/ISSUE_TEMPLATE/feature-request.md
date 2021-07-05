@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: Suggest an idea or new platform for GetEnvoy to support.
+about: Suggest an idea or new platform for func-e to support.
 title: ''
 labels: enhancement
 assignees: ''

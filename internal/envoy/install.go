@@ -26,10 +26,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/tetratelabs/getenvoy/internal/globals"
-	"github.com/tetratelabs/getenvoy/internal/moreos"
-	"github.com/tetratelabs/getenvoy/internal/tar"
-	"github.com/tetratelabs/getenvoy/internal/version"
+	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/moreos"
+	"github.com/tetratelabs/func-e/internal/tar"
+	"github.com/tetratelabs/func-e/internal/version"
 )
 
 var binEnvoy = filepath.Join("bin", "envoy"+moreos.Exe)
@@ -42,7 +42,7 @@ func InstallIfNeeded(ctx context.Context, o *globals.GlobalOpts, p version.Platf
 	switch {
 	case os.IsNotExist(err):
 		var ev version.ReleaseVersions // Get version metadata for what we will install
-		ev, err = GetEnvoyVersions(ctx, o.EnvoyVersionsURL, p, v)
+		ev, err = FuncEVersions(ctx, o.EnvoyVersionsURL, p, v)
 		if err != nil {
 			return "", err
 		}

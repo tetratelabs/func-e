@@ -25,7 +25,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/tetratelabs/getenvoy/internal/moreos"
+	"github.com/tetratelabs/func-e/internal/moreos"
 )
 
 // Run execs the binary at the path with the args passed. It is a blocking function that can be shutdown via SIGINT.

@@ -21,7 +21,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/tetratelabs/getenvoy/internal/envoy"
+	"github.com/tetratelabs/func-e/internal/envoy"
 )
 
 // EnableHooks is a list of functions that enable shutdown hooks

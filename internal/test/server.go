@@ -30,11 +30,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/internal/globals"
-	"github.com/tetratelabs/getenvoy/internal/moreos"
-	"github.com/tetratelabs/getenvoy/internal/tar"
-	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
-	"github.com/tetratelabs/getenvoy/internal/version"
+	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/moreos"
+	"github.com/tetratelabs/func-e/internal/tar"
+	"github.com/tetratelabs/func-e/internal/test/morerequire"
+	"github.com/tetratelabs/func-e/internal/version"
 )
 
 const (
@@ -77,7 +77,7 @@ func TarballURL(baseURL, goos, goarch string, v version.Version) version.Tarball
 	return version.TarballURL(fmt.Sprintf("%s%s%s/envoy-%s-%s-%s%s", baseURL, versionsPath, v, v, goos, arch, archiveFormat))
 }
 
-// server represents an HTTP server serving GetEnvoy versions.
+// server represents an HTTP server serving func-e versions.
 type server struct {
 	t              *testing.T
 	versions       version.ReleaseVersions
@@ -88,7 +88,7 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case r.RequestURI == "/envoy-versions.json":
 		w.WriteHeader(http.StatusOK)
-		_, err := w.Write(s.getEnvoyVersions())
+		_, err := w.Write(s.funcEVersions())
 		require.NoError(s.t, err)
 	case strings.HasPrefix(r.RequestURI, versionsPath):
 		subpath := r.RequestURI[len(versionsPath):]
@@ -105,7 +105,7 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *server) getEnvoyVersions() []byte {
+func (s *server) funcEVersions() []byte {
 	data, err := json.Marshal(s.versions)
 	require.NoError(s.t, err)
 	return data

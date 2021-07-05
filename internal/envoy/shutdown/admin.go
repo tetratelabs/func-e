@@ -24,7 +24,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/tetratelabs/getenvoy/internal/envoy"
+	"github.com/tetratelabs/func-e/internal/envoy"
 )
 
 var adminAPIPaths = map[string]string{

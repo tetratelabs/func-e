@@ -45,8 +45,8 @@ jobs:
         with:
           # This combines unrelated caches because actions/cache@v2 doesn't support multiple
           # instances, rather a combined path. https://github.com/actions/cache/issues/16
-          path: |  # ~/.getenvoy/versions is cached so that we only re-download once: for TestGetEnvoyInstall
-            ~/.getenvoy/versions
+          path: |  # ~/.func-e/versions is cached so that we only re-download once: for TestFuncEInstall
+            ~/.func-e/versions
             ~/go/pkg/mod
             ~/go/bin/*-v*
           # '.bingo/*.sum' files generate inconsistently when building `~/go/bin/*-v*`. We key '.bingo/*.mod' instead.
@@ -59,10 +59,10 @@ jobs:
       - name: "Run unit tests"
         run: make test
 
-      - name: "Build the `getenvoy` binary"
+      - name: "Build the `func-e` binary"
         run: make bin
 
-      - name: "Run e2e tests using the `getenvoy` binary"
+      - name: "Run e2e tests using the `func-e` binary"
         run: make e2e
 
       - name: "Generate coverage report" # only once (not per OS)

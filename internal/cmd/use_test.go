@@ -22,10 +22,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/internal/version"
+	"github.com/tetratelabs/func-e/internal/version"
 )
 
-func TestGetEnvoyUse_VersionValidates(t *testing.T) {
+func TestFuncEUse_VersionValidates(t *testing.T) {
 	o, cleanup := setupTest(t)
 	defer cleanup()
 
@@ -46,23 +46,23 @@ func TestGetEnvoyUse_VersionValidates(t *testing.T) {
 
 		t.Run(tc.name, func(t *testing.T) {
 			c, stdout, stderr := newApp(o)
-			err := c.Run([]string{"getenvoy", "use", tc.version})
+			err := c.Run([]string{"func-e", "use", tc.version})
 
 			// Verify the command failed with the expected error
 			require.EqualError(t, err, tc.expectedErr)
-			// GetEnvoy handles logging of errors, so we expect nothing in stdout or stderr
+			// func-e handles logging of errors, so we expect nothing in stdout or stderr
 			require.Empty(t, stdout)
 			require.Empty(t, stderr)
 		})
 	}
 }
 
-func TestGetEnvoyUse_InstallsAndWritesHomeVersion(t *testing.T) {
+func TestFuncEUse_InstallsAndWritesHomeVersion(t *testing.T) {
 	o, cleanup := setupTest(t)
 	defer cleanup()
 
 	c, _, _ := newApp(o)
-	require.NoError(t, c.Run([]string{"getenvoy", "use", string(o.EnvoyVersion)}))
+	require.NoError(t, c.Run([]string{"func-e", "use", string(o.EnvoyVersion)}))
 
 	// The binary was installed
 	require.FileExists(t, filepath.Join(o.HomeDir, "versions", string(o.EnvoyVersion), "bin", "envoy"))

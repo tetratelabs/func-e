@@ -24,7 +24,7 @@ import (
 	"github.com/shirou/gopsutil/v3/process"
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
+	"github.com/tetratelabs/func-e/internal/test/morerequire"
 )
 
 func TestIsExecutable(t *testing.T) {

@@ -21,11 +21,11 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/tetratelabs/getenvoy/internal/version"
+	"github.com/tetratelabs/func-e/internal/version"
 )
 
-// GetEnvoyVersions returns a version map from a remote URL. eg globals.DefaultEnvoyVersionsURL.
-func GetEnvoyVersions(ctx context.Context, envoyVersionsURL string, p version.Platform, v version.Version) (version.ReleaseVersions, error) {
+// FuncEVersions returns a version map from a remote URL. eg globals.DefaultEnvoyVersionsURL.
+func FuncEVersions(ctx context.Context, envoyVersionsURL string, p version.Platform, v version.Version) (version.ReleaseVersions, error) {
 	result := version.ReleaseVersions{}
 	// #nosec => This is by design, users can call out to wherever they like!
 	resp, err := httpGet(ctx, envoyVersionsURL, p, v)

@@ -21,8 +21,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/internal/globals"
-	"github.com/tetratelabs/getenvoy/internal/test/morerequire"
+	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/test/morerequire"
 )
 
 func TestEnsureAdminAddressPath(t *testing.T) {

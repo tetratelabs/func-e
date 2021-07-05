@@ -19,9 +19,9 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/tetratelabs/getenvoy/internal/envoy"
-	"github.com/tetratelabs/getenvoy/internal/globals"
-	"github.com/tetratelabs/getenvoy/internal/version"
+	"github.com/tetratelabs/func-e/internal/envoy"
+	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/version"
 )
 
 // NewUseCmd create a command responsible for downloading and extracting Envoy
@@ -31,14 +31,14 @@ func NewUseCmd(o *globals.GlobalOpts) *cli.Command {
 		Usage:     `Sets the current [version] used by the "run" command`,
 		ArgsUsage: "[version]",
 		Description: fmt.Sprintf(`The '[version]' is from the "versions -a" command.
-The Envoy [version] installs on-demand into $GETENVOY_HOME/versions/[version]
+The Envoy [version] installs on-demand into $FUNC-E_HOME/versions/[version]
 if needed.
 
 This updates %s or %s with [version],
 depending on which is present.
 
 Example:
-$ getenvoy use %s`, envoy.CurrentVersionWorkingDirFile, envoy.CurrentVersionHomeDirFile, version.LastKnownEnvoy),
+$ func-e use %s`, envoy.CurrentVersionWorkingDirFile, envoy.CurrentVersionHomeDirFile, version.LastKnownEnvoy),
 		Before: validateVersionArg,
 		Action: func(c *cli.Context) error {
 			v := version.Version(c.Args().First())

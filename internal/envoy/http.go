@@ -20,7 +20,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/tetratelabs/getenvoy/internal/version"
+	"github.com/tetratelabs/func-e/internal/version"
 )
 
 // httpGet adds the userAgent header to the request, so that we can tell what is a dev build vs release.
@@ -43,7 +43,7 @@ func httpGet(ctx context.Context, url string, p version.Platform, v version.Vers
 // and even its 'Referer' analytics are limited to requests to HTML resources.
 func userAgent(p version.Platform, v version.Version) string {
 	if !strings.HasPrefix(string(v), "v") || strings.Contains(string(v), "SNAPSHOT") {
-		return "getenvoy/dev"
+		return "func-e/dev"
 	}
-	return fmt.Sprintf("getenvoy/%s (%s)", v, p)
+	return fmt.Sprintf("func-e/%s (%s)", v, p)
 }

@@ -25,10 +25,10 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/tetratelabs/getenvoy/internal/envoy"
-	"github.com/tetratelabs/getenvoy/internal/envoy/shutdown"
-	"github.com/tetratelabs/getenvoy/internal/globals"
-	"github.com/tetratelabs/getenvoy/internal/version"
+	"github.com/tetratelabs/func-e/internal/envoy"
+	"github.com/tetratelabs/func-e/internal/envoy/shutdown"
+	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/version"
 )
 
 // NewRunCmd create a command responsible for starting an Envoy process
@@ -39,19 +39,19 @@ func NewRunCmd(o *globals.GlobalOpts) *cli.Command {
 		Usage:           "Run Envoy with the given [arguments...] until interrupted",
 		ArgsUsage:       "[arguments...]",
 		SkipFlagParsing: true,
-		Description: `To run Envoy, execute ` + "`getenvoy run -c your_envoy_config.yaml`" + `.
+		Description: `To run Envoy, execute ` + "`func-e run -c your_envoy_config.yaml`" + `.
 
 The first version in the below is run, controllable by the "use" command:
 ` + fmt.Sprintf("```\n%s\n```", envoy.VersionUsageList()) + `
 The version to use is downloaded and installed, if necessary.
 
 Envoy interprets the '[arguments...]' and runs in the current working
-directory (aka $CWD) until getenvoy is interrupted (ex Ctrl+C, Ctrl+Break).
+directory (aka $CWD) until func-e is interrupted (ex Ctrl+C, Ctrl+Break).
 
 Envoy's process ID and console output write to "envoy.pid", stdout.log" and
-"stderr.log" in the run directory (` + "`$GETENVOY_HOME/runs/$epochtime`" + `).
+"stderr.log" in the run directory (` + "`$FUNC-E_HOME/runs/$epochtime`" + `).
 When interrupted, shutdown hooks write files including network and process
-state. On exit, these archive into ` + "`$GETENVOY_HOME/runs/$epochtime.tar.gz`",
+state. On exit, these archive into ` + "`$FUNC-E_HOME/runs/$epochtime.tar.gz`",
 		Before: func(c *cli.Context) error {
 			if err := os.MkdirAll(o.HomeDir, 0750); err != nil {
 				return NewValidationError(err.Error())
@@ -133,7 +133,7 @@ func initializeRunOpts(ctx context.Context, o *globals.GlobalOpts, p version.Pla
 	return nil
 }
 
-// setHomeEnvoyVersion makes sure the $GETENVOY_HOME/version exists.
+// setHomeEnvoyVersion makes sure the $FUNC-E_HOME/version exists.
 func setHomeEnvoyVersion(ctx context.Context, o *globals.GlobalOpts) error {
 	v, homeVersionFile, err := envoy.GetHomeVersion(o.HomeDir)
 	if err != nil {
@@ -144,7 +144,7 @@ func setHomeEnvoyVersion(ctx context.Context, o *globals.GlobalOpts) error {
 
 	// First time install: look up the latest version, which may be newer than version.LastKnownEnvoy!
 	fmt.Fprintln(o.Out, "looking up latest version") //nolint
-	m, err := envoy.GetEnvoyVersions(ctx, o.EnvoyVersionsURL, globals.CurrentPlatform, version.GetEnvoy)
+	m, err := envoy.FuncEVersions(ctx, o.EnvoyVersionsURL, globals.CurrentPlatform, version.FuncE)
 	if err != nil {
 		return NewValidationError(`couldn't read latest version from %s: %s`, o.EnvoyVersionsURL, err)
 	}

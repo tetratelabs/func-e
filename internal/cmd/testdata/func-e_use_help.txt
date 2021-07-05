@@ -1,0 +1,16 @@
+NAME:
+   func-e use - Sets the current [version] used by the "run" command
+
+USAGE:
+   func-e use [version]
+
+DESCRIPTION:
+   The '[version]' is from the "versions -a" command.
+   The Envoy [version] installs on-demand into $FUNC-E_HOME/versions/[version]
+   if needed.
+   
+   This updates $PWD/.envoy-version or $FUNC-E_HOME/version with [version],
+   depending on which is present.
+   
+   Example:
+   $ func-e use {ENVOY_VERSION}

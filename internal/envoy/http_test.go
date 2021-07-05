@@ -22,19 +22,19 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/getenvoy/internal/globals"
-	"github.com/tetratelabs/getenvoy/internal/version"
+	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/version"
 )
 
 func TestHttpGet_AddsDefaultHeaders(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		for k, v := range map[string]string{"User-Agent": "getenvoy/dev"} {
+		for k, v := range map[string]string{"User-Agent": "func-e/dev"} {
 			require.Equal(t, v, r.Header.Get(k))
 		}
 	}))
 	defer ts.Close()
 
-	res, err := httpGet(context.Background(), ts.URL, globals.CurrentPlatform, version.GetEnvoy)
+	res, err := httpGet(context.Background(), ts.URL, globals.CurrentPlatform, version.FuncE)
 	require.NoError(t, err)
 
 	defer res.Body.Close()

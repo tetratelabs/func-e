@@ -19,15 +19,15 @@ import (
 	"regexp"
 	"runtime"
 
-	"github.com/tetratelabs/getenvoy/internal/version"
+	"github.com/tetratelabs/func-e/internal/version"
 )
 
-// RunOpts support invocations of "getenvoy run"
+// RunOpts support invocations of "func-e run"
 type RunOpts struct {
 	// EnvoyPath is the exec.Cmd path to "envoy". Defaults to "$HomeDir/versions/$version/bin/envoy"
 	EnvoyPath string
 	// RunDir is the location any generated files are written.
-	// This is not Envoy's working directory, which remains the same as the $PWD of getenvoy.
+	// This is not Envoy's working directory, which remains the same as the $PWD of func-e.
 	//
 	// Upon shutdown, this directory is archived as "../$(basename $RunDir).tar.gz"
 	// Defaults to "$HomeDir/runs/$epochtime"
@@ -36,12 +36,12 @@ type RunOpts struct {
 	DontArchiveRunDir bool
 }
 
-// GlobalOpts represents options that affect more than one getenvoy commands.
+// GlobalOpts represents options that affect more than one func-e commands.
 //
 // Fields representing non-hidden flags have values set according to the following rules:
 //  1) value that precedes flag parsing, used in tests
 //  2) to a value of the command line argument, e.g. `--home-dir`
-//  3) optional mapping to an environment variable, e.g. `GETENVOY_HOME` (not all flags are mapped to ENV)
+//  3) optional mapping to an environment variable, e.g. `FUNC-E_HOME` (not all flags are mapped to ENV)
 //  4) otherwise, to the default value, e.g. DefaultHomeDir
 type GlobalOpts struct {
 	// RunOpts are inlined to allow tests to override parameters without changing ENV variables or flags
@@ -59,7 +59,7 @@ type GlobalOpts struct {
 
 const (
 	// DefaultHomeDir is the default value for GlobalOpts.HomeDir
-	DefaultHomeDir = "${HOME}/.getenvoy"
+	DefaultHomeDir = "${HOME}/.func-e"
 	// DefaultEnvoyVersionsURL is the default value for GlobalOpts.EnvoyVersionsURL
 	DefaultEnvoyVersionsURL = "https://archive.tetratelabs.io/envoy/envoy-versions.json"
 )

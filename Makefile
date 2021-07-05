@@ -27,14 +27,14 @@ release: $(GORELEASER)
 
 GOOS := $(shell go env GOOS)
 GOARCH := $(shell go env GOARCH)
-BIN := dist/getenvoy_$(GOOS)_$(GOARCH)
+BIN := dist/func-e_$(GOOS)_$(GOARCH)
 bin $(BIN): $(GORELEASER)
 	@echo "--- bin ---"
 	@$(GORELEASER) build --snapshot --single-target --rm-dist
 
 ##@ Unit and End-to-End tests
 
-TEST_PACKAGES ?= $(shell go list ./... | grep -v -e github.com/tetratelabs/getenvoy/e2e -e github.com/tetratelabs/getenvoy/site)
+TEST_PACKAGES ?= $(shell go list ./... | grep -v -e github.com/tetratelabs/func-e/e2e -e github.com/tetratelabs/func-e/site)
 .PHONY: test
 test:
 	@echo "--- test ---"
@@ -42,13 +42,13 @@ test:
 
 # End-to-end (e2e) tests run against a compiled binary.
 #
-# When E2E_GETENVOY_BINARY isn't set, the getenvoy binary is built on-demand.
+# When E2E_FUNC-E_BINARY isn't set, the func-e binary is built on-demand.
 #
 # Tests run one at a time, in verbose mode, so that failures are easy to diagnose.
 # Note: -failfast helps as it stops at the first error. However, it is not a cacheable flag, so runs won't cache.
-E2E_GETENVOY_BINARY ?= $(BIN)
+E2E_FUNC-E_BINARY ?= $(BIN)
 .PHONY: e2e
-e2e: $(E2E_GETENVOY_BINARY)
+e2e: $(E2E_FUNC-E_BINARY)
 	@echo "--- e2e ---"
 	@go test -parallel 1 -v -failfast ./e2e
 
@@ -78,7 +78,7 @@ format: $(GOIMPORTS) ## Format all Go code
 	@for f in `find . -name '*.go'`; do \
 	    awk '/^import \($$/,/^\)$$/{if($$0=="")next}{print}' $$f > /tmp/fmt; \
 	    mv /tmp/fmt $$f; \
-	    $(GOIMPORTS) -w -local github.com/tetratelabs/getenvoy $$f; \
+	    $(GOIMPORTS) -w -local github.com/tetratelabs/func-e $$f; \
 	done
 
 # Enforce go version matches what's in go.mod when running `make check` assuming the following:

@@ -24,9 +24,9 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/tetratelabs/getenvoy/internal/envoy"
-	"github.com/tetratelabs/getenvoy/internal/globals"
-	"github.com/tetratelabs/getenvoy/internal/version"
+	"github.com/tetratelabs/func-e/internal/envoy"
+	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/version"
 )
 
 // NewVersionsCmd returns command that lists available Envoy versions for the current platform.
@@ -50,7 +50,7 @@ func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 			currentVersion, currentVersionSource, _ := envoy.CurrentVersion(o.HomeDir)
 
 			if c.Bool("all") {
-				if ev, err := envoy.GetEnvoyVersions(c.Context, o.EnvoyVersionsURL, globals.CurrentPlatform, version.GetEnvoy); err != nil {
+				if ev, err := envoy.FuncEVersions(c.Context, o.EnvoyVersionsURL, globals.CurrentPlatform, version.FuncE); err != nil {
 					return err
 				} else if err := addAvailableVersions(&rows, ev.Versions, globals.CurrentPlatform); err != nil {
 					return err

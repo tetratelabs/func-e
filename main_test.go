@@ -38,37 +38,37 @@ func TestRunErrors(t *testing.T) {
 	}{
 		{
 			name: "built-in --version output",
-			args: []string{"getenvoy", "--version"},
-			expectedStdout: `getenvoy version dev
+			args: []string{"func-e", "--version"},
+			expectedStdout: `func-e version dev
 `,
 		},
 		{
 			name:           "incorrect global flag name",
-			args:           []string{"getenvoy", "--d"},
+			args:           []string{"func-e", "--d"},
 			expectedStatus: 1,
 			expectedStderr: `flag provided but not defined: -d
-show usage with: getenvoy help
+show usage with: func-e help
 `,
 		},
 		{
 			name:           "incorrect global flag value",
-			args:           []string{"getenvoy", "--envoy-versions-url", ".", "list"},
+			args:           []string{"func-e", "--envoy-versions-url", ".", "list"},
 			expectedStatus: 1,
 			expectedStderr: `"." is not a valid Envoy versions URL
-show usage with: getenvoy help
+show usage with: func-e help
 `,
 		},
 		{
 			name:           "unknown command",
-			args:           []string{"getenvoy", "fly"},
+			args:           []string{"func-e", "fly"},
 			expectedStatus: 1,
 			expectedStderr: `unknown command "fly"
-show usage with: getenvoy help
+show usage with: func-e help
 `,
 		},
 		{
 			name:           "execution error",
-			args:           []string{"getenvoy", "--envoy-versions-url", server.URL, "versions", "-a"},
+			args:           []string{"func-e", "--envoy-versions-url", server.URL, "versions", "-a"},
 			expectedStatus: 1,
 			expectedStderr: `error: error unmarshalling Envoy versions: unexpected end of JSON input
 `,
