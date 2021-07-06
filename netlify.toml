@@ -6,10 +6,10 @@
   HUGO_VERSION = "0.85.0"
 
 [context.production]
-  command = "hugo --gc --minify"
+  command = "git submodule update --init && hugo --gc --minify"
 
 [context.deploy-preview]
-  command = "hugo --gc --minify -b $DEPLOY_PRIME_URL"
+  command = "git submodule update --init && hugo --gc --minify -b $DEPLOY_PRIME_URL"
 
 [context.branch-deploy]
-  command = "hugo --gc --minify -b $DEPLOY_PRIME_URL"
+  command = "git submodule update --init && hugo --gc --minify -b $DEPLOY_PRIME_URL"
