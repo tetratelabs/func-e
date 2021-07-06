@@ -136,7 +136,7 @@ func TestFuncERun_ValidatesHomeVersion(t *testing.T) {
 	err := c.Run([]string{"func-e", "run"})
 
 	// Verify the command failed with the expected error
-	require.EqualError(t, err, fmt.Sprintf(`invalid version in "$FUNC-E_HOME/version": "a.a.a" should look like "%s"`, version.LastKnownEnvoy))
+	require.EqualError(t, err, fmt.Sprintf(`invalid version in "$FUNC_E_HOME/version": "a.a.a" should look like "%s"`, version.LastKnownEnvoy))
 }
 
 // TestFuncERun_ValidatesWorkingVersion duplicates logic in version_test.go to ensure a non-home version validates.

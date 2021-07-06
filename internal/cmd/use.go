@@ -31,7 +31,7 @@ func NewUseCmd(o *globals.GlobalOpts) *cli.Command {
 		Usage:     `Sets the current [version] used by the "run" command`,
 		ArgsUsage: "[version]",
 		Description: fmt.Sprintf(`The '[version]' is from the "versions -a" command.
-The Envoy [version] installs on-demand into $FUNC-E_HOME/versions/[version]
+The Envoy [version] installs on-demand into $FUNC_E_HOME/versions/[version]
 if needed.
 
 This updates %s or %s with [version],
