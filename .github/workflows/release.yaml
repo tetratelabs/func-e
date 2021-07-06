@@ -30,7 +30,6 @@ jobs:
       - name: "Run GoReleaser"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HOMEBREW_FUNC-E_GITHUB_TOKEN: ${{ secrets.FUNC-E_CI_GITHUB_TOKEN }}
         run: make release
 
   e2e:
@@ -58,4 +57,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: "Run e2e tests using released `func-e` binary"
-        run: E2E_FUNC-E_BINARY=$PWD/func-e make e2e
+        run: E2E_FUNC_E_BINARY=$PWD/func-e make e2e

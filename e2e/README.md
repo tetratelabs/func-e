@@ -9,7 +9,7 @@ Ex run this from the project root:
 make e2e
 ```
 
-You can override the binary tested by setting `E2E_FUNC-E_BINARY` to an alternative location, for example a release.
+You can override the binary tested by setting `E2E_FUNC_E_BINARY` to an alternative location, for example a release.
 
 If the `func-e` version is a snapshot and "envoy-versions.json" exists, tests run against the local. This allows local
 development and pull requests to verify changes not yet [published](https://archive.tetratelabs.io/envoy/envoy-versions.json)

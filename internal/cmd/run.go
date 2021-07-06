@@ -49,9 +49,9 @@ Envoy interprets the '[arguments...]' and runs in the current working
 directory (aka $CWD) until func-e is interrupted (ex Ctrl+C, Ctrl+Break).
 
 Envoy's process ID and console output write to "envoy.pid", stdout.log" and
-"stderr.log" in the run directory (` + "`$FUNC-E_HOME/runs/$epochtime`" + `).
+"stderr.log" in the run directory (` + "`$FUNC_E_HOME/runs/$epochtime`" + `).
 When interrupted, shutdown hooks write files including network and process
-state. On exit, these archive into ` + "`$FUNC-E_HOME/runs/$epochtime.tar.gz`",
+state. On exit, these archive into ` + "`$FUNC_E_HOME/runs/$epochtime.tar.gz`",
 		Before: func(c *cli.Context) error {
 			if err := os.MkdirAll(o.HomeDir, 0750); err != nil {
 				return NewValidationError(err.Error())
@@ -133,7 +133,7 @@ func initializeRunOpts(ctx context.Context, o *globals.GlobalOpts, p version.Pla
 	return nil
 }
 
-// setHomeEnvoyVersion makes sure the $FUNC-E_HOME/version exists.
+// setHomeEnvoyVersion makes sure the $FUNC_E_HOME/version exists.
 func setHomeEnvoyVersion(ctx context.Context, o *globals.GlobalOpts) error {
 	v, homeVersionFile, err := envoy.GetHomeVersion(o.HomeDir)
 	if err != nil {

@@ -34,7 +34,7 @@ import (
 
 //nolint:golint
 const (
-	funcEBinaryEnvKey      = "E2E_FUNC-E_BINARY"
+	funcEBinaryEnvKey      = "E2E_FUNC_E_BINARY"
 	envoyVersionsURLEnvKey = "ENVOY_VERSIONS_URL"
 	envoyVersionsJSON      = "envoy-versions.json"
 	runTimeout             = 2 * time.Minute
@@ -107,7 +107,7 @@ func mockEnvoyVersionsServer() (*httptest.Server, error) {
 	return ts, nil
 }
 
-// readFuncEPath reads E2E_FUNC-E_BINARY or defaults to "$PWD/dist/func-e_$GOOS_$GOARCH/func-e"
+// readFuncEPath reads E2E_FUNC_E_BINARY or defaults to "$PWD/dist/func-e_$GOOS_$GOARCH/func-e"
 // An error is returned if the value isn't an executable file.
 func readFuncEPath() (string, error) {
 	path := os.Getenv(funcEBinaryEnvKey)

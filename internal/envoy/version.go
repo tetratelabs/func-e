@@ -29,7 +29,7 @@ var (
 	// CurrentVersionWorkingDirFile is used for stable "versions" and "help" output
 	CurrentVersionWorkingDirFile = filepath.Join("$PWD", ".envoy-version")
 	// CurrentVersionHomeDirFile is used for stable "versions" and "help" output
-	CurrentVersionHomeDirFile = filepath.Join("$FUNC-E_HOME", "version")
+	CurrentVersionHomeDirFile = filepath.Join("$FUNC_E_HOME", "version")
 )
 
 // GetHomeVersion returns the default version in the "homeDir" and path to to it (homeVersionFile). When "v" is empty,
@@ -90,7 +90,7 @@ func getCurrentVersion(homeDir string) (v version.Version, source string, err er
 		return "", CurrentVersionWorkingDirFile, err
 	}
 
-	// Priority 3: $FUNC-E_HOME/version
+	// Priority 3: $FUNC_E_HOME/version
 	source = CurrentVersionHomeDirFile
 	v, _, err = getHomeVersion(homeDir)
 	return

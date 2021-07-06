@@ -42,7 +42,7 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 
    To list versions of Envoy you can use, execute ` + "`func-e versions -a`" + `. To
    choose one, invoke ` + fmt.Sprintf("`func-e use %s`", version.LastKnownEnvoy) + `. This installs into
-   ` + fmt.Sprintf("`$FUNC-E_HOME/versions/%s`", version.LastKnownEnvoy) + `, if not already present.
+   ` + fmt.Sprintf("`$FUNC_E_HOME/versions/%s`", version.LastKnownEnvoy) + `, if not already present.
 
    You may want to override ` + "`$ENVOY_VERSIONS_URL`" + ` to supply custom builds or
    otherwise control the source of Envoy binaries. When overriding, validate
@@ -54,7 +54,7 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 			Usage:       "func-e home directory (location of installed versions and run archives)",
 			DefaultText: globals.DefaultHomeDir,
 			Destination: &homeDir,
-			EnvVars:     []string{"FUNC-E_HOME"},
+			EnvVars:     []string{"FUNC_E_HOME"},
 		},
 		&cli.StringFlag{
 			Name:        "envoy-versions-url",
@@ -117,7 +117,7 @@ func setHomeDir(o *globals.GlobalOpts, homeDir string) error {
 	if homeDir == "" {
 		u, err := user.Current()
 		if err != nil || u.HomeDir == "" {
-			return NewValidationError("unable to determine home directory. Set FUNC-E_HOME instead: %v", err)
+			return NewValidationError("unable to determine home directory. Set FUNC_E_HOME instead: %v", err)
 		}
 		o.HomeDir = filepath.Join(u.HomeDir, ".func-e")
 	} else {

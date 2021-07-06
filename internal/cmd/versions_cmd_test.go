@@ -72,13 +72,13 @@ func TestFuncEVersions_CurrentVersion(t *testing.T) {
 `, stdout.String())
 	})
 
-	t.Run("set by $FUNC-E_HOME/version", func(t *testing.T) {
+	t.Run("set by $FUNC_E_HOME/version", func(t *testing.T) {
 		require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte("1.1.2"), 0600))
 
 		c, stdout, _ := newApp(o)
 		require.NoError(t, c.Run([]string{"func-e", "versions"}))
 		require.Equal(t, `  1.2.2 2021-01-31
-* 1.1.2 2021-01-31 (set by $FUNC-E_HOME/version)
+* 1.1.2 2021-01-31 (set by $FUNC_E_HOME/version)
   1.2.1 2021-01-30
 `, stdout.String())
 	})
@@ -119,7 +119,7 @@ func TestFuncEVersions_Sorted(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, `  1.2.2 2021-01-31
   1.1.2 2021-01-31
-* 1.2.1 2021-01-30 (set by $FUNC-E_HOME/version)
+* 1.2.1 2021-01-30 (set by $FUNC_E_HOME/version)
 `, stdout.String())
 	require.Empty(t, stderr)
 }
@@ -145,7 +145,7 @@ func TestFuncEVersions_All_RemoteIsCurrent(t *testing.T) {
 	morerequire.RequireSetMtime(t, versionDir, "2020-12-31")
 	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte(version.LastKnownEnvoy), 0600))
 
-	expected := fmt.Sprintf("* %s 2020-12-31 (set by $FUNC-E_HOME/version)\n", version.LastKnownEnvoy)
+	expected := fmt.Sprintf("* %s 2020-12-31 (set by $FUNC_E_HOME/version)\n", version.LastKnownEnvoy)
 
 	c, stdout, stderr := newApp(o)
 	err := c.Run([]string{"func-e", "versions", "-a"})
@@ -165,7 +165,7 @@ func TestFuncEVersions_All_Mixed(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, fmt.Sprintf(`  1.2.2 2021-01-31
   1.1.2 2021-01-31
-* 1.2.1 2021-01-30 (set by $FUNC-E_HOME/version)
+* 1.2.1 2021-01-30 (set by $FUNC_E_HOME/version)
   %s 2020-12-31
 `, version.LastKnownEnvoy), stdout.String())
 	require.Empty(t, stderr)

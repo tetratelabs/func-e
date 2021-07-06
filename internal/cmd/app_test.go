@@ -74,12 +74,12 @@ func TestHomeDir(t *testing.T) {
 			expected: filepath.Join(u.HomeDir, ".func-e"),
 		},
 		{
-			name: "FUNC-E_HOME env",
+			name: "FUNC_E_HOME env",
 			args: []string{"func-e"},
 			setup: func() func() {
-				return morerequire.RequireSetenv(t, "FUNC-E_HOME", "/from/FUNC-E_HOME/env")
+				return morerequire.RequireSetenv(t, "FUNC_E_HOME", "/from/FUNC_E_HOME/env")
 			},
-			expected: "/from/FUNC-E_HOME/env",
+			expected: "/from/FUNC_E_HOME/env",
 		},
 		{
 			name:     "--home-dir arg",
@@ -87,10 +87,10 @@ func TestHomeDir(t *testing.T) {
 			expected: "/from/home-dir/arg",
 		},
 		{
-			name: "prioritizes --home-dir arg over FUNC-E_HOME env",
+			name: "prioritizes --home-dir arg over FUNC_E_HOME env",
 			args: []string{"func-e", "--home-dir", "/from/home-dir/arg"},
 			setup: func() func() {
-				return morerequire.RequireSetenv(t, "FUNC-E_HOME", "/from/FUNC-E_HOME/env")
+				return morerequire.RequireSetenv(t, "FUNC_E_HOME", "/from/FUNC_E_HOME/env")
 			},
 			expected: "/from/home-dir/arg",
 		},
