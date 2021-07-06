@@ -1,4 +1,4 @@
-baseurl = "https://func-e.io/"
+baseurl = "/"
 languageCode = "en-us"
 defaultContentLanguage = "en"
 title = "func-e"
@@ -12,7 +12,7 @@ theme = "hello-friend"
   logoText = "func-e"
 
 [[menu.main]]
-  url = "/usage"
+  url = "https://github.com/tetratelabs/func-e/blob/master/USAGE.md"
   name = "Usage"
   weight = 20
 
