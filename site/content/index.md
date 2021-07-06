@@ -1,7 +1,5 @@
 +++
-fragment = "content"
-date = "2021-07-06"
-weight = 150
+title = "func-e makes running Envoy® easy"
 +++
 
 func-e (pronounced funky) allows you to quickly see available versions of Envoy and try them out. This makes it easy to validate

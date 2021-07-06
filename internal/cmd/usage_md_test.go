@@ -25,7 +25,7 @@ import (
 	"github.com/tetratelabs/func-e/internal/globals"
 )
 
-const siteMarkdownFile = "../../USAGE.md"
+const siteMarkdownFile = "../../site/content/usage.md"
 
 // TestUsageMarkdownMatchesCommands is in the "cmd" package because changes here will drift siteMarkdownFile.
 func TestUsageMarkdownMatchesCommands(t *testing.T) {

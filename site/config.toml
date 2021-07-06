@@ -2,16 +2,17 @@ baseurl = "https://func-e.io/"
 languageCode = "en-us"
 defaultContentLanguage = "en"
 title = "func-e"
-theme = "syna"
+theme = "hello-friend"
 
 [params]
-  name = "func-e"
-  title ="func-e (pronounced funky) makes running Envoy® easy"
-  description = "func-e allows you to quickly see available versions of Envoy and try them out"
-  author = "Tetrate"
+  defaultTheme = "light"
+  showReadingTime = false
+
+[params.logo]
+  logoText = "func-e"
 
 [[menu.main]]
-  url = "https://github.com/tetratelabs/func-e/blob/master/USAGE.md"
+  url = "/usage"
   name = "Usage"
   weight = 20
 

@@ -1,3 +1,3 @@
-[submodule "site/themes/syna"]
-	path = site/themes/syna
-	url = https://github.com/okkur/syna.git
+[submodule "site/themes/hello-friend"]
+	path = site/themes/hello-friend
+	url = https://github.com/panr/hugo-theme-hello-friend.git
