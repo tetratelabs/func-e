@@ -19,7 +19,7 @@ ignorefiles = [ "content/dev/.*" ]
   weight = 20
 
 [[menu.main]]
-  url = "https://github.com/tetratelabs/func-e/release"
+  url = "https://github.com/tetratelabs/func-e/releases"
   name = "Releases"
   weight = 30
 
