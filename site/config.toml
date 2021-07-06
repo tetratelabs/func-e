@@ -1,4 +1,4 @@
-baseurl = "/"
+baseurl = "https://func-e.io/"
 languageCode = "en-us"
 defaultContentLanguage = "en"
 title = "func-e"
