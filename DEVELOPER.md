@@ -29,3 +29,10 @@ make coverage
 ### How to run end-to-end Tests
 
 See [test/e2e](e2e) for how to develop or run end-to-end tests
+
+### How to test the website
+
+Run below, then view with http://localhost:1313/
+```shell
+make site
+```

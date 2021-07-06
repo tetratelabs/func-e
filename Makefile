@@ -32,6 +32,13 @@ bin $(BIN): $(GORELEASER)
 	@echo "--- bin ---"
 	@$(GORELEASER) build --snapshot --single-target --rm-dist
 
+##@ Test website
+.PHONY: site
+site: $(HUGO)
+	@echo "--- site ---"
+	@git submodule update
+	@cd site && $(HUGO) server -D
+
 ##@ Unit and End-to-End tests
 
 TEST_PACKAGES ?= $(shell go list ./... | grep -v -e github.com/tetratelabs/func-e/e2e -e github.com/tetratelabs/func-e/site)
