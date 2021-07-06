@@ -3,9 +3,6 @@ languageCode = "en-us"
 defaultContentLanguage = "en"
 title = "func-e"
 theme = "syna"
-enableGitInfo = true
-disableKinds = ["RSS", "taxonomy", "taxonomyTerm"]
-ignorefiles = [ "content/dev/.*" ]
 
 [params]
   name = "func-e"

@@ -4,3 +4,6 @@
 
 # possible when testing .github/untar_func-e_release.sh
 func-e
+
+# Local Netlify folder
+.netlify
