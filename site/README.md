@@ -1,8 +1,8 @@
-# Envoy site
+# func-e.io
 
-The following files are hosted on https://func-e.io, specifically via [Netlify redirects](https://github.com/tetratelabs/func-e.io/blob/master/site/static/_redirects):
+This directory holds the func-e site's source code. To visit the site click [here](https://func-e.io/)
 
-Latest master merge:
-* https://func-e.io/install.sh -> [./install.sh](install.sh)
-* https://www.func-e.io/usage/ -> [./usage.md](usage.md)
-  * this is verified by [usage_md_test.go](../internal/cmd/usage_md_test.go)
+The website is built using [Hugo](https://gohugo.io/), as static website generator, and [Syna](https://about.okkur.org/syna/) theme.
+
+## Deployment process
+This site deploys via Netlify on change to the `master` branch.

@@ -1,0 +1,29 @@
+baseurl = "https://func-e.io/"
+languageCode = "en-us"
+defaultContentLanguage = "en"
+title = "func-e"
+theme = "syna"
+enableGitInfo = true
+disableKinds = ["RSS", "taxonomy", "taxonomyTerm"]
+ignorefiles = [ "content/dev/.*" ]
+
+[params]
+  name = "func-e"
+  title ="func-e (pronounced funky) makes running Envoy® easy"
+  description = "func-e allows you to quickly see available versions of Envoy and try them out"
+  author = "Tetrate"
+
+[[menu.main]]
+  url = "https://github.com/tetratelabs/func-e/blob/master/USAGE.md"
+  name = "Usage"
+  weight = 20
+
+[[menu.main]]
+  url = "https://github.com/tetratelabs/func-e/releases"
+  name = "Releases"
+  weight = 30
+
+[[menu.main]]
+  url = "https://github.com/tetratelabs/func-e"
+  name = "GitHub"
+  weight = 40
