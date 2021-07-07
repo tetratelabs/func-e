@@ -15,7 +15,7 @@ $ curl -L https://func-e.io/install.sh | bash -s -- -b /usr/local/bin
 $ func-e run --config-yaml "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 9901}}}"
 ```
 
-Run `func-e help` or have a look at the https://func-e.io for more information.
+Run `func-e help` or have a look at the [Usage Docs](USAGE.md) for more information.
 
 -----
 Envoy® is a registered trademark of The Linux Foundation in the United States and/or other countries
