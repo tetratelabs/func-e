@@ -10,7 +10,7 @@ func-e (pronounced funky) makes running [Envoy®](https://www.envoyproxy.io/) ea
 The quickest way to try the command-line interface is an in-lined configuration.
 ```bash
 # Download the latest release as /usr/local/bin/func-e https://github.com/tetratelabs/func-e/releases
-$ curl -L https://func-e.io/install.sh | bash -s -- -b /usr/local/bin
+$ curl https://func-e.io/install.sh | bash -s -- -b /usr/local/bin
 # Run the admin server on http://localhost:9901
 $ func-e run --config-yaml "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 9901}}}"
 ```
