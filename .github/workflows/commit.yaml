@@ -12,11 +12,19 @@ on:
   push:
     tags: ''
     branches: master
-    paths-ignore: 'site/**'
+    paths-ignore:  # ignore docs as they are built with Netlify. Ignore travis-related changes, too.
+      - '**/*.md'
+      - 'site/**'
+      - 'netlify.toml'
+      - '.travis.yml'
   # We also run tests on pull requests targeted at the master branch.
   pull_request:
     branches: master
-    paths-ignore: 'site/**'
+    paths-ignore:
+      - '**/*.md'
+      - 'site/**'
+      - 'netlify.toml'
+      - '.travis.yml'
   # workflow_dispatch will let us manually trigger the workflow from GitHub actions dashboard.
   # For example, you can try to build a branch without raising a pull request.
   # See https://docs.github.com/en/free-pro-team@latest/actions/managing-workflow-runs/manually-running-a-workflow
