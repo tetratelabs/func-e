@@ -15,7 +15,7 @@ git:
 before_install: |  # Prevent test build of a documentation or GitHub Actions only change.
   make check || travis_terminate 1
   if [ -n "${TRAVIS_COMMIT_RANGE}" ] && ! git diff --name-only "${TRAVIS_COMMIT_RANGE}" -- \
-    grep -qvE '(\.md)$|^(site\/)|^(netlify.toml)|^(.github\/)' | grep -qv '\.md$'; then
+    grep -qvE '(\.md)$|^(site\/)|^(netlify.toml)|^(.github\/)'; then
     echo "Stopping job as changes only affect documentation (ex. README.md)"
     travis_terminate 0
   fi
