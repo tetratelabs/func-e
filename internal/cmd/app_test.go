@@ -114,6 +114,49 @@ func TestHomeDir(t *testing.T) {
 	}
 }
 
+func TestPlatformArg(t *testing.T) {
+	type testCase struct {
+		name string
+		args []string
+		// setup returns a tear-down function
+		setup    func() func()
+		expected version.Platform
+	}
+
+	tests := []testCase{
+		{
+			name: "FUNC_E_PLATFORM env",
+			args: []string{"func-e"},
+			setup: func() func() {
+				return morerequire.RequireSetenv(t, "FUNC_E_PLATFORM", "linux/amd64")
+			},
+			expected: version.Platform("linux/amd64"),
+		},
+		{
+			name:     "--platform flag",
+			args:     []string{"func-e", "--platform", "darwin/amd64"},
+			expected: version.Platform("darwin/amd64"),
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc // pin! see https://github.com/kyoh86/scopelint for why
+
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.setup != nil {
+				tearDown := tc.setup()
+				defer tearDown()
+			}
+
+			o := &globals.GlobalOpts{}
+			err := runTestCommand(t, o, tc.args)
+			require.NoError(t, err)
+			require.Equal(t, tc.expected, o.Platform)
+		})
+	}
+
+}
+
 func TestEnvoyVersionsURL(t *testing.T) {
 	type testCase struct {
 		name string

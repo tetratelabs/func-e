@@ -13,6 +13,10 @@ USAGE:
    otherwise control the source of Envoy binaries. When overriding, validate
    your JSON first: https://archive.tetratelabs.io/release-versions-schema.json
 
+   Advanced:
+   `FUNC_E_PLATFORM` overrides the host OS and architecture of Envoy binaries.
+   This value must be constant within a `$FUNC_E_HOME`.
+
 VERSION:
    1.0
 
@@ -25,4 +29,5 @@ COMMANDS:
 GLOBAL OPTIONS:
    --home-dir value            func-e home directory (location of installed versions and run archives) (default: ${HOME}/.func-e) [$FUNC_E_HOME]
    --envoy-versions-url value  URL of Envoy versions JSON (default: https://archive.tetratelabs.io/envoy/envoy-versions.json) [$ENVOY_VERSIONS_URL]
+   --platform value            the host OS and architecture of Envoy binaries. Ex. darwin/arm64 (default: $GOOS/$GOARCH) [$FUNC_E_PLATFORM]
    --version, -v               print the version (default: false)

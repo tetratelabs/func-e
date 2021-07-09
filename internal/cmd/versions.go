@@ -50,9 +50,9 @@ func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 			currentVersion, currentVersionSource, _ := envoy.CurrentVersion(o.HomeDir)
 
 			if c.Bool("all") {
-				if ev, err := envoy.FuncEVersions(c.Context, o.EnvoyVersionsURL, globals.CurrentPlatform, o.Version); err != nil {
+				if ev, err := envoy.FuncEVersions(c.Context, o.EnvoyVersionsURL, o.Platform, o.Version); err != nil {
 					return err
-				} else if err := addAvailableVersions(&rows, ev.Versions, globals.CurrentPlatform); err != nil {
+				} else if err := addAvailableVersions(&rows, ev.Versions, o.Platform); err != nil {
 					return err
 				}
 			}

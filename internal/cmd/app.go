@@ -29,7 +29,7 @@ import (
 // NewApp create a new root command. The globals.GlobalOpts parameter allows tests to scope overrides, which avoids
 // having to define a flag for everything needed in tests.
 func NewApp(o *globals.GlobalOpts) *cli.App {
-	var envoyVersionsURL, homeDir string
+	var envoyVersionsURL, homeDir, platform string
 	lastKnownEnvoy := getLastKnownEnvoy(o)
 
 	app := cli.NewApp()
@@ -47,7 +47,11 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 
    You may want to override ` + "`$ENVOY_VERSIONS_URL`" + ` to supply custom builds or
    otherwise control the source of Envoy binaries. When overriding, validate
-   your JSON first: https://archive.tetratelabs.io/release-versions-schema.json`
+   your JSON first: https://archive.tetratelabs.io/release-versions-schema.json
+
+   Advanced:
+   ` + "`FUNC_E_PLATFORM`" + ` overrides the host OS and architecture of Envoy binaries.
+   This value must be constant within a ` + "`$FUNC_E_HOME`" + `.`
 	app.Version = string(o.Version)
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
@@ -63,8 +67,17 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 			DefaultText: globals.DefaultEnvoyVersionsURL,
 			Destination: &envoyVersionsURL,
 			EnvVars:     []string{"ENVOY_VERSIONS_URL"},
-		}}
+		},
+		&cli.StringFlag{
+			Name:        "platform",
+			Usage:       "the host OS and architecture of Envoy binaries. Ex. darwin/arm64",
+			DefaultText: "$GOOS/$GOARCH",
+			Destination: &platform,
+			EnvVars:     []string{"FUNC_E_PLATFORM"},
+		},
+	}
 	app.Before = func(c *cli.Context) error {
+		setPlatform(o, platform)
 		if err := setHomeDir(o, homeDir); err != nil {
 			return err
 		}
@@ -101,6 +114,17 @@ var helpCommand = &cli.Command{
 		}
 		return cli.ShowAppHelp(c)
 	},
+}
+
+func setPlatform(o *globals.GlobalOpts, platform string) {
+	if o.Platform != "" { // overridden for tests
+		return
+	}
+	if platform != "" { // set by user
+		o.Platform = version.Platform(platform)
+	} else {
+		o.Platform = globals.DefaultPlatform
+	}
 }
 
 func setEnvoyVersionsURL(o *globals.GlobalOpts, versionsURL string) error {

@@ -10,6 +10,10 @@ You may want to override `$ENVOY_VERSIONS_URL` to supply custom builds or
 otherwise control the source of Envoy binaries. When overriding, validate
 your JSON first: https://archive.tetratelabs.io/release-versions-schema.json
 
+Advanced:
+`FUNC_E_PLATFORM` overrides the host OS and architecture of Envoy binaries.
+This value must be constant within a `$FUNC_E_HOME`.
+
 # Commands
 
 | Name | Usage |
@@ -26,3 +30,4 @@ your JSON first: https://archive.tetratelabs.io/release-versions-schema.json
 | ---- | ----- | ------- |
 | FUNC_E_HOME | func-e home directory (location of installed versions and run archives) | ${HOME}/.func-e |
 | ENVOY_VERSIONS_URL | URL of Envoy versions JSON | https://archive.tetratelabs.io/envoy/envoy-versions.json |
+| FUNC_E_PLATFORM | the host OS and architecture of Envoy binaries. Ex. darwin/arm64 | $GOOS/$GOARCH |
