@@ -144,7 +144,7 @@ func setHomeEnvoyVersion(ctx context.Context, o *globals.GlobalOpts) error {
 
 	// First time install: look up the latest version, which may be newer than version.LastKnownEnvoy!
 	fmt.Fprintln(o.Out, "looking up latest version") //nolint
-	m, err := envoy.FuncEVersions(ctx, o.EnvoyVersionsURL, globals.CurrentPlatform, version.FuncE)
+	m, err := envoy.FuncEVersions(ctx, o.EnvoyVersionsURL, globals.CurrentPlatform, o.Version)
 	if err != nil {
 		return NewValidationError(`couldn't read latest version from %s: %s`, o.EnvoyVersionsURL, err)
 	}

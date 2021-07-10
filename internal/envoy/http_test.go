@@ -23,7 +23,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/func-e/internal/globals"
-	"github.com/tetratelabs/func-e/internal/version"
 )
 
 func TestHttpGet_AddsDefaultHeaders(t *testing.T) {
@@ -34,7 +33,7 @@ func TestHttpGet_AddsDefaultHeaders(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	res, err := httpGet(context.Background(), ts.URL, globals.CurrentPlatform, version.FuncE)
+	res, err := httpGet(context.Background(), ts.URL, globals.CurrentPlatform, "dev")
 	require.NoError(t, err)
 
 	defer res.Body.Close()

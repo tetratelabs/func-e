@@ -46,6 +46,9 @@ type RunOpts struct {
 type GlobalOpts struct {
 	// RunOpts are inlined to allow tests to override parameters without changing ENV variables or flags
 	RunOpts
+	// Version is the version of the CLI, used in help statements and HTTP requests via "User-Agent".
+	// Override this via "-X main.version=XXX"
+	Version version.Version
 	// EnvoyVersionsURL is the path to the envoy-versions.json. Defaults to DefaultEnvoyVersionsURL
 	EnvoyVersionsURL string
 	// EnvoyVersion is the default version of Envoy to run. Defaults to the contents of "$HomeDir/versions/version".
