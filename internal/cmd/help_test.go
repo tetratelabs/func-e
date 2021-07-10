@@ -18,20 +18,18 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/func-e/internal/globals"
-	"github.com/tetratelabs/func-e/internal/version"
 )
 
 func TestFuncEHelp(t *testing.T) {
 	for _, command := range []string{"", "use", "versions", "run"} {
 		command := command
 		t.Run(command, func(t *testing.T) {
-			c, stdout, _ := newApp(&globals.GlobalOpts{})
+			c, stdout, _ := newApp(&globals.GlobalOpts{Version: "1.0", EnvoyVersion: "1.99.0"})
 			args := []string{"func-e"}
 			if command != "" {
 				args = []string{"func-e", "help", command}
@@ -44,11 +42,8 @@ func TestFuncEHelp(t *testing.T) {
 			}
 
 			bytes, err := os.ReadFile(filepath.Join("testdata", expected))
-			want := strings.ReplaceAll(string(bytes), "{VERSION}", string(version.FuncE))
-			want = strings.ReplaceAll(want, "{ENVOY_VERSION}", string(version.LastKnownEnvoy))
-
 			require.NoError(t, err)
-			require.Equal(t, want, stdout.String())
+			require.Equal(t, string(bytes), stdout.String())
 		})
 	}
 }

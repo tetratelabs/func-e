@@ -26,6 +26,8 @@ import (
 
 // NewUseCmd create a command responsible for downloading and extracting Envoy
 func NewUseCmd(o *globals.GlobalOpts) *cli.Command {
+	lastKnownEnvoy := getLastKnownEnvoy(o)
+
 	return &cli.Command{
 		Name:      "use",
 		Usage:     `Sets the current [version] used by the "run" command`,
@@ -38,7 +40,7 @@ This updates %s or %s with [version],
 depending on which is present.
 
 Example:
-$ func-e use %s`, envoy.CurrentVersionWorkingDirFile, envoy.CurrentVersionHomeDirFile, version.LastKnownEnvoy),
+$ func-e use %s`, envoy.CurrentVersionWorkingDirFile, envoy.CurrentVersionHomeDirFile, lastKnownEnvoy),
 		Before: validateVersionArg,
 		Action: func(c *cli.Context) error {
 			v := version.Version(c.Args().First())
