@@ -71,7 +71,7 @@ state. On exit, these archive into ` + "`$FUNC_E_HOME/runs/$epochtime.tar.gz`",
 			return nil
 		},
 		Action: func(c *cli.Context) error {
-			if err := initializeRunOpts(c.Context, o, globals.CurrentPlatform, envoyVersion); err != nil {
+			if err := initializeRunOpts(c.Context, o, envoyVersion); err != nil {
 				return err
 			}
 			r := envoy.NewRuntime(&o.RunOpts)
@@ -111,10 +111,10 @@ state. On exit, these archive into ` + "`$FUNC_E_HOME/runs/$epochtime.tar.gz`",
 // initializeRunOpts allows us to default values when not overridden for tests.
 // The version parameter correlates with the globals.GlobalOpts EnvoyPath which is installed if needed.
 // Notably, this creates and sets a globals.GlobalOpts WorkingDirectory for Envoy, and any files that precede it.
-func initializeRunOpts(ctx context.Context, o *globals.GlobalOpts, p version.Platform, v version.Version) error {
+func initializeRunOpts(ctx context.Context, o *globals.GlobalOpts, v version.Version) error {
 	runOpts := &o.RunOpts
 	if o.EnvoyPath == "" { // not overridden for tests
-		envoyPath, err := envoy.InstallIfNeeded(ctx, o, p, v)
+		envoyPath, err := envoy.InstallIfNeeded(ctx, o, v)
 		if err != nil {
 			return err
 		}
@@ -144,7 +144,7 @@ func setHomeEnvoyVersion(ctx context.Context, o *globals.GlobalOpts) error {
 
 	// First time install: look up the latest version, which may be newer than version.LastKnownEnvoy!
 	fmt.Fprintln(o.Out, "looking up latest version") //nolint
-	m, err := envoy.FuncEVersions(ctx, o.EnvoyVersionsURL, globals.CurrentPlatform, o.Version)
+	m, err := envoy.FuncEVersions(ctx, o.EnvoyVersionsURL, o.Platform, o.Version)
 	if err != nil {
 		return NewValidationError(`couldn't read latest version from %s: %s`, o.EnvoyVersionsURL, err)
 	}

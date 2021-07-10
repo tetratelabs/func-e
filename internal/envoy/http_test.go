@@ -33,7 +33,7 @@ func TestHttpGet_AddsDefaultHeaders(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	res, err := httpGet(context.Background(), ts.URL, globals.CurrentPlatform, "dev")
+	res, err := httpGet(context.Background(), ts.URL, globals.DefaultPlatform, "dev")
 	require.NoError(t, err)
 
 	defer res.Body.Close()

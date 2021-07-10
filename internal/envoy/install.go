@@ -35,39 +35,39 @@ import (
 var binEnvoy = filepath.Join("bin", "envoy"+moreos.Exe)
 
 // InstallIfNeeded downloads an Envoy binary corresponding to the given version and returns a path to it or an error.
-func InstallIfNeeded(ctx context.Context, o *globals.GlobalOpts, p version.Platform, v version.Version) (string, error) {
+func InstallIfNeeded(ctx context.Context, o *globals.GlobalOpts, v version.Version) (string, error) {
 	installPath := filepath.Join(o.HomeDir, "versions", string(v))
 	envoyPath := filepath.Join(installPath, binEnvoy)
 	_, err := os.Stat(envoyPath)
 	switch {
 	case os.IsNotExist(err):
 		var ev version.ReleaseVersions // Get version metadata for what we will install
-		ev, err = FuncEVersions(ctx, o.EnvoyVersionsURL, p, v)
+		ev, err = FuncEVersions(ctx, o.EnvoyVersionsURL, o.Platform, v)
 		if err != nil {
 			return "", err
 		}
 
-		tarballURL := ev.Versions[v].Tarballs[p] // Ensure there is a version for this platform
+		tarballURL := ev.Versions[v].Tarballs[o.Platform] // Ensure there is a version for this platform
 		if tarballURL == "" {
-			return "", fmt.Errorf("couldn't find version %q for platform %q", v, p)
+			return "", fmt.Errorf("couldn't find version %q for platform %q", v, o.Platform)
 		}
 
 		tarball := version.Tarball(path.Base(string(tarballURL)))
 		sha256Sum := ev.SHA256Sums[tarball]
 		if len(sha256Sum) != 64 {
-			return "", fmt.Errorf("couldn't find sha256Sum of version %q for platform %q: %w", v, p, err)
+			return "", fmt.Errorf("couldn't find sha256Sum of version %q for platform %q: %w", v, o.Platform, err)
 		}
 
 		var mtime time.Time // Create a directory for the version, preserving the release date as its mtime
 		if mtime, err = time.Parse("2006-01-02", string(ev.Versions[v].ReleaseDate)); err != nil {
-			return "", fmt.Errorf("couldn't find releaseDate of version %q for platform %q: %w", v, p, err)
+			return "", fmt.Errorf("couldn't find releaseDate of version %q for platform %q: %w", v, o.Platform, err)
 		}
 		if err = os.MkdirAll(installPath, 0750); err != nil {
 			return "", fmt.Errorf("unable to create directory %q: %w", installPath, err)
 		}
 
-		fmt.Fprintln(o.Out, "downloading", tarballURL)                                   //nolint
-		if err = untarEnvoy(ctx, installPath, tarballURL, sha256Sum, p, v); err != nil { //nolint
+		fmt.Fprintln(o.Out, "downloading", tarballURL)                                            //nolint
+		if err = untarEnvoy(ctx, installPath, tarballURL, sha256Sum, o.Platform, v); err != nil { //nolint
 			return "", err
 		}
 		if err = os.Chtimes(installPath, mtime, mtime); err != nil { // overwrite the mtime to preserve it in the list

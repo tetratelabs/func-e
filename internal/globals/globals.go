@@ -58,6 +58,8 @@ type GlobalOpts struct {
 	HomeDir string
 	// Out is where status messages are written. Defaults to os.Stdout
 	Out io.Writer
+	// The platform to target for the Envoy install.
+	Platform version.Platform
 }
 
 const (
@@ -65,11 +67,11 @@ const (
 	DefaultHomeDir = "${HOME}/.func-e"
 	// DefaultEnvoyVersionsURL is the default value for GlobalOpts.EnvoyVersionsURL
 	DefaultEnvoyVersionsURL = "https://archive.tetratelabs.io/envoy/envoy-versions.json"
+	// DefaultPlatform is the current platform of the host machine
+	DefaultPlatform = version.Platform(runtime.GOOS + "/" + runtime.GOARCH)
 )
 
 var (
 	// EnvoyVersionPattern is used to validate versions and is the same pattern as release-versions-schema.json.
 	EnvoyVersionPattern = regexp.MustCompile(`^[1-9][0-9]*\.[0-9]+\.[0-9]+(_debug)?$`)
-	// CurrentPlatform is the platform of the current process. This is used as a key in EnvoyVersion.Tarballs.
-	CurrentPlatform = version.Platform(runtime.GOOS + "/" + runtime.GOARCH)
 )

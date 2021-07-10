@@ -44,7 +44,7 @@ $ func-e use %s`, envoy.CurrentVersionWorkingDirFile, envoy.CurrentVersionHomeDi
 		Before: validateVersionArg,
 		Action: func(c *cli.Context) error {
 			v := version.Version(c.Args().First())
-			if _, err := envoy.InstallIfNeeded(c.Context, o, globals.CurrentPlatform, v); err != nil {
+			if _, err := envoy.InstallIfNeeded(c.Context, o, v); err != nil {
 				return err
 			}
 			return envoy.WriteCurrentVersion(v, o.HomeDir)
