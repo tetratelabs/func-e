@@ -17,12 +17,6 @@ package version
 
 import _ "embed" // We embed the Envoy version so that we can cache it in CI
 
-var funcE = "dev"
-
-// FuncE is the version of the CLI, used in help statements and HTTP requests via "User-Agent".
-// Override this via "-X github.com/tetratelabs/func-e/internal/version.funcE=XXX"
-var FuncE = Version(funcE)
-
 //go:embed last_known_envoy.txt
 var lastKnownEnvoy string
 

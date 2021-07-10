@@ -13,4 +13,4 @@ DESCRIPTION:
    depending on which is present.
    
    Example:
-   $ func-e use {ENVOY_VERSION}
+   $ func-e use 1.99.0
