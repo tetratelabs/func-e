@@ -20,6 +20,7 @@ import (
 	"bufio"
 	"compress/gzip"
 	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"hash"
 	"io"
