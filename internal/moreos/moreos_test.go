@@ -78,12 +78,14 @@ func TestFprintf(t *testing.T) {
 	require.Equal(t, len(expected), count)
 }
 
-func TestEOL(t *testing.T) {
+// TestSprintf_IdiomaticPerOS is here to ensure that the EOL translation makes sense. For example, in UNIX, we expect
+// \n and windows \r\n. This uses a real command to prove the point.
+func TestSprintf_IdiomaticPerOS(t *testing.T) {
 	stdout := new(bytes.Buffer)
 	cmd := exec.Command("echo", "cats")
 	cmd.Stdout = stdout
 	require.NoError(t, cmd.Run())
-	require.Equal(t, "cats"+eol, stdout.String())
+	require.Equal(t, Sprintf("cats\n"), stdout.String())
 }
 
 func TestProcessGroupAttr_Interrupt(t *testing.T) {

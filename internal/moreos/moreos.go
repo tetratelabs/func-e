@@ -44,7 +44,7 @@ func Sprintf(format string, a ...interface{}) string {
 	return fmt.Sprintf(strings.ReplaceAll(format, "\n", "\r\n"), a...)
 }
 
-// Fprintf is like fmt.Fprintf, but handles EOL according runtime.GOOS. See Sprintf for behavioural notes.
+// Fprintf is like fmt.Fprintf, but handles EOL according runtime.GOOS. See Sprintf for notes.
 func Fprintf(w io.Writer, format string, a ...interface{}) (n int, err error) {
 	if runtime.GOOS != OSWindows {
 		return fmt.Fprintf(w, format, a...)
