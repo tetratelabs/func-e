@@ -34,6 +34,8 @@ import (
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
+const pathSeparator = string(os.PathSeparator)
+
 type digester struct {
 	r io.Reader
 	h hash.Hash
@@ -87,7 +89,7 @@ func Untar(dst string, src io.Reader) error { // dst, src order like io.Copy
 		}
 
 		srcPath := filepath.Clean(header.Name)
-		slash := strings.Index(srcPath, "/")
+		slash := strings.Index(srcPath, pathSeparator)
 		if slash == -1 { // strip leading path
 			continue
 		}
@@ -185,7 +187,7 @@ func TarGz(dst, src string) error { //nolint dst, src order like io.Copy
 		if info.IsDir() {
 			return nil // nothing to write
 		}
-		if err := copy(tw, srcFS, header.Name, header.Size); err != nil {
+		if err := cp(tw, srcFS, header.Name, header.Size); err != nil {
 			return err
 		}
 		return tw.Flush()
@@ -193,7 +195,7 @@ func TarGz(dst, src string) error { //nolint dst, src order like io.Copy
 }
 
 // Copy the contents of the file into the tar without buffering
-func copy(dst io.Writer, src fs.FS, path string, n int64) error { // dst, src order like io.Copy
+func cp(dst io.Writer, src fs.FS, path string, n int64) error { // dst, src order like io.Copy
 	f, err := src.Open(path) //nolint:gosec
 	if err != nil {
 		return err
