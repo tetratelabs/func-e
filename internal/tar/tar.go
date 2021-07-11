@@ -19,6 +19,9 @@ import (
 	"archive/tar"
 	"bufio"
 	"compress/gzip"
+	"crypto/sha256"
+	"fmt"
+	"hash"
 	"io"
 	"io/fs"
 	"os"
@@ -26,7 +29,35 @@ import (
 	"strings"
 
 	"github.com/ulikunitz/xz"
+
+	"github.com/tetratelabs/func-e/internal/version"
 )
+
+type digester struct {
+	r io.Reader
+	h hash.Hash
+}
+
+func (d *digester) Read(p []byte) (n int, err error) {
+	n, err = d.r.Read(p)
+	if n > 0 { // per docs on hash.Hash, an error is impossible on Write
+		d.h.Write(p[:n]) //nolint
+	}
+	return
+}
+
+// UntarAndVerify is like Untar, except it errors if the stream has a different signature than the given SHA-256.
+func UntarAndVerify(dst string, src io.Reader, sha256Sum version.SHA256Sum) error { // dst, src order like io.Copy
+	d := digester{src, sha256.New()}
+	if err := Untar(dst, &d); err != nil {
+		return err
+	}
+	sum := version.SHA256Sum(fmt.Sprintf("%x", d.h.Sum(nil)))
+	if sum != sha256Sum {
+		return fmt.Errorf("expected SHA-256 sum %q, but have %q", sha256Sum, sum)
+	}
+	return nil
+}
 
 // Untar unarchives the compressed "src" which is either a "tar.xz" or "tar.gz" stream.
 // This strips the base directory inside the "src" archive. Ex on "/foo/bar", "dst" will have "bar/**"

@@ -16,10 +16,7 @@ package envoy
 
 import (
 	"context"
-	"crypto/sha256"
 	"fmt"
-	"hash"
-	"io"
 	"net/http"
 	"os"
 	"path"
@@ -94,20 +91,6 @@ func verifyEnvoy(installPath string) (string, error) {
 	return envoyPath, nil
 }
 
-type digester struct {
-	r io.Reader
-	h hash.Hash
-	e error
-}
-
-func (d *digester) Read(p []byte) (n int, err error) {
-	n, err = d.r.Read(p)
-	if n > 0 {
-		_, d.e = d.h.Write(p[:n])
-	}
-	return
-}
-
 func untarEnvoy(ctx context.Context, dst string, src version.TarballURL, // dst, src order like io.Copy
 	sha256Sum version.SHA256Sum, p version.Platform, v version.Version) error {
 	res, err := httpGet(ctx, string(src), p, v)
@@ -119,17 +102,8 @@ func untarEnvoy(ctx context.Context, dst string, src version.TarballURL, // dst,
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("received %v status code from %s", res.StatusCode, src)
 	}
-
-	d := digester{res.Body, sha256.New(), nil}
-	if err = tar.Untar(dst, &d); err != nil {
+	if err = tar.UntarAndVerify(dst, res.Body, sha256Sum); err != nil {
 		return fmt.Errorf("error untarring %s: %w", src, err)
-	}
-	if d.e != nil {
-		return fmt.Errorf("error computing SHA-256 from %s: %w", src, d.e)
-	}
-	sum := version.SHA256Sum(fmt.Sprintf("%x", d.h.Sum(nil)))
-	if sum != sha256Sum {
-		return fmt.Errorf("expected SHA-256 sum %q, but have %q from %s", sha256Sum, sum, src)
 	}
 	return nil
 }
