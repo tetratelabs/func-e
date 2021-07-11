@@ -81,6 +81,7 @@ state. On exit, these archive into ` + "`$FUNC_E_HOME/runs/$epochtime.tar.gz`",
 				return fmt.Errorf("couldn't create stdout log file: %w", err)
 			}
 			defer stdoutLog.Close() //nolint
+			r.OutFile = stdoutLog
 			r.Out = io.MultiWriter(c.App.Writer, stdoutLog)
 
 			stderrLog, err := os.OpenFile(filepath.Join(r.GetRunDir(), "stderr.log"), os.O_CREATE|os.O_WRONLY, 0600)
@@ -88,13 +89,8 @@ state. On exit, these archive into ` + "`$FUNC_E_HOME/runs/$epochtime.tar.gz`",
 				return fmt.Errorf("couldn't create stderr log file: %w", err)
 			}
 			defer stderrLog.Close() //nolint
+			r.ErrFile = stderrLog
 			r.Err = io.MultiWriter(c.App.ErrWriter, stderrLog)
-
-			// Ensure console redirect files close before we attempt to archive them
-			r.RegisterShutdownHook(func(ctx context.Context) error {
-				stdoutLog.Close() // nolint
-				return stderrLog.Close()
-			})
 
 			for _, enableShutdownHook := range shutdown.EnableHooks {
 				if err := enableShutdownHook(r); err != nil {

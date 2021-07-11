@@ -65,6 +65,13 @@ func (r *Runtime) interruptEnvoy() {
 }
 
 func (r *Runtime) archiveRunDir() error {
+	// Ensure logs are closed before we try to archive them, particularly important in Windows.
+	if r.OutFile != nil {
+		r.OutFile.Close() //nolint
+	}
+	if r.ErrFile != nil {
+		r.ErrFile.Close() //nolint
+	}
 	if r.opts.DontArchiveRunDir {
 		return nil
 	}

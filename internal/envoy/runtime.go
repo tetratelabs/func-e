@@ -44,9 +44,9 @@ func NewRuntime(opts *globals.RunOpts) *Runtime {
 type Runtime struct {
 	opts *globals.RunOpts
 
-	cmd *exec.Cmd
-	Out io.Writer
-	Err io.Writer
+	cmd              *exec.Cmd
+	Out, Err         io.Writer
+	OutFile, ErrFile *os.File
 
 	adminAddress, adminAddressPath, pidPath string
 
