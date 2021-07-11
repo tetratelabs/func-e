@@ -54,7 +54,7 @@ func TestIsExecutable_Not(t *testing.T) {
 	require.False(t, isExecutable(f))
 }
 
-func TestRewriteEOL(t *testing.T) {
+func TestSprintf(t *testing.T) {
 	input := "foo\n\nbar\n"
 	if runtime.GOOS == OSWindows {
 		require.Equal(t, "foo\r\n\r\nbar\r\n", Sprintf(input))
