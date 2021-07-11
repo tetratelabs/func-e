@@ -181,8 +181,8 @@ func TestUntarAndVerify_InvalidSignature(t *testing.T) {
 	require.NoError(t, err)
 	defer f.Close()
 
-	err = UntarAndVerify(tempDir, f, "1234")
-	require.EqualError(t, err, `expected SHA-256 sum "1234", but have "0ff74a47ceef95ffaf6e629aac7e54d262300e5ee318830b41da1f809fc71afd"`)
+	err = UntarAndVerify(tempDir, f, "cafebabe")
+	require.EqualError(t, err, `expected SHA-256 sum "cafebabe", but have "0ff74a47ceef95ffaf6e629aac7e54d262300e5ee318830b41da1f809fc71afd"`)
 }
 
 // requireTestFiles ensures the given directory includes the testdata/foo directory

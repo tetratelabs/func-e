@@ -81,7 +81,7 @@ func TestUntarEnvoyError(t *testing.T) {
 	}
 	t.Run("error on wrong sha256sum a tar", func(t *testing.T) {
 		err := untarEnvoy(ctx, dst, url, "cafebabe", globals.DefaultPlatform, "dev")
-		require.EqualError(t, err, fmt.Sprintf(`expected SHA-256 sum "cafebabe", but have "%s" from %s`, tarballSHA256sum, url))
+		require.EqualError(t, err, fmt.Sprintf(`error untarring %s: expected SHA-256 sum "cafebabe", but have "%s"`, url, tarballSHA256sum))
 	})
 }
 
