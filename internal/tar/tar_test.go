@@ -16,6 +16,7 @@ package tar
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -27,6 +28,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/func-e/internal/test/morerequire"
+	"github.com/tetratelabs/func-e/internal/version"
 )
 
 func TestNewDecompressor_Validates(t *testing.T) {
@@ -128,6 +130,59 @@ func TestUntar(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestUntarAndVerify ensures SHA-256 are valid regardless of platform running these tests.
+func TestUntarAndVerify(t *testing.T) {
+	for k, v := range map[string]version.SHA256Sum{
+		"testdata/empty.tar.xz": version.SHA256Sum("0ff74a47ceef95ffaf6e629aac7e54d262300e5ee318830b41da1f809fc71afd"),
+		"testdata/empty.tar.gz": version.SHA256Sum("0d4b6fdb100ea7581e94fbfb5d69ad42c902db6c12c4d16c298576df209c4d1e"),
+		"testdata/test.tar.xz":  version.SHA256Sum("65a3a72fcd6455e464e8f2196b7594eef73f7574b57b0cc88baa96be61ca74e4"),
+		"testdata/test.tar.gz":  version.SHA256Sum("e3d54b02088eb7e485c43120916644c485627c7336adee945f39be67533e1a75"),
+	} {
+		file := k
+		sha256 := v
+		t.Run(file, func(t *testing.T) {
+			tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
+			defer removeTempDir()
+
+			f, err := os.Open(file)
+			require.NoError(t, err)
+			defer f.Close()
+
+			err = UntarAndVerify(tempDir, f, sha256)
+			require.NoError(t, err)
+		})
+	}
+}
+
+type errorReader struct {
+	err error
+}
+
+func (r errorReader) Read(_ []byte) (n int, err error) {
+	return 0, r.err
+}
+
+func TestUntarAndVerify_ErrorReading(t *testing.T) {
+	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
+	defer removeTempDir()
+
+	expectedErr := errors.New("ice cream")
+	err := UntarAndVerify(tempDir, &errorReader{expectedErr}, "1234")
+	require.Same(t, err, expectedErr)
+}
+
+func TestUntarAndVerify_InvalidSignature(t *testing.T) {
+	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
+	defer removeTempDir()
+
+	f, err := os.Open("testdata/empty.tar.xz")
+	require.NoError(t, err)
+	defer f.Close()
+
+	err = UntarAndVerify(tempDir, f, "cafebabe")
+	require.EqualError(t, err, `expected SHA-256 sum "cafebabe", but have "0ff74a47ceef95ffaf6e629aac7e54d262300e5ee318830b41da1f809fc71afd"`)
 }
 
 // requireTestFiles ensures the given directory includes the testdata/foo directory
