@@ -23,6 +23,7 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
@@ -38,7 +39,7 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 	app.Usage = `Install and run Envoy`
 	// Keep lines at 77 to address leading indent of 3 in help statements
 	// NOTE: remove indenting ourselves after the first line after urfave/cli#1275.
-	app.UsageText = `To run Envoy, execute ` + "`func-e run -c your_envoy_config.yaml`" + `. This
+	app.UsageText = moreos.Sprintf(`To run Envoy, execute ` + "`func-e run -c your_envoy_config.yaml`" + `. This
    downloads and installs the latest version of Envoy for you.
 
    To list versions of Envoy you can use, execute ` + "`func-e versions -a`" + `. To
@@ -51,7 +52,7 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 
    Advanced:
    ` + "`FUNC_E_PLATFORM`" + ` overrides the host OS and architecture of Envoy binaries.
-   This value must be constant within a ` + "`$FUNC_E_HOME`" + `.`
+   This value must be constant within a ` + "`$FUNC_E_HOME`" + `.`)
 	app.Version = string(o.Version)
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
@@ -85,6 +86,8 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 	}
 
 	app.HideHelp = true
+	app.CustomAppHelpTemplate = moreos.Sprintf(cli.AppHelpTemplate)
+	cli.VersionPrinter = printVersion
 	app.Commands = []*cli.Command{
 		helpCommand,
 		NewRunCmd(o),
@@ -161,4 +164,8 @@ func setHomeDir(o *globals.GlobalOpts, homeDir string) error {
 		o.HomeDir = abs
 	}
 	return nil
+}
+
+func printVersion(c *cli.Context) {
+	moreos.Fprintf(c.App.Writer, "%v version %v\n", c.App.Name, c.App.Version) //nolint
 }

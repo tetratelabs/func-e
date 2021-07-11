@@ -23,6 +23,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/moreos"
 )
 
 func TestFuncEHelp(t *testing.T) {
@@ -43,7 +44,7 @@ func TestFuncEHelp(t *testing.T) {
 
 			bytes, err := os.ReadFile(filepath.Join("testdata", expected))
 			require.NoError(t, err)
-			require.Equal(t, string(bytes), stdout.String())
+			require.Equal(t, moreos.Sprintf(string(bytes)), stdout.String())
 		})
 	}
 }

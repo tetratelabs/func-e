@@ -15,7 +15,6 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"os"
 
@@ -23,6 +22,7 @@ import (
 
 	cmdutil "github.com/tetratelabs/func-e/internal/cmd"
 	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/moreos"
 	versionutil "github.com/tetratelabs/func-e/internal/version"
 )
 
@@ -50,10 +50,10 @@ func run(stdout, stderr io.Writer, args []string) int {
 	}
 	if err := app.Run(args); err != nil {
 		if _, ok := err.(*cmdutil.ValidationError); ok {
-			fmt.Fprintln(stderr, err) //nolint
+			moreos.Fprintf(stderr, "%s\n", err) //nolint
 			logUsageError(app.Name, stderr)
 		} else {
-			fmt.Fprintln(stderr, "error:", err) //nolint
+			moreos.Fprintf(stderr, "error: %s\n", err) //nolint
 		}
 		return 1
 	}
@@ -61,5 +61,5 @@ func run(stdout, stderr io.Writer, args []string) int {
 }
 
 func logUsageError(name string, stderr io.Writer) {
-	fmt.Fprintln(stderr, "show usage with:", name, "help") //nolint
+	moreos.Fprintf(stderr, "show usage with: %s help\n", name) //nolint
 }

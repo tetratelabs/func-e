@@ -15,16 +15,42 @@
 package moreos
 
 import (
+	"fmt"
+	"io"
 	"os"
+	"runtime"
+	"strings"
 	"syscall"
 )
 
 const (
-	// LineSeparator is the runtime.GOOS-specific new line or line feed. Ex. "\n"
-	LineSeparator = ln
 	// Exe is the runtime.GOOS-specific suffix for executables. Ex. "" unless windows which is ".exe"
 	Exe = exe
+	// OSDarwin is a Platform.OS a.k.a. "macOS"
+	OSDarwin = "darwin"
+	// OSLinux is a Platform.OS
+	OSLinux = "linux"
+	// OSWindows is a Platform.OS
+	OSWindows = "windows"
 )
+
+// Sprintf is like Fprintf is like fmt.Sprintf, except any '\n' in the format are converted according to runtime.GOOS.
+// This allows us to be consistent with Envoy, which handles \r\n on Windows.
+// See also https://github.com/golang/go/issues/28822
+func Sprintf(format string, a ...interface{}) string {
+	if runtime.GOOS != OSWindows {
+		return fmt.Sprintf(format, a...)
+	}
+	return fmt.Sprintf(strings.ReplaceAll(format, "\n", "\r\n"), a...)
+}
+
+// Fprintf is like fmt.Fprintf, but handles EOL according runtime.GOOS. See Sprintf for behavioural notes.
+func Fprintf(w io.Writer, format string, a ...interface{}) (n int, err error) {
+	if runtime.GOOS != OSWindows {
+		return fmt.Fprintf(w, format, a...)
+	}
+	return fmt.Fprint(w, Sprintf(format))
+}
 
 // ProcessGroupAttr sets attributes that ensure exec.Cmd doesn't propagate signals from func-e by default.
 // This is used to ensure shutdown hooks can apply

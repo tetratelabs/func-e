@@ -29,6 +29,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/test"
 	"github.com/tetratelabs/func-e/internal/test/morerequire"
 	"github.com/tetratelabs/func-e/internal/version"
@@ -167,7 +168,7 @@ func TestInstallIfNeeded(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, f.ModTime().UTC().Format("2006-01-02"), string(test.FakeReleaseDate))
 
-	require.Equal(t, fmt.Sprintln("downloading", o.tarballURL), out.String())
+	require.Equal(t, moreos.Sprintf("downloading %s\n", o.tarballURL), out.String())
 }
 
 func TestInstallIfNeeded_NotFound(t *testing.T) {
@@ -199,7 +200,7 @@ func TestInstallIfNeeded_AlreadyExists(t *testing.T) {
 
 	envoyPath, e := InstallIfNeeded(o.ctx, &o.GlobalOpts, version.LastKnownEnvoy)
 	require.NoError(t, e)
-	require.Equal(t, fmt.Sprintln(version.LastKnownEnvoy, "is already downloaded"), out.String())
+	require.Equal(t, moreos.Sprintf("%s is already downloaded\n", version.LastKnownEnvoy), out.String())
 
 	newStat, e := os.Stat(envoyPath)
 	require.NoError(t, e)

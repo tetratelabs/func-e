@@ -30,6 +30,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/test/morerequire"
 )
 
@@ -59,7 +60,7 @@ func RequireRun(t *testing.T, shutdown func(), r Runner, stderr io.Reader, args 
 
 	select { // Await run completion
 	case <-time.After(10 * time.Second):
-		t.Fatal("Run never completed")
+		t.Fatalf("Run never completed: %v", stderr)
 	case <-ctx.Done():
 	}
 	return //nolint
@@ -101,10 +102,7 @@ func requireBuildFakeEnvoy(t *testing.T) []byte {
 }
 
 func requireGoBin(t *testing.T) string {
-	binName := "go"
-	if runtime.GOOS == "windows" {
-		binName += ".exe"
-	}
+	binName := "go" + moreos.Exe
 	goBin := filepath.Join(runtime.GOROOT(), "bin", binName)
 	if _, err := os.Stat(goBin); err == nil {
 		return goBin

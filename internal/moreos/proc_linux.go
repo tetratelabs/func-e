@@ -19,10 +19,7 @@ import (
 	"syscall"
 )
 
-const (
-	ln  = "\n"
-	exe = ""
-)
+const exe = ""
 
 func processGroupAttr() *syscall.SysProcAttr {
 	// Pdeathsig aims to ensure the process group is cleaned up even if this process dies

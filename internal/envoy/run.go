@@ -42,7 +42,7 @@ func (r *Runtime) Run(ctx context.Context, args []string) (err error) {
 	defer func() {
 		if cmd.ProcessState != nil && cmd.ProcessState.ExitCode() > 0 {
 			if err != nil {
-				fmt.Fprintln(r.Out, "warning:", err) //nolint
+				moreos.Fprintf(r.Out, "warning: %s\n", err) //nolint
 			}
 			err = fmt.Errorf("envoy exited with status: %d", cmd.ProcessState.ExitCode())
 		}
@@ -53,14 +53,14 @@ func (r *Runtime) Run(ctx context.Context, args []string) (err error) {
 	}
 
 	// Print the process line to the console for user knowledge and parsing convenience
-	fmt.Fprintln(r.Out, "starting:", strings.Join(r.cmd.Args, " ")) //nolint
+	moreos.Fprintf(r.Out, "starting: %s\n", strings.Join(r.cmd.Args, " ")) //nolint
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("unable to start Envoy process: %w", err)
 	}
 
 	// Warn, but don't fail if we can't write the pid file for some reason
 	if err := os.WriteFile(r.pidPath, []byte(strconv.Itoa(cmd.Process.Pid)), 0600); err != nil {
-		fmt.Fprintln(r.Out, "warning:", err) //nolint
+		moreos.Fprintf(r.Out, "warning: %s\n", err) //nolint
 	}
 
 	waitCtx, waitCancel := context.WithCancel(ctx)
@@ -96,7 +96,7 @@ func awaitAdminAddress(sigCtx context.Context, r *Runtime) {
 	for i := 0; i < 10 && sigCtx.Err() == nil; i++ {
 		adminAddress, adminErr := r.GetAdminAddress()
 		if adminErr == nil {
-			fmt.Fprintln(r.Out, "discovered admin address:", adminAddress) //nolint
+			moreos.Fprintf(r.Out, "discovered admin address: %s\n", adminAddress) //nolint
 			return
 		}
 		time.Sleep(200 * time.Millisecond)
