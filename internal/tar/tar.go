@@ -52,7 +52,7 @@ func UntarAndVerify(dst string, src io.Reader, sha256Sum version.SHA256Sum) erro
 	if err := Untar(dst, &d); err != nil {
 		return err
 	}
-	sum := version.SHA256Sum(fmt.Sprintf("%x", d.h.Sum(nil)))
+	sum := version.SHA256Sum(hex.EncodeToString(d.h.Sum(nil)))
 	if sum != sha256Sum {
 		return fmt.Errorf("expected SHA-256 sum %q, but have %q", sha256Sum, sum)
 	}
