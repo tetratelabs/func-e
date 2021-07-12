@@ -49,15 +49,15 @@ test:
 
 # End-to-end (e2e) tests run against a compiled binary.
 #
-# When E2E_FUNC_E_BINARY isn't set, the func-e binary is built on-demand.
+# When E2E_FUNC_E_PATH isn't set, the func-e binary is built on-demand.
 #
 # Tests run one at a time, in verbose mode, so that failures are easy to diagnose.
 # Note: -failfast helps as it stops at the first error. However, it is not a cacheable flag, so runs won't cache.
-E2E_FUNC_E_BINARY ?= $(BIN)
+E2E_FUNC_E_PATH ?= $(BIN)
 .PHONY: e2e
-e2e: $(E2E_FUNC_E_BINARY)
+e2e: $(E2E_FUNC_E_PATH)
 	@echo "--- e2e ---"
-	@go test -parallel 1 -v -failfast ./e2e
+	@E2E_FUNC_E_PATH=$(E2E_FUNC_E_PATH) go test -parallel 1 -v -failfast ./e2e
 
 ##@ Code quality and integrity
 
