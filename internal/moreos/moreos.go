@@ -49,7 +49,7 @@ func Fprintf(w io.Writer, format string, a ...interface{}) (n int, err error) {
 	if runtime.GOOS != OSWindows {
 		return fmt.Fprintf(w, format, a...)
 	}
-	return fmt.Fprint(w, Sprintf(format))
+	return fmt.Fprint(w, Sprintf(format, a...))
 }
 
 // ProcessGroupAttr sets attributes that ensure exec.Cmd doesn't propagate signals from func-e by default.

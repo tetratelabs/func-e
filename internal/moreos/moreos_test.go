@@ -55,12 +55,14 @@ func TestIsExecutable_Not(t *testing.T) {
 }
 
 func TestSprintf(t *testing.T) {
-	input := "foo\n\nbar\n"
+	template := "%s\n\n%s\n"
+
+	expected := "foo\n\nbar\n"
 	if runtime.GOOS == OSWindows {
-		require.Equal(t, "foo\r\n\r\nbar\r\n", Sprintf(input))
-	} else {
-		require.Equal(t, input, Sprintf(input))
+		expected = "foo\r\n\r\nbar\r\n"
 	}
+
+	require.Equal(t, expected, Sprintf(template, "foo", "bar"))
 }
 
 func TestFprintf(t *testing.T) {
