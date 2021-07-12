@@ -34,8 +34,6 @@ import (
 	"github.com/tetratelabs/func-e/internal/test/morerequire"
 )
 
-const ln = moreos.LineSeparator
-
 func TestRuntime_Run(t *testing.T) {
 	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
 	defer removeTempDir()
@@ -59,8 +57,8 @@ func TestRuntime_Run(t *testing.T) {
 			name: "func-e Ctrl+C",
 			args: []string{"-c", "envoy.yaml"},
 			// Don't warn the user when they exited the process
-			expectedStdout:   fmt.Sprintln("starting:", fakeEnvoy, "-c", "envoy.yaml", adminFlag) + "GET /ready HTTP/1.1" + ln,
-			expectedStderr:   fmt.Sprintf("initializing epoch 0%[1]sstarting main dispatch loop%[1]scaught SIGINT%[1]sexiting%[1]s", ln),
+			expectedStdout:   moreos.Sprintf("starting: %s -c envoy.yaml %s\nGET /ready HTTP/1.1\n", fakeEnvoy, adminFlag),
+			expectedStderr:   moreos.Sprintf("initializing epoch 0\nstarting main dispatch loop\ncaught SIGINT\nexiting\n"),
 			wantShutdownHook: true,
 		},
 		// We don't test envoy dying from an external signal as it isn't reported back to the func-e process and
@@ -69,8 +67,8 @@ func TestRuntime_Run(t *testing.T) {
 			name:           "Envoy exited with error",
 			shutdown:       func() { time.Sleep(time.Millisecond * 100) },
 			args:           []string{}, // no config file!
-			expectedStdout: fmt.Sprintln("starting:", fakeEnvoy, adminFlag),
-			expectedStderr: fmt.Sprintf("initializing epoch 0%[1]sexiting%[1]sAt least one of --config-path or --config-yaml or Options::configProto() should be non-empty%[1]s", ln),
+			expectedStdout: moreos.Sprintf("starting: %s %s\n", fakeEnvoy, adminFlag),
+			expectedStderr: moreos.Sprintf("initializing epoch 0\nexiting\nAt least one of --config-path or --config-yaml or Options::configProto() should be non-empty\n"),
 			expectedErr:    "envoy exited with status: 1",
 		},
 	}

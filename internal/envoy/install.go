@@ -63,7 +63,7 @@ func InstallIfNeeded(ctx context.Context, o *globals.GlobalOpts, v version.Versi
 			return "", fmt.Errorf("unable to create directory %q: %w", installPath, err)
 		}
 
-		fmt.Fprintln(o.Out, "downloading", tarballURL)                                            //nolint
+		moreos.Fprintf(o.Out, "downloading %s\n", tarballURL)                                     //nolint
 		if err = untarEnvoy(ctx, installPath, tarballURL, sha256Sum, o.Platform, v); err != nil { //nolint
 			return "", err
 		}
@@ -71,7 +71,7 @@ func InstallIfNeeded(ctx context.Context, o *globals.GlobalOpts, v version.Versi
 			return "", fmt.Errorf("unable to set date of directory %q: %w", installPath, err)
 		}
 	case err == nil:
-		fmt.Fprintln(o.Out, v, "is already downloaded") //nolint
+		moreos.Fprintf(o.Out, "%s is already downloaded\n", v) //nolint
 	default:
 		// TODO: figure out how to get a stat error that isn't file not exist so we can test this
 		return "", err

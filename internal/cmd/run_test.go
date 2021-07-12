@@ -34,8 +34,6 @@ import (
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
-const ln = moreos.LineSeparator
-
 // Runner allows us to not introduce dependency cycles on envoy.Runtime
 type runner struct {
 	c *cli.App
@@ -62,7 +60,7 @@ func TestFuncERun(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Empty(t, stdout)
-	require.Equal(t, fmt.Sprintf("initializing epoch 0%[1]sstarting main dispatch loop%[1]s", ln), stderr.String())
+	require.Equal(t, moreos.Sprintf("initializing epoch 0\nstarting main dispatch loop\n"), stderr.String())
 }
 
 func TestFuncERun_TeesConsoleToLogs(t *testing.T) {
@@ -97,7 +95,7 @@ func TestFuncERun_ReadsHomeVersionFile(t *testing.T) {
 	runWithoutConfig(t, c)
 
 	// No implicit lookup
-	require.NotContains(t, o.Out.(*bytes.Buffer).String(), "looking up latest version"+ln)
+	require.NotContains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up latest version"))
 	require.Equal(t, version.LastKnownEnvoy, o.EnvoyVersion)
 }
 
@@ -114,7 +112,7 @@ func TestFuncERun_CreatesHomeVersionFile(t *testing.T) {
 	runWithoutConfig(t, c)
 
 	// We logged the implicit lookup
-	require.Contains(t, o.Out.(*bytes.Buffer).String(), "looking up latest version"+ln)
+	require.Contains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up latest version"))
 	require.FileExists(t, filepath.Join(o.HomeDir, "version"))
 	require.Equal(t, version.LastKnownEnvoy, o.EnvoyVersion)
 }
@@ -169,6 +167,6 @@ func TestFuncERun_ErrsWhenVersionsServerDown(t *testing.T) {
 	c, _, _ := newApp(o)
 	err := c.Run([]string{"func-e", "run"})
 
-	require.Contains(t, o.Out.(*bytes.Buffer).String(), "looking up latest version"+ln)
+	require.Contains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up latest version"))
 	require.Contains(t, err.Error(), fmt.Sprintf(`couldn't read latest version from %s`, o.EnvoyVersionsURL))
 }

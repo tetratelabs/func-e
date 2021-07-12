@@ -26,6 +26,7 @@ import (
 
 	"github.com/tetratelabs/func-e/internal/envoy"
 	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
@@ -69,13 +70,14 @@ func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 			w := tabwriter.NewWriter(c.App.Writer, 0, 0, 1, ' ', tabwriter.AlignRight)
 			for _, vr := range rows { //nolint:gocritic
 				if vr.version == currentVersion {
-					fmt.Fprintf(w, "* %s %s (set by %s)\n", vr.version, vr.releaseDate, currentVersionSource) //nolint
+					moreos.Fprintf(w, "* %s %s (set by %s)\n", vr.version, vr.releaseDate, currentVersionSource) //nolint
 				} else {
-					fmt.Fprintf(w, "  %s %s\n", vr.version, vr.releaseDate) //nolint
+					moreos.Fprintf(w, "  %s %s\n", vr.version, vr.releaseDate) //nolint
 				}
 			}
 			return w.Flush()
 		},
+		CustomHelpTemplate: moreos.Sprintf(cli.CommandHelpTemplate),
 	}
 }
 

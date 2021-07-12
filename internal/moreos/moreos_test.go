@@ -19,6 +19,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/shirou/gopsutil/v3/process"
@@ -53,12 +54,38 @@ func TestIsExecutable_Not(t *testing.T) {
 	require.False(t, isExecutable(f))
 }
 
-func TestLineSeparator(t *testing.T) {
+func TestSprintf(t *testing.T) {
+	input := "foo\n\nbar\n"
+	if runtime.GOOS == OSWindows {
+		require.Equal(t, "foo\r\n\r\nbar\r\n", Sprintf(input))
+	} else {
+		require.Equal(t, input, Sprintf(input))
+	}
+}
+
+func TestFprintf(t *testing.T) {
+	template := "%s\n\n%s\n"
+	stdout := new(bytes.Buffer)
+	count, err := Fprintf(stdout, template, "foo", "bar")
+	require.NoError(t, err)
+
+	expected := "foo\n\nbar\n"
+	if runtime.GOOS == OSWindows {
+		expected = "foo\r\n\r\nbar\r\n"
+	}
+
+	require.Equal(t, expected, stdout.String())
+	require.Equal(t, len(expected), count)
+}
+
+// TestSprintf_IdiomaticPerOS is here to ensure that the EOL translation makes sense. For example, in UNIX, we expect
+// \n and windows \r\n. This uses a real command to prove the point.
+func TestSprintf_IdiomaticPerOS(t *testing.T) {
 	stdout := new(bytes.Buffer)
 	cmd := exec.Command("echo", "cats")
 	cmd.Stdout = stdout
 	require.NoError(t, cmd.Run())
-	require.Equal(t, "cats"+ln, stdout.String())
+	require.Equal(t, Sprintf("cats\n"), stdout.String())
 }
 
 func TestProcessGroupAttr_Interrupt(t *testing.T) {

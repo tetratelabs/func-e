@@ -19,10 +19,7 @@ import (
 	"syscall"
 )
 
-const (
-	ln  = "\n"
-	exe = ""
-)
+const exe = ""
 
 func processGroupAttr() *syscall.SysProcAttr {
 	return &syscall.SysProcAttr{Setpgid: true}

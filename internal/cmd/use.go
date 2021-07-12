@@ -15,12 +15,11 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/urfave/cli/v2"
 
 	"github.com/tetratelabs/func-e/internal/envoy"
 	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
@@ -32,7 +31,7 @@ func NewUseCmd(o *globals.GlobalOpts) *cli.Command {
 		Name:      "use",
 		Usage:     `Sets the current [version] used by the "run" command`,
 		ArgsUsage: "[version]",
-		Description: fmt.Sprintf(`The '[version]' is from the "versions -a" command.
+		Description: moreos.Sprintf(`The '[version]' is from the "versions -a" command.
 The Envoy [version] installs on-demand into $FUNC_E_HOME/versions/[version]
 if needed.
 
@@ -49,6 +48,7 @@ $ func-e use %s`, envoy.CurrentVersionWorkingDirFile, envoy.CurrentVersionHomeDi
 			}
 			return envoy.WriteCurrentVersion(v, o.HomeDir)
 		},
+		CustomHelpTemplate: moreos.Sprintf(cli.CommandHelpTemplate),
 	}
 }
 

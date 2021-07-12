@@ -28,6 +28,7 @@ import (
 	"github.com/tetratelabs/func-e/internal/envoy"
 	"github.com/tetratelabs/func-e/internal/envoy/shutdown"
 	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
@@ -39,7 +40,7 @@ func NewRunCmd(o *globals.GlobalOpts) *cli.Command {
 		Usage:           "Run Envoy with the given [arguments...] until interrupted",
 		ArgsUsage:       "[arguments...]",
 		SkipFlagParsing: true,
-		Description: `To run Envoy, execute ` + "`func-e run -c your_envoy_config.yaml`" + `.
+		Description: moreos.Sprintf(`To run Envoy, execute ` + "`func-e run -c your_envoy_config.yaml`" + `.
 
 The first version in the below is run, controllable by the "use" command:
 ` + fmt.Sprintf("```\n%s\n```", envoy.VersionUsageList()) + `
@@ -51,7 +52,7 @@ directory (aka $CWD) until func-e is interrupted (ex Ctrl+C, Ctrl+Break).
 Envoy's process ID and console output write to "envoy.pid", stdout.log" and
 "stderr.log" in the run directory (` + "`$FUNC_E_HOME/runs/$epochtime`" + `).
 When interrupted, shutdown hooks write files including network and process
-state. On exit, these archive into ` + "`$FUNC_E_HOME/runs/$epochtime.tar.gz`",
+state. On exit, these archive into ` + "`$FUNC_E_HOME/runs/$epochtime.tar.gz`"),
 		Before: func(c *cli.Context) error {
 			if err := os.MkdirAll(o.HomeDir, 0750); err != nil {
 				return NewValidationError(err.Error())
@@ -94,12 +95,13 @@ state. On exit, these archive into ` + "`$FUNC_E_HOME/runs/$epochtime.tar.gz`",
 
 			for _, enableShutdownHook := range shutdown.EnableHooks {
 				if err := enableShutdownHook(r); err != nil {
-					fmt.Fprintln(r.Out, "failed to enable shutdown hook:", err) //nolint
+					moreos.Fprintf(r.Out, "failed to enable shutdown hook: %s\n", err) //nolint
 				}
 			}
 
 			return r.Run(c.Context, c.Args().Slice())
 		},
+		CustomHelpTemplate: moreos.Sprintf(cli.CommandHelpTemplate),
 	}
 	return cmd
 }
@@ -139,7 +141,7 @@ func setHomeEnvoyVersion(ctx context.Context, o *globals.GlobalOpts) error {
 	}
 
 	// First time install: look up the latest version, which may be newer than version.LastKnownEnvoy!
-	fmt.Fprintln(o.Out, "looking up latest version") //nolint
+	moreos.Fprintf(o.Out, "looking up latest version\n") //nolint
 	m, err := envoy.FuncEVersions(ctx, o.EnvoyVersionsURL, o.Platform, o.Version)
 	if err != nil {
 		return NewValidationError(`couldn't read latest version from %s: %s`, o.EnvoyVersionsURL, err)
