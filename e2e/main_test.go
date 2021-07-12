@@ -24,7 +24,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -34,25 +33,24 @@ import (
 
 //nolint:golint
 const (
-	funcEBinaryEnvKey      = "E2E_FUNC_E_BINARY"
+	// funcEPathEnvKey holds the path to funcEBin. Defaults to the project root (`$PWD/..`).
+	funcEPathEnvKey        = "E2E_FUNC_E_PATH"
 	envoyVersionsURLEnvKey = "ENVOY_VERSIONS_URL"
 	envoyVersionsJSON      = "envoy-versions.json"
 	runTimeout             = 2 * time.Minute
 )
 
 var (
-	funcEPath           = "func-e" // funcEPath holds a path to a 'func-e' binary under test.
+	funcEBin            string // funcEBin holds a path to a 'func-e' binary under test.
 	expectedMockHeaders = map[string]string{"User-Agent": "func-e/dev"}
 )
 
 // TestMain ensures the "func-e" binary is valid.
 func TestMain(m *testing.M) {
 	// As this is an e2e test, we execute all tests with a binary compiled earlier.
-	path, err := readFuncEPath()
-	if err != nil {
+	if err := readFuncEBin(); err != nil {
 		exitOnInvalidBinary(err)
 	}
-	funcEPath = path
 
 	versionLine, _, err := funcEExec("--version")
 	if err != nil {
@@ -107,33 +105,45 @@ func mockEnvoyVersionsServer() (*httptest.Server, error) {
 	return ts, nil
 }
 
-// readFuncEPath reads E2E_FUNC_E_BINARY or defaults to "$PWD/dist/func-e_$GOOS_$GOARCH/func-e"
+// readFuncEBin reads E2E_FUNC_E_PATH or defaults to the project root (`$PWD/..`) to find func-e.
 // An error is returned if the value isn't an executable file.
-func readFuncEPath() (string, error) {
-	path := os.Getenv(funcEBinaryEnvKey)
-	if path == "" {
-		// Assemble the default created by "make bin"
-		relativePath := filepath.Join("..", "dist", fmt.Sprintf("func-e_%s_%s", runtime.GOOS, runtime.GOARCH), "func-e")
-		abs, err := filepath.Abs(relativePath)
+func readFuncEBin() error {
+	path := os.Getenv(funcEPathEnvKey)
+	if path != "" {
+		if !filepath.IsAbs(path) {
+			return fmt.Errorf("%s is not an absolute path. Correct environment variable %s", path, funcEPathEnvKey)
+		}
+		path = filepath.Clean(path)
+		stat, err := os.Stat(path)
+		if err != nil && os.IsNotExist(err) {
+			return fmt.Errorf("%s doesn't exist. Correct environment variable %s", path, funcEPathEnvKey)
+		}
+		if !stat.IsDir() {
+			return fmt.Errorf("%s is not a directory. Correct environment variable %s", path, funcEPathEnvKey)
+		}
+	} else {
+		// We need to make the path relative to the project root because "e2e" tests run in the "e2e" directory.
+		abs, err := filepath.Abs("..")
 		if err != nil {
-			return "", fmt.Errorf("%s didn't resolve to a valid path. Correct environment variable %s", path, funcEBinaryEnvKey)
+			return err
 		}
 		path = abs
 	}
 
-	stat, err := os.Stat(path)
+	// Now, check the binary at the path
+	funcEBin = filepath.Join(path, "func-e"+moreos.Exe)
+	stat, err := os.Stat(funcEBin)
 	if err != nil && os.IsNotExist(err) {
-		return "", fmt.Errorf("%s doesn't exist. Correct environment variable %s", path, funcEBinaryEnvKey)
+		return fmt.Errorf("%s doesn't exist.  Run `go build .` or `make bin`", funcEBin)
 	}
-	if stat.IsDir() {
-		return "", fmt.Errorf("%s is not a file. Correct environment variable %s", path, funcEBinaryEnvKey)
-	}
+
 	// While "make bin" should result in correct permissions, double-check as some tools lose them, such as
 	// https://github.com/actions/upload-artifact#maintaining-file-permissions-and-case-sensitive-files
 	if !moreos.IsExecutable(stat) {
-		return "", fmt.Errorf("%s is not executable. Correct environment variable %s", path, funcEBinaryEnvKey)
+		return fmt.Errorf("%s is not executable. Run `go build .` or `make bin`", funcEBin)
 	}
-	return path, nil
+	fmt.Fprintln(os.Stderr, "using", funcEBin)
+	return nil
 }
 
 type funcE struct {
@@ -143,7 +153,7 @@ type funcE struct {
 }
 
 func newFuncE(ctx context.Context, args ...string) *funcE {
-	cmd := exec.CommandContext(ctx, funcEPath, args...)
+	cmd := exec.CommandContext(ctx, funcEBin, args...)
 	cmd.SysProcAttr = moreos.ProcessGroupAttr()
 	return &funcE{cmd: cmd}
 }

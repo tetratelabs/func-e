@@ -57,4 +57,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: "Run e2e tests using released `func-e` binary"
-        run: E2E_FUNC_E_BINARY=$PWD/func-e make e2e
+        run: go test -parallel 1 -v -failfast ./e2e

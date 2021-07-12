@@ -47,17 +47,14 @@ test:
 	@echo "--- test ---"
 	@go test $(TEST_PACKAGES)
 
-# End-to-end (e2e) tests run against a compiled binary.
-#
-# When E2E_FUNC_E_BINARY isn't set, the func-e binary is built on-demand.
+# End-to-end (e2e) tests run against the func-e binary, built on-demand with goreleaser.
 #
 # Tests run one at a time, in verbose mode, so that failures are easy to diagnose.
 # Note: -failfast helps as it stops at the first error. However, it is not a cacheable flag, so runs won't cache.
-E2E_FUNC_E_BINARY ?= $(BIN)
 .PHONY: e2e
-e2e: $(E2E_FUNC_E_BINARY)
+e2e: $(BIN)
 	@echo "--- e2e ---"
-	@go test -parallel 1 -v -failfast ./e2e
+	@E2E_FUNC_E_PATH=$(PWD)/$(BIN) go test -parallel 1 -v -failfast ./e2e
 
 ##@ Code quality and integrity
 
