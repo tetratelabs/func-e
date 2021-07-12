@@ -33,7 +33,7 @@ import (
 
 //nolint:golint
 const (
-	// funcEPathEnvKey holds the path to funcEBin (defaults to the project root `../`)
+	// funcEPathEnvKey holds the path to funcEBin. Defaults to the project root (`$PWD/..`).
 	funcEPathEnvKey        = "E2E_FUNC_E_PATH"
 	envoyVersionsURLEnvKey = "ENVOY_VERSIONS_URL"
 	envoyVersionsJSON      = "envoy-versions.json"
@@ -105,12 +105,15 @@ func mockEnvoyVersionsServer() (*httptest.Server, error) {
 	return ts, nil
 }
 
-// readFuncEBin reads E2E_FUNC_E_PATH or defaults to "../func-e"
+// readFuncEBin reads E2E_FUNC_E_PATH or defaults to the project root (`$PWD/..`) to find func-e.
 // An error is returned if the value isn't an executable file.
 func readFuncEBin() error {
 	path := os.Getenv(funcEPathEnvKey)
-	path = filepath.Join("..", path) // relative to project root
 	if path != "" {
+		if !filepath.IsAbs(path) {
+			return fmt.Errorf("%s is not an absolute path. Correct environment variable %s", path, funcEPathEnvKey)
+		}
+		path = filepath.Clean(path)
 		stat, err := os.Stat(path)
 		if err != nil && os.IsNotExist(err) {
 			return fmt.Errorf("%s doesn't exist. Correct environment variable %s", path, funcEPathEnvKey)
@@ -118,19 +121,26 @@ func readFuncEBin() error {
 		if !stat.IsDir() {
 			return fmt.Errorf("%s is not a directory. Correct environment variable %s", path, funcEPathEnvKey)
 		}
+	} else {
+		// We need to make the path relative to the project root because "e2e" tests run in the "e2e" directory.
+		abs, err := filepath.Abs("..")
+		if err != nil {
+			return err
+		}
+		path = abs
 	}
 
-	abs, err := filepath.Abs(path)
-	if err != nil {
-		return fmt.Errorf("%s didn't resolve to a valid path. Correct environment variable %s", path, funcEPathEnvKey)
+	// Now, check the binary at the path
+	funcEBin = filepath.Join(path, "func-e"+moreos.Exe)
+	stat, err := os.Stat(funcEBin)
+	if err != nil && os.IsNotExist(err) {
+		return fmt.Errorf("%s doesn't exist.  Run `go build .` or `make bin`", funcEBin)
 	}
-	funcEBin = filepath.Join(abs, "func-e"+moreos.Exe)
-	stat, _ := os.Stat(funcEBin)
 
 	// While "make bin" should result in correct permissions, double-check as some tools lose them, such as
 	// https://github.com/actions/upload-artifact#maintaining-file-permissions-and-case-sensitive-files
-	if stat == nil || !moreos.IsExecutable(stat) {
-		return fmt.Errorf("%s is not executable. Run `go build .` or `make bin` %s", funcEBin, funcEPathEnvKey)
+	if !moreos.IsExecutable(stat) {
+		return fmt.Errorf("%s is not executable. Run `go build .` or `make bin`", funcEBin)
 	}
 	fmt.Fprintln(os.Stderr, "using", funcEBin)
 	return nil

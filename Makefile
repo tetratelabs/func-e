@@ -53,7 +53,7 @@ test:
 #
 # Tests run one at a time, in verbose mode, so that failures are easy to diagnose.
 # Note: -failfast helps as it stops at the first error. However, it is not a cacheable flag, so runs won't cache.
-E2E_FUNC_E_PATH ?= $(BIN)
+E2E_FUNC_E_PATH ?= $(PWD)/$(BIN)
 .PHONY: e2e
 e2e: $(E2E_FUNC_E_PATH)
 	@echo "--- e2e ---"

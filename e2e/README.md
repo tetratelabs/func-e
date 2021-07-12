@@ -16,7 +16,7 @@ make e2e
 ```
 
 Tests look for `func-e` (or `func-e.exe` in Windows), in the current directory. When run via `make`, the binary location
-is read from `E2E_FUNC_E_PATH`: the `goreleaser` dist directory of the current platform. Ex. `dist/func-e_darwin_amd64`
+is read from `E2E_FUNC_E_PATH`: the `goreleaser` dist of the current platform. Ex. `$PWD/dist/func-e_darwin_amd64`
 
 If the `func-e` version is a snapshot and "envoy-versions.json" exists, tests run against the local. This allows local
 development and pull requests to verify changes not yet [published](https://archive.tetratelabs.io/envoy/envoy-versions.json)
