@@ -33,7 +33,7 @@ import (
 
 //nolint:golint
 const (
-	// funcEPathEnvKey holds the path to funcEBin (defaults to pwd)
+	// funcEPathEnvKey holds the path to funcEBin (defaults to the project root `../`)
 	funcEPathEnvKey        = "E2E_FUNC_E_PATH"
 	envoyVersionsURLEnvKey = "ENVOY_VERSIONS_URL"
 	envoyVersionsJSON      = "envoy-versions.json"
