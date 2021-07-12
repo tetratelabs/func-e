@@ -4,20 +4,23 @@ This directory holds the end-to-end tests for `func-e`.
 
 By default, end-to-end (e2e) tests verify a `func-e` binary built from [main.go](../main.go)
 
-Ex. in native go commands:
+## Using native go commands:
+End-to-end tests default to look for `func-e` (or `func-e.exe` in Windows), in the project root (current directory).
+
 ```bash
 go build --ldflags '-s -w' .
 go test -parallel 1 -v -failfast ./e2e
 ```
 
-Ex. using `make`
+## Using `make`
+When run via `make`, `func-e` is built on-demand by `goreleaser` (implicitly `make bin`)
+Ex. `$PWD/dist/func-e_darwin_amd64/func-e`
+
 ```bash
 make e2e
 ```
 
-Tests look for `func-e` (or `func-e.exe` in Windows), in the current directory. When run via `make`, the binary location
-is read from `E2E_FUNC_E_PATH`: the `goreleaser` dist of the current platform. Ex. `$PWD/dist/func-e_darwin_amd64`
-
+## Envoy version list
 If the `func-e` version is a snapshot and "envoy-versions.json" exists, tests run against the local. This allows local
 development and pull requests to verify changes not yet [published](https://archive.tetratelabs.io/envoy/envoy-versions.json)
 or those that effect the [schema](https://archive.tetratelabs.io/release-versions-schema.json).
