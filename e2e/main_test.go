@@ -105,7 +105,7 @@ func mockEnvoyVersionsServer() (*httptest.Server, error) {
 	return ts, nil
 }
 
-// readFuncEBin reads E2E_FUNC_E_PATH or defaults to "./func-e"
+// readFuncEBin reads E2E_FUNC_E_PATH or defaults to "../func-e"
 // An error is returned if the value isn't an executable file.
 func readFuncEBin() error {
 	path := os.Getenv(funcEPathEnvKey)
