@@ -105,6 +105,26 @@ func TestProcessGroupAttr_Interrupt(t *testing.T) {
 	// Wait for the process to die; this could error due to the interrupt signal
 	cmd.Wait() //nolint
 	require.Error(t, findProcess(cmd.Process))
+
+	// Ensure interrupting it again doesn't error
+	require.NoError(t, Interrupt(cmd.Process))
+}
+
+func Test_EnsureProcessDone(t *testing.T) {
+	// Fork a process that hangs
+	cmd := exec.Command("cat" + Exe)
+	cmd.SysProcAttr = ProcessGroupAttr()
+	require.NoError(t, cmd.Start())
+
+	// Kill it
+	require.NoError(t, EnsureProcessDone(cmd.Process))
+
+	// Wait for the process to die; this could error due to the kill signal
+	cmd.Wait() //nolint
+	require.Error(t, findProcess(cmd.Process))
+
+	// Ensure killing it again doesn't error
+	require.NoError(t, EnsureProcessDone(cmd.Process))
 }
 
 func findProcess(proc *os.Process) error {

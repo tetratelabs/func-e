@@ -27,7 +27,17 @@ func processGroupAttr() *syscall.SysProcAttr {
 }
 
 func interrupt(p *os.Process) error {
-	return p.Signal(syscall.SIGINT)
+	if err := p.Signal(syscall.SIGINT); err != nil && err != os.ErrProcessDone {
+		return err
+	}
+	return nil
+}
+
+func ensureProcessDone(p *os.Process) error {
+	if err := p.Kill(); err != nil && err != os.ErrProcessDone {
+		return err
+	}
+	return nil
 }
 
 func isExecutable(f os.FileInfo) bool {

@@ -63,6 +63,11 @@ func Interrupt(p *os.Process) error {
 	return interrupt(p) // un-exported to prevent godoc drift
 }
 
+// EnsureProcessDone makes sure the process has exited completely.
+func EnsureProcessDone(p *os.Process) error {
+	return ensureProcessDone(p) // un-exported to prevent godoc drift
+}
+
 // IsExecutable returns true if the input can be run as an exec.Cmd
 func IsExecutable(f os.FileInfo) bool {
 	return isExecutable(f)

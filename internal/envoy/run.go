@@ -29,7 +29,7 @@ import (
 )
 
 // Run execs the binary at the path with the args passed. It is a blocking function that can be shutdown via SIGINT.
-func (r *Runtime) Run(ctx context.Context, args []string) (err error) {
+func (r *Runtime) Run(ctx context.Context, args []string) (err error) { //nolint:gocyclo
 	// We can't use CommandContext even if that seems correct here. The reason is that we need to invoke shutdown hooks,
 	// and they expect the process to still be running. For example, this allows admin API hooks.
 	cmd := exec.Command(r.opts.EnvoyPath, args...) // #nosec -> users can run whatever binary they like!
@@ -78,15 +78,21 @@ func (r *Runtime) Run(ctx context.Context, args []string) (err error) {
 
 	// Block until we receive SIGINT or are canceled because Envoy has died
 	<-sigCtx.Done()
+
 	if cmd.ProcessState != nil && !r.opts.DontArchiveRunDir {
 		return r.archiveRunDir()
 	}
 
 	r.handleShutdown(ctx)
 
-	// Block until the process is complete. This ensures file descriptors are closed.
-	<-waitCtx.Done()
-
+	// At this point, shutdown hooks have run and Envoy is interrupted.
+	// Block until it exits to ensure file descriptors are closed prior to archival.
+	// Allow up to 5 seconds for a clean stop, killing if it can't for any reason.
+	select {
+	case <-waitCtx.Done():
+	case <-time.After(5 * time.Second):
+		_ = moreos.EnsureProcessDone(r.cmd.Process)
+	}
 	return r.archiveRunDir()
 }
 
