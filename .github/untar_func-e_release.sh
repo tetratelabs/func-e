@@ -23,7 +23,7 @@ echo "looking for release that contains ${tarball}"
 tarball_url=$(${curl} -H "Authorization: token ${GITHUB_TOKEN}" https://api.github.com/repos/tetratelabs/func-e/releases?per_page=10 |
   jq -er ".|first|.assets|map(select(.name == \"${tarball}\"))|first|.url") || exit 1
 
-# Extract func-e to the CWD per https://docs.github.com/en/rest/reference/repos#get-a-release-asset
+# Extract func-e to the current directory per https://docs.github.com/en/rest/reference/repos#get-a-release-asset
 echo "extracting func-e from ${tarball_url}"
 ${curl} -H "Authorization: token ${GITHUB_TOKEN}" -H'Accept: application/octet-stream' "${tarball_url}" | tar -xzf - func-e
 ./func-e -version

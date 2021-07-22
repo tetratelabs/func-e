@@ -37,7 +37,7 @@ import (
 )
 
 var (
-	// staticFilesystemConfig shows Envoy reading a file referenced from the CWD
+	// staticFilesystemConfig shows Envoy reading a file referenced from the current directory
 	//go:embed static-filesystem.yaml
 	staticFilesystemConfig  []byte
 	adminAddressPathPattern = regexp.MustCompile(`--admin-address-path ([^ ]+)`)
