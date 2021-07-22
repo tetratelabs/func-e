@@ -42,7 +42,7 @@ func TestFuncEVersions(t *testing.T) {
 
 	stdout, stderr, err := funcEExec("versions")
 
-	require.Regexp(t, fmt.Sprintf("[ *] %s 202[1-9]-[01][0-9]-[0-3][0-9].*\n", version.LastKnownEnvoy), stdout)
+	require.Regexp(t, fmt.Sprintf("[ *] %s 202[1-9]-[01][0-9]-[0-3][0-9].*\r?\n", version.LastKnownEnvoy), stdout)
 	require.Empty(t, stderr)
 	require.NoError(t, err)
 }
@@ -52,7 +52,7 @@ func TestFuncEVersions_All(t *testing.T) {
 
 	stdout, stderr, err := funcEExec("versions", "-a")
 
-	require.Regexp(t, fmt.Sprintf("[ *] %s 202[1-9]-[01][0-9]-[0-3][0-9].*\n", version.LastKnownEnvoy), stdout)
+	require.Regexp(t, fmt.Sprintf("[ *] %s 202[1-9]-[01][0-9]-[0-3][0-9].*\r?\n", version.LastKnownEnvoy), stdout)
 	require.Empty(t, stderr)
 	require.NoError(t, err)
 }

@@ -188,10 +188,10 @@ func TestUntarAndVerify_InvalidSignature(t *testing.T) {
 // requireTestFiles ensures the given directory includes the testdata/foo directory
 func requireTestFiles(t *testing.T, dst string) {
 	// NOTE: this will not include empty.txt as we don't want to clutter the tar with empty files
-	for _, path := range []string{"bar.sh", filepath.Join("bar", "baz.txt")} {
-		want, e := os.Stat(filepath.Join("testdata", "foo", path))
+	for _, p := range []string{"bar.sh", filepath.Join("bar", "baz.txt")} {
+		want, e := os.Stat(filepath.Join("testdata", "foo", p))
 		require.NoError(t, e)
-		have, e := os.Stat(filepath.Join(dst, path))
+		have, e := os.Stat(filepath.Join(dst, p))
 		require.NoError(t, e)
 		require.Equal(t, want.Mode(), have.Mode())
 	}

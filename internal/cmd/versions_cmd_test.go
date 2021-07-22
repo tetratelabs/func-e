@@ -91,10 +91,10 @@ func TestFuncEVersions_CurrentVersion(t *testing.T) {
 
 		c, stdout, _ := newApp(o)
 		require.NoError(t, c.Run([]string{"func-e", "versions"}))
-		require.Equal(t, `* 1.2.2 2021-01-31 (set by $PWD/.envoy-version)
+		require.Equal(t, moreos.Sprintf(`* 1.2.2 2021-01-31 (set by $PWD/.envoy-version)
   1.1.2 2021-01-31
   1.2.1 2021-01-30
-`, stdout.String())
+`), stdout.String())
 	})
 
 	t.Run("set by $ENVOY_VERSION", func(t *testing.T) {

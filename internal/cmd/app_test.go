@@ -67,6 +67,9 @@ func TestHomeDir(t *testing.T) {
 	u, err := user.Current()
 	require.NoError(t, err)
 
+	alt1 := filepath.Join(u.HomeDir, "alt1")
+	alt2 := filepath.Join(u.HomeDir, "alt2")
+
 	tests := []testCase{ // we don't test default as that depends on the runtime env
 		{
 			name:     "default is ~/.func-e",
@@ -77,22 +80,22 @@ func TestHomeDir(t *testing.T) {
 			name: "FUNC_E_HOME env",
 			args: []string{"func-e"},
 			setup: func() func() {
-				return morerequire.RequireSetenv(t, "FUNC_E_HOME", "/from/FUNC_E_HOME/env")
+				return morerequire.RequireSetenv(t, "FUNC_E_HOME", alt1)
 			},
-			expected: "/from/FUNC_E_HOME/env",
+			expected: alt1,
 		},
 		{
 			name:     "--home-dir arg",
-			args:     []string{"func-e", "--home-dir", "/from/home-dir/arg"},
-			expected: "/from/home-dir/arg",
+			args:     []string{"func-e", "--home-dir", alt1},
+			expected: alt1,
 		},
 		{
 			name: "prioritizes --home-dir arg over FUNC_E_HOME env",
-			args: []string{"func-e", "--home-dir", "/from/home-dir/arg"},
+			args: []string{"func-e", "--home-dir", alt1},
 			setup: func() func() {
-				return morerequire.RequireSetenv(t, "FUNC_E_HOME", "/from/FUNC_E_HOME/env")
+				return morerequire.RequireSetenv(t, "FUNC_E_HOME", alt2)
 			},
-			expected: "/from/home-dir/arg",
+			expected: alt1,
 		},
 	}
 

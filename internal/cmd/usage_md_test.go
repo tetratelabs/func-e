@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"os"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -23,12 +24,17 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/moreos"
 )
 
 const siteMarkdownFile = "../../USAGE.md"
 
 // TestUsageMarkdownMatchesCommands is in the "cmd" package because changes here will drift siteMarkdownFile.
 func TestUsageMarkdownMatchesCommands(t *testing.T) {
+	if runtime.GOOS == moreos.OSWindows {
+		t.SkipNow()
+	}
+
 	// Use a custom markdown template
 	old := cli.MarkdownDocTemplate
 	defer func() { cli.MarkdownDocTemplate = old }()

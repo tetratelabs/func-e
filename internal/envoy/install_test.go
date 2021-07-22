@@ -229,8 +229,11 @@ func TestVerifyEnvoy(t *testing.T) {
 		require.Nil(t, e)
 	})
 
+	require.NoError(t, os.Chmod(expectedEnvoyPath, 0600))
 	t.Run("envoy binary not executable", func(t *testing.T) {
-		require.NoError(t, os.Chmod(expectedEnvoyPath, 0600))
+		if runtime.GOOS == moreos.OSWindows {
+			t.Skip("execute bit isn't visible on windows")
+		}
 		EnvoyPath, e := verifyEnvoy(envoyPath)
 		require.Empty(t, EnvoyPath)
 		require.EqualError(t, e, fmt.Sprintf(`envoy binary not executable at %q`, expectedEnvoyPath))

@@ -35,6 +35,7 @@ import (
 // NewRunCmd create a command responsible for starting an Envoy process
 func NewRunCmd(o *globals.GlobalOpts) *cli.Command {
 	var envoyVersion version.Version
+	runDirectoryExpression := moreos.ReplacePathSeparator("$FUNC_E_HOME/runs/$epochtime")
 	cmd := &cli.Command{
 		Name:            "run",
 		Usage:           "Run Envoy with the given [arguments...] until interrupted",
@@ -47,12 +48,12 @@ The first version in the below is run, controllable by the "use" command:
 The version to use is downloaded and installed, if necessary.
 
 Envoy interprets the '[arguments...]' and runs in the current working
-directory (aka $CWD) until func-e is interrupted (ex Ctrl+C, Ctrl+Break).
+directory (aka $PWD) until func-e is interrupted (ex Ctrl+C, Ctrl+Break).
 
 Envoy's process ID and console output write to "envoy.pid", stdout.log" and
-"stderr.log" in the run directory (` + "`$FUNC_E_HOME/runs/$epochtime`" + `).
+"stderr.log" in the run directory (` + fmt.Sprintf("`%s`", runDirectoryExpression) + `).
 When interrupted, shutdown hooks write files including network and process
-state. On exit, these archive into ` + "`$FUNC_E_HOME/runs/$epochtime.tar.gz`"),
+state. On exit, these archive into ` + fmt.Sprintf("`%s.tar.gz`", runDirectoryExpression)),
 		Before: func(c *cli.Context) error {
 			if err := os.MkdirAll(o.HomeDir, 0750); err != nil {
 				return NewValidationError(err.Error())

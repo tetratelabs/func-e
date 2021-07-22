@@ -25,7 +25,7 @@ func TestFuncEVersion(t *testing.T) {
 
 	stdout, stderr, err := funcEExec("--version")
 
-	require.Regexp(t, `^func-e version ([^\s]+)\n$`, stdout)
+	require.Regexp(t, `^func-e version ([^\s]+)\r?\n$`, stdout)
 	require.Empty(t, stderr)
 	require.NoError(t, err)
 }
