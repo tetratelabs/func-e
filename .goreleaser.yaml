@@ -28,6 +28,13 @@ builds:
     goarch:
       - amd64
       - arm64
+
+archives:
+  - format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+
 release:
   # Create a draft release in GitHub. We can write release notes manually.
   draft: true
