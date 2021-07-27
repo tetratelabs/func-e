@@ -58,3 +58,10 @@ jobs:
 
       - name: "Run e2e tests using released `func-e` binary"
         run: go test -parallel 1 -v -failfast ./e2e
+
+      - name: Bump homebrew-core formula
+        uses: mislav/bump-homebrew-formula-action@v1
+        with:
+          formula-name: func-e
+        env:  # same perms as `brew bump-formula-pr func-e --version 0.6.0`
+          COMMITTER_TOKEN: ${{ secrets.HOMEBREW_GITHUB_API_TOKEN }}
