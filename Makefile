@@ -32,6 +32,35 @@ bin $(BIN): $(GORELEASER)
 	@echo "--- bin ---"
 	@$(GORELEASER) build --snapshot --single-target --rm-dist
 
+# Requires `wixl` from msitools https://wiki.gnome.org/msitools (or `brew install msitools`)
+# If Windows, you can download from here https://github.com/wixtoolset/wix3/releases
+WIN_BIN := dist/func-e_windows_amd64
+WIN_BIN_EXE := $(WIN_BIN)/func-e.exe
+# Default to a dummy version, but in a release this should be overridden
+MSI_VERSION := 0.0.1
+
+$(WIN_BIN_EXE): $(GORELEASER)
+	@echo "--- win-bin ---"
+	@GOOS=windows GOARCH=amd64 $(GORELEASER) build --snapshot --single-target --rm-dist
+
+# Right now, the only arch we support is amd64 because Envoy doesn't yet support arm64 on Windows
+# https://github.com/envoyproxy/envoy/issues/17572
+# Once that occurs, we will need to set -arch arm64 and bundle accordingly.
+.PHONY: msi
+msi: $(WIN_BIN_EXE)
+ifeq ($(OS),Windows_NT)  # Windows 10 etc use https://wixtoolset.org
+	@candle -nologo -arch x64 -dVersion=$(MSI_VERSION)  \
+	-dBin=$(WIN_BIN)/func-e.exe \
+	packaging/func-e.wxs
+	@light -nologo func-e.wixobj -o $(WIN_BIN)/func-e.msi -spdb
+	@rm func-e.wixobj
+else  # use https://wiki.gnome.org/msitools
+	@wixl -a x64 -D Version=$(MSI_VERSION) \
+	-D Bin=$(WIN_BIN)/func-e.exe \
+	-o $(WIN_BIN)/func-e.msi \
+	packaging/func-e.wxs
+endif
+
 ##@ Test website
 .PHONY: site
 site: $(HUGO)

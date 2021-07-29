@@ -31,6 +31,8 @@ func main() {
 }
 
 // version is the string representation of globals.GlobalOpts
+// We can't use debug.ReadBuildInfo because it doesn't get the last known version properly
+// See https://github.com/golang/go/issues/37475
 var version = "dev"
 
 // run handles all error logging and coding so that no other place needs to.

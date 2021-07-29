@@ -8,7 +8,7 @@ on:
   push:
     tags: 'v[0-9]+.[0-9]+.[0-9]+**'  # Ex. v0.2.0 v0.2.1-rc2
 
-env:
+env:  # As of 2021-08-05 images come with go 1.15 https://github.com/actions/virtual-environments/tree/main/images
   GO_VERSION: "1.16.6"
 
 jobs:
@@ -18,8 +18,7 @@ jobs:
     steps:
       - name: "Checkout"
         uses: actions/checkout@v2
-        with:
-          # fetch all history for all tags and branches (needed for changelog)
+        with:  # fetch all history for all tags and branches (needed for changelog)
           fetch-depth: 0
 
       - name: "Set up Go"

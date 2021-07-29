@@ -1,8 +1,8 @@
 # `name` value will appear "as is" in the badge.
 # See https://docs.github.com/en/actions/configuring-and-managing-workflows/configuring-a-workflow#adding-a-workflow-status-badge-to-your-repository
-# yamllint --format github .github/workflows/commit.yaml
+# yamllint --format github .github/workflows/msi.yaml
 ---
-name: "build"
+name: "msi"
 
 env:  # As of 2021-08-05 images come with go 1.15 https://github.com/actions/virtual-environments/tree/main/images
   GO_VERSION: "1.16.6"
@@ -11,23 +11,13 @@ on:
   push:  # We run tests on non-tagged pushes to master
     tags: ''
     branches: master
-    # ignore docs as they are built with Netlify. Ignore travis-related changes, too.
-    # func-e.wxs is used for the Windows Installer, so tested with msi.yaml
-    paths-ignore:
-      - '**/*.md'
-      - 'site/**'
-      - 'netlify.toml'
-      - '.travis.yml'
+    paths:
       - 'packaging/func-e.wxs'
       - 'packaging/icon@48w.ico'
       - '.github/workflows/msi.yaml'
-  pull_request:  # We also run tests on pull requests targeted at the master branch.
+  pull_request:  # We also run tests on pull requests targeted at the master branch
     branches: master
-    paths-ignore:
-      - '**/*.md'
-      - 'site/**'
-      - 'netlify.toml'
-      - '.travis.yml'
+    paths:
       - 'packaging/func-e.wxs'
       - 'packaging/icon@48w.ico'
       - '.github/workflows/msi.yaml'
@@ -37,19 +27,31 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
-    name: "Run unit tests (${{ matrix.os }})"
+  msi:
+    name: "Test Windows Installer build (${{ matrix.os }})"
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 90  # instead of 360 by default
     strategy:
       fail-fast: false  # don't fail fast as sometimes failures are operating system specific
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          # ubuntu is missing wixl https://github.com/actions/virtual-environments/issues/3857
+          - os: ubuntu-latest
+            setup: sudo apt update -qq && sudo apt install -qq -y wixl
+          # macos is missing wixl https://github.com/actions/virtual-environments/issues/3857
+          - os: macos-latest
+            setup: brew install -q msitools
+          # wixtoolset isn't in the path https://github.com/wixtoolset/wix3/blob/develop/src/Setup/CoreMsi/Toolset.wxs#L87
+          - os: windows-latest
+            setup: echo "$WIX\\bin" >> $GITHUB_PATH
+
     defaults:
       run:  # use bash for all operating systems unless overridden
         shell: bash
 
     steps:
+      - name: "Setup msitools/wixtoolset"
+        run: ${{ matrix.setup }}
+
       - name: "Checkout"
         uses: actions/checkout@v2
 
@@ -68,31 +70,7 @@ jobs:
           key: test-${{ runner.os }}-${{ env.GO_VERSION }}-go-${{ hashFiles('go.sum', '.bingo/*.mod') }}
           restore-keys: test-${{ runner.os }}-${{ env.GO_VERSION }}-go-
 
-      - name: "Cache Envoy binaries"
-        uses: actions/cache@v2
-        with:  # ~/.func-e/versions is cached so that we only re-download once: for TestFuncEInstall
-          path: ~/.func-e/versions
-          key: test-${{ runner.os }}-envoy-${{ hashFiles('internal/version/last_known_envoy.txt') }}
-          restore-keys: test-${{ runner.os }}-envoy-
-
-      - name: "Verify clean check-in"
-        run: make check
-
-      - name: "Run unit tests"
-        run: make test
-
-      - name: "Build the `func-e` binary"
-        run: make bin
-
-      - name: "Run e2e tests using the `func-e` binary"
-        run: make e2e
-
-      - name: "Generate coverage report"  # only once (not per OS)
-        if: runner.os == 'Linux'
-        run: make coverage
-
-      - name: "Upload coverage report"  # only on master push and only once (not per OS)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && runner.os == 'Linux'
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        run: bash <(curl -s https://codecov.io/bash)
+      # Check that we can build a Windows installer. While this is cross-platforms, only the
+      # Windows runner will test it. This saves us from having to launch 2 more runners.
+      - name: "Build Windows Installer (MSI)"
+        run: make msi
