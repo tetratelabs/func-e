@@ -1,0 +1,35 @@
+{
+  "name": "func-e",
+  "short_name": "func-e",
+  "description": "func-e (pronounced funky) makes running Envoy® easy",
+  "start_url": "/",
+  "background_color": "#fff",
+  "theme_color": "#222",
+  "icons": [
+    {
+      "src": "icons/icon@16w.png",
+      "sizes": "16x16",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon@32w.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon@180w.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon@192w.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon@512w.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
