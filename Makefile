@@ -37,7 +37,7 @@ bin $(BIN): $(GORELEASER)
 site: $(HUGO)
 	@echo "--- site ---"
 	@git submodule update
-	@cd site && $(HUGO) server -D
+	@cd site && $(HUGO) server --disableFastRender -D
 
 ##@ Unit and End-to-End tests
 

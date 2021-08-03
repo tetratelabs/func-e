@@ -37,11 +37,11 @@ $(GORELEASER): $(BINGO_DIR)/goreleaser.mod
 	@echo "(re)installing $(GOBIN)/goreleaser-v0.173.2"
 	@cd $(BINGO_DIR) && $(GO) build -mod=mod -modfile=goreleaser.mod -o=$(GOBIN)/goreleaser-v0.173.2 "github.com/goreleaser/goreleaser"
 
-HUGO := $(GOBIN)/hugo-v0.85.0
+HUGO := $(GOBIN)/hugo-v0.86.1
 $(HUGO): $(BINGO_DIR)/hugo.mod
 	@# Install binary/ries using Go 1.14+ build command. This is using bwplotka/bingo-controlled, separate go module with pinned dependencies.
-	@echo "(re)installing $(GOBIN)/hugo-v0.85.0"
-	@cd $(BINGO_DIR) && $(GO) build -mod=mod -modfile=hugo.mod -o=$(GOBIN)/hugo-v0.85.0 -tags=extended "github.com/gohugoio/hugo"
+	@echo "(re)installing $(GOBIN)/hugo-v0.86.1"
+	@cd $(BINGO_DIR) && $(GO) build -mod=mod -modfile=hugo.mod -o=$(GOBIN)/hugo-v0.86.1 -tags=extended "github.com/gohugoio/hugo"
 
 LICENSER := $(GOBIN)/licenser-v0.6.0
 $(LICENSER): $(BINGO_DIR)/licenser.mod
