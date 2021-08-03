@@ -35,31 +35,65 @@ jobs:
     name: "Run unit tests (${{ matrix.os }})"
     runs-on: ${{ matrix.os }}
     timeout-minutes: 90  # instead of 360 by default
+
     strategy:
       fail-fast: false  # don't fail fast as sometimes failures are operating system specific
       matrix:
-        os: [ ubuntu-latest, macos-latest ]
+        os: [ubuntu-latest, macos-latest]
+        include:
+          - os: windows-latest
+            # Until GHA allows a cygwin runner, we have to override the default bash
+            shell: C:\tools\cygwin\bin\bash.exe --login -o errexit -o nounset -o pipefail -o igncr -i {0}
+
+    defaults:
+      run:
+        shell: ${{ matrix.shell || 'bash' }}
+
     steps:
+      # This sets up the enviornment we need for Windows
+      #  * install make and cygwin's bash which resolves paths correctly for .bingo/Variables.mk
+      #  * configure git so line-feeds don't trip lint https://github.com/actions/checkout/issues/135
+      #
+      # Note: We don't need to install anything here (ex wixtoolset):
+      # https://github.com/actions/virtual-environments/blob/main/images/win/Windows2019-Readme.md
+      - name: "Pre-configure (Windows)"
+        if: runner.os == 'Windows'
+        run: |
+          choco install -y --no-progress --source cygwin make bash
+          git config --global core.autocrlf input
+          git config --global core.eol lf
+        shell: bash
+
       - name: "Checkout"
         uses: actions/checkout@v2
+
+      # The current working directory is lost when we run cygwin-bash in Windows.
+      # This ensures each new `run:` has the correct directory, and that it is correctly translated.
+      - name: "Ensure working directory (Windows)"
+        if: runner.os == 'Windows'
+        run: printf 'cd %s' "$(cygpath '${{ github.workspace }}')" >> ~/.bashrc
 
       - name: "Install Go"
         uses: actions/setup-go@v2
         with:
           go-version: ${{ env.GO_VERSION }}
 
-      - name: "Cache dependencies"
+      - name: "Cache golang"
         uses: actions/cache@v2
         with:
-          # This combines unrelated caches because actions/cache@v2 doesn't support multiple
-          # instances, rather a combined path. https://github.com/actions/cache/issues/16
-          path: |  # ~/.func-e/versions is cached so that we only re-download once: for TestFuncEInstall
-            ~/.func-e/versions
+          path: |  # TODO: go build cache if we care, noting it is OS-specific
             ~/go/pkg/mod
             ~/go/bin/*-v*
           # '.bingo/*.sum' files generate inconsistently when building `~/go/bin/*-v*`. We key '.bingo/*.mod' instead.
-          key: test-${{ runner.os }}-${{ env.GO_VERSION }}-go-${{ hashFiles('internal/version/last_known_envoy.txt', 'go.sum', '.bingo/*.mod') }}
+          key: test-${{ runner.os }}-${{ env.GO_VERSION }}-go-${{ hashFiles('go.sum', '.bingo/*.mod') }}
           restore-keys: test-${{ runner.os }}-${{ env.GO_VERSION }}-go-
+
+      - name: "Cache Envoy binaries"
+        uses: actions/cache@v2
+        with:  # ~/.func-e/versions is cached so that we only re-download once: for TestFuncEInstall
+          path: ~/.func-e/versions
+          key: test-${{ runner.os }}-envoy-${{ hashFiles('internal/version/last_known_envoy.txt') }}
+          restore-keys: test-${{ runner.os }}-envoy-
 
       - name: "Verify clean check-in"
         run: make check
@@ -73,46 +107,12 @@ jobs:
       - name: "Run e2e tests using the `func-e` binary"
         run: make e2e
 
-      - name: "Generate coverage report" # only once (not per OS)
+      - name: "Generate coverage report"  # only once (not per OS)
         if: runner.os == 'Linux'
         run: make coverage
 
-      - name: "Upload coverage report" # only on master push and only once (not per OS)
+      - name: "Upload coverage report"  # only on master push and only once (not per OS)
         if: github.event_name == 'push' && github.ref == 'refs/heads/master' && runner.os == 'Linux'
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: bash <(curl -s https://codecov.io/bash)
-
-  test-windows:
-    name: "Run unit tests (windows-latest)"
-    runs-on: windows-latest
-    timeout-minutes: 90  # instead of 360 by default
-    steps:
-      - name: "Checkout"
-        uses: actions/checkout@v2
-
-      - name: "Install Go"
-        uses: actions/setup-go@v2
-        with:
-          go-version: ${{ env.GO_VERSION }}
-
-      - name: "Cache dependencies"
-        uses: actions/cache@v2
-        with:
-          # This combines unrelated caches because actions/cache@v2 doesn't support multiple
-          # instances, rather a combined path. https://github.com/actions/cache/issues/16
-          path: |  # ~\.func-e\versions is cached so that we only re-download once: for TestFuncEInstall
-            ~\.func-e\versions
-            ~\go\pkg\mod
-          key: test-windows-latest-${{ env.GO_VERSION }}-go-${{ hashFiles('internal/version/last_known_envoy.txt', 'go.sum') }}
-          restore-keys: test-windows-latest-${{ env.GO_VERSION }}-go-
-
-      - name: "Run unit tests"
-        run: go test . ./internal/...
-
-      - name: "Build the `func-e` binary"
-        run: go build --ldflags '-s -w' .
-
-      - name: "Run e2e tests using the `func-e` binary"
-        run: go test -parallel 1 -v -failfast ./e2e
-
