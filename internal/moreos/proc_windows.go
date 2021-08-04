@@ -69,7 +69,7 @@ func ensureProcessDone(p *os.Process) error {
 		}
 		return os.NewSyscallError("OpenProcess", e)
 	}
-	defer syscall.CloseHandle(h) //nolint
+	defer syscall.CloseHandle(h) //nolint:errcheck
 
 	// Try to wait for the process to close naturally first, using logic from exec_windows/findProcess()
 	// Difference here, is we are waiting 100ms not infinite. If there's a timeout, we kill the proc.
