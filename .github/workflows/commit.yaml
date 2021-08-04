@@ -50,7 +50,7 @@ jobs:
         shell: ${{ matrix.shell || 'bash' }}
 
     steps:
-      # This sets up the enviornment we need for Windows
+      # This sets up the environment we need for Windows, but isn't in the default image:
       #  * install make and cygwin's bash which resolves paths correctly for .bingo/Variables.mk
       #  * configure git so line-feeds don't trip lint https://github.com/actions/checkout/issues/135
       #
