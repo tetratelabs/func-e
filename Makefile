@@ -54,7 +54,7 @@ test:
 .PHONY: e2e
 e2e: $(BIN)
 	@echo "--- e2e ---"
-	@E2E_FUNC_E_PATH=$(PWD)/$(BIN) go test -parallel 1 -v -failfast ./e2e
+	@E2E_FUNC_E_PATH=$(BIN) go test -parallel 1 -v -failfast ./e2e
 
 ##@ Code quality and integrity
 

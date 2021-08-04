@@ -110,10 +110,11 @@ func mockEnvoyVersionsServer() (*httptest.Server, error) {
 func readFuncEBin() error {
 	path := os.Getenv(funcEPathEnvKey)
 	if path != "" {
-		if !filepath.IsAbs(path) {
-			return fmt.Errorf("%s is not an absolute path. Correct environment variable %s", path, funcEPathEnvKey)
+		p, err := abs(path)
+		if err != nil {
+			return err
 		}
-		path = filepath.Clean(path)
+		path = filepath.Clean(p)
 		stat, err := os.Stat(path)
 		if err != nil && os.IsNotExist(err) {
 			return fmt.Errorf("%s doesn't exist. Correct environment variable %s", path, funcEPathEnvKey)
@@ -144,6 +145,18 @@ func readFuncEBin() error {
 	}
 	fmt.Fprintln(os.Stderr, "using", funcEBin)
 	return nil
+}
+
+// abs is like filepath.Abs except the correct relative dir is '..'
+func abs(path string) (string, error) {
+	if !filepath.IsAbs(path) {
+		wd, err := os.Getwd()
+		if err != nil {
+			return "", fmt.Errorf("could not get current directory")
+		}
+		path = filepath.Join(wd, "..", path)
+	}
+	return path, nil
 }
 
 type funcE struct {
