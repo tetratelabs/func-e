@@ -79,6 +79,7 @@ jobs:
         if: runner.os == 'Windows'
         run: | # install, try something, uninstall
           msiexec /i dist\func-e_windows_amd64\func-e.msi /qn
+          refreshenv
           func-e -version
           msiexec /x dist\func-e_windows_amd64\func-e.msi /qn
           func-e -version && exit 1
