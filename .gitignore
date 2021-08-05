@@ -2,6 +2,9 @@
 /coverage.txt
 /dist/
 
+# intermediate files used to create Windows Installer (func-e.msi)
+func-e.wixobj
+
 # possible when testing .github/untar_func-e_release.sh
 func-e
 func-e.exe

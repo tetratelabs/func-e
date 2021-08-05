@@ -35,6 +35,8 @@ archives:
       - goos: windows
         format: zip
 
+# TODO: integrate MSI here after https://github.com/goreleaser/goreleaser/issues/1295
+
 release:
   # Create a draft release in GitHub. We can write release notes manually.
   draft: true
