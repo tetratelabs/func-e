@@ -76,6 +76,7 @@ jobs:
         run: make msi
 
       # This only checks the installer when built on Windows as it is simpler than switching OS.
+      # refreshenv is from choco, and lets you reload ENV variables (used here for PATH).
       - name: "Test Windows Installer (Windows)"
         if: runner.os == 'Windows'
         run: | # install, try something, uninstall
