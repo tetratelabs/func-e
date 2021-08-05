@@ -74,3 +74,14 @@ jobs:
       # Windows runner will test it. This saves us from having to launch 2 more runners.
       - name: "Build Windows Installer (MSI)"
         run: make msi
+
+      # This only checks the installer when built on Windows as it is simpler than switching OS.
+      - name: "Test Windows Installer (Windows)"
+        if: runner.os == 'Windows'
+        run: | # install, try something, uninstall
+          msiexec /i dist\func-e_windows_amd64\func-e.msi /qn
+          refreshenv
+          func-e -version
+          msiexec /x dist\func-e_windows_amd64\func-e.msi /qn
+          func-e -version && exit 1
+        shell: cmd
