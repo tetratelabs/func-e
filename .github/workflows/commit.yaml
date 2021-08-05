@@ -51,15 +51,16 @@ jobs:
 
     steps:
       # This sets up the environment we need for Windows, but isn't in the default image:
-      #  * install make and cygwin's bash which resolves paths correctly for .bingo/Variables.mk
+      #  * install cygwin's bash which resolves paths correctly for .bingo/Variables.mk
       #  * configure git so line-feeds don't trip lint https://github.com/actions/checkout/issues/135
       #
-      # Note: We don't need to install anything here (ex wixtoolset):
-      # https://github.com/actions/virtual-environments/blob/main/images/win/Windows2019-Readme.md
+      # Note: Windows has certain tools pre-installed:
+      #  * candle/light: https://github.com/actions/virtual-environments/blob/main/images/win/scripts/Installers/Install-Wix.ps1
+      #  * make: https://github.com/actions/virtual-environments/blob/main/images/win/scripts/Installers/Install-Mingw64.ps1
       - name: "Pre-configure (Windows)"
         if: runner.os == 'Windows'
         run: |
-          choco install -y --no-progress --source cygwin make bash
+          choco install -y --no-progress --source cygwin bash
           git config --global core.autocrlf input
           git config --global core.eol lf
         shell: bash
