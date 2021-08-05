@@ -49,11 +49,6 @@ jobs:
         shell: bash
 
     steps:
-      - name: "Configure consistent line feeds"
-        run: |  # Temporary to avoid lint errors on Windows until https://github.com/actions/checkout/issues/135
-          git config --global core.autocrlf input
-          git config --global core.eol lf
-
       - name: "Checkout"
         uses: actions/checkout@v2
 
