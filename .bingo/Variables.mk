@@ -2,9 +2,9 @@
 # All tools are designed to be build inside $GOBIN.
 BINGO_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
 GOPATH ?= $(shell go env GOPATH)
-# This handles translation for Windows, but only in cygwin or similar environments
-PATHSEP := $(if $(COMSPEC),;,:)
-GOBIN  ?= $(firstword $(subst $(PATHSEP), ,$(subst \,/,${GOPATH})))/bin
+# We assume GOPATH has a single entry and those who don't must override GOBIN
+# While substituting path separators is easy, element separators is tricky due to c:\ in Windows.
+GOBIN  ?= $(subst \,/,${GOPATH})/bin
 GO     ?= $(shell which go)
 
 # Below generated variables ensure that every time a tool under each variable is invoked, the correct version

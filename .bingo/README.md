@@ -13,3 +13,4 @@ reference as a variable like `$(GOIMPORTS)`.
 
 This differs slightly from the defaults of the Bingo project:
 * ENV variable support is not included as this project only uses `make`
+* you must export GOBIN if your GOPATH includes multiple entries (helps Windows)
