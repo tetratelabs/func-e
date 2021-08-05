@@ -39,40 +39,23 @@ jobs:
     strategy:
       fail-fast: false  # don't fail fast as sometimes failures are operating system specific
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        include:
-          - os: windows-latest
-            # Until GHA allows a cygwin runner, we have to override the default bash
-            shell: C:\tools\cygwin\bin\bash.exe --login -o errexit -o nounset -o pipefail -o igncr -i {0}
+        # Note: Windows has certain tools pre-installed:
+        #  * candle/light: https://github.com/actions/virtual-environments/blob/main/images/win/scripts/Installers/Install-Wix.ps1
+        #  * make: https://github.com/actions/virtual-environments/blob/main/images/win/scripts/Installers/Install-Mingw64.ps1
+        os: [ubuntu-latest, macos-latest, windows-latest]
 
     defaults:
-      run:
-        shell: ${{ matrix.shell || 'bash' }}
+      run:  # use bash for all operating systems unless overridden
+        shell: bash
 
     steps:
-      # This sets up the environment we need for Windows, but isn't in the default image:
-      #  * install cygwin's bash which resolves paths correctly for .bingo/Variables.mk
-      #  * configure git so line-feeds don't trip lint https://github.com/actions/checkout/issues/135
-      #
-      # Note: Windows has certain tools pre-installed:
-      #  * candle/light: https://github.com/actions/virtual-environments/blob/main/images/win/scripts/Installers/Install-Wix.ps1
-      #  * make: https://github.com/actions/virtual-environments/blob/main/images/win/scripts/Installers/Install-Mingw64.ps1
-      - name: "Pre-configure (Windows)"
-        if: runner.os == 'Windows'
-        run: |
-          choco install -y --no-progress --source cygwin bash
+      - name: "Configure consistent line feeds"
+        run: |  # Temporary to avoid lint errors on Windows until https://github.com/actions/checkout/issues/135
           git config --global core.autocrlf input
           git config --global core.eol lf
-        shell: bash
 
       - name: "Checkout"
         uses: actions/checkout@v2
-
-      # The current working directory is lost when we run cygwin-bash in Windows.
-      # This ensures each new `run:` has the correct directory, and that it is correctly translated.
-      - name: "Ensure working directory (Windows)"
-        if: runner.os == 'Windows'
-        run: printf 'cd %s' "$(cygpath '${{ github.workspace }}')" >> ~/.bashrc
 
       - name: "Install Go"
         uses: actions/setup-go@v2
