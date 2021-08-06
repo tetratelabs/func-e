@@ -32,15 +32,25 @@ jobs:
         run: make release
 
   e2e:
+    needs: func-e
     name: Run e2e tests (${{ matrix.os }})
-    needs:
-      - func-e
     runs-on: ${{ matrix.os }}
     timeout-minutes: 90  # instead of 360 by default
     strategy:
-      fail-fast: false  # don't fail fast as sometimes failures are operating system specific
       matrix:
-        os: [ ubuntu-latest, macos-latest ]
+        include:
+          - os: ubuntu-latest
+            pattern: '*linux_amd64.tar.gz'
+          - os: macos-latest
+            pattern: '*darwin_amd64.tar.gz'
+          - os: windows-latest
+            pattern: '*windows_amd64.zip'
+            unzip: unzip -o *.zip && rm *.zip
+
+    defaults:
+      run:  # use bash for all operating systems unless overridden
+        shell: bash
+
     steps:
       - name: "Checkout"
         uses: actions/checkout@v2
@@ -51,13 +61,20 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
 
       - name: "Extract `func-e` binary from GitHub release assets"
-        run: .github/untar_func-e_release.sh ${GITHUB_REF#refs/*/}
+        run: |
+          gh release download "${GITHUB_REF#refs/tags/}" -p '${{ matrix.pattern }}'
+          ${{ matrix.unzip || tar -xzf *.tar.gz && rm *.tar.gz }}
         env:  # authenticate as the release is a draft
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: "Run e2e tests using released `func-e` binary"
         run: go test -parallel 1 -v -failfast ./e2e
 
+  homebrew:
+    needs: e2e
+    name: Bump homebrew-core formula
+    runs-on: ubuntu-latest
+    steps:
       - name: Bump homebrew-core formula
         uses: mislav/bump-homebrew-formula-action@v1
         with:
