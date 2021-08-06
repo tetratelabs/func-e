@@ -26,6 +26,10 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
+      # ubuntu is missing wixl https://github.com/actions/virtual-environments/issues/3857
+      - name: "Install GNOME msitools (wixl)"
+        run: sudo apt update -qq && sudo apt install -qq -y wixl
+
       - name: "Run GoReleaser"
         run: make release
         env:
