@@ -20,4 +20,9 @@ e2e/*.yaml
 
 netlify.toml
 site/
-packaging/
+
+*.png
+*.ico
+
+# until https://github.com/liamawhite/licenser/issues/13
+*.wxs
