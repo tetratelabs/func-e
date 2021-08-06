@@ -77,7 +77,7 @@ jobs:
         id: download  # allows variables like ${{ steps.download.outputs.X }}
         run: |
           gh release download "${GITHUB_REF#refs/tags/}" -p '${{ matrix.pattern }}'
-          ${{ matrix.unzip || tar -xzf *.tar.gz && rm *.tar.gz }}
+          ${{ matrix.unzip || 'tar -xzf *.tar.gz && rm *.tar.gz' }}
         env:  # authenticate as the release is a draft
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
