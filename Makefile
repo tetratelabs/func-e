@@ -37,7 +37,7 @@ bin $(BIN): $(GORELEASER)
 WIN_BIN := dist/func-e_windows_amd64
 WIN_BIN_EXE := $(WIN_BIN)/func-e.exe
 # Default to a dummy version, but in a release this should be overridden
-MSI_VERSION := 0.0.1
+MSI_VERSION ?= 0.0.1
 
 $(WIN_BIN_EXE): $(GORELEASER)
 	@echo "--- win-bin ---"
