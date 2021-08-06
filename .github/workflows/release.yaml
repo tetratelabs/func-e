@@ -27,9 +27,20 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
 
       - name: "Run GoReleaser"
+        run: make release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: make release
+
+      - name: "Add Windows installer (func-e.msi) to release"
+        run: |  # manually until https://github.com/goreleaser/goreleaser/issues/1295
+          tag="${GITHUB_REF#refs/tags/}"
+          version=${tag#v}
+          VERSION=${version} make msi
+          msi=dist/func-e_${version}_windows_amd64.msi
+          mv dist/func-e_windows_amd64/func-e.msi ${msi}
+          gh release upload "${tag}" "${msi}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   e2e:
     needs: func-e
@@ -44,8 +55,10 @@ jobs:
           - os: macos-latest
             pattern: '*darwin_amd64.tar.gz'
           - os: windows-latest
-            pattern: '*windows_amd64.zip'
-            unzip: unzip -o *.zip && rm *.zip
+            pattern: '*windows_amd64.*'
+            unzip: | # the above downloads both the zip and msi, stash the msi name
+              printf "::set-output name=msi::%s\n" *.msi
+              unzip -o *.zip && rm *.zip
 
     defaults:
       run:  # use bash for all operating systems unless overridden
@@ -61,6 +74,7 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
 
       - name: "Extract `func-e` binary from GitHub release assets"
+        id: download  # allows variables like ${{ steps.download.outputs.X }}
         run: |
           gh release download "${GITHUB_REF#refs/tags/}" -p '${{ matrix.pattern }}'
           ${{ matrix.unzip || tar -xzf *.tar.gz && rm *.tar.gz }}
@@ -69,6 +83,21 @@ jobs:
 
       - name: "Run e2e tests using released `func-e` binary"
         run: go test -parallel 1 -v -failfast ./e2e
+
+      # This only checks the installer when built on Windows as it is simpler than switching OS.
+      # refreshenv is from choco, and lets you reload ENV variables (used here for PATH).
+      - name: "Test Windows Installer (Windows)"
+        if: runner.os == 'Windows'
+        run: | # install, try something, uninstall
+          msiexec /i %MSI_FILE% /qn
+          refreshenv
+          func-e -version
+          msiexec /x %MSI_FILE% /qn
+          func-e -version && exit 1
+          del %MSI_FILE%
+        shell: cmd
+        env:  # use the stashed msi name instead of parsing in cmd
+          MSI_FILE: ${{ steps.download.outputs.msi }}
 
   homebrew:
     needs: e2e
