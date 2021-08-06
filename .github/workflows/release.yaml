@@ -39,7 +39,7 @@ jobs:
         run: |  # manually until https://github.com/goreleaser/goreleaser/issues/1295
           tag="${GITHUB_REF#refs/tags/}"
           version=${tag#v}
-          VERSION=${version} make msi
+          MSI_VERSION=${version} make msi
           msi=dist/func-e_${version}_windows_amd64.msi
           mv dist/func-e_windows_amd64/func-e.msi ${msi}
           gh release upload "${tag}" "${msi}"
