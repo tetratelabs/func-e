@@ -26,6 +26,10 @@ on:
   # See https://docs.github.com/en/free-pro-team@latest/actions/managing-workflow-runs/manually-running-a-workflow
   workflow_dispatch:
 
+defaults:
+  run:  # use bash for all operating systems unless overridden
+    shell: bash
+
 jobs:
   msi:
     name: "Test Windows Installer build (${{ matrix.os }})"
@@ -43,10 +47,6 @@ jobs:
           # wixtoolset isn't in the path https://github.com/wixtoolset/wix3/blob/develop/src/Setup/CoreMsi/Toolset.wxs#L87
           - os: windows-latest
             setup: echo "$WIX\\bin" >> $GITHUB_PATH
-
-    defaults:
-      run:  # use bash for all operating systems unless overridden
-        shell: bash
 
     steps:
       - name: "Setup msitools/wixtoolset"

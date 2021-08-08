@@ -36,6 +36,10 @@ on:
   # See https://docs.github.com/en/free-pro-team@latest/actions/managing-workflow-runs/manually-running-a-workflow
   workflow_dispatch:
 
+defaults:
+  run:  # use bash for all operating systems unless overridden
+    shell: bash
+
 jobs:
   test:
     name: "Run unit tests (${{ matrix.os }})"
@@ -45,9 +49,6 @@ jobs:
       fail-fast: false  # don't fail fast as sometimes failures are operating system specific
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-    defaults:
-      run:  # use bash for all operating systems unless overridden
-        shell: bash
 
     steps:
       - name: "Checkout"

@@ -11,6 +11,10 @@ on:
 env:  # As of 2021-08-05 images come with go 1.15 https://github.com/actions/virtual-environments/tree/main/images
   GO_VERSION: "1.16.6"
 
+defaults:
+  run:  # use bash for all operating systems unless overridden
+    shell: bash
+
 jobs:
   func-e:
     name: "Release `func-e` CLI"
@@ -35,7 +39,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: "Add Windows installer (func-e.msi) to release"
+      - name: "Add Windows installer (func-e.msi) to the draft release"
         run: |  # manually until https://github.com/goreleaser/goreleaser/issues/1295
           tag="${GITHUB_REF#refs/tags/}"
           version=${tag#v}
@@ -64,10 +68,6 @@ jobs:
               printf "::set-output name=msi::%s\n" *.msi
               unzip -o *.zip && rm *.zip
 
-    defaults:
-      run:  # use bash for all operating systems unless overridden
-        shell: bash
-
     steps:
       - name: "Checkout"
         uses: actions/checkout@v2
@@ -85,7 +85,7 @@ jobs:
         env:  # authenticate as the release is a draft
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: "Run e2e tests using released `func-e` binary"
+      - name: "Run e2e tests using draft `func-e` binary"
         run: go test -parallel 1 -v -failfast ./e2e
 
       # This only checks the installer when built on Windows as it is simpler than switching OS.
@@ -103,14 +103,3 @@ jobs:
         env:  # use the stashed msi name instead of parsing in cmd
           MSI_FILE: ${{ steps.download.outputs.msi }}
 
-  homebrew:
-    needs: e2e
-    name: Bump homebrew-core formula
-    runs-on: ubuntu-latest
-    steps:
-      - name: Bump homebrew-core formula
-        uses: mislav/bump-homebrew-formula-action@v1
-        with:
-          formula-name: func-e
-        env:  # same perms as `brew bump-formula-pr func-e --version 0.6.0`
-          COMMITTER_TOKEN: ${{ secrets.HOMEBREW_GITHUB_API_TOKEN }}
