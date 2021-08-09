@@ -1,0 +1,43 @@
+# `name` value will appear "as is" in the badge.
+# See https://docs.github.com/en/actions/configuring-and-managing-workflows/configuring-a-workflow#adding-a-workflow-status-badge-to-your-repository
+# yamllint --format github .github/workflows/bump.yaml
+---
+name: bump
+
+# This workflow is for external packages, and is only triggered once ("released").
+# This centralizes workflows that are hard to undo, such as reversing PRs that update packages.
+#
+# One trade-off of deferring to "released" is that release notes will refer to packages not yet
+# available. For example, homebrew raises a PR that needs to be merged, usually a day later.
+#
+# See https://docs.github.com/en/actions/reference/events-that-trigger-workflows?query=release+released+event#release
+# See https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#release
+on:
+  release:
+    types:  # This triggers when a release is published, or a pre-release is changed to a release
+      - released
+
+# These pull requests create pull requests against a remote repository. This implies the following:
+#  1. Create TOKEN with "public_repo" scope https://github.com/settings/tokens
+#  2. Assign that as PACKAGE_BUMP_TOKEN https://github.com/organizations/tetratelabs/settings/secrets/actions/new
+#
+# To ensure PRs appear non-personal, use an org-specific name and the noreply email of tetratelabs
+# Ex. curl -s https://api.github.com/users/tetratelabs|jq '.id, .login'
+env:
+  GIT_USER_NAME: Tetrate Labs CI
+  GIT_USER_EMAIL: 38483186+tetratelabs@users.noreply.github.com
+
+jobs:
+  homebrew:
+    name: "Homebrew/homebrew-core"
+    runs-on: ubuntu-latest
+    steps:
+      # Shell, not bump-homebrew-formula-action, as this shows what's going on.
+      - name: "Bump Formula PR"
+        run: |
+          git config --global user.name "${GIT_USER_NAME}"
+          git config --global user.email "${GIT_USER_EMAIL}"
+          version="${GITHUB_REF#refs/tags/v}"
+          brew bump-formula-pr --no-browse --no-audit --version "${version}" func-e
+        env:  # See env section for notes on PACKAGE_BUMP_TOKEN
+          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.PACKAGE_BUMP_TOKEN }}
