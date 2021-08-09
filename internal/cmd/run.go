@@ -34,7 +34,6 @@ import (
 
 // NewRunCmd create a command responsible for starting an Envoy process
 func NewRunCmd(o *globals.GlobalOpts) *cli.Command {
-	var envoyVersion version.Version
 	runDirectoryExpression := moreos.ReplacePathSeparator("$FUNC_E_HOME/runs/$epochtime")
 	cmd := &cli.Command{
 		Name:            "run",
@@ -55,25 +54,10 @@ Envoy's process ID and console output write to "envoy.pid", stdout.log" and
 When interrupted, shutdown hooks write files including network and process
 state. On exit, these archive into ` + fmt.Sprintf("`%s.tar.gz`", runDirectoryExpression)),
 		Before: func(c *cli.Context) error {
-			if err := os.MkdirAll(o.HomeDir, 0750); err != nil {
-				return NewValidationError(err.Error())
-			}
-
-			if o.EnvoyVersion == "" { // not overridden for tests
-				if err := setHomeEnvoyVersion(c.Context, o); err != nil {
-					return err
-				}
-				v, _, err := envoy.CurrentVersion(o.HomeDir)
-				if err != nil {
-					return NewValidationError(err.Error())
-				}
-				o.EnvoyVersion = v
-			}
-			envoyVersion = o.EnvoyVersion
-			return nil
+			return ensureEnvoyVersion(c, o)
 		},
 		Action: func(c *cli.Context) error {
-			if err := initializeRunOpts(c.Context, o, envoyVersion); err != nil {
+			if err := initializeRunOpts(c.Context, o, o.EnvoyVersion); err != nil {
 				return err
 			}
 			r := envoy.NewRuntime(&o.RunOpts)
@@ -142,11 +126,29 @@ func setHomeEnvoyVersion(ctx context.Context, o *globals.GlobalOpts) error {
 	}
 
 	// First time install: look up the latest version, which may be newer than version.LastKnownEnvoy!
-	moreos.Fprintf(o.Out, "looking up latest version\n") //nolint
+	o.Logf("looking up the latest Envoy version\n") //nolint
 	m, err := envoy.FuncEVersions(ctx, o.EnvoyVersionsURL, o.Platform, o.Version)
 	if err != nil {
 		return NewValidationError(`couldn't read latest version from %s: %s`, o.EnvoyVersionsURL, err)
 	}
 	// Persist it for the next invocation
 	return os.WriteFile(homeVersionFile, []byte(m.LatestVersion), 0600)
+}
+
+func ensureEnvoyVersion(c *cli.Context, o *globals.GlobalOpts) error {
+	if err := os.MkdirAll(o.HomeDir, 0750); err != nil {
+		return NewValidationError(err.Error())
+	}
+
+	if o.EnvoyVersion == "" { // not overridden for tests
+		if err := setHomeEnvoyVersion(c.Context, o); err != nil {
+			return err
+		}
+		v, _, err := envoy.CurrentVersion(o.HomeDir)
+		if err != nil {
+			return NewValidationError(err.Error())
+		}
+		o.EnvoyVersion = v
+	}
+	return nil
 }

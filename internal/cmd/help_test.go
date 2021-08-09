@@ -29,7 +29,7 @@ import (
 )
 
 func TestFuncEHelp(t *testing.T) {
-	for _, command := range []string{"", "use", "versions", "run"} {
+	for _, command := range []string{"", "use", "versions", "run", "which"} {
 		command := command
 		t.Run(command, func(t *testing.T) {
 			c, stdout, _ := newApp(&globals.GlobalOpts{Version: "1.0", EnvoyVersion: "1.99.0"})

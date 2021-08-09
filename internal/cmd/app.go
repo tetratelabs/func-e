@@ -99,6 +99,7 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 		NewRunCmd(o),
 		NewVersionsCmd(o),
 		NewUseCmd(o),
+		NewWhichCmd(o),
 	}
 	return app
 }

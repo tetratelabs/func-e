@@ -25,6 +25,7 @@ COMMANDS:
    run       Run Envoy with the given [arguments...] until interrupted
    versions  List Envoy versions
    use       Sets the current [version] used by the "run" command
+   which     Prints the path to the Envoy binary used by the "run" command
 
 GLOBAL OPTIONS:
    --home-dir value            func-e home directory (location of installed versions and run archives) (default: ${HOME}/.func-e) [$FUNC_E_HOME]

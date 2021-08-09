@@ -22,6 +22,7 @@ This value must be constant within a `$FUNC_E_HOME`.
 | run | Run Envoy with the given [arguments...] until interrupted |
 | versions | List Envoy versions |
 | use | Sets the current [version] used by the "run" command |
+| which | Prints the path to the Envoy binary used by the "run" command |
 | --version, -v | Print the version of func-e |
 
 # Environment Variables
