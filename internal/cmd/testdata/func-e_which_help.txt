@@ -1,0 +1,8 @@
+NAME:
+   func-e which - Prints the path to the Envoy binary used by the "run" command
+
+USAGE:
+   func-e which [arguments...]
+
+DESCRIPTION:
+   The binary is downloaded as necessary. The version is controllable by the "use" command

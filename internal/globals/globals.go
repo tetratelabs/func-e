@@ -57,10 +57,20 @@ type GlobalOpts struct {
 	EnvoyVersion version.Version
 	// HomeDir is an absolute path which most importantly contains "versions" installed from EnvoyVersionsURL. Defaults to DefaultHomeDir
 	HomeDir string
+	// Quiet means don't Logf to Out
+	Quiet bool
 	// Out is where status messages are written. Defaults to os.Stdout
 	Out io.Writer
 	// The platform to target for the Envoy install.
 	Platform version.Platform
+}
+
+// Logf is used for shared functions that log conditionally on GlobalOpts.Quiet
+func (o *GlobalOpts) Logf(format string, a ...interface{}) {
+	if o.Quiet { // TODO: we may want to do scoped logging via a Context property, if this becomes common.
+		return
+	}
+	moreos.Fprintf(o.Out, format, a...) //nolint
 }
 
 const (

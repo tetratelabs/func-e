@@ -112,7 +112,7 @@ func TestFuncERun_CreatesHomeVersionFile(t *testing.T) {
 	runWithoutConfig(t, c)
 
 	// We logged the implicit lookup
-	require.Contains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up latest version"))
+	require.Contains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up the latest Envoy version"))
 	require.FileExists(t, filepath.Join(o.HomeDir, "version"))
 	require.Equal(t, version.LastKnownEnvoy, o.EnvoyVersion)
 }
@@ -169,6 +169,6 @@ func TestFuncERun_ErrsWhenVersionsServerDown(t *testing.T) {
 	c, _, _ := newApp(o)
 	err := c.Run([]string{"func-e", "run"})
 
-	require.Contains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up latest version"))
+	require.Contains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up the latest Envoy version"))
 	require.Contains(t, err.Error(), fmt.Sprintf(`couldn't read latest version from %s`, o.EnvoyVersionsURL))
 }
