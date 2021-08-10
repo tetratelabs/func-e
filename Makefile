@@ -51,14 +51,14 @@ msi: $(WIN_BIN_EXE)
 ifeq ($(OS),Windows_NT)  # Windows 10 etc use https://wixtoolset.org
 	@candle -nologo -arch x64 -dVersion=$(MSI_VERSION)  \
 	-dBin=$(WIN_BIN)/func-e.exe \
-	packaging/func-e.wxs
+	packaging/msi/func-e.wxs
 	@light -nologo func-e.wixobj -o $(WIN_BIN)/func-e.msi -spdb
 	@rm func-e.wixobj
 else  # use https://wiki.gnome.org/msitools
 	@wixl -a x64 -D Version=$(MSI_VERSION) \
 	-D Bin=$(WIN_BIN)/func-e.exe \
 	-o $(WIN_BIN)/func-e.msi \
-	packaging/func-e.wxs
+	packaging/msi/func-e.wxs
 endif
 
 ##@ Test website

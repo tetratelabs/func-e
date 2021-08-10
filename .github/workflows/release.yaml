@@ -40,6 +40,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: "Add Windows installer (func-e.msi) to the draft release"
+        # TODO: append the sha256sum of the msi to the checksums.txt and re-upload
         run: |  # manually until https://github.com/goreleaser/goreleaser/issues/1295
           tag="${GITHUB_REF#refs/tags/}"
           version=${tag#v}
@@ -92,14 +93,8 @@ jobs:
       # refreshenv is from choco, and lets you reload ENV variables (used here for PATH).
       - name: "Test Windows Installer (Windows)"
         if: runner.os == 'Windows'
-        run: | # install, try something, uninstall
-          msiexec /i %MSI_FILE% /qn
-          refreshenv
-          func-e -version
-          msiexec /x %MSI_FILE% /qn
-          func-e -version && exit 1
-          del %MSI_FILE%
+        run: call packaging\msi\verify_msi.cmd
         shell: cmd
-        env:  # use the stashed msi name instead of parsing in cmd
+        env:  # use the stashed msi name instead of parsing it
           MSI_FILE: ${{ steps.download.outputs.msi }}
 

@@ -12,13 +12,13 @@ on:
     tags: ''
     branches: master
     paths:
-      - 'packaging/func-e.wxs'
+      - 'packaging/msi/*'
       - 'packaging/icon@48w.ico'
       - '.github/workflows/msi.yaml'
   pull_request:  # We also run tests on pull requests targeted at the master branch
     branches: master
     paths:
-      - 'packaging/func-e.wxs'
+      - 'packaging/msi/*'
       - 'packaging/icon@48w.ico'
       - '.github/workflows/msi.yaml'
   # workflow_dispatch will let us manually trigger the workflow from GitHub actions dashboard.
@@ -40,7 +40,7 @@ jobs:
         include:
           # ubuntu is missing wixl https://github.com/actions/virtual-environments/issues/3857
           - os: ubuntu-latest
-            setup: sudo apt update -qq && sudo apt install -qq -y wixl
+            setup: sudo apt update -qq && sudo apt install -qq -y wixl msitools
           # macos is missing wixl https://github.com/actions/virtual-environments/issues/3857
           - os: macos-latest
             setup: brew install -q msitools
@@ -70,19 +70,32 @@ jobs:
           key: test-${{ runner.os }}-${{ env.GO_VERSION }}-go-${{ hashFiles('go.sum', '.bingo/*.mod') }}
           restore-keys: test-${{ runner.os }}-${{ env.GO_VERSION }}-go-
 
-      # Check that we can build a Windows installer. While this is cross-platforms, only the
-      # Windows runner will test it. This saves us from having to launch 2 more runners.
-      - name: "Build Windows Installer (MSI)"
-        run: make msi
+      - name: "Build Windows Installer (MSI) and generate winget manifest"
+        # This intentionally defers winget manifest through GH env.
+        # bump.yaml will check out winget-pkgs repository and write the file there, no longer
+        # having access to the original files.
+        #
+        # Note: generation of winget manifest is cross-platform, but validation requires winget.
+        run: |
+          make msi
+          winget_manifest=$(./packaging/msi/winget_manifest.sh)
+          echo "WINGET_MANIFEST<<EOF" >> $GITHUB_ENV
+          echo "$winget_manifest" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
       # This only checks the installer when built on Windows as it is simpler than switching OS.
       # refreshenv is from choco, and lets you reload ENV variables (used here for PATH).
       - name: "Test Windows Installer (Windows)"
         if: runner.os == 'Windows'
-        run: | # install, try something, uninstall
-          msiexec /i dist\func-e_windows_amd64\func-e.msi /qn
-          refreshenv
-          func-e -version
-          msiexec /x dist\func-e_windows_amd64\func-e.msi /qn
-          func-e -version && exit 1
+        run: call packaging\msi\verify_msi.cmd
         shell: cmd
+
+      # This tests writing the manifest via GHA env works. Validation requires too much setup.
+      # See https://github.com/microsoft/winget-cli/issues/754#issuecomment-896475895
+      - name: "Write winget manifest"
+        run: |
+          manifest_path=./Tetrate.func-e.yaml
+          cat > "${manifest_path}" <<'EOF'
+          ${{ env.WINGET_MANIFEST }}
+          EOF
+          yamllint -sd '{extends: default, rules: {line-length: disable}}' Tetrate.func-e.yaml
