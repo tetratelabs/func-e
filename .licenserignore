@@ -26,3 +26,6 @@ site/
 
 # until https://github.com/liamawhite/licenser/issues/13
 *.wxs
+# https://github.com/liamawhite/licenser/issues/14
+*.ps1
+*.cmd

@@ -18,7 +18,7 @@ on:
       - 'site/**'
       - 'netlify.toml'
       - '.travis.yml'
-      - 'packaging/func-e.wxs'
+      - 'packaging/msi/*'
       - 'packaging/icon@48w.ico'
       - '.github/workflows/msi.yaml'
   pull_request:  # We also run tests on pull requests targeted at the master branch.
@@ -28,7 +28,7 @@ on:
       - 'site/**'
       - 'netlify.toml'
       - '.travis.yml'
-      - 'packaging/func-e.wxs'
+      - 'packaging/msi/*'
       - 'packaging/icon@48w.ico'
       - '.github/workflows/msi.yaml'
   # workflow_dispatch will let us manually trigger the workflow from GitHub actions dashboard.
