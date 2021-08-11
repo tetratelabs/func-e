@@ -97,3 +97,48 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: bash <(curl -s https://codecov.io/bash)
+
+  # Github Action Runners don't support all operating systems we may need to test. Below ensures
+  # we run on the intended minimum platforms. Note: we also use Travis for arm64+ubuntu.
+  #
+  # Use only images from internal-images.yaml to avoid Docker rate limits and slow install steps.
+  test-e2e:
+    name: "Run e2e tests via containers (${{ matrix.os }})"
+    runs-on: ubuntu-latest
+    # "When you only specify a container image, you can omit the image keyword."
+    # See https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idcontainer
+    container: ${{ matrix.container }}
+    timeout-minutes: 90  # instead of 360 by default
+    strategy:
+      fail-fast: false  # don't fail fast as sometimes failures are operating system specific
+      matrix:
+        container: ["ghcr.io/tetratelabs/func-e-internal:centos8"]
+
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v2
+
+      - name: "Install Go"
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: "Cache golang"
+        uses: actions/cache@v2
+        with:
+          path: |  # TODO: go build cache if we care, noting it is OS-specific
+            ~/go/pkg/mod
+            ~/go/bin/*-v*
+          # '.bingo/*.sum' files generate inconsistently when building `~/go/bin/*-v*`. We key '.bingo/*.mod' instead.
+          key: test-${{ runner.os }}-${{ env.GO_VERSION }}-go-${{ hashFiles('go.sum', '.bingo/*.mod') }}
+          restore-keys: test-${{ runner.os }}-${{ env.GO_VERSION }}-go-
+
+      - name: "Cache Envoy binaries"
+        uses: actions/cache@v2
+        with:  # ~/.func-e/versions is cached so that we only re-download once: for TestFuncEInstall
+          path: ~/.func-e/versions
+          key: test-${{ runner.os }}-envoy-${{ hashFiles('internal/version/last_known_envoy.txt') }}
+          restore-keys: test-${{ runner.os }}-envoy-
+
+      - name: "Run e2e tests using the `func-e` binary"
+        run: make e2e

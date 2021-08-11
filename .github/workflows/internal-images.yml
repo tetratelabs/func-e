@@ -1,0 +1,52 @@
+# yamllint --format github .github/workflows/internal-images.yml
+---
+name: internal-images
+
+# Refresh the tags once a day
+on:
+  schedule:
+    - cron: "23 3 * * *"
+  workflow_dispatch:  # Allows manual refresh
+
+# This builds images and pushes them to ghcr.io/tetratelabs/func-e-internal:$tag
+# Using these in tests and as a parent (FROM) avoids docker.io rate-limits particularly on pull requests.
+#
+# To troubleshoot, run locally with docker and install go directly. Ex:
+# ```bash
+# $ docker run -ti -v $PWD:/func-e --rm centos:8
+# [root@d37da4601545 /]# cd /func-e
+# [root@d37da4601545 func-e]# eval "$(curl -sL https://raw.githubusercontent.com/travis-ci/gimme/master/gimme | GIMME_GO_VERSION=1.16.6 bash)"
+# now execute your setup commands!
+# ```
+jobs:
+  copy-images:
+    strategy:
+      matrix:
+        # Be precise in tag versions to improve reproducibility
+        include:
+          - dockerfile: |
+              FROM centos:8
+              RUN yum install -y --quiet make which git gcc && yum clean all
+            target_tag: centos8
+    runs-on: ubuntu-latest
+    steps:
+      # Same as doing this locally: echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_TOKEN}" --password-stdin
+      - name: Login into GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          # GHCR_TOKEN=<hex token value>
+          #   - pushes Docker images to ghcr.io
+          #   - create via https://github.com/settings/tokens
+          #   - assign via https://github.com/organizations/tetratelabs/settings/secrets/actions
+          #   - needs repo:status, public_repo, write:packages, delete:packages
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Build and push
+        run: |  # This will only push a single architecture, which is fine as we currently only support amd64
+          cat > Dockerfile <<'EOF'
+          ${{ matrix.dockerfile }}
+          EOF
+          docker build -t ghcr.io/tetratelabs/func-e-internal:${{ matrix.target_tag }} .
+          docker push ghcr.io/tetratelabs/func-e-internal:${{ matrix.target_tag }}

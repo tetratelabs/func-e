@@ -7,7 +7,7 @@ virt: lxd  # faster starting
 language: go
 
 go:
-  - 1.16.5
+  - 1.16.6
 
 cache:
   directories: # ~/.func-e/versions is cached so that we only re-download once: for TestFuncEInstall
@@ -22,7 +22,7 @@ if: (type = push AND branch = master) OR type = pull_request
 
 before_install: |  # Prevent test build of a documentation or GitHub Actions only change.
   if [ -n "${TRAVIS_COMMIT_RANGE}" ] && ! git diff --name-only "${TRAVIS_COMMIT_RANGE}" -- \
-    grep -qvE '(\.md)$|'(\.wks)$|^(site\/)|^(netlify.toml)|^(.github\/)'; then
+    grep -qvE '(\.md)$|^(packaging\/)$|^(site\/)|^(netlify.toml)|^(.github\/)'; then
     echo "Stopping job as changes are tested with GitHub Actions"
     travis_terminate 0
   fi
