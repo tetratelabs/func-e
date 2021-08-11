@@ -32,11 +32,8 @@ CYGWIN* | MSYS* | MINGW*)
   ;;
 *) # notably, this gets rid of the Windows carriage return (\r), which otherwise would mess up the heredoc.
   msiinfo -h export >/dev/null
-  sha256sum="sha256sum -z"
-  if [ "$(uname -s)" = "Darwin" ]; then
-    sha256sum="shasum -a 256"
-  fi
-  installer_sha256=$(${sha256sum} "${msi_file}" | awk '{print toupper($1)}' 2>&-)
+  # shasum -a 256, not sha256sum as https://github.com/actions/virtual-environments/issues/90
+  installer_sha256=$(shasum -a 256 "${msi_file}" | awk '{print toupper($1)}' 2>&-)
   product_code=$(msiinfo export "${msi_file}" Property | sed -n '/ProductCode/s/\r$//p' | cut -f2)
   ;;
 esac
