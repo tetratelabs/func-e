@@ -70,18 +70,8 @@ jobs:
           key: test-${{ runner.os }}-${{ env.GO_VERSION }}-go-${{ hashFiles('go.sum', '.bingo/*.mod') }}
           restore-keys: test-${{ runner.os }}-${{ env.GO_VERSION }}-go-
 
-      - name: "Build Windows Installer (MSI) and generate winget manifest"
-        # This intentionally defers winget manifest through GH env.
-        # bump.yaml will check out winget-pkgs repository and write the file there, no longer
-        # having access to the original files.
-        #
-        # Note: generation of winget manifest is cross-platform, but validation requires winget.
-        run: |
-          make msi
-          winget_manifest=$(./packaging/msi/winget_manifest.sh)
-          echo "WINGET_MANIFEST<<EOF" >> $GITHUB_ENV
-          echo "$winget_manifest" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+      - name: "Build Windows Installer (MSI)"
+        run: make msi
 
       # This only checks the installer when built on Windows as it is simpler than switching OS.
       # refreshenv is from choco, and lets you reload ENV variables (used here for PATH).
@@ -90,12 +80,9 @@ jobs:
         run: call packaging\msi\verify_msi.cmd
         shell: cmd
 
-      # This tests writing the manifest via GHA env works. Validation requires too much setup.
+      # This tests the manifest via yamllint because validation via winget requires too much setup.
       # See https://github.com/microsoft/winget-cli/issues/754#issuecomment-896475895
-      - name: "Write winget manifest"
+      - name: "Test winget manifest generation"
         run: |
-          manifest_path=./Tetrate.func-e.yaml
-          cat > "${manifest_path}" <<'EOF'
-          ${{ env.WINGET_MANIFEST }}
-          EOF
+          ./packaging/msi/winget_manifest.sh > Tetrate.func-e.yaml
           yamllint -sd '{extends: default, rules: {line-length: disable}}' Tetrate.func-e.yaml
