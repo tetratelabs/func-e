@@ -103,7 +103,7 @@ jobs:
   #
   # Use only images from internal-images.yaml to avoid Docker rate limits and slow install steps.
   test-e2e:
-    name: "Run e2e tests via containers (${{ matrix.os }})"
+    name: "Run e2e tests via containers (${{ matrix.container }})"
     runs-on: ubuntu-latest
     # "When you only specify a container image, you can omit the image keyword."
     # See https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idcontainer
