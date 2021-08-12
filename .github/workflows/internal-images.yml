@@ -19,7 +19,7 @@ on:
 # now execute your setup commands!
 # ```
 jobs:
-  copy-images:
+  build-and-push-images:
     strategy:
       matrix:
         # Be precise in tag versions to improve reproducibility
