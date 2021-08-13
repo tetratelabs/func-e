@@ -44,7 +44,7 @@ jobs:
         with:
           formula-name: func-e
         env:  # See env section for notes on PACKAGE_BUMP_TOKEN
-          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.PACKAGE_BUMP_TOKEN }}
+          COMMITTER_TOKEN: ${{ secrets.PACKAGE_BUMP_TOKEN }}
 
   # This job downloads the func-e.msi from the corresponding release. It extracts properties from
   # it in order to create a winget package manifest. Finally, it creates a pull request to add the
