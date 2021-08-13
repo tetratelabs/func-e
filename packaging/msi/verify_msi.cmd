@@ -18,8 +18,6 @@
 if not defined MSI_FILE set MSI_FILE=dist\func-e_windows_amd64\func-e.msi
 echo installing %MSI_FILE%
 msiexec /i %MSI_FILE% /qn || exit /b 1
-:: sleep to prevent slow CI hosts from flaking on delayed installer service
-sleep 2
 
 :: Use chocolatey tool to refresh the current PATH without exiting the shell
 call RefreshEnv.cmd
@@ -29,8 +27,6 @@ func-e -version || exit /b 1
 
 echo uninstalling func-e
 msiexec /x %MSI_FILE% /qn || exit /b 1
-:: sleep to prevent slow CI hosts from flaking on delayed installer service
-sleep 2
 
 echo ensuring func-e was uninstalled
 func-e -version && exit /b 1
