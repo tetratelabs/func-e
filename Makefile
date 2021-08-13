@@ -30,7 +30,8 @@ GOARCH := $(shell go env GOARCH)
 BIN := dist/func-e_$(GOOS)_$(GOARCH)
 bin $(BIN): $(GORELEASER)
 	@echo "--- bin ---"
-	@$(GORELEASER) build --snapshot --single-target --rm-dist
+# skip post hooks on bin so that e2e tests don't need to have osslsigncode installed
+	@$(GORELEASER) build --snapshot --single-target --skip-post-hooks --rm-dist
 
 # Requires `wixl` from msitools https://wiki.gnome.org/msitools (or `brew install msitools`)
 # If Windows, you can download from here https://github.com/wixtoolset/wix3/releases
