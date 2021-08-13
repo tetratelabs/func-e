@@ -30,14 +30,24 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
+      - name: "Download Windows code signing certificate"
+        id: p12
+        uses: timheuer/base64-to-file@v1
+        with:
+          fileName: 'windows-certificate.p12'
+          encodedString: ${{ secrets.WINDOWS_CODESIGN_P12_BASE64 }}
+
       # ubuntu is missing wixl https://github.com/actions/virtual-environments/issues/3857
-      - name: "Install GNOME msitools (wixl)"
-        run: sudo apt update -qq && sudo apt install -qq -y wixl
+      # ubuntu is also missing osslsigncode (no issue, yet)
+      - name: "Install GNOME msitools (wixl) and osslsigncode"
+        run: sudo apt update -qq && sudo apt install -qq -y wixl osslsigncode
 
       - name: "Run GoReleaser"
         run: make release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WINDOWS_CODESIGN_P12: ${{ steps.p12.outputs.filePath }}
+          WINDOWS_CODESIGN_PASSWORD: ${{ secrets.WINDOWS_CODESIGN_PASSWORD }}
 
       - name: "Add Windows installer (func-e.msi) to the draft release"
         # TODO: append the sha256sum of the msi to the checksums.txt and re-upload
@@ -50,6 +60,8 @@ jobs:
           gh release upload "${tag}" "${msi}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WINDOWS_CODESIGN_P12: ${{ steps.p12.outputs.filePath }}
+          WINDOWS_CODESIGN_PASSWORD: ${{ secrets.WINDOWS_CODESIGN_PASSWORD }}
 
   e2e:
     needs: func-e

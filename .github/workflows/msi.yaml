@@ -40,17 +40,24 @@ jobs:
         include:
           # ubuntu is missing wixl https://github.com/actions/virtual-environments/issues/3857
           - os: ubuntu-latest
-            setup: sudo apt update -qq && sudo apt install -qq -y wixl msitools
+            setup: sudo apt update -qq && sudo apt install -qq -y wixl msitools osslsigncode
           # macos is missing wixl https://github.com/actions/virtual-environments/issues/3857
           - os: macos-latest
-            setup: brew install -q msitools
+            setup: brew install -q msitools osslsigncode
           # wixtoolset isn't in the path https://github.com/wixtoolset/wix3/blob/develop/src/Setup/CoreMsi/Toolset.wxs#L87
           - os: windows-latest
-            setup: echo "$WIX\\bin" >> $GITHUB_PATH
+            setup: |
+              echo "$WIX\\bin" >> $GITHUB_PATH
+              osslsigncode_version=2.1
+              gh release download -R mtrojnar/osslsigncode ${osslsigncode_version} -p '*windows.zip'
+              unzip -qq *.zip -d ${HOME} && rm *.zip
+              echo "${HOME}\\osslsigncode_${osslsigncode_version}_windows" >> $GITHUB_PATH
 
     steps:
-      - name: "Setup msitools/wixtoolset"
+      - name: "Setup msitools, wixtoolset, osslsigncode"
         run: ${{ matrix.setup }}
+        env: # `gh` requires auth even on public releases
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: "Checkout"
         uses: actions/checkout@v2

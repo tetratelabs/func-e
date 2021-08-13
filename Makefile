@@ -30,7 +30,8 @@ GOARCH := $(shell go env GOARCH)
 BIN := dist/func-e_$(GOOS)_$(GOARCH)
 bin $(BIN): $(GORELEASER)
 	@echo "--- bin ---"
-	@$(GORELEASER) build --snapshot --single-target --rm-dist
+# skip post hooks on bin so that e2e tests don't need to have osslsigncode installed
+	@$(GORELEASER) build --snapshot --single-target --skip-post-hooks --rm-dist
 
 # Requires `wixl` from msitools https://wiki.gnome.org/msitools (or `brew install msitools`)
 # If Windows, you can download from here https://github.com/wixtoolset/wix3/releases
@@ -39,9 +40,32 @@ WIN_BIN_EXE := $(WIN_BIN)/func-e.exe
 # Default to a dummy version, but in a release this should be overridden
 MSI_VERSION ?= 0.0.1
 
+# Right now, the only arch we support is amd64 because Envoy doesn't yet support arm64 on Windows
+# https://github.com/envoyproxy/envoy/issues/17572
+# Once that occurs, we will need to set -arch arm64 and bundle accordingly.
 $(WIN_BIN_EXE): $(GORELEASER)
 	@echo "--- win-bin ---"
 	@GOOS=windows GOARCH=amd64 $(GORELEASER) build --snapshot --single-target --rm-dist
+
+# Default is self-signed while production should be a Digicert signing key
+#
+# Ex.
+# ```bash
+# keytool -genkey -alias func-e -storetype PKCS12 -keyalg RSA -keysize 2048 -storepass func-e-bunch \
+# -keystore func-e.p12 -dname "O=func-e,CN=func-e.io" -validity 3650
+# ```
+WINDOWS_CODESIGN_P12 ?= packaging/msi/func-e.p12
+WINDOWS_CODESIGN_PASSWORD ?= func-e-bunch
+
+# This is invoked as a part of goreleaser to make sure the binary is signed on release.
+#
+# This requires osslsigncode package (apt or brew) or latest windows release from mtrojnar/osslsigncode
+.PHONY: sign-win
+sign-win: $(WIN_BIN_EXE)
+	@osslsigncode sign -h sha256 -pkcs12 ${WINDOWS_CODESIGN_P12} -pass "${WINDOWS_CODESIGN_PASSWORD}" \
+	-n "func-e makes running Envoy® easy" -i https://func-e.io -t http://timestamp.digicert.com \
+	-in $(WIN_BIN_EXE) -out $(WIN_BIN_EXE)-signed.exe
+	@mv $(WIN_BIN_EXE)-signed.exe $(WIN_BIN_EXE)
 
 # Right now, the only arch we support is amd64 because Envoy doesn't yet support arm64 on Windows
 # https://github.com/envoyproxy/envoy/issues/17572
@@ -49,7 +73,7 @@ $(WIN_BIN_EXE): $(GORELEASER)
 .PHONY: msi
 msi: $(WIN_BIN_EXE)
 ifeq ($(OS),Windows_NT)  # Windows 10 etc use https://wixtoolset.org
-	@candle -nologo -arch x64 -dVersion=$(MSI_VERSION)  \
+	@candle -nologo -arch x64 -dVersion=$(MSI_VERSION) \
 	-dBin=$(WIN_BIN)/func-e.exe \
 	packaging/msi/func-e.wxs
 	@light -nologo func-e.wixobj -o $(WIN_BIN)/func-e.msi -spdb
@@ -60,6 +84,10 @@ else  # use https://wiki.gnome.org/msitools
 	-o $(WIN_BIN)/func-e.msi \
 	packaging/msi/func-e.wxs
 endif
+	@osslsigncode sign -h sha256 -pkcs12 ${WINDOWS_CODESIGN_P12} -pass "${WINDOWS_CODESIGN_PASSWORD}" \
+	-n "func-e makes running Envoy® easy" -i https://func-e.io -t http://timestamp.digicert.com \
+	-add-msi-dse -in $(WIN_BIN)/func-e.msi -out $(WIN_BIN)/func-e.msi-signed.exe
+	@mv $(WIN_BIN)/func-e.msi-signed.exe $(WIN_BIN)/func-e.msi
 
 ##@ Test website
 .PHONY: site
