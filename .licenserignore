@@ -23,6 +23,7 @@ site/
 
 *.png
 *.ico
+*.p12
 
 # until https://github.com/liamawhite/licenser/issues/13
 *.wxs
