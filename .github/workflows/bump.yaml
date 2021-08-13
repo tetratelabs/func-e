@@ -33,13 +33,16 @@ jobs:
     name: "Homebrew/homebrew-core"
     runs-on: ubuntu-latest
     steps:
-      # Shell, not bump-homebrew-formula-action, as this shows what's going on.
-      - name: "Bump Formula PR"
+      - name: "Configure git"
         run: |
           git config --global user.name "${GIT_USER_NAME}"
           git config --global user.email "${GIT_USER_EMAIL}"
-          version="${GITHUB_REF#refs/tags/v}"
-          brew bump-formula-pr --no-browse --no-audit --version "${version}" func-e
+
+      - name: "Bump Formula PR"
+        # Same as: brew bump-formula-pr --no-browse --no-audit --version "${version}" func-e
+        uses: mislav/bump-homebrew-formula-action@v1
+        with:
+          formula-name: func-e
         env:  # See env section for notes on PACKAGE_BUMP_TOKEN
           HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.PACKAGE_BUMP_TOKEN }}
 
@@ -51,6 +54,10 @@ jobs:
     name: "microsoft/winget-create"
     runs-on: ubuntu-latest
     steps:
+      # ubuntu is missing msitools https://github.com/actions/virtual-environments/issues/3857
+      - name: "Install GNOME msitools"
+        run: sudo apt update -qq && sudo apt install -qq -y msitools
+
       - name: "Checkout func-e"
         uses: actions/checkout@v2
         with:
