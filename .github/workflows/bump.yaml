@@ -77,7 +77,7 @@ jobs:
           echo "MSI_VERSION=${version}" >> $GITHUB_ENV
           cd func-e
           gh release download "${tag}" -p '*windows_amd64.msi'
-          manifest_path=../winget-pkgs/manifests/Tetrate/func-e/${version}/Tetrate.func-e.yaml
+          manifest_path=../winget-pkgs/manifests/t/Tetrate/func-e/${version}/Tetrate.func-e.yaml
           mkdir -p $(dirname ${manifest_path})
           ./packaging/msi/winget_manifest.sh ${version} *windows_amd64.msi > ${manifest_path}
         env:  # See env section for notes on PACKAGE_BUMP_TOKEN
