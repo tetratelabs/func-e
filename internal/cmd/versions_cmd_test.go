@@ -98,8 +98,7 @@ func TestFuncEVersions_CurrentVersion(t *testing.T) {
 	})
 
 	t.Run("set by $ENVOY_VERSION", func(t *testing.T) {
-		revertEnv := morerequire.RequireSetenv(t, "ENVOY_VERSION", "1.2.1")
-		defer revertEnv()
+		t.Setenv("ENVOY_VERSION", "1.2.1")
 
 		c, stdout, _ := newApp(o)
 		require.NoError(t, c.Run([]string{"func-e", "versions"}))
