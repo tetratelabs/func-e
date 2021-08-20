@@ -7,7 +7,7 @@ virt: lxd  # faster starting
 language: go
 
 go:
-  - 1.16.6
+  - 1.17.0
 
 cache:
   directories: # ~/.func-e/versions is cached so that we only re-download once: for TestFuncEInstall
