@@ -5,7 +5,7 @@
 name: "build"
 
 env:  # As of 2021-08-05 images come with go 1.15 https://github.com/actions/virtual-environments/tree/main/images
-  GO_VERSION: "1.16.6"
+  GO_VERSION: "1.17.0"
 
 on:
   push:  # We run tests on non-tagged pushes to master

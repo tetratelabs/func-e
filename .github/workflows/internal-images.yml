@@ -15,7 +15,7 @@ on:
 # ```bash
 # $ docker run -ti -v $PWD:/func-e --rm centos:8
 # [root@d37da4601545 /]# cd /func-e
-# [root@d37da4601545 func-e]# eval "$(curl -sL https://raw.githubusercontent.com/travis-ci/gimme/master/gimme | GIMME_GO_VERSION=1.16.6 bash)"
+# [root@d37da4601545 func-e]# eval "$(curl -sL https://raw.githubusercontent.com/travis-ci/gimme/master/gimme | GIMME_GO_VERSION=1.17 bash)"
 # now execute your setup commands!
 # ```
 jobs:
