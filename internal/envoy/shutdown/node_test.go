@@ -27,14 +27,14 @@ import (
 )
 
 func TestEnableNodeCollection(t *testing.T) {
-	workingDir, removeWorkingDir := morerequire.RequireNewTempDir(t)
-	defer removeWorkingDir()
+	runDir, removeRunDir := morerequire.RequireNewTempDir(t)
+	defer removeRunDir()
 
-	runWithShutdownHook(t, workingDir, enableNodeCollection)
+	require.NoError(t, runWithShutdownHook(t, runDir, enableNodeCollection))
 
 	files := [...]string{"node/ps.txt", "node/network_interface.json", "node/connections.json"}
 	for _, file := range files {
-		path := filepath.Join(workingDir, file)
+		path := filepath.Join(runDir, file)
 		f, err := os.Stat(path)
 		require.NoError(t, err, "error stating %v", path)
 

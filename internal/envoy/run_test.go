@@ -57,7 +57,7 @@ func TestRuntime_Run(t *testing.T) {
 			name: "func-e Ctrl+C",
 			args: []string{"-c", "envoy.yaml"},
 			// Don't warn the user when they exited the process
-			expectedStdout:   moreos.Sprintf("starting: %s -c envoy.yaml %s\nGET /ready HTTP/1.1\n", fakeEnvoy, adminFlag),
+			expectedStdout:   moreos.Sprintf("starting: %s -c envoy.yaml %s\n", fakeEnvoy, adminFlag),
 			expectedStderr:   moreos.Sprintf("initializing epoch 0\nstarting main dispatch loop\ncaught SIGINT\nexiting\n"),
 			wantShutdownHook: true,
 		},
