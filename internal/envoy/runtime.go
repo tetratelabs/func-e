@@ -22,6 +22,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"github.com/tetratelabs/func-e/internal/globals"
@@ -55,6 +56,31 @@ type Runtime struct {
 	FakeInterrupt context.CancelFunc
 
 	shutdownHooks []func(context.Context) error
+}
+
+// String is only used in tests. It is slow, but helps when debugging CI failures
+func (r *Runtime) String() string {
+	var stdout, stderr string
+	if r.OutFile != nil {
+		if b, err := os.ReadFile(r.OutFile.Name()); err == nil {
+			stdout = string(b)
+		}
+	}
+
+	if r.ErrFile != nil {
+		if b, err := os.ReadFile(r.ErrFile.Name()); err == nil {
+			stderr = string(b)
+		}
+	}
+
+	exitStatus := -1
+	if r.cmd != nil && r.cmd.ProcessState != nil {
+		if ws, ok := r.cmd.ProcessState.Sys().(syscall.WaitStatus); ok {
+			exitStatus = ws.ExitStatus()
+		}
+	}
+
+	return fmt.Sprintf("{stdout: %s, stderr: %s, exitStatus: %d}", stdout, stderr, exitStatus)
 }
 
 // GetRunDir returns the run-specific directory files can be written to.

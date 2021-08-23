@@ -22,13 +22,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/func-e/internal/test/morerequire"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
 func TestFuncEVersions_NothingYet(t *testing.T) {
-	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
-	defer removeHomeDir()
+	homeDir := t.TempDir()
 
 	stdout, stderr, err := funcEExec("--home-dir", homeDir, "versions")
 

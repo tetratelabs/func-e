@@ -27,7 +27,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/func-e/internal/test/morerequire"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
@@ -104,8 +103,7 @@ func TestUntar(t *testing.T) {
 	}{{true, true}, {true, false}, {false, true}, {false, false}} {
 		tt := tt
 		t.Run(fmt.Sprintf("%+v", tt), func(t *testing.T) {
-			tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
-			defer removeTempDir()
+			tempDir := t.TempDir()
 
 			dst := tempDir
 			if !tt.dstExists {
@@ -143,8 +141,7 @@ func TestUntarAndVerify(t *testing.T) {
 		file := k
 		sha256 := v
 		t.Run(file, func(t *testing.T) {
-			tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
-			defer removeTempDir()
+			tempDir := t.TempDir()
 
 			f, err := os.Open(file)
 			require.NoError(t, err)
@@ -165,8 +162,7 @@ func (r errorReader) Read(_ []byte) (n int, err error) {
 }
 
 func TestUntarAndVerify_ErrorReading(t *testing.T) {
-	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
-	defer removeTempDir()
+	tempDir := t.TempDir()
 
 	expectedErr := errors.New("ice cream")
 	err := UntarAndVerify(tempDir, &errorReader{expectedErr}, "1234")
@@ -174,8 +170,7 @@ func TestUntarAndVerify_ErrorReading(t *testing.T) {
 }
 
 func TestUntarAndVerify_InvalidSignature(t *testing.T) {
-	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
-	defer removeTempDir()
+	tempDir := t.TempDir()
 
 	f, err := os.Open("testdata/empty.tar.xz")
 	require.NoError(t, err)
@@ -205,8 +200,7 @@ func requireEmptyDirectory(t *testing.T, dst string) {
 }
 
 func TestTarGZ(t *testing.T) {
-	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
-	defer removeTempDir()
+	tempDir := t.TempDir()
 
 	src := filepath.Join("testdata", "foo")
 	dst := filepath.Join(tempDir, "test.tar.gz")

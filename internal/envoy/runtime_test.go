@@ -15,6 +15,7 @@
 package envoy
 
 import (
+	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
@@ -22,12 +23,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/func-e/internal/globals"
-	"github.com/tetratelabs/func-e/internal/test/morerequire"
+	"github.com/tetratelabs/func-e/internal/moreos"
 )
 
 func TestEnsureAdminAddressPath(t *testing.T) {
-	runDir, removeRunDir := morerequire.RequireNewTempDir(t)
-	defer removeRunDir()
+	runDir := t.TempDir()
 
 	runAdminAddressPath := filepath.Join(runDir, "admin-address.txt")
 	tests := []struct {
@@ -105,4 +105,72 @@ func TestEnsureAdminAddressPath_ValidateExisting(t *testing.T) {
 func TestPidFilePath(t *testing.T) {
 	r := NewRuntime(&globals.RunOpts{RunDir: "run"})
 	require.Equal(t, filepath.Join("run", "envoy.pid"), r.pidPath)
+}
+
+func TestString(t *testing.T) {
+	cmdExited := NewRuntime(&globals.RunOpts{})
+	cmdExited.cmd = exec.Command("echo")
+	require.NoError(t, cmdExited.cmd.Run())
+
+	cmdFailed := NewRuntime(&globals.RunOpts{})
+	cmdFailed.cmd = exec.Command("cat"+moreos.Exe, "icecream")
+	require.Error(t, cmdFailed.cmd.Run())
+
+	// Fork a process that hangs
+	cmdRunning := NewRuntime(&globals.RunOpts{})
+	cmdRunning.cmd = exec.Command("cat" + moreos.Exe)
+	cmdRunning.cmd.SysProcAttr = moreos.ProcessGroupAttr()
+	require.NoError(t, cmdRunning.cmd.Start())
+	defer cmdRunning.cmd.Process.Kill() //nolint
+
+	tmpDir := t.TempDir()
+	files := NewRuntime(&globals.RunOpts{})
+
+	stdoutLog, err := os.OpenFile(filepath.Join(tmpDir, "stdout.log"), os.O_CREATE|os.O_WRONLY, 0600)
+	require.NoError(t, err)
+	defer stdoutLog.Close()
+	files.OutFile = stdoutLog
+	stdoutLog.Write([]byte("foo")) //nolint
+	stdoutLog.Sync()               //nolint
+
+	stderrLog, err := os.OpenFile(filepath.Join(tmpDir, "stderr.log"), os.O_CREATE|os.O_WRONLY, 0600)
+	require.NoError(t, err)
+	defer stderrLog.Close()
+	files.ErrFile = stderrLog
+	stderrLog.Write([]byte("bar")) //nolint
+	stderrLog.Sync()               //nolint
+
+	tests := []struct {
+		name     string
+		runtime  *Runtime
+		expected string
+	}{
+		{
+			name:     "command exited",
+			runtime:  cmdExited,
+			expected: "{stdout: , stderr: , exitStatus: 0}",
+		},
+		{
+			name:     "command failed",
+			runtime:  cmdFailed,
+			expected: "{stdout: , stderr: , exitStatus: 1}",
+		},
+		{
+			name:     "command running",
+			runtime:  cmdRunning,
+			expected: "{stdout: , stderr: , exitStatus: -1}",
+		},
+		{
+			name:     "console files exist",
+			runtime:  files,
+			expected: "{stdout: foo, stderr: bar, exitStatus: -1}",
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.expected, tt.runtime.String())
+		})
+	}
 }

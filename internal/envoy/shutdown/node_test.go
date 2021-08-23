@@ -22,13 +22,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/tetratelabs/func-e/internal/test/morerequire"
 )
 
 func TestEnableNodeCollection(t *testing.T) {
-	runDir, removeRunDir := morerequire.RequireNewTempDir(t)
-	defer removeRunDir()
+	runDir := t.TempDir()
 
 	require.NoError(t, runWithShutdownHook(t, runDir, enableNodeCollection))
 

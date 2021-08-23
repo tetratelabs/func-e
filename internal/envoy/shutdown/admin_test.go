@@ -27,12 +27,10 @@ import (
 	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/test"
-	"github.com/tetratelabs/func-e/internal/test/morerequire"
 )
 
 func TestEnableEnvoyAdminDataCollection(t *testing.T) {
-	runDir, removeRunDir := morerequire.RequireNewTempDir(t)
-	defer removeRunDir()
+	runDir := t.TempDir()
 
 	require.NoError(t, runWithShutdownHook(t, runDir, enableEnvoyAdminDataCollection))
 

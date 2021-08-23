@@ -85,8 +85,8 @@ func TestFuncEVersions_CurrentVersion(t *testing.T) {
 	})
 
 	t.Run("set by $PWD/.envoy-version", func(t *testing.T) {
-		revertTempWd := morerequire.RequireChdirIntoTemp(t)
-		defer revertTempWd()
+		revertWd := morerequire.RequireChdir(t, t.TempDir())
+		defer revertWd()
 		require.NoError(t, os.WriteFile(".envoy-version", []byte("1.2.2"), 0600))
 
 		c, stdout, _ := newApp(o)

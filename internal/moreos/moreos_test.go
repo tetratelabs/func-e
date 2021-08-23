@@ -26,8 +26,6 @@ import (
 
 	"github.com/shirou/gopsutil/v3/process"
 	"github.com/stretchr/testify/require"
-
-	"github.com/tetratelabs/func-e/internal/test/morerequire"
 )
 
 // TestErrorWithWindowsPathSeparator makes sure errors don't accidentally escape the windows path separator.
@@ -44,8 +42,7 @@ func TestErrorWithWindowsPathSeparator(t *testing.T) {
 }
 
 func TestIsExecutable(t *testing.T) {
-	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
-	defer removeTempDir()
+	tempDir := t.TempDir()
 
 	bin := filepath.Join(tempDir, "envoy"+Exe)
 	require.NoError(t, os.WriteFile(bin, []byte{}, 0700))
@@ -57,8 +54,7 @@ func TestIsExecutable(t *testing.T) {
 }
 
 func TestIsExecutable_Not(t *testing.T) {
-	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
-	defer removeTempDir()
+	tempDir := t.TempDir()
 
 	bin := filepath.Join(tempDir, "foo.txt")
 	require.NoError(t, os.WriteFile(bin, []byte{}, 0600))

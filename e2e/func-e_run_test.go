@@ -61,8 +61,8 @@ func TestFuncERun(t *testing.T) {
 func TestFuncERun_StaticFilesystem(t *testing.T) {
 	t.Parallel() // uses random ports so safe to run parallel
 
-	revertTempWd := morerequire.RequireChdirIntoTemp(t)
-	defer revertTempWd()
+	revertWd := morerequire.RequireChdir(t, t.TempDir())
+	defer revertWd()
 
 	require.NoError(t, os.WriteFile("envoy.yaml", staticFilesystemConfig, 0600))
 	responseFromRunDirectory := []byte("foo")
@@ -190,8 +190,7 @@ func requireEnvoyPid(t *testing.T, c *funcE) {
 
 // Run deletes the run directory after making a tar.gz with the same name. This extracts it and tests the contents.
 func verifyRunArchive(t *testing.T, c *funcE) {
-	runDir, removeRunDir := morerequire.RequireNewTempDir(t)
-	defer removeRunDir()
+	runDir := t.TempDir()
 
 	runArchive := c.runDir + ".tar.gz"
 	src, err := os.Open(runArchive)

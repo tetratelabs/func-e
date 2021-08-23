@@ -36,11 +36,16 @@ import (
 
 // Runner allows us to not introduce dependency cycles on envoy.Runtime
 type runner struct {
-	c *cli.App
+	c              *cli.App
+	stdout, stderr *bytes.Buffer
 }
 
 func (r *runner) Run(ctx context.Context, args []string) error {
 	return r.c.RunContext(ctx, args)
+}
+
+func (r *runner) String() string {
+	return fmt.Sprintf("{stdout: %s, stderr: %s}", r.stdout, r.stderr)
 }
 
 // TestFuncERun executes envoy then cancels the context. This results in no stdout
@@ -56,7 +61,7 @@ func TestFuncERun(t *testing.T) {
 	// tee the error stream so we can look for the "starting main dispatch loop" line without consuming it.
 	errCopy := new(bytes.Buffer)
 	c.ErrWriter = io.MultiWriter(stderr, errCopy)
-	err := test.RequireRun(t, nil, &runner{c}, errCopy, args...)
+	err := test.RequireRun(t, nil, &runner{c, stdout, stderr}, errCopy, args...)
 
 	require.NoError(t, err)
 	require.Empty(t, stdout)
@@ -145,8 +150,8 @@ func TestFuncERun_ValidatesWorkingVersion(t *testing.T) {
 	o.EnvoyVersion = ""
 	defer cleanup()
 
-	revertTempWd := morerequire.RequireChdirIntoTemp(t)
-	defer revertTempWd()
+	revertWd := morerequire.RequireChdir(t, t.TempDir())
+	defer revertWd()
 	require.NoError(t, os.WriteFile(".envoy-version", []byte("b.b.b"), 0600))
 
 	c, _, _ := newApp(o)
@@ -158,8 +163,7 @@ func TestFuncERun_ValidatesWorkingVersion(t *testing.T) {
 }
 
 func TestFuncERun_ErrsWhenVersionsServerDown(t *testing.T) {
-	tempDir, deleteTempDir := morerequire.RequireNewTempDir(t)
-	defer deleteTempDir()
+	tempDir := t.TempDir()
 
 	o := &globals.GlobalOpts{
 		EnvoyVersionsURL: "https://127.0.0.1:9999",

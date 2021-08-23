@@ -17,25 +17,12 @@
 package morerequire
 
 import (
-	"io/ioutil"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 )
-
-// RequireNewTempDir creates a new directory. The function returned cleans it up.
-func RequireNewTempDir(t *testing.T) (string, func()) {
-	d, err := ioutil.TempDir("", "")
-	require.NoError(t, err, `ioutil.TempDir("", "") erred`)
-	d, err = filepath.EvalSymlinks(d)
-	require.NoError(t, err, `filepath.EvalSymlinks(%s) erred`, d)
-	return d, func() {
-		os.RemoveAll(d) //nolint
-	}
-}
 
 // RequireSetMtime sets the mtime of the dir given a string formatted date. Ex "2006-01-02"
 func RequireSetMtime(t *testing.T, dir, date string) {
@@ -59,19 +46,16 @@ func RequireSetenv(t *testing.T, key, value string) func() {
 	}
 }
 
-// RequireChdirIntoTemp creates a new temp directory and cleans it up on with the returned function.
-func RequireChdirIntoTemp(t *testing.T) func() {
+// RequireChdir changes the working directory reverts it on the returned function
+func RequireChdir(t *testing.T, dir string) func() {
 	wd, err := os.Getwd()
 	require.NoError(t, err)
 
-	tempDir, removeTempDir := RequireNewTempDir(t)
-	if err = os.Chdir(tempDir); err != nil {
-		removeTempDir() // don't leak
+	if err = os.Chdir(dir); err != nil {
 		require.NoError(t, err)
 	}
 
 	return func() {
 		require.NoError(t, os.Chdir(wd))
-		removeTempDir()
 	}
 }

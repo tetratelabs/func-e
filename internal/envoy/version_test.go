@@ -33,8 +33,7 @@ func TestVersionUsageList(t *testing.T) {
 }
 
 func TestGetHomeVersion_Empty(t *testing.T) {
-	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
-	defer removeHomeDir()
+	homeDir := t.TempDir()
 
 	homeVersionFile := filepath.Join(homeDir, "version")
 
@@ -48,7 +47,9 @@ func TestGetHomeVersion_Empty(t *testing.T) {
 		{"missing home version file", func() {
 			require.NoError(t, os.Remove(homeVersionFile))
 		}},
-		{"missing home dir", removeHomeDir},
+		{"missing home dir", func() {
+			require.NoError(t, os.Remove(homeDir))
+		}},
 	} {
 		tc := tt
 		t.Run(tc.name, func(t *testing.T) {
@@ -61,8 +62,7 @@ func TestGetHomeVersion_Empty(t *testing.T) {
 }
 
 func TestGetHomeVersion(t *testing.T) {
-	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
-	defer removeHomeDir()
+	homeDir := t.TempDir()
 
 	homeVersionFile := filepath.Join(homeDir, "version")
 	require.NoError(t, os.WriteFile(homeVersionFile, []byte(version.LastKnownEnvoy), 0600))
@@ -74,8 +74,7 @@ func TestGetHomeVersion(t *testing.T) {
 }
 
 func TestGetHomeVersion_Validates(t *testing.T) {
-	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
-	defer removeHomeDir()
+	homeDir := t.TempDir()
 
 	homeVersionFile := filepath.Join(homeDir, "version")
 	require.NoError(t, os.WriteFile(homeVersionFile, []byte("a.a.a"), 0600))
@@ -86,8 +85,7 @@ func TestGetHomeVersion_Validates(t *testing.T) {
 }
 
 func TestWriteCurrentVersion_HomeDir(t *testing.T) {
-	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
-	defer removeHomeDir()
+	homeDir := t.TempDir()
 
 	for _, tt := range []struct {
 		name string
@@ -109,14 +107,13 @@ func TestWriteCurrentVersion_HomeDir(t *testing.T) {
 }
 
 func TestWriteCurrentVersion_OverwritesWorkingDirVersion(t *testing.T) {
-	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
-	defer removeHomeDir()
+	homeDir := t.TempDir()
 
 	homeVersionFile := filepath.Join(homeDir, "version")
 	require.NoError(t, os.WriteFile(homeVersionFile, []byte("1.1.1"), 0600))
 
-	revertTempWd := morerequire.RequireChdirIntoTemp(t)
-	defer revertTempWd()
+	revertWd := morerequire.RequireChdir(t, t.TempDir())
+	defer revertWd()
 	require.NoError(t, os.WriteFile(".envoy-version", []byte("2.2.2"), 0600))
 
 	require.NoError(t, WriteCurrentVersion("3.3.3", homeDir))
@@ -134,8 +131,7 @@ func TestWriteCurrentVersion_OverwritesWorkingDirVersion(t *testing.T) {
 // TestCurrentVersion is intentionally written in priority order instead of via a matrix. This particularly helps with
 // test setup complexity required to ensure tiered priority (ex layering overridden PWD with an ENV)
 func TestCurrentVersion(t *testing.T) {
-	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
-	defer removeHomeDir()
+	homeDir := t.TempDir()
 	require.NoError(t, os.WriteFile(filepath.Join(homeDir, "version"), []byte("1.1.1"), 0600))
 
 	t.Run("defaults to home version", func(t *testing.T) {
@@ -145,8 +141,8 @@ func TestCurrentVersion(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	revertTempWd := morerequire.RequireChdirIntoTemp(t)
-	defer revertTempWd()
+	revertWd := morerequire.RequireChdir(t, t.TempDir())
+	defer revertWd()
 	require.NoError(t, os.WriteFile(".envoy-version", []byte("2.2.2"), 0600))
 
 	t.Run("prefers $PWD/.envoy-version over home version", func(t *testing.T) {
@@ -169,8 +165,7 @@ func TestCurrentVersion(t *testing.T) {
 
 // TestCurrentVersion_Validates is intentionally written in priority order instead of via a matrix
 func TestCurrentVersion_Validates(t *testing.T) {
-	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
-	defer removeHomeDir()
+	homeDir := t.TempDir()
 	require.NoError(t, os.WriteFile(filepath.Join(homeDir, "version"), []byte("a.a.a"), 0600))
 
 	t.Run("validates home version", func(t *testing.T) {
@@ -179,8 +174,8 @@ func TestCurrentVersion_Validates(t *testing.T) {
 		require.EqualError(t, err, moreos.ReplacePathSeparator(expectedErr))
 	})
 
-	revertTempWd := morerequire.RequireChdirIntoTemp(t)
-	defer revertTempWd()
+	revertWd := morerequire.RequireChdir(t, t.TempDir())
+	defer revertWd()
 	require.NoError(t, os.WriteFile(".envoy-version", []byte("b.b.b"), 0600))
 
 	t.Run("validates $PWD/.envoy-version", func(t *testing.T) {

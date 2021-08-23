@@ -23,14 +23,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/func-e/internal/moreos"
-	"github.com/tetratelabs/func-e/internal/test/morerequire"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
 // TestFuncEUse needs to always execute, so we run it in a separate home directory
 func TestFuncEUse(t *testing.T) {
-	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
-	defer removeHomeDir()
+	homeDir := t.TempDir()
 
 	t.Run("not yet installed", func(t *testing.T) {
 		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", string(version.LastKnownEnvoy))

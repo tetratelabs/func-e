@@ -28,10 +28,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/func-e/internal/moreos"
-	"github.com/tetratelabs/func-e/internal/test/morerequire"
 )
 
 // Runner allows us to not introduce dependency cycles on envoy.Runtime
@@ -42,19 +42,26 @@ type Runner interface {
 // RequireRun executes Run on the given Runtime and calls shutdown after it started.
 func RequireRun(t *testing.T, shutdown func(), r Runner, stderr io.Reader, args ...string) (err error) {
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	if shutdown == nil {
 		shutdown = cancel
 	}
+
 	go func() {
 		err = r.Run(ctx, args)
 		cancel()
 	}()
 
 	reader := bufio.NewReader(stderr)
-	require.Eventually(t, func() bool {
-		b, err := reader.Peek(512)
-		return err != nil && strings.Contains(string(b), "initializing epoch 0")
-	}, 2*time.Second, 100*time.Millisecond, "never started process")
+	waitFor := "initializing epoch 0"
+	if !assert.Eventually(t, func() bool {
+		b, e := reader.Peek(512)
+		return e != nil && strings.Contains(string(b), waitFor)
+	}, 5*time.Second, 100*time.Millisecond) {
+		t.Fatalf(`timeout waiting for stderr to contain "%s": runner: %s, err: %v`, waitFor, r, err)
+		return
+	}
 
 	shutdown()
 
@@ -86,8 +93,7 @@ func RequireFakeEnvoy(t *testing.T, path string) {
 // requireBuildFakeEnvoy builds a fake envoy binary and returns its contents.
 func requireBuildFakeEnvoy(t *testing.T) []byte {
 	goBin := requireGoBin(t)
-	tempDir, deleteTempDir := morerequire.RequireNewTempDir(t)
-	defer deleteTempDir()
+	tempDir := t.TempDir()
 
 	name := "envoy"
 	bin := name + moreos.Exe

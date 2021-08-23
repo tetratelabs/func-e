@@ -31,12 +31,10 @@ import (
 	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/test"
-	"github.com/tetratelabs/func-e/internal/test/morerequire"
 )
 
 func TestRuntime_Run(t *testing.T) {
-	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
-	defer removeTempDir()
+	tempDir := t.TempDir()
 
 	runsDir := filepath.Join(tempDir, "runs")
 	runDir := filepath.Join(runsDir, "1619574747231823000") // fake a realistic value
