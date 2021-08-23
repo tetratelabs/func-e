@@ -65,7 +65,11 @@ func TestFuncERun(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Empty(t, stdout)
-	require.Equal(t, moreos.Sprintf("initializing epoch 0\nstarting main dispatch loop\n"), stderr.String())
+	require.Equal(t, moreos.Sprintf(`initializing epoch 0
+starting main dispatch loop
+caught SIGINT
+exiting
+`), stderr.String())
 }
 
 func TestFuncERun_TeesConsoleToLogs(t *testing.T) {

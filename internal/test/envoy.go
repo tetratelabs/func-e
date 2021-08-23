@@ -18,6 +18,7 @@ import (
 	"bufio"
 	"context"
 	_ "embed" // Embedding the fakeEnvoySrc is easier than file I/O and ensures it doesn't skew coverage
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -44,33 +45,36 @@ func RequireRun(t *testing.T, shutdown func(), r Runner, stderr io.Reader, args 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// If there's no shutdown function, shutdown via cancellation. This is similar to ctrl-c
 	if shutdown == nil {
 		shutdown = cancel
 	}
 
+	// Run in a goroutine, and signal when that completes
+	ran := make(chan bool)
 	go func() {
-		err = r.Run(ctx, args)
-		cancel()
+		if e := r.Run(ctx, args); e != nil && err == nil {
+			err = e // first error
+		}
+		ran <- true
 	}()
 
+	// Block until we reach an expected line or timeout
 	reader := bufio.NewReader(stderr)
 	waitFor := "initializing epoch 0"
 	if !assert.Eventually(t, func() bool {
 		b, e := reader.Peek(512)
 		return e != nil && strings.Contains(string(b), waitFor)
 	}, 5*time.Second, 100*time.Millisecond) {
-		t.Fatalf(`timeout waiting for stderr to contain "%s": runner: %s, err: %v`, waitFor, r, err)
-		return
+		if err == nil { // first error
+			err = fmt.Errorf(`timeout waiting for stderr to contain "%s": runner: %s`, waitFor, r)
+		}
 	}
 
+	// Even if we had an error, we invoke the shutdown at this point to avoid leaking a process
 	shutdown()
-
-	select { // Await run completion
-	case <-time.After(10 * time.Second):
-		t.Fatalf("Run never completed: %v", stderr)
-	case <-ctx.Done():
-	}
-	return //nolint
+	<-ran // block until the runner finished
+	return
 }
 
 var (
