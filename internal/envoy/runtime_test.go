@@ -15,7 +15,6 @@
 package envoy
 
 import (
-	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
@@ -123,23 +122,6 @@ func TestString(t *testing.T) {
 	require.NoError(t, cmdRunning.cmd.Start())
 	defer cmdRunning.cmd.Process.Kill() //nolint
 
-	tmpDir := t.TempDir()
-	files := NewRuntime(&globals.RunOpts{})
-
-	stdoutLog, err := os.OpenFile(filepath.Join(tmpDir, "stdout.log"), os.O_CREATE|os.O_WRONLY, 0600)
-	require.NoError(t, err)
-	defer stdoutLog.Close()
-	files.OutFile = stdoutLog
-	stdoutLog.Write([]byte("foo")) //nolint
-	stdoutLog.Sync()               //nolint
-
-	stderrLog, err := os.OpenFile(filepath.Join(tmpDir, "stderr.log"), os.O_CREATE|os.O_WRONLY, 0600)
-	require.NoError(t, err)
-	defer stderrLog.Close()
-	files.ErrFile = stderrLog
-	stderrLog.Write([]byte("bar")) //nolint
-	stderrLog.Sync()               //nolint
-
 	tests := []struct {
 		name     string
 		runtime  *Runtime
@@ -148,22 +130,17 @@ func TestString(t *testing.T) {
 		{
 			name:     "command exited",
 			runtime:  cmdExited,
-			expected: "{stdout: , stderr: , exitStatus: 0}",
+			expected: "{exitStatus: 0}",
 		},
 		{
 			name:     "command failed",
 			runtime:  cmdFailed,
-			expected: "{stdout: , stderr: , exitStatus: 1}",
+			expected: "{exitStatus: 1}",
 		},
 		{
 			name:     "command running",
 			runtime:  cmdRunning,
-			expected: "{stdout: , stderr: , exitStatus: -1}",
-		},
-		{
-			name:     "console files exist",
-			runtime:  files,
-			expected: "{stdout: foo, stderr: bar, exitStatus: -1}",
+			expected: "{exitStatus: -1}",
 		},
 	}
 
