@@ -41,7 +41,7 @@ type Runner interface {
 }
 
 // RequireRun executes Run on the given Runtime and calls shutdown after it started.
-func RequireRun(t *testing.T, shutdown func(), r Runner, stderr io.Reader, args ...string) (err error) {
+func RequireRun(t *testing.T, shutdown func(), r Runner, stderr io.Reader, args ...string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -52,6 +52,7 @@ func RequireRun(t *testing.T, shutdown func(), r Runner, stderr io.Reader, args 
 
 	// Run in a goroutine, and signal when that completes
 	ran := make(chan bool)
+	var err error
 	go func() {
 		if e := r.Run(ctx, args); e != nil && err == nil {
 			err = e // first error
@@ -74,7 +75,7 @@ func RequireRun(t *testing.T, shutdown func(), r Runner, stderr io.Reader, args 
 	// Even if we had an error, we invoke the shutdown at this point to avoid leaking a process
 	shutdown()
 	<-ran // block until the runner finished
-	return
+	return err
 }
 
 var (
