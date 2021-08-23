@@ -65,12 +65,15 @@ func TestFuncERun(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Empty(t, stdout)
-	// Rather than polling until we see "exiting", we just check we got up to point of signal caught.
-	// This de-flakes Windows which only sometimes reads "exiting" in CI.
-	require.Contains(t, stderr.String(), moreos.Sprintf(`initializing epoch 0
-starting main dispatch loop
-caught SIGINT
-`))
+
+	// The runner is the current process, not a child (func-e run) as would be the case in reality and in e2e tests.
+	// Normally, we would use Runtime.FakeInterrupt to fake a ctrl-c, but you can't get a Runtime from a cli.App.
+	//
+	// Passing shutdown=nil, test.RequireRun cancels the go context used by urfave. This gets the process to stop, but
+	// unpredictably: For example, we will see "starting main dispatch loop", but may or may not see the line "exiting".
+	//
+	// To avoid test flakes around this, we only look for the line we know will be there.
+	require.Contains(t, stderr.String(), "starting main dispatch loop")
 }
 
 func TestFuncERun_TeesConsoleToLogs(t *testing.T) {
