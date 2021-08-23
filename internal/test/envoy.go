@@ -18,6 +18,7 @@ import (
 	"bufio"
 	"context"
 	_ "embed" // Embedding the fakeEnvoySrc is easier than file I/O and ensures it doesn't skew coverage
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -28,10 +29,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/func-e/internal/moreos"
-	"github.com/tetratelabs/func-e/internal/test/morerequire"
 )
 
 // Runner allows us to not introduce dependency cycles on envoy.Runtime
@@ -40,30 +41,41 @@ type Runner interface {
 }
 
 // RequireRun executes Run on the given Runtime and calls shutdown after it started.
-func RequireRun(t *testing.T, shutdown func(), r Runner, stderr io.Reader, args ...string) (err error) {
+func RequireRun(t *testing.T, shutdown func(), r Runner, stderr io.Reader, args ...string) error {
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// If there's no shutdown function, shutdown via cancellation. This is similar to ctrl-c
 	if shutdown == nil {
 		shutdown = cancel
 	}
+
+	// Run in a goroutine, and signal when that completes
+	ran := make(chan bool)
+	var err error
 	go func() {
-		err = r.Run(ctx, args)
-		cancel()
+		if e := r.Run(ctx, args); e != nil && err == nil {
+			err = e // first error
+		}
+		ran <- true
 	}()
 
+	// Block until we reach an expected line or timeout
 	reader := bufio.NewReader(stderr)
-	require.Eventually(t, func() bool {
-		b, err := reader.Peek(512)
-		return err != nil && strings.Contains(string(b), "initializing epoch 0")
-	}, 2*time.Second, 100*time.Millisecond, "never started process")
-
-	shutdown()
-
-	select { // Await run completion
-	case <-time.After(10 * time.Second):
-		t.Fatalf("Run never completed: %v", stderr)
-	case <-ctx.Done():
+	waitFor := "initializing epoch 0"
+	if !assert.Eventually(t, func() bool {
+		b, e := reader.Peek(512)
+		return e != nil && strings.Contains(string(b), waitFor)
+	}, 5*time.Second, 100*time.Millisecond) {
+		if err == nil { // first error
+			err = fmt.Errorf(`timeout waiting for stderr to contain "%s": runner: %s`, waitFor, r)
+		}
 	}
-	return //nolint
+
+	// Even if we had an error, we invoke the shutdown at this point to avoid leaking a process
+	shutdown()
+	<-ran // block until the runner finished
+	return err
 }
 
 var (
@@ -86,8 +98,7 @@ func RequireFakeEnvoy(t *testing.T, path string) {
 // requireBuildFakeEnvoy builds a fake envoy binary and returns its contents.
 func requireBuildFakeEnvoy(t *testing.T) []byte {
 	goBin := requireGoBin(t)
-	tempDir, deleteTempDir := morerequire.RequireNewTempDir(t)
-	defer deleteTempDir()
+	tempDir := t.TempDir()
 
 	name := "envoy"
 	bin := name + moreos.Exe

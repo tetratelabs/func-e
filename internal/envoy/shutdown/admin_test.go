@@ -17,8 +17,6 @@ package shutdown
 import (
 	"bytes"
 	"io"
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -29,24 +27,12 @@ import (
 	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/test"
-	"github.com/tetratelabs/func-e/internal/test/morerequire"
 )
 
 func TestEnableEnvoyAdminDataCollection(t *testing.T) {
-	runDir, removeRunDir := morerequire.RequireNewTempDir(t)
-	defer removeRunDir()
+	runDir := t.TempDir()
 
-	mockAdmin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("junk"))
-	}))
-	defer mockAdmin.Close()
-
-	adminPath := filepath.Join(runDir, "admin-address.txt")
-	err := os.WriteFile(adminPath, []byte(mockAdmin.Listener.Addr().String()), 0600)
-	require.NoError(t, err)
-
-	runWithShutdownHook(t, runDir, enableEnvoyAdminDataCollection, `--admin-address-path`, adminPath)
+	require.NoError(t, runWithShutdownHook(t, runDir, enableEnvoyAdminDataCollection))
 
 	for _, filename := range adminAPIPaths {
 		path := filepath.Join(runDir, filename)
@@ -57,7 +43,7 @@ func TestEnableEnvoyAdminDataCollection(t *testing.T) {
 }
 
 // runWithShutdownHook is like RequireRun, except invokes the hook on shutdown
-func runWithShutdownHook(t *testing.T, runDir string, hook func(r *envoy.Runtime) error, args ...string) error {
+func runWithShutdownHook(t *testing.T, runDir string, hook func(r *envoy.Runtime) error) error {
 	fakeEnvoy := filepath.Join(runDir, "envoy"+moreos.Exe)
 	test.RequireFakeEnvoy(t, fakeEnvoy)
 
@@ -74,5 +60,5 @@ func runWithShutdownHook(t *testing.T, runDir string, hook func(r *envoy.Runtime
 		if fakeInterrupt != nil {
 			fakeInterrupt()
 		}
-	}, r, stderr, args...)
+	}, r, stderr, "-c", "envoy.yaml")
 }

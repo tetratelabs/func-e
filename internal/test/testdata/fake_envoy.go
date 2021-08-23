@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/signal"
 	"runtime"
@@ -26,23 +29,42 @@ func main() {
 	// Echo the same first line Envoy would. This also lets code scraping output know signals are trapped
 	os.Stderr.Write([]byte("initializing epoch 0" + lf)) //nolint
 
-	// Validate a haveConfig is passed just like Envoy
+	// Validate a config is passed just like Envoy
 	haveConfig := false
-	for _, arg := range os.Args[1:] {
-		switch arg {
-		case "-c", "--haveConfig-path", "--haveConfig-yaml":
+	adminAddressPath := ""
+	for i := 1; i < len(os.Args); i++ {
+		switch os.Args[i] {
+		case "-c", "--config-path", "--config-yaml":
 			haveConfig = true
+		case "--admin-address-path":
+			i++
+			adminAddressPath = os.Args[i]
 		}
 	}
 	if !haveConfig {
 		exit(1, "exiting", errorConfig) // oddly, it is this order
 	}
 
+	// Start a fake admin listener that write the same sort of response Envoy's /ready would, but on all endpoints.
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Envoy console messages all write to stderr. Simulate access_log_path: '/dev/stdout'
+		os.Stdout.Write([]byte(fmt.Sprintf("GET %s HTTP/1.1%s", r.RequestURI, lf))) //nolint
+
+		w.Header().Add("Content-Type", "text/plain; charset=UTF-8")
+		w.WriteHeader(200)
+		w.Write([]byte("LIVE" + lf)) //nolint
+	}))
+	defer ts.Close()
+	adminAddress := ts.Listener.Addr().String() // ex. 127.0.0.1:55438
+
+	// We don't echo the admin address intentionally as it makes tests complicated as they
+	// would have to use regex to address the random port value.
+	if adminAddressPath != "" {
+		os.WriteFile(adminAddressPath, []byte(adminAddress), 0600)
+	}
+
 	// Echo the same line Envoy would on successful startup
 	os.Stderr.Write([]byte("starting main dispatch loop" + lf)) //nolint
-
-	// Envoy console messages all write to stderr. Simulate access_log_path: '/dev/stdout'
-	os.Stdout.Write([]byte("GET /ready HTTP/1.1" + lf)) //nolint
 
 	// Block until we receive a signal
 	msg := "unexpected"

@@ -32,8 +32,7 @@ func TestGetInstalledVersions_ErrorsWhenFileIsInVersionsDir(t *testing.T) {
 		t.SkipNow() // golang/go#46734 wrong error on file where directory should be
 	}
 
-	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
-	defer removeHomeDir()
+	homeDir := t.TempDir()
 
 	versionsDir := filepath.Join(homeDir, "versions")
 	require.NoError(t, os.WriteFile(versionsDir, []byte{}, 0700))
@@ -43,8 +42,7 @@ func TestGetInstalledVersions_ErrorsWhenFileIsInVersionsDir(t *testing.T) {
 }
 
 func TestGetInstalledVersions_MissingOrEmptyVersionsDir(t *testing.T) {
-	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
-	defer removeHomeDir()
+	homeDir := t.TempDir()
 
 	rows, err := getInstalledVersions(homeDir)
 	require.NoError(t, err) // ensures we don't error just because nothing is installed yet.
@@ -60,8 +58,7 @@ func TestGetInstalledVersions_MissingOrEmptyVersionsDir(t *testing.T) {
 }
 
 func TestGetInstalledVersions_ReleaseDateFromMtime(t *testing.T) {
-	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
-	defer removeHomeDir()
+	homeDir := t.TempDir()
 
 	oneOneTwo := filepath.Join(homeDir, "versions", "1.1.2")
 	require.NoError(t, os.MkdirAll(oneOneTwo, 0700))
@@ -73,8 +70,7 @@ func TestGetInstalledVersions_ReleaseDateFromMtime(t *testing.T) {
 }
 
 func TestGetInstalledVersions_SkipsFileInVersionsDir(t *testing.T) {
-	homeDir, removeHomeDir := morerequire.RequireNewTempDir(t)
-	defer removeHomeDir()
+	homeDir := t.TempDir()
 
 	// make the versions directory
 	versionsDir := filepath.Join(homeDir, "versions")

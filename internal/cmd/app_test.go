@@ -250,8 +250,7 @@ func setupTest(t *testing.T) (*globals.GlobalOpts, func()) {
 	result.Out = io.Discard // ignore logging by default
 	var tearDown []func()
 
-	tempDir, deleteTempDir := morerequire.RequireNewTempDir(t)
-	tearDown = append(tearDown, deleteTempDir)
+	tempDir := t.TempDir()
 
 	result.HomeDir = filepath.Join(tempDir, "envoy_home")
 	err := os.Mkdir(result.HomeDir, 0700)

@@ -33,7 +33,6 @@ import (
 	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/tar"
-	"github.com/tetratelabs/func-e/internal/test/morerequire"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
@@ -113,8 +112,7 @@ func (s *server) funcEVersions() []byte {
 
 // RequireFakeEnvoyTarGz makes a fake envoy.tar.gz
 func RequireFakeEnvoyTarGz(t *testing.T, v version.Version) ([]byte, version.SHA256Sum) {
-	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
-	defer removeTempDir()
+	tempDir := t.TempDir()
 
 	// construct the platform directory based on the input version
 	installDir := filepath.Join(tempDir, string(v))

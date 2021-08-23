@@ -31,15 +31,13 @@ import (
 	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/test"
-	"github.com/tetratelabs/func-e/internal/test/morerequire"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
 func TestUntarEnvoyError(t *testing.T) {
 	ctx := context.Background()
-	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
+	tempDir := t.TempDir()
 	dst := filepath.Join(tempDir, "dst")
-	defer removeTempDir()
 
 	tarball, tarballSHA256sum := test.RequireFakeEnvoyTarGz(t, version.LastKnownEnvoy)
 
@@ -88,8 +86,7 @@ func TestUntarEnvoyError(t *testing.T) {
 
 // TestUntarEnvoy doesn't test compression formats because that logic is in tar.Tar
 func TestUntarEnvoy(t *testing.T) {
-	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
-	defer removeTempDir()
+	tempDir := t.TempDir()
 
 	tarball, tarballSHA256sum := test.RequireFakeEnvoyTarGz(t, version.LastKnownEnvoy)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -210,8 +207,7 @@ func TestInstallIfNeeded_AlreadyExists(t *testing.T) {
 }
 
 func TestVerifyEnvoy(t *testing.T) {
-	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
-	defer removeTempDir()
+	tempDir := t.TempDir()
 
 	envoyPath := filepath.Join(tempDir, "versions", string(version.LastKnownEnvoy))
 	require.NoError(t, os.MkdirAll(filepath.Join(envoyPath, "bin"), 0755))
@@ -248,30 +244,20 @@ type installTest struct {
 }
 
 func setupInstallTest(t *testing.T) (*installTest, func()) {
-	var tearDown []func()
-
-	tempDir, removeTempDir := morerequire.RequireNewTempDir(t)
-	tearDown = append(tearDown, removeTempDir)
-
 	versionsServer := test.RequireEnvoyVersionsTestServer(t, version.LastKnownEnvoy)
-	tearDown = append(tearDown, versionsServer.Close)
-
+	homeDir := t.TempDir()
 	return &installTest{
-			ctx:        context.Background(),
-			tempDir:    tempDir,
-			tarballURL: test.TarballURL(versionsServer.URL, runtime.GOOS, runtime.GOARCH, version.LastKnownEnvoy),
-			GlobalOpts: globals.GlobalOpts{
-				HomeDir:          tempDir,
-				EnvoyVersionsURL: versionsServer.URL + "/envoy-versions.json",
-				Out:              new(bytes.Buffer),
-				Platform:         globals.DefaultPlatform,
-				RunOpts: globals.RunOpts{
-					EnvoyPath: filepath.Join(tempDir, "versions", string(version.LastKnownEnvoy), binEnvoy),
-				},
+		ctx:        context.Background(),
+		tempDir:    t.TempDir(),
+		tarballURL: test.TarballURL(versionsServer.URL, runtime.GOOS, runtime.GOARCH, version.LastKnownEnvoy),
+		GlobalOpts: globals.GlobalOpts{
+			HomeDir:          homeDir,
+			EnvoyVersionsURL: versionsServer.URL + "/envoy-versions.json",
+			Out:              new(bytes.Buffer),
+			Platform:         globals.DefaultPlatform,
+			RunOpts: globals.RunOpts{
+				EnvoyPath: filepath.Join(homeDir, "versions", string(version.LastKnownEnvoy), binEnvoy),
 			},
-		}, func() {
-			for i := len(tearDown) - 1; i >= 0; i-- {
-				tearDown[i]()
-			}
-		}
+		},
+	}, versionsServer.Close
 }
