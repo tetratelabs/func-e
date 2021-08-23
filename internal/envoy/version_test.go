@@ -152,8 +152,7 @@ func TestCurrentVersion(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	revert := morerequire.RequireSetenv(t, "ENVOY_VERSION", "3.3.3")
-	defer revert()
+	t.Setenv("ENVOY_VERSION", "3.3.3")
 
 	t.Run("prefers $ENVOY_VERSION over $PWD/.envoy-version", func(t *testing.T) {
 		v, source, err := CurrentVersion(homeDir)
@@ -193,8 +192,7 @@ func TestCurrentVersion_Validates(t *testing.T) {
 		require.Contains(t, err.Error(), expectedErr)
 	})
 
-	revert := morerequire.RequireSetenv(t, "ENVOY_VERSION", "c.c.c")
-	defer revert()
+	t.Setenv("ENVOY_VERSION", "c.c.c")
 
 	t.Run("validates $ENVOY_VERSION", func(t *testing.T) {
 		_, _, err := CurrentVersion(homeDir)

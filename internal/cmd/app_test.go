@@ -28,7 +28,6 @@ import (
 	rootcmd "github.com/tetratelabs/func-e/internal/cmd"
 	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/test"
-	"github.com/tetratelabs/func-e/internal/test/morerequire"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
@@ -57,10 +56,9 @@ func TestFuncEValidateArgs(t *testing.T) {
 
 func TestHomeDir(t *testing.T) {
 	type testCase struct {
-		name string
-		args []string
-		// setup returns a tear-down function
-		setup    func() func()
+		name     string
+		args     []string
+		setup    func()
 		expected string
 	}
 
@@ -79,8 +77,8 @@ func TestHomeDir(t *testing.T) {
 		{
 			name: "FUNC_E_HOME env",
 			args: []string{"func-e"},
-			setup: func() func() {
-				return morerequire.RequireSetenv(t, "FUNC_E_HOME", alt1)
+			setup: func() {
+				t.Setenv("FUNC_E_HOME", alt1)
 			},
 			expected: alt1,
 		},
@@ -92,8 +90,8 @@ func TestHomeDir(t *testing.T) {
 		{
 			name: "prioritizes --home-dir arg over FUNC_E_HOME env",
 			args: []string{"func-e", "--home-dir", alt1},
-			setup: func() func() {
-				return morerequire.RequireSetenv(t, "FUNC_E_HOME", alt2)
+			setup: func() {
+				t.Setenv("FUNC_E_HOME", alt2)
 			},
 			expected: alt1,
 		},
@@ -104,8 +102,7 @@ func TestHomeDir(t *testing.T) {
 
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.setup != nil {
-				tearDown := tc.setup()
-				defer tearDown()
+				tc.setup()
 			}
 
 			o := &globals.GlobalOpts{}
@@ -119,10 +116,9 @@ func TestHomeDir(t *testing.T) {
 
 func TestPlatformArg(t *testing.T) {
 	type testCase struct {
-		name string
-		args []string
-		// setup returns a tear-down function
-		setup    func() func()
+		name     string
+		args     []string
+		setup    func()
 		expected version.Platform
 	}
 
@@ -130,8 +126,8 @@ func TestPlatformArg(t *testing.T) {
 		{
 			name: "FUNC_E_PLATFORM env",
 			args: []string{"func-e"},
-			setup: func() func() {
-				return morerequire.RequireSetenv(t, "FUNC_E_PLATFORM", "linux/amd64")
+			setup: func() {
+				t.Setenv("FUNC_E_PLATFORM", "linux/amd64")
 			},
 			expected: version.Platform("linux/amd64"),
 		},
@@ -147,8 +143,7 @@ func TestPlatformArg(t *testing.T) {
 
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.setup != nil {
-				tearDown := tc.setup()
-				defer tearDown()
+				tc.setup()
 			}
 
 			o := &globals.GlobalOpts{}
@@ -162,10 +157,9 @@ func TestPlatformArg(t *testing.T) {
 
 func TestEnvoyVersionsURL(t *testing.T) {
 	type testCase struct {
-		name string
-		args []string
-		// setup returns a tear-down function
-		setup    func() func()
+		name     string
+		args     []string
+		setup    func()
 		expected string
 	}
 
@@ -178,8 +172,8 @@ func TestEnvoyVersionsURL(t *testing.T) {
 		{
 			name: "ENVOY_VERSIONS_URL env",
 			args: []string{"func-e"},
-			setup: func() func() {
-				return morerequire.RequireSetenv(t, "ENVOY_VERSIONS_URL", "http://ENVOY_VERSIONS_URL/env")
+			setup: func() {
+				t.Setenv("ENVOY_VERSIONS_URL", "http://ENVOY_VERSIONS_URL/env")
 			},
 			expected: "http://ENVOY_VERSIONS_URL/env",
 		},
@@ -191,8 +185,8 @@ func TestEnvoyVersionsURL(t *testing.T) {
 		{
 			name: "prioritizes --envoy-versions-url arg over ENVOY_VERSIONS_URL env",
 			args: []string{"func-e", "--envoy-versions-url", "http://versions/arg"},
-			setup: func() func() {
-				return morerequire.RequireSetenv(t, "ENVOY_VERSIONS_URL", "http://ENVOY_VERSIONS_URL/env")
+			setup: func() {
+				t.Setenv("ENVOY_VERSIONS_URL", "http://ENVOY_VERSIONS_URL/env")
 			},
 			expected: "http://versions/arg",
 		},
@@ -203,8 +197,7 @@ func TestEnvoyVersionsURL(t *testing.T) {
 
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.setup != nil {
-				tearDown := tc.setup()
-				defer tearDown()
+				tc.setup()
 			}
 
 			o := &globals.GlobalOpts{}

@@ -31,21 +31,6 @@ func RequireSetMtime(t *testing.T, dir, date string) {
 	require.NoError(t, os.Chtimes(dir, td, td))
 }
 
-// RequireSetenv will os.Setenv the given key and value. The function returned reverts to the original.
-func RequireSetenv(t *testing.T, key, value string) func() {
-	previous := os.Getenv(key)
-	err := os.Setenv(key, value)
-	require.NoError(t, err, `error setting env variable %s=%s`, key, value)
-	return func() {
-		if previous != "" {
-			err = os.Setenv(key, previous)
-		} else {
-			err = os.Unsetenv(key)
-		}
-		require.NoError(t, err, `error reverting env variable %s=%s`, key, previous)
-	}
-}
-
 // RequireChdir changes the working directory reverts it on the returned function
 func RequireChdir(t *testing.T, dir string) func() {
 	wd, err := os.Getwd()
