@@ -29,6 +29,8 @@ builds:
       - amd64
       - arm64
     ignore:
+      # Right now, the only arch we support is amd64 because Envoy doesn't yet support arm64 on Windows
+      # https://github.com/envoyproxy/envoy/issues/17572
       - goos: windows
         goarch: arm64
     hooks:
