@@ -1,6 +1,7 @@
 [![Build](https://github.com/tetratelabs/func-e/workflows/build/badge.svg)](https://github.com/tetratelabs/func-e)
 [![Coverage](https://codecov.io/gh/tetratelabs/func-e/branch/master/graph/badge.svg)](https://codecov.io/gh/tetratelabs/func-e)
-[![Go Report Card](https://goreportcard.com/badge/github.com/tetratelabs/func-e)](https://goreportcard.com/report/github.com/tetratelabs/func-e)
+[![Report Card](https://goreportcard.com/badge/github.com/tetratelabs/func-e)](https://goreportcard.com/report/github.com/tetratelabs/func-e)
+[![Downloads](https://img.shields.io/github/downloads/tetratelabs/func-e/total.svg)](https://github.com/tetratelabs/func-e/releases)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
 # func-e
