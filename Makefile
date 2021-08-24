@@ -141,11 +141,7 @@ format: ## Format all Go code
 	@echo "--- format ---"
 	@go run $(licenser) apply -r "Tetrate"
 	@find . -type f -name '*.go' | xargs gofmt -s -w
-	@for f in `find . -name '*.go'`; do \
-	    awk '/^import \($$/,/^\)$$/{if($$0=="")next}{print}' $$f > /tmp/fmt; \
-	    mv /tmp/fmt $$f; \
-	    go run $(goimports) -w -local github.com/tetratelabs/func-e $$f; \
-	done
+	@find . -type f -name '*.go' | xargs go run $(goimports) -w -local github.com/tetratelabs/func-e
 
 # Enforce go version matches what's in go.mod when running `make check` assuming the following:
 # * 'go version' returns output like "go version go1.16 darwin/amd64"
