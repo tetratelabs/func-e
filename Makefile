@@ -15,23 +15,26 @@
 # Make sure we pick up any local overrides.
 -include .makerc
 
-# bingo manages go binaries needed for building the project
-include .bingo/Variables.mk
+goimports := golang.org/x/tools/cmd/goimports@v0.1.5
+golangci_lint := github.com/golangci/golangci-lint/cmd/golangci-lint@v1.42.0
+goreleaser := github.com/goreleaser/goreleaser@v0.175.0
+hugo := github.com/gohugoio/hugo@v0.87.0
+licenser := github.com/liamawhite/licenser@v0.6.0
 
 ##@ Binary distribution
 
 .PHONY: release
-release: $(GORELEASER)
+release:
 	@echo "--- release ---"
-	@$(GORELEASER) release --rm-dist
+	@go run $(goreleaser) release --rm-dist
 
 GOOS := $(shell go env GOOS)
 GOARCH := $(shell go env GOARCH)
 BIN := dist/func-e_$(GOOS)_$(GOARCH)
-bin $(BIN): $(GORELEASER)
+bin $(BIN):
 	@echo "--- bin ---"
 # skip post hooks on bin so that e2e tests don't need to have osslsigncode installed
-	@$(GORELEASER) build --snapshot --single-target --skip-post-hooks --rm-dist
+	@go run $(goreleaser) build --snapshot --single-target --skip-post-hooks --rm-dist
 
 # Requires `wixl` from msitools https://wiki.gnome.org/msitools (or `brew install msitools`)
 # If Windows, you can download from here https://github.com/wixtoolset/wix3/releases
@@ -43,9 +46,9 @@ MSI_VERSION ?= 0.0.1
 # Right now, the only arch we support is amd64 because Envoy doesn't yet support arm64 on Windows
 # https://github.com/envoyproxy/envoy/issues/17572
 # Once that occurs, we will need to set -arch arm64 and bundle accordingly.
-$(WIN_BIN_EXE): $(GORELEASER)
+$(WIN_BIN_EXE):
 	@echo "--- win-bin ---"
-	@GOOS=windows GOARCH=amd64 $(GORELEASER) build --snapshot --single-target --rm-dist
+	@GOOS=windows GOARCH=amd64 @go run $(goreleaser) build --snapshot --single-target --rm-dist
 
 # Default is self-signed while production should be a Digicert signing key
 #
@@ -91,10 +94,10 @@ endif
 
 ##@ Test website
 .PHONY: site
-site: $(HUGO)
+site:
 	@echo "--- site ---"
 	@git submodule update
-	@cd site && $(HUGO) server --disableFastRender -D
+	@cd site && go run $(hugo) server --disableFastRender -D
 
 ##@ Unit and End-to-End tests
 
@@ -123,23 +126,23 @@ coverage:
 	@go tool cover -func coverage.txt
 
 .PHONY: lint
-lint: $(GOLANGCI_LINT) $(LICENSER) $(GORELEASER) .golangci.yml .goreleaser.yaml ## Run the linters
+lint: .golangci.yml .goreleaser.yaml ## Run the linters
 	@echo "--- lint ---"
-	@$(LICENSER) verify -r .
-	@$(GOLANGCI_LINT) run --timeout 5m --config .golangci.yml ./...
-	@$(GORELEASER) check -q
+	@go run $(licenser) verify -r .
+	@go run $(golangci_lint) run --timeout 5m --config .golangci.yml ./...
+	@go run $(goreleaser) check -q
 
 # The goimports tool does not arrange imports in 3 blocks if there are already more than three blocks.
 # To avoid that, before running it, we collapse all imports in one block, then run the formatter.
 .PHONY: format
-format: $(GOIMPORTS) ## Format all Go code
+format: ## Format all Go code
 	@echo "--- format ---"
-	@$(LICENSER) apply -r "Tetrate"
+	@go run $(licenser) apply -r "Tetrate"
 	@find . -type f -name '*.go' | xargs gofmt -s -w
 	@for f in `find . -name '*.go'`; do \
 	    awk '/^import \($$/,/^\)$$/{if($$0=="")next}{print}' $$f > /tmp/fmt; \
 	    mv /tmp/fmt $$f; \
-	    $(GOIMPORTS) -w -local github.com/tetratelabs/func-e $$f; \
+	    go run $(goimports) -w -local github.com/tetratelabs/func-e $$f; \
 	done
 
 # Enforce go version matches what's in go.mod when running `make check` assuming the following:
@@ -167,8 +170,8 @@ check:  ## CI blocks merge until this passes. If this fails, run "make check" lo
 	fi
 
 .PHONY: clean
-clean: $(GOLANGCI_LINT) ## Clean all binaries
+clean: ## Clean all binaries
 	@echo "--- $@ ---"
 	@rm -rf dist coverage.txt
 	@go clean -testcache
-	@$(GOLANGCI_LINT) cache clean
+	@go run $(golangci_lint) cache clean
