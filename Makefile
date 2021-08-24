@@ -48,8 +48,8 @@ MSI_VERSION ?= 0.0.1
 # Once that occurs, we will need to set -arch arm64 and bundle accordingly.
 $(WIN_BIN_EXE):
 	@echo "--- win-bin ---"
-    # We can't pass GOOS=windows GOARCH=amd64 as it ends up interpreted by go, not goreleaser.
-    # Hence, we build all targets even if we only need Windows.
+	# We can't pass GOOS=windows GOARCH=amd64 as it ends up interpreted by go, not goreleaser.
+	# Hence, we build all targets even if we only need Windows.
 	@go run $(goreleaser) build --snapshot --rm-dist
 
 # Default is self-signed while production should be a Digicert signing key
