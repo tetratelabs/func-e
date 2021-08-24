@@ -28,6 +28,11 @@ builds:
     goarch:
       - amd64
       - arm64
+    ignore:
+      # Right now, the only arch we support is amd64 because Envoy doesn't yet support arm64 on Windows
+      # https://github.com/envoyproxy/envoy/issues/17572
+      - goos: windows
+        goarch: arm64
     hooks:
       # Work around lack of conditional hooks in goreleaser 1.x. The alternative to replicate the
       # build is worse as IDs change paths. See https://github.com/goreleaser/goreleaser/issues/459
