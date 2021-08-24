@@ -28,6 +28,9 @@ builds:
     goarch:
       - amd64
       - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
     hooks:
       # Work around lack of conditional hooks in goreleaser 1.x. The alternative to replicate the
       # build is worse as IDs change paths. See https://github.com/goreleaser/goreleaser/issues/459
