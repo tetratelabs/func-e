@@ -14,6 +14,6 @@ help: ## Describe how to use each target
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {sub("\\\\n",sprintf("\n%22c"," "), $$2);printf "$(YELLOW)%-20s$(RESET) $(GREEN)%s$(RESET)\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 test: ## Run all unit tests
-	@echo "${YELLOW}Running unit tests${RESET}"
+	@echo "${YELLOW}running unit tests${RESET}"
 	@go test . ./internal/...
 	@echo "${GREEN}✔ successfully ran unit tests${RESET}\n"
