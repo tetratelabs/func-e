@@ -20,7 +20,6 @@ help: ## Describe how to use each target
 	@printf "$(ansi_func_e)$(f_white)\n"
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {sub("\\\\n",sprintf("\n%22c"," "), $$2);printf "$(ansi_format_dark)", $$1, $$2}' $(MAKEFILE_LIST)
 
-
 test: ## Run all unit tests
 	@printf "$(ansi_format_dark)" test "running unit tests"
 	@go test . ./internal/...
