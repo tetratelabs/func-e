@@ -3,8 +3,8 @@ To run Envoy, execute `func-e run -c your_envoy_config.yaml`. This
 downloads and installs the latest version of Envoy for you.
 
 To list versions of Envoy you can use, execute `func-e versions -a`. To
-choose one, invoke `func-e use 1.19.0`. This installs into
-`$FUNC_E_HOME/versions/1.19.0`, if not already present.
+choose one, invoke `func-e use 1.19.1`. This installs into
+`$FUNC_E_HOME/versions/1.19.1`, if not already present.
 
 You may want to override `$ENVOY_VERSIONS_URL` to supply custom builds or
 otherwise control the source of Envoy binaries. When overriding, validate
