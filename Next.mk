@@ -30,7 +30,7 @@ ansi_format_bright := $(f_white)$(f_bright_magenta)%-10s$(ansi_reset) $(f_white)
 # This formats help statements in ANSI colors. To hide a target from help, don't comment it with a trailing '##'.
 help: ## Describe how to use each target
 	@printf "$(ansi_func_e)$(f_white)\n"
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {sub("\\\\n",sprintf("\n%22c"," "), $$2);printf "$(ansi_format_dark)", $$1, $$2}' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*?## "} /^[0-9a-zA-Z_-]+:.*?## / {sub("\\\\n",sprintf("\n%22c"," "), $$2);printf "$(ansi_format_dark)", $$1, $$2}' $(MAKEFILE_LIST)
 
 build: $(current_binary) ## Build the func-e binary
 
