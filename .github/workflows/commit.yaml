@@ -79,13 +79,13 @@ jobs:
         run: make check
 
       - name: "Run unit tests"
-        run: make test
+        run: make -f Next.mk test
 
       - name: "Build the `func-e` binary"
-        run: make bin
+        run: make -f Next.mk build
 
       - name: "Run e2e tests using the `func-e` binary"
-        run: make e2e
+        run: make -f Next.mk e2e
 
       - name: "Generate coverage report"  # only once (not per OS)
         if: runner.os == 'Linux'
@@ -139,4 +139,4 @@ jobs:
           restore-keys: test-${{ runner.os }}-envoy-
 
       - name: "Run e2e tests using the `func-e` binary"
-        run: make e2e
+        run: make -f Next.mk e2e
