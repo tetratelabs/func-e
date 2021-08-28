@@ -15,12 +15,14 @@ on:
       - 'packaging/msi/*'
       - 'packaging/icon@48w.ico'
       - '.github/workflows/msi.yaml'
+      - 'Next.mk'
   pull_request:  # We also run tests on pull requests targeted at the master branch
     branches: master
     paths:
       - 'packaging/msi/*'
       - 'packaging/icon@48w.ico'
       - '.github/workflows/msi.yaml'
+      - 'Next.mk'
   # workflow_dispatch will let us manually trigger the workflow from GitHub actions dashboard.
   # For example, you can try to build a branch without raising a pull request.
   # See https://docs.github.com/en/free-pro-team@latest/actions/managing-workflow-runs/manually-running-a-workflow
@@ -48,10 +50,10 @@ jobs:
           - os: windows-latest
             setup: |
               echo "$WIX\\bin" >> $GITHUB_PATH
-              osslsigncode_version=2.1
+              osslsigncode_version=2.2
               gh release download -R mtrojnar/osslsigncode ${osslsigncode_version} -p '*windows.zip'
-              unzip -qq *.zip -d ${HOME} && rm *.zip
-              echo "${HOME}\\osslsigncode_${osslsigncode_version}_windows" >> $GITHUB_PATH
+              unzip -qq *.zip -d ${HOME}/osslsigncode && rm *.zip
+              echo "${HOME}\\osslsigncode" >> $GITHUB_PATH
 
     steps:
       - name: "Setup msitools, wixtoolset, osslsigncode"
@@ -77,7 +79,7 @@ jobs:
           restore-keys: test-${{ runner.os }}-${{ env.GO_VERSION }}-go-
 
       - name: "Build Windows Installer (MSI)"
-        run: make msi
+        run: make -f Next.mk dist
 
       # This only checks the installer when built on Windows as it is simpler than switching OS.
       # refreshenv is from choco, and lets you reload ENV variables (used here for PATH).

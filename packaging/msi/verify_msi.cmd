@@ -15,7 +15,7 @@
 :: verify_msi is written in cmd because msiexec doesn't agree with git-bash
 :: See https://github.com/git-for-windows/git/issues/2526
 @echo off
-if not defined MSI_FILE set MSI_FILE=dist\func-e_windows_amd64\func-e.msi
+if not defined MSI_FILE set MSI_FILE=dist\func-e_dev_windows_amd64.msi
 echo installing %MSI_FILE%
 msiexec /i %MSI_FILE% /qn || exit /b 1
 

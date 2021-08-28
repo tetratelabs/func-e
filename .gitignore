@@ -1,5 +1,6 @@
 /.idea
 /coverage.txt
+/build/
 /dist/
 
 # intermediate files used to create Windows Installer (func-e.msi)
