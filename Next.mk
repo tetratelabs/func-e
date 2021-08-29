@@ -109,7 +109,7 @@ $(checksums): $(archives) $(packages)
 
 # dist generates the assets that attach to a release
 # Ex. https://github.com/tetratelabs/func-e/releases/tag/v$(VERSION)
-dist: $(archives) $(archives) $(packages) $(checksums) ## generates release assets
+dist: $(archives) $(packages) $(checksums) ## generates release assets
 
 # this makes a marker file ending in .signed to avoid repeatedly calling codesign
 %.signed: %
