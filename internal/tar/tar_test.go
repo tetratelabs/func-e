@@ -180,6 +180,14 @@ func TestUntarAndVerify_InvalidSignature(t *testing.T) {
 	require.EqualError(t, err, `expected SHA-256 sum "cafebabe", but have "0ff74a47ceef95ffaf6e629aac7e54d262300e5ee318830b41da1f809fc71afd"`)
 }
 
+// ignoreGroupWritePolicyMask is used to normalize the file permission by ignoring the group's write
+// policy. This is required since in some platforms with certain conditions: for example Linux with
+// a session of a normal user, has default umask 002 resulting changes in group write permission for
+// files checked from remote repository (e.g. stat-ing internal/tar/testdata/foo/bar.sh gives
+// 0775/-rwxrwxr-x). Using root user the default umask value is 022, gives bar.sh 0755/-rwxr-xr-x).
+// Reference: https://www.cyberciti.biz/tips/understanding-linux-unix-umask-value-usage.html.
+const ignoreGroupWritePolicyMask = 0x1ef // 111101111 in binary.
+
 // requireTestFiles ensures the given directory includes the testdata/foo directory
 func requireTestFiles(t *testing.T, dst string) {
 	// NOTE: this will not include empty.txt as we don't want to clutter the tar with empty files
@@ -188,7 +196,9 @@ func requireTestFiles(t *testing.T, dst string) {
 		require.NoError(t, e)
 		have, e := os.Stat(filepath.Join(dst, p))
 		require.NoError(t, e)
-		require.Equal(t, want.Mode(), have.Mode())
+
+		// Comparing files by ignoring group write permission bit.
+		require.Equal(t, want.Mode()&ignoreGroupWritePolicyMask, have.Mode()&ignoreGroupWritePolicyMask)
 	}
 }
 
