@@ -28,4 +28,4 @@ before_install: |  # Prevent test build of a documentation or GitHub Actions onl
   fi
   make check || travis_terminate 1
 
-script: make -f Next.mk e2e
+script: make e2e

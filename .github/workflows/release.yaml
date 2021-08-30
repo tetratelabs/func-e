@@ -42,26 +42,23 @@ jobs:
       - name: "Install GNOME msitools (wixl) and osslsigncode"
         run: sudo apt update -qq && sudo apt install -qq -y wixl osslsigncode
 
-      - name: "Run GoReleaser"
+      - name: "Make release assets"
         run: make release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WINDOWS_CODESIGN_P12: ${{ steps.p12.outputs.filePath }}
           WINDOWS_CODESIGN_PASSWORD: ${{ secrets.WINDOWS_CODESIGN_PASSWORD }}
 
-      - name: "Add Windows installer (func-e.msi) to the draft release"
-        # TODO: append the sha256sum of the msi to the checksums.txt and re-upload
-        run: |  # manually until https://github.com/goreleaser/goreleaser/issues/1295
+      # The release notable has a discussion channel to avoid people having to
+      # raise issues to ask about it.
+      - name: "Create draft release"
+        run: |
           tag="${GITHUB_REF#refs/tags/}"
-          version=${tag#v}
-          MSI_VERSION=${version} make msi
-          msi=dist/func-e_${version}_windows_amd64.msi
-          mv dist/func-e_windows_amd64/func-e.msi ${msi}
-          gh release upload "${tag}" "${msi}"
+          ./.github/release_notes.sh ${tag} > release-notes.txt
+          gh release create ${tag} --draft \
+            --title ${tag} --notes-file release-notes.txt \
+            --discussion-category "General" ./dist/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          WINDOWS_CODESIGN_P12: ${{ steps.p12.outputs.filePath }}
-          WINDOWS_CODESIGN_PASSWORD: ${{ secrets.WINDOWS_CODESIGN_PASSWORD }}
 
   e2e:
     needs: func-e

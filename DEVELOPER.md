@@ -4,6 +4,8 @@
 
 ### How to Build
 
+Make sure you are running the same version of go as indicated in [go.mod](go.mod).
+
 #### func-e binary
 
 Run:
@@ -36,3 +38,17 @@ Run below, then view with http://localhost:1313/
 ```shell
 make site
 ```
+
+### How to generate release assets
+
+To generate release assets, run the below:
+```shell
+make dist
+```
+
+The contents will be in the 'dist/' folder and include the same files as a
+[release](https://github.com/tetratelabs/func-e/releases) would, except
+signatures would not be the same as production.
+
+Note: this step requires prerequisites for Windows packaging to work. Look at
+[msi.yaml](.github/workflows/msi.yaml) for what's needed per-platform.

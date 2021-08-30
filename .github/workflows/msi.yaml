@@ -79,7 +79,7 @@ jobs:
           restore-keys: test-${{ runner.os }}-${{ env.GO_VERSION }}-go-
 
       - name: "Build Windows Installer (MSI)"
-        run: make -f Next.mk dist
+        run: make dist
 
       # This only checks the installer when built on Windows as it is simpler than switching OS.
       # refreshenv is from choco, and lets you reload ENV variables (used here for PATH).
