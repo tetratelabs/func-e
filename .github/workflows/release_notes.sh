@@ -9,7 +9,7 @@ range="${prior_tag}..${tag}"
 
 git config log.mailmap true
 changelog=$(git log --format='%h %s %aN, %(trailers:key=co-authored-by)' "${range}")
-contributors=$(git shortlog -s --group=author --group=trailer:co-authored-by "${range}" | cut -f 2)
+contributors=$(git shortlog -s --group=author --group=trailer:co-authored-by "${range}" | cut -f 2 |sort)
 
 # strip the v off the tag name more shell portable than ${tag:1}
 version=$(echo "${tag}" | cut -c2-100) || exit 1
