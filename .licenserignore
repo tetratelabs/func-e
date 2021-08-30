@@ -30,3 +30,4 @@ site/
 # https://github.com/liamawhite/licenser/issues/14
 *.ps1
 *.cmd
+.mailmap
