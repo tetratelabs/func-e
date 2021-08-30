@@ -23,7 +23,7 @@
 # winget validate --manifest ${manifest_path}
 
 version=${1:-0.0.1}
-msi_file=${2:-dist/func-e_windows_amd64/func-e.msi}
+msi_file=${2:-dist/func-e_dev_windows_amd64.msi}
 
 case $(uname -s) in
 CYGWIN* | MSYS* | MINGW*)
