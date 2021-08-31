@@ -26,7 +26,7 @@ When introducing changes to the binary source code, it is required to rebuild it
 One way to do it is by running `clean` target before `e2e`:
 
 ```bash
-make clean && make e2e
+make clean e2e
 ```
 
 It is also a good idea to override `FUNC_E_HOME` when running e2e, since by default it uses `$HOME/.func-e`.
