@@ -16,19 +16,6 @@ go test -parallel 1 -v -failfast ./e2e
 When run via `make`, `func-e` is built on-demand by `$(current_binary)` target.
 Ex. `$PWD/build/func-e_darwin_amd64/func-e`
 
-```bash
-make e2e
-```
-
-When introducing changes to the binary source code, it is required to rebuild it before running the
-`e2e` make target.
-
-One way to do it is by running `clean` target before `e2e`:
-
-```bash
-make clean e2e
-```
-
 It is also a good idea to override `FUNC_E_HOME` when running e2e, since by default it uses `$HOME/.func-e`.
 
 ```bash
