@@ -59,6 +59,7 @@ non_windows_platforms := darwin_amd64 darwin_arm64 linux_amd64 linux_arm64
 # TODO: arm64 on Windows https://github.com/envoyproxy/envoy/issues/17572
 windows_platforms := windows_amd64
 
+# Excludes all *_test.go files.
 gocodes := [!_test].go
 sources := $(wildcard internal/*/*$(gocodes) internal/*/*/*$(gocodes))
 
