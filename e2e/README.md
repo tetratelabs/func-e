@@ -2,7 +2,7 @@
 
 This directory holds the end-to-end tests for `func-e`.
 
-By default, end-to-end (e2e) tests verify a `func-e` binary built from [main.go](../main.go)
+By default, end-to-end (e2e) tests verify a `func-e` binary built from [main.go](../main.go).
 
 ## Using native go commands:
 End-to-end tests default to look for `func-e` (or `func-e.exe` in Windows), in the project root (current directory).
@@ -13,11 +13,13 @@ go test -parallel 1 -v -failfast ./e2e
 ```
 
 ## Using `make`
-When run via `make`, `func-e` is built on-demand by `goreleaser` (implicitly `make bin`)
-Ex. `$PWD/dist/func-e_darwin_amd64/func-e`
+When run via `make`, `func-e` is built on-demand by `$(current_binary)` target (same as `make build`).
+Ex. `$PWD/build/func-e_darwin_amd64/func-e`
+
+It is also a good idea to override `FUNC_E_HOME` when running e2e, since by default it uses `$HOME/.func-e`.
 
 ```bash
-make e2e
+FUNC_E_HOME=/tmp/test make e2e
 ```
 
 ## Envoy version list
@@ -47,4 +49,4 @@ For example, if /internal used "archiver/v3" accidentally, it would bloat the bi
 please be careful and only add dependencies absolutely needed.
 
 If go.mod ever supports test-only scope, this risk would go away, because IDEs could hide test dependencies from main
-auto-complete suggestions. However, it is unlikely go will allow a test scope: https://github.com/golang/go/issues/26913
+auto-complete suggestions. However, it is unlikely go will allow a test scope: https://github.com/golang/go/issues/26913.
