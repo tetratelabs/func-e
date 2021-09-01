@@ -39,7 +39,7 @@ func InstallIfNeeded(ctx context.Context, o *globals.GlobalOpts, v version.Versi
 	switch {
 	case os.IsNotExist(err):
 		var ev version.ReleaseVersions // Get version metadata for what we will install
-		ev, err = FuncEVersions(ctx, o.EnvoyVersionsURL, o.Platform, v)
+		ev, err = o.FuncEVersions.Get(ctx)
 		if err != nil {
 			return "", err
 		}

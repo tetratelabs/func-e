@@ -26,6 +26,7 @@ import (
 	"github.com/urfave/cli/v2"
 
 	rootcmd "github.com/tetratelabs/func-e/internal/cmd"
+	"github.com/tetratelabs/func-e/internal/envoy"
 	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/test"
 	"github.com/tetratelabs/func-e/internal/version"
@@ -252,6 +253,8 @@ func setupTest(t *testing.T) (*globals.GlobalOpts, func()) {
 	versionsServer := test.RequireEnvoyVersionsTestServer(t, version.LastKnownEnvoy)
 	result.EnvoyVersionsURL = versionsServer.URL + "/envoy-versions.json"
 	tearDown = append(tearDown, versionsServer.Close)
+
+	result.FuncEVersions = envoy.NewFuncEVersions(result.EnvoyVersionsURL, result.Platform, result.Version)
 
 	return &result, func() {
 		for i := len(tearDown) - 1; i >= 0; i-- {

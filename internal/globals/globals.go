@@ -63,6 +63,8 @@ type GlobalOpts struct {
 	Out io.Writer
 	// The platform to target for the Envoy install.
 	Platform version.Platform
+	//
+	FuncEVersions version.FuncEVersions
 }
 
 // Logf is used for shared functions that log conditionally on GlobalOpts.Quiet
@@ -87,4 +89,6 @@ var (
 	DefaultHomeDir = moreos.ReplacePathSeparator("${HOME}/.func-e")
 	// EnvoyVersionPattern is used to validate versions and is the same pattern as release-versions-schema.json.
 	EnvoyVersionPattern = regexp.MustCompile(`^[1-9][0-9]*\.[0-9]+\.[0-9]+(_debug)?$`)
+	// EnvoyMinorVersionPattern is EnvoyVersionPattern but with optional patch and _debug components.
+	EnvoyMinorVersionPattern = regexp.MustCompile(`^[1-9][0-9]*\.[0-9]+(\.[0-9]+)?(_debug)?$`)
 )
