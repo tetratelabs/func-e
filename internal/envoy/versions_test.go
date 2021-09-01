@@ -24,7 +24,7 @@ import (
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
-func TestFuncEVersions_FindLatestVersions(t *testing.T) {
+func TestFuncEVersions_FindLatestPatch(t *testing.T) {
 	type testCase struct {
 		name     string
 		input    version.Version
