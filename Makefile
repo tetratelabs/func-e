@@ -59,8 +59,12 @@ non_windows_platforms := darwin_amd64 darwin_arm64 linux_amd64 linux_arm64
 # TODO: arm64 on Windows https://github.com/envoyproxy/envoy/issues/17572
 windows_platforms := windows_amd64
 
-$(build_dir)/func-e_%/func-e: main.go
-	$(call go-build, $@, $^)
+# Excludes all *_test.go files.
+gocodes := [!_test].go
+sources := $(wildcard internal/*/*$(gocodes) internal/*/*/*$(gocodes))
+
+$(build_dir)/func-e_%/func-e: main.go $(sources)
+	$(call go-build, $@, $<)
 
 $(dist_dir)/func-e_$(VERSION)_%.tar.gz: $(build_dir)/func-e_%/func-e
 	@printf "$(ansi_format_dark)" tar.gz "tarring $@"
@@ -68,8 +72,8 @@ $(dist_dir)/func-e_$(VERSION)_%.tar.gz: $(build_dir)/func-e_%/func-e
 	@tar --strip-components 2 -cpzf $@ $<
 	@printf "$(ansi_format_bright)" tar.gz "ok"
 
-$(build_dir)/func-e_%/func-e.exe: main.go
-	$(call go-build, $@, $^)
+$(build_dir)/func-e_%/func-e.exe: main.go $(sources)
+	$(call go-build, $@, $<)
 
 $(dist_dir)/func-e_$(VERSION)_%.zip: $(build_dir)/func-e_%/func-e.exe.signed
 	@printf "$(ansi_format_dark)" zip "zipping $@"
