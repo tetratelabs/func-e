@@ -13,7 +13,7 @@ go test -parallel 1 -v -failfast ./e2e
 ```
 
 ## Using `make`
-When run via `make`, `func-e` is built on-demand by `$(current_binary)` target.
+When run via `make`, `func-e` is built on-demand by `$(current_binary)` target (same as `make build`).
 Ex. `$PWD/build/func-e_darwin_amd64/func-e`
 
 It is also a good idea to override `FUNC_E_HOME` when running e2e, since by default it uses `$HOME/.func-e`.
