@@ -1,0 +1,24 @@
+# check https://nfpm.goreleaser.com/configuration.html for detailed usage
+name: func-e
+arch: amd64
+platform: linux
+version: v0.0.1
+section: default
+maintainer: Tetrate Labs <tetratelabs@tetrate.io>
+vendor: Tetrate
+description: func-e makes running Envoy® easy
+homepage: https://func-e.io
+license: Apache-2.0
+provides:
+  - func-e
+contents:
+  - src: build/func-e_linux_amd64/func-e
+    dst: /usr/bin/func-e
+deb:
+  signature:
+    key_file: ${NFPM_KEYFILE}
+    key_id: ${NFPM_KEYID}
+rpm:
+  signature:
+    key_file: ${NFPM_KEYFILE}
+    key_id: ${NFPM_KEYID}
