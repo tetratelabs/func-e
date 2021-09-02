@@ -161,7 +161,7 @@ func getVersionsRange(stdout, minor string) (max, min string) {
 			rows = append(rows, row[:strings.Index(row, " ")])
 		}
 	}
-	min = rows[0]
-	max = rows[1]
+	min = rows[len(rows)-2]
+	max = rows[len(rows)-1]
 	return
 }
