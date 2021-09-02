@@ -15,9 +15,12 @@
 package e2e
 
 import (
+	"bufio"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -67,12 +70,19 @@ func TestFuncEUse_UnknownVersion(t *testing.T) {
 }
 
 func TestFuncEUse_MinorVersion(t *testing.T) {
-	// The initial version.
-	baseVersion := version.Version("1.18.3")
-	// The intended minor version to be installed.
+	// The intended minor version to be installed. This version is known to have darwin, linux, and windows binaries.
 	minorVersion := version.Version("1.18")
+
+	allVersions, _, err := funcEExec("versions", "-a")
+	require.NoError(t, err)
+
+	base, upgraded := getVersionsRange(allVersions, string(minorVersion))
+	// The initial version.
+	baseVersion := version.Version(base)
 	// The upgraded version.
-	upgradedVersion := version.Version("1.18.4")
+	upgradedVersion := version.Version(upgraded)
+
+	fmt.Println()
 
 	homeDir := t.TempDir()
 
@@ -93,7 +103,7 @@ func TestFuncEUse_MinorVersion(t *testing.T) {
 		require.Equal(t, version.LastKnownEnvoy, version.Version(f))
 	})
 
-	t.Run("install base version", func(t *testing.T) {
+	t.Run(fmt.Sprintf("install %s as base version", base), func(t *testing.T) {
 		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", string(baseVersion))
 
 		require.NoError(t, err)
@@ -110,7 +120,7 @@ func TestFuncEUse_MinorVersion(t *testing.T) {
 		require.Equal(t, baseVersion, version.Version(f))
 	})
 
-	t.Run("install upgraded version", func(t *testing.T) {
+	t.Run(fmt.Sprintf("install %s as upgraded version", upgraded), func(t *testing.T) {
 		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", string(minorVersion))
 
 		require.NoError(t, err)
@@ -141,4 +151,19 @@ func TestFuncEUse_MinorVersion(t *testing.T) {
 		require.Empty(t, stderr)
 		require.NoError(t, err)
 	})
+}
+
+// getVersionsRange returns the latest patch of a minor version and the one before it.
+func getVersionsRange(stdout, minor string) (max, min string) {
+	s := bufio.NewScanner(strings.NewReader(stdout))
+	rows := []string{}
+	for s.Scan() {
+		row := strings.TrimSpace(s.Text())
+		if strings.HasPrefix(row, minor+".") {
+			rows = append(rows, row[:strings.Index(row, " ")])
+		}
+	}
+	min = rows[0]
+	max = rows[1]
+	return
 }
