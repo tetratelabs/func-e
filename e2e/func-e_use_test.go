@@ -67,6 +67,13 @@ func TestFuncEUse_UnknownVersion(t *testing.T) {
 }
 
 func TestFuncEUse_MinorVersion(t *testing.T) {
+	// The initial version.
+	baseVersion := version.Version("1.18.3")
+	// The intended minor version to be installed.
+	minorVersion := version.Version("1.18")
+	// The upgraded version.
+	upgradedVersion := version.Version("1.18.4")
+
 	homeDir := t.TempDir()
 
 	t.Run("install last known", func(t *testing.T) {
@@ -86,7 +93,6 @@ func TestFuncEUse_MinorVersion(t *testing.T) {
 		require.Equal(t, version.LastKnownEnvoy, version.Version(f))
 	})
 
-	baseVersion := version.Version("1.12.0")
 	t.Run("install base version", func(t *testing.T) {
 		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", string(baseVersion))
 
@@ -104,11 +110,6 @@ func TestFuncEUse_MinorVersion(t *testing.T) {
 		require.Equal(t, baseVersion, version.Version(f))
 	})
 
-	// The intended minor version to be installed.
-	minorVersion := version.Version("1.12")
-
-	// This version is EOL'd based on: https://github.com/envoyproxy/envoy/blob/main/RELEASES.md#release-schedule.
-	upgradedVersion := version.Version("1.12.7")
 	t.Run("install upgraded version", func(t *testing.T) {
 		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", string(minorVersion))
 
