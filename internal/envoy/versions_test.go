@@ -16,7 +16,6 @@ package envoy
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -66,7 +65,7 @@ func TestFuncEVersions_FindLatestPatch(t *testing.T) {
 			tester := newFuncEVersionsTester(tc.versions)
 			have, err := tester.feV.FindLatestPatch(ctx, tc.input)
 			if tc.want == "" {
-				require.Error(t, fmt.Errorf("couldn't find latest version for %s", tc.input))
+				require.Errorf(t, err, "couldn't find latest version for %s", tc.input)
 			} else {
 				require.NoError(t, err)
 				require.Equal(t, have, tc.want)
