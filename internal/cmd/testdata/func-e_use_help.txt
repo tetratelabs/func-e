@@ -7,10 +7,13 @@ USAGE:
 DESCRIPTION:
    The '[version]' is from the "versions -a" command.
    The Envoy [version] installs on-demand into $FUNC_E_HOME/versions/[version]
-   if needed.
+   if needed. You may also exclude the patch component of the [version]
+   to use the latest patch version or to download the binary if it is
+   not already downloaded.
    
    This updates $PWD/.envoy-version or $FUNC_E_HOME/version with [version],
    depending on which is present.
    
    Example:
    $ func-e use 1.99.0
+   $ func-e use 1.99

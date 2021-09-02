@@ -40,13 +40,16 @@ func NewUseCmd(o *globals.GlobalOpts) *cli.Command {
 		ArgsUsage: "[version]",
 		Description: moreos.Sprintf(`The '[version]' is from the "versions -a" command.
 The Envoy [version] installs on-demand into `+versionsDir+`[version]
-if needed.
+if needed. You may also exclude the patch component of the [version]
+to use the latest patch version or to download the binary if it is
+not already downloaded.
 
 This updates %s or %s with [version],
 depending on which is present.
 
 Example:
-$ func-e use %s`, currentVersionWorkingDirFile, currentVersionHomeDirFile, lastKnownEnvoy),
+$ func-e use %s
+$ func-e use %s`, currentVersionWorkingDirFile, currentVersionHomeDirFile, lastKnownEnvoy, lastKnownEnvoy[:strings.LastIndex(string(lastKnownEnvoy), ".")]),
 		Before: validateVersionArg,
 		Action: func(c *cli.Context) error {
 			v := version.Version(c.Args().First())
