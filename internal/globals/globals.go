@@ -53,7 +53,9 @@ type GlobalOpts struct {
 	// EnvoyVersionsURL is the path to the envoy-versions.json. Defaults to DefaultEnvoyVersionsURL
 	EnvoyVersionsURL string
 	// EnvoyVersion is the default version of Envoy to run. Defaults to the contents of "$HomeDir/versions/version".
-	// When that file is missing, it is generated from ".latestVersion" from the EnvoyVersionsURL.
+	// When that file is missing, it is generated from ".latestVersion" from the EnvoyVersionsURL. Its
+	// value can be in full version major.minor.patch format, e.g. 1.18.1 or without patch component,
+	// major.minor, e.g. 1.18.
 	EnvoyVersion version.Version
 	// HomeDir is an absolute path which most importantly contains "versions" installed from EnvoyVersionsURL. Defaults to DefaultHomeDir
 	HomeDir string
