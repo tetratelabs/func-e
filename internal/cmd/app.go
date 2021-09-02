@@ -89,7 +89,9 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 		if err := setEnvoyVersionsURL(o, envoyVersionsURL); err != nil {
 			return err
 		}
-		o.FuncEVersions = envoy.NewFuncEVersions(o.EnvoyVersionsURL, o.Platform, o.Version)
+		if o.FuncEVersions == nil {
+			o.FuncEVersions = envoy.NewFuncEVersions(o.EnvoyVersionsURL, o.Platform, o.Version)
+		}
 		return nil
 	}
 

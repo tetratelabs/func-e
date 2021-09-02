@@ -91,4 +91,7 @@ var (
 	EnvoyVersionPattern = regexp.MustCompile(`^[1-9][0-9]*\.[0-9]+\.[0-9]+(_debug)?$`)
 	// EnvoyMinorVersionPattern is EnvoyVersionPattern but with optional patch and _debug components.
 	EnvoyMinorVersionPattern = regexp.MustCompile(`^[1-9][0-9]*\.[0-9]+(\.[0-9]+)?(_debug)?$`)
+	// EnvoyStrictMinorVersionPattern is used to validated minor versions. A Minor version is just
+	// like envoy.Version format, except missing the patch. For example: 1.18 or 1.20_debug.
+	EnvoyStrictMinorVersionPattern = regexp.MustCompile(`^[1-9][0-9]*\.[0-9]+(_debug)?$`)
 )
