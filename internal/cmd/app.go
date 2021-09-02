@@ -24,6 +24,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 
+	"github.com/tetratelabs/func-e/internal/envoy"
 	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/version"
@@ -85,7 +86,11 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 		if err := setHomeDir(o, homeDir); err != nil {
 			return err
 		}
-		return setEnvoyVersionsURL(o, envoyVersionsURL)
+		if err := setEnvoyVersionsURL(o, envoyVersionsURL); err != nil {
+			return err
+		}
+		o.FuncEVersions = envoy.NewFuncEVersions(o.EnvoyVersionsURL, o.Platform, o.Version)
+		return nil
 	}
 
 	app.HideHelp = true
