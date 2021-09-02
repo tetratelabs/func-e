@@ -82,8 +82,6 @@ func TestFuncEUse_MinorVersion(t *testing.T) {
 	// The upgraded version.
 	upgradedVersion := version.Version(upgraded)
 
-	fmt.Println()
-
 	homeDir := t.TempDir()
 
 	t.Run("install last known", func(t *testing.T) {
