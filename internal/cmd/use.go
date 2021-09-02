@@ -49,7 +49,8 @@ depending on which is present.
 
 Example:
 $ func-e use %s
-$ func-e use %s`, currentVersionWorkingDirFile, currentVersionHomeDirFile, lastKnownEnvoy, lastKnownEnvoy[:strings.LastIndex(string(lastKnownEnvoy), ".")]),
+$ func-e use %s`, currentVersionWorkingDirFile, currentVersionHomeDirFile, lastKnownEnvoy,
+			lastKnownEnvoy[:strings.LastIndex(string(lastKnownEnvoy), ".")]),
 		Before: validateVersionArg,
 		Action: func(c *cli.Context) error {
 			v := version.Version(c.Args().First())
