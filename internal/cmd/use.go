@@ -51,7 +51,9 @@ Example:
 $ func-e use %s
 $ func-e use %s`, currentVersionWorkingDirFile, currentVersionHomeDirFile, lastKnownEnvoy,
 			lastKnownEnvoy[:strings.LastIndex(string(lastKnownEnvoy), ".")]),
-		Before: validateVersionArg,
+		Before: func(c *cli.Context) error {
+			return validateVersionArg(c, o)
+		},
 		Action: func(c *cli.Context) error {
 			v := version.Version(c.Args().First())
 			latest := v
@@ -73,14 +75,15 @@ $ func-e use %s`, currentVersionWorkingDirFile, currentVersionHomeDirFile, lastK
 	}
 }
 
-func validateVersionArg(c *cli.Context) error {
+func validateVersionArg(c *cli.Context, o *globals.GlobalOpts) error {
 	if c.NArg() == 0 {
 		return NewValidationError("missing [version] argument")
 	}
 	v := c.Args().First()
 	if matched := globals.EnvoyMinorVersionPattern.MatchString(v); !matched {
-		return NewValidationError("invalid [version] argument: %q should look like %q or %q", v, version.LastKnownEnvoy,
-			version.LastKnownMinorVersionEnvoy)
+		lastKnownEnvoy := getLastKnownEnvoy(o)
+		return NewValidationError("invalid [version] argument: %q should look like %q or %q", v, lastKnownEnvoy,
+			lastKnownEnvoy[:strings.LastIndex(string(lastKnownEnvoy), ".")])
 	}
 	return nil
 }

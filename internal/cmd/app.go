@@ -92,7 +92,7 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 			return err
 		}
 		// The o.FuncEVersions may be initialized before this, and that can only happen in tests.
-		if o.FuncEVersions == nil {
+		if o.FuncEVersions == nil { // not overridden for tests
 			o.FuncEVersions = envoy.NewFuncEVersions(o.EnvoyVersionsURL, o.Platform, o.Version)
 		}
 		return nil
