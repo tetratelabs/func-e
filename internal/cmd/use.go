@@ -96,8 +96,9 @@ func getLatestInstalledPatch(o *globals.GlobalOpts, minorVersion version.Version
 		}
 		return rows[i].releaseDate > rows[j].releaseDate
 	})
+	prefix := string(minorVersion) + "."
 	for i := range rows {
-		if strings.HasPrefix(string(rows[i].version), string(minorVersion)+".") {
+		if strings.HasPrefix(string(rows[i].version), prefix) {
 			return rows[i].version, nil
 		}
 	}
