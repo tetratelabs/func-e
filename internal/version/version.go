@@ -15,7 +15,10 @@
 // Package version declares types for each string to keep strict coupling to the JSON schema
 package version
 
-import _ "embed" // We embed the Envoy version so that we can cache it in CI
+import (
+	_ "embed" // We embed the Envoy version so that we can cache it in CI
+	"strings"
+)
 
 //go:embed last_known_envoy.txt
 var lastKnownEnvoy string
@@ -28,6 +31,9 @@ var lastKnownEnvoy string
 // built, a more recent "latestVersion" can be used, even if the help statements only know about the one from compile
 // time.
 var LastKnownEnvoy = Version(lastKnownEnvoy)
+
+// LastKnownMinorVersionEnvoy is LastKnownEnvoy wihout the patch component.
+var LastKnownMinorVersionEnvoy = Version(lastKnownEnvoy[:strings.LastIndex(lastKnownEnvoy, ".")])
 
 // ReleaseVersions primarily maps Version to TarballURL and tracks the LatestVersion
 type ReleaseVersions struct {

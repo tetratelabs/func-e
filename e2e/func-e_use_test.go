@@ -15,9 +15,12 @@
 package e2e
 
 import (
+	"bufio"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -64,4 +67,112 @@ func TestFuncEUse_UnknownVersion(t *testing.T) {
 	require.Empty(t, stdout)
 	require.Equal(t, moreos.Sprintf(`error: couldn't find version "%s" for platform "%s/%s"
 `, v, runtime.GOOS, runtime.GOARCH), stderr)
+}
+
+func TestFuncEUse_UnknownMinorVersion(t *testing.T) {
+	v := "1.1"
+	stdout, stderr, err := funcEExec("use", v)
+
+	require.EqualError(t, err, "exit status 1")
+	require.Empty(t, stdout)
+	require.Equal(t, moreos.Sprintf(`error: couldn't find the latest patch for "%s" for platform "%s/%s"
+`, v, runtime.GOOS, runtime.GOARCH), stderr)
+}
+
+func TestFuncEUse_MinorVersion(t *testing.T) {
+	// The intended minor version to be installed. This version is known to have darwin, linux, and windows binaries.
+	minorVersion := version.Version("1.18")
+
+	allVersions, _, err := funcEExec("versions", "-a")
+	require.NoError(t, err)
+
+	base, upgraded := getVersionsRange(allVersions, string(minorVersion))
+	// The initial version.
+	baseVersion := version.Version(base)
+	// The upgraded version.
+	upgradedVersion := version.Version(upgraded)
+
+	homeDir := t.TempDir()
+
+	t.Run("install last known", func(t *testing.T) {
+		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", string(version.LastKnownEnvoy))
+
+		require.NoError(t, err)
+		require.Regexp(t, `^downloading https:.*tar.*z\r?\n$`, stdout)
+		require.Empty(t, stderr)
+
+		// The binary was installed.
+		envoyBin := filepath.Join(homeDir, "versions", string(version.LastKnownEnvoy), "bin", "envoy"+moreos.Exe)
+		require.FileExists(t, envoyBin)
+
+		// The current version was written.
+		f, err := os.ReadFile(filepath.Join(homeDir, "version"))
+		require.NoError(t, err)
+		require.Equal(t, version.LastKnownEnvoy, version.Version(f))
+	})
+
+	t.Run(fmt.Sprintf("install %s as base version", base), func(t *testing.T) {
+		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", string(baseVersion))
+
+		require.NoError(t, err)
+		require.Regexp(t, `^downloading https:.*tar.*z\r?\n$`, stdout)
+		require.Empty(t, stderr)
+
+		// The binary was installed.
+		envoyBin := filepath.Join(homeDir, "versions", string(baseVersion), "bin", "envoy"+moreos.Exe)
+		require.FileExists(t, envoyBin)
+
+		// The base version was written.
+		f, err := os.ReadFile(filepath.Join(homeDir, "version"))
+		require.NoError(t, err)
+		require.Equal(t, baseVersion, version.Version(f))
+	})
+
+	t.Run(fmt.Sprintf("install %s as upgraded version", upgraded), func(t *testing.T) {
+		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", string(minorVersion))
+
+		require.NoError(t, err)
+		require.Regexp(t, `^downloading https:.*tar.*z\r?\n$`, stdout)
+		require.Empty(t, stderr)
+
+		// The binary was installed.
+		envoyBin := filepath.Join(homeDir, "versions", string(upgradedVersion), "bin", "envoy"+moreos.Exe)
+		require.FileExists(t, envoyBin)
+
+		// The upgraded version was written.
+		f, err := os.ReadFile(filepath.Join(homeDir, "version"))
+		require.NoError(t, err)
+		require.Equal(t, minorVersion, version.Version(f))
+	})
+
+	t.Run("use upgraded version after downloaded", func(t *testing.T) {
+		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", string(minorVersion))
+		require.NoError(t, err)
+		require.Equal(t, moreos.Sprintf("%s is already downloaded\n", upgradedVersion), stdout)
+		require.Empty(t, stderr)
+	})
+
+	t.Run("which upgraded version", func(t *testing.T) {
+		stdout, stderr, err := funcEExec("--home-dir", homeDir, "which")
+		relativeEnvoyBin := filepath.Join("versions", string(upgradedVersion), "bin", "envoy"+moreos.Exe)
+		require.Contains(t, stdout, moreos.Sprintf("%s\n", relativeEnvoyBin))
+		require.Empty(t, stderr)
+		require.NoError(t, err)
+	})
+}
+
+// getVersionsRange returns the first and latest patch of a minor version.
+func getVersionsRange(stdout, minor string) (first, latest string) {
+	s := bufio.NewScanner(strings.NewReader(stdout))
+	rows := []string{}
+	for s.Scan() {
+		row := strings.TrimSpace(s.Text())
+		if strings.HasPrefix(row, minor+".") {
+			rows = append(rows, row[:strings.Index(row, " ")])
+		}
+	}
+	// The rows is sorted in descending order.
+	first = rows[len(rows)-1]
+	latest = rows[0]
+	return
 }

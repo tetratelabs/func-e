@@ -15,6 +15,10 @@
 package cmd
 
 import (
+	"fmt"
+	"sort"
+	"strings"
+
 	"github.com/urfave/cli/v2"
 
 	"github.com/tetratelabs/func-e/internal/envoy"
@@ -36,17 +40,33 @@ func NewUseCmd(o *globals.GlobalOpts) *cli.Command {
 		ArgsUsage: "[version]",
 		Description: moreos.Sprintf(`The '[version]' is from the "versions -a" command.
 The Envoy [version] installs on-demand into `+versionsDir+`[version]
-if needed.
+if needed. You may also exclude the patch component of the [version]
+to use the latest patch version or to download the binary if it is
+not already downloaded.
 
 This updates %s or %s with [version],
 depending on which is present.
 
 Example:
-$ func-e use %s`, currentVersionWorkingDirFile, currentVersionHomeDirFile, lastKnownEnvoy),
-		Before: validateVersionArg,
+$ func-e use %s
+$ func-e use %s`, currentVersionWorkingDirFile, currentVersionHomeDirFile, lastKnownEnvoy,
+			lastKnownEnvoy[:strings.LastIndex(string(lastKnownEnvoy), ".")]),
+		Before: func(c *cli.Context) error {
+			return validateVersionArg(c, o)
+		},
 		Action: func(c *cli.Context) error {
 			v := version.Version(c.Args().First())
-			if _, err := envoy.InstallIfNeeded(c.Context, o, v); err != nil {
+			latest := v
+			if matched := globals.EnvoyStrictMinorVersionPattern.MatchString(string(v)); matched {
+				var err error
+				if latest, err = o.FuncEVersions.FindLatestPatch(c.Context, v); err != nil {
+					if latest, err = getLatestInstalledPatch(o, v); err != nil {
+						return err
+					}
+					o.Logf("couldn't check the latest patch for %q for platform %q using %q instead\n", v, o.Platform, latest)
+				}
+			}
+			if _, err := envoy.InstallIfNeeded(c.Context, o, latest); err != nil {
 				return err
 			}
 			return envoy.WriteCurrentVersion(v, o.HomeDir)
@@ -55,13 +75,36 @@ $ func-e use %s`, currentVersionWorkingDirFile, currentVersionHomeDirFile, lastK
 	}
 }
 
-func validateVersionArg(c *cli.Context) error {
+func validateVersionArg(c *cli.Context, o *globals.GlobalOpts) error {
 	if c.NArg() == 0 {
 		return NewValidationError("missing [version] argument")
 	}
 	v := c.Args().First()
-	if matched := globals.EnvoyVersionPattern.MatchString(v); !matched {
-		return NewValidationError("invalid [version] argument: %q should look like %q", v, version.LastKnownEnvoy)
+	if matched := globals.EnvoyMinorVersionPattern.MatchString(v); !matched {
+		lastKnownEnvoy := getLastKnownEnvoy(o)
+		return NewValidationError("invalid [version] argument: %q should look like %q or %q", v, lastKnownEnvoy,
+			lastKnownEnvoy[:strings.LastIndex(string(lastKnownEnvoy), ".")])
 	}
 	return nil
+}
+
+func getLatestInstalledPatch(o *globals.GlobalOpts, minorVersion version.Version) (version.Version, error) {
+	rows, err := getInstalledVersions(o.HomeDir)
+	if err != nil {
+		return "", err
+	}
+	// Sort so that new release dates appear first and on conflict choosing the higher version.
+	sort.Slice(rows, func(i, j int) bool {
+		if rows[i].releaseDate == rows[j].releaseDate {
+			return rows[i].version > rows[j].version
+		}
+		return rows[i].releaseDate > rows[j].releaseDate
+	})
+	prefix := string(minorVersion) + "."
+	for i := range rows {
+		if strings.HasPrefix(string(rows[i].version), prefix) {
+			return rows[i].version, nil
+		}
+	}
+	return "", fmt.Errorf("couldn't find the latest patch for %q for platform %q", minorVersion, o.Platform)
 }

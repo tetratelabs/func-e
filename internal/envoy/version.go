@@ -66,7 +66,7 @@ func verifyVersion(v version.Version, source string, err error) error {
 	if err != nil {
 		return moreos.Errorf(`couldn't read version from %s: %w`, source, err)
 	}
-	if matched := globals.EnvoyVersionPattern.MatchString(string(v)); !matched {
+	if matched := globals.EnvoyMinorVersionPattern.MatchString(string(v)); !matched {
 		return moreos.Errorf(`invalid version in %q: %q should look like %q`, source, v, version.LastKnownEnvoy)
 	}
 	return nil

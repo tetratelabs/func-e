@@ -149,6 +149,17 @@ func ensureEnvoyVersion(c *cli.Context, o *globals.GlobalOpts) error {
 			return NewValidationError(err.Error())
 		}
 		o.EnvoyVersion = v
+		if matched := globals.EnvoyStrictMinorVersionPattern.MatchString(string(v)); matched {
+			var err error
+			var latest version.Version
+			if latest, err = o.FuncEVersions.FindLatestPatch(c.Context, v); err != nil {
+				if latest, err = getLatestInstalledPatch(o, v); err != nil {
+					return err
+				}
+				o.Logf("couldn't check the latest patch for %q for platform %q, using the latest installed version %q\n", v, o.Platform, latest)
+			}
+			o.EnvoyVersion = latest
+		}
 	}
 	return nil
 }

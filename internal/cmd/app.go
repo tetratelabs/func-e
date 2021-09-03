@@ -35,6 +35,7 @@ import (
 func NewApp(o *globals.GlobalOpts) *cli.App {
 	var envoyVersionsURL, homeDir, platform string
 	lastKnownEnvoy := getLastKnownEnvoy(o)
+	lastKnownMinorVersionEnvoy := lastKnownEnvoy[:strings.LastIndex(string(lastKnownEnvoy), ".")]
 	lastKnownEnvoyPath := moreos.ReplacePathSeparator(fmt.Sprintf("`$FUNC_E_HOME/versions/%s`", lastKnownEnvoy))
 
 	app := cli.NewApp()
@@ -48,7 +49,8 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 
    To list versions of Envoy you can use, execute ` + "`func-e versions -a`" + `. To
    choose one, invoke ` + fmt.Sprintf("`func-e use %s`", lastKnownEnvoy) + `. This installs into
-   ` + lastKnownEnvoyPath + `, if not already present.
+   ` + lastKnownEnvoyPath + `, if not already present. You may also use
+   minor version, such as ` + fmt.Sprintf("`func-e use %s`", lastKnownMinorVersionEnvoy) + `.
 
    You may want to override ` + "`$ENVOY_VERSIONS_URL`" + ` to supply custom builds or
    otherwise control the source of Envoy binaries. When overriding, validate
@@ -89,7 +91,10 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 		if err := setEnvoyVersionsURL(o, envoyVersionsURL); err != nil {
 			return err
 		}
-		o.FuncEVersions = envoy.NewFuncEVersions(o.EnvoyVersionsURL, o.Platform, o.Version)
+		// The o.FuncEVersions may be initialized before this, and that can only happen in tests.
+		if o.FuncEVersions == nil { // not overridden for tests
+			o.FuncEVersions = envoy.NewFuncEVersions(o.EnvoyVersionsURL, o.Platform, o.Version)
+		}
 		return nil
 	}
 
