@@ -37,12 +37,12 @@ func TestFuncEUse_VersionValidates(t *testing.T) {
 	tests := []struct{ name, version, expectedErr string }{
 		{
 			name:        "version empty",
-			expectedErr: fmt.Sprintf(`invalid [version] argument: "" should look like "%s"`, version.LastKnownEnvoy),
+			expectedErr: fmt.Sprintf(`invalid [version] argument: "" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownMinorVersionEnvoy),
 		},
 		{
 			name:        "version invalid",
 			version:     "a.b.c",
-			expectedErr: fmt.Sprintf(`invalid [version] argument: "a.b.c" should look like "%s"`, version.LastKnownEnvoy),
+			expectedErr: fmt.Sprintf(`invalid [version] argument: "a.b.c" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownMinorVersionEnvoy),
 		},
 	}
 
@@ -162,12 +162,12 @@ func TestFuncEUse_InstallMinorVersionCheckLatestPatchFailed(t *testing.T) {
 	defer cleanup()
 
 	// The initial version to be installed.
-	initial := avaliableVersions{
-		latestPatch: "3",
-		versions:    []version.Version{"1.12.3"},
-	}
 	minorVersion := "1.12"
 	latestPatch := "3"
+	initial := avaliableVersions{
+		latestPatch: latestPatch,
+		versions:    []version.Version{version.Version(minorVersion + "." + latestPatch)},
+	}
 
 	var err error
 	o.FuncEVersions, err = newFuncEVersionsTester(o, initial)

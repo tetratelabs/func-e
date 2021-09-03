@@ -79,7 +79,8 @@ func validateVersionArg(c *cli.Context) error {
 	}
 	v := c.Args().First()
 	if matched := globals.EnvoyMinorVersionPattern.MatchString(v); !matched {
-		return NewValidationError("invalid [version] argument: %q should look like %q", v, version.LastKnownEnvoy)
+		return NewValidationError("invalid [version] argument: %q should look like %q or %q", v, version.LastKnownEnvoy,
+			version.LastKnownMinorVersionEnvoy)
 	}
 	return nil
 }
