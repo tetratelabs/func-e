@@ -156,7 +156,7 @@ func ensureEnvoyVersion(c *cli.Context, o *globals.GlobalOpts) error {
 				if latest, err = getLatestInstalledPatch(o, v); err != nil {
 					return err
 				}
-				o.Logf("couldn't check the latest patch for %q for platform %q using %q instead\n", v, o.Platform, latest)
+				o.Logf("couldn't check the latest patch for %q for platform %q, using the latest installed version %q\n", v, o.Platform, latest)
 			}
 			o.EnvoyVersion = latest
 		}

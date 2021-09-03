@@ -69,6 +69,16 @@ func TestFuncEUse_UnknownVersion(t *testing.T) {
 `, v, runtime.GOOS, runtime.GOARCH), stderr)
 }
 
+func TestFuncEUse_UnknownMinorVersion(t *testing.T) {
+	v := "1.1"
+	stdout, stderr, err := funcEExec("use", v)
+
+	require.EqualError(t, err, "exit status 1")
+	require.Empty(t, stdout)
+	require.Equal(t, moreos.Sprintf(`error: couldn't find the latest patch for "%s" for platform "%s/%s"
+`, v, runtime.GOOS, runtime.GOARCH), stderr)
+}
+
 func TestFuncEUse_MinorVersion(t *testing.T) {
 	// The intended minor version to be installed. This version is known to have darwin, linux, and windows binaries.
 	minorVersion := version.Version("1.18")
@@ -151,8 +161,8 @@ func TestFuncEUse_MinorVersion(t *testing.T) {
 	})
 }
 
-// getVersionsRange returns the latest patch of a minor version and the one before it.
-func getVersionsRange(stdout, minor string) (max, min string) {
+// getVersionsRange returns the first and latest patch of a minor version.
+func getVersionsRange(stdout, minor string) (first, latest string) {
 	s := bufio.NewScanner(strings.NewReader(stdout))
 	rows := []string{}
 	for s.Scan() {
@@ -161,7 +171,8 @@ func getVersionsRange(stdout, minor string) (max, min string) {
 			rows = append(rows, row[:strings.Index(row, " ")])
 		}
 	}
-	min = rows[len(rows)-2]
-	max = rows[len(rows)-1]
+	// The rows is sorted in descending order.
+	first = rows[len(rows)-1]
+	latest = rows[0]
 	return
 }
