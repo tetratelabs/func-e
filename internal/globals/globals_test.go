@@ -88,9 +88,9 @@ func TestEnvoyMinorVersionPattern_CapturePatchComponent(t *testing.T) {
 
 	for _, tc := range tests {
 		var matched [][]string
-		if matched = globals.EnvoyMinorVersionPattern.FindAllStringSubmatch(tc.version, -1); matched == nil {
+		if matched = globals.EnvoyMinorVersionPattern.FindAllStringSubmatch(tc.version, -1); matched != nil {
 			for _, sub := range matched {
-				require.Equal(t, sub[0], tc.capturedPatchComponent)
+				require.Equal(t, sub[1], tc.capturedPatchComponent)
 			}
 			continue
 		}
