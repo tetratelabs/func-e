@@ -105,10 +105,6 @@ jobs:
           # See: http://www.unicode.org/cldr/charts/latest/supplemental/zone_tzid.html.
           timezoneWindows: "US Mountain Standard Time"
 
-      - name: "Check to be sure"
-        if: runner.os == 'Linux'
-        run: timedatectl
-
       - name: "Run unit tests in a different timezone"
         run: make test
 
