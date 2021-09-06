@@ -97,6 +97,12 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: bash <(curl -s https://codecov.io/bash)
 
+      - name: "Run unit tests in a different timezone" # https://github.com/tetratelabs/func-e/issues/303.
+        if: runner.os == 'Linux'
+        run: |
+          sudo timedatectl set-timezone America/Phoenix
+          make test
+
   # Github Action Runners don't support all operating systems we may need to test. Below ensures
   # we run on the intended minimum platforms. Note: we also use Travis for arm64+ubuntu.
   #
