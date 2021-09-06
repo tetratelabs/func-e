@@ -100,7 +100,7 @@ jobs:
       - name: "Run unit tests in a different timezone" # https://github.com/tetratelabs/func-e/issues/303.
         if: runner.os == 'Linux'
         run: |
-          timedatectl set-timezone America/Phoenix
+          sudo timedatectl set-timezone America/Phoenix
           make test
 
   # Github Action Runners don't support all operating systems we may need to test. Below ensures
