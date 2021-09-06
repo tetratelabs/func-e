@@ -97,16 +97,11 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: bash <(curl -s https://codecov.io/bash)
 
-      - name: "Change timezone" # https://github.com/tetratelabs/func-e/issues/303.
-        uses: szenius/set-timezone@v1.0
-        with:
-          timezoneLinux: "America/Phoenix"
-          timezoneMacos: "America/Phoenix"
-          # See: http://www.unicode.org/cldr/charts/latest/supplemental/zone_tzid.html.
-          timezoneWindows: "US Mountain Standard Time"
-
-      - name: "Run unit tests in a different timezone"
-        run: make test
+      - name: "Run unit tests in a different timezone" # https://github.com/tetratelabs/func-e/issues/303.
+        if: runner.os == 'Linux'
+        run: |
+          timedatectl set-timezone America/Phoenix
+          make test
 
   # Github Action Runners don't support all operating systems we may need to test. Below ensures
   # we run on the intended minimum platforms. Note: we also use Travis for arm64+ubuntu.
