@@ -15,6 +15,7 @@
 package moreos
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
@@ -23,6 +24,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/shirou/gopsutil/v3/process"
 	"github.com/stretchr/testify/require"
@@ -153,6 +155,60 @@ func Test_EnsureProcessDone(t *testing.T) {
 
 	// Ensure killing it again doesn't error
 	require.NoError(t, EnsureProcessDone(cmd.Process))
+}
+
+func Test_EnsureChildProcessDone(t *testing.T) {
+	// There are 3 processes spawned by this test target, with the following relationship:
+	//
+	// runner (go run testdata/main/main.go)
+	// └── main (the executable, compiled from testdata/main/main.go. This is a fake func-e)
+	//     └── child (sleep, this is a fake envoy)
+	cmd := exec.Command("go"+Exe, "run", filepath.Join("testdata", "main", "main.go"))
+	stdout, err := cmd.StdoutPipe()
+	require.NoError(t, err)
+	cmd.Start()
+
+	buf := bufio.NewReader(stdout)
+	for {
+		line, _, readErr := buf.ReadLine()
+		require.NoError(t, readErr)
+		// As soon as we detect output from the main program, we know the child process in main program
+		// is started. See: testdata/main/main.go#34.
+		if string(line) == "ok" {
+			break
+		}
+	}
+
+	// This is the "go run" process.
+	runner, err := process.NewProcess(int32(cmd.Process.Pid))
+	require.NoError(t, err)
+
+	parents, err := runner.Children()
+	require.NoError(t, err)
+	require.Equal(t, len(parents), 1)
+
+	// This is the main process executed by "go run".
+	main, err := process.NewProcess(parents[0].Pid)
+	require.NoError(t, err)
+
+	children, err := main.Children()
+	require.NoError(t, err)
+	require.Equal(t, len(children), 1)
+
+	// Kill the main process.
+	require.NoError(t, EnsureProcessDone(&os.Process{Pid: int(main.Pid)}))
+
+	// Wait and check the status of child process.
+	time.Sleep(1 * time.Millisecond)
+	child := children[0]
+	running, err := child.IsRunning()
+	require.NoError(t, err)
+	require.False(t, running)
+
+	cmd.Wait()
+
+	// Ensure killing it again doesn't error.
+	require.NoError(t, EnsureProcessDone(&os.Process{Pid: int(main.Pid)}))
 }
 
 func findProcess(proc *os.Process) error {
