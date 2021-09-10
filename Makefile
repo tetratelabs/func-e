@@ -39,7 +39,7 @@ build: $(current_binary) ## Build the func-e binary
 test_packages := . ./internal/...
 test: ## Run all unit tests
 	@printf "$(ansi_format_dark)" test "running unit tests"
-	@go test . $(test_packages)
+	@go test -timeout 30s . $(test_packages)
 	@printf "$(ansi_format_bright)" test "ok"
 
 coverage:  ## Generate test coverage

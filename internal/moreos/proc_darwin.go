@@ -43,19 +43,18 @@ func ensureProcessDone(p *os.Process) error {
 		return err
 	}
 
-	children, err := proc.Children()
-	if err != nil {
-		// on macOS, when a process doesn't have children from the beginning, pgrep returns with error:
-		// "exit status 1", hence we ignore the error here.
-		return nil
-	}
-
+	// on macOS, when a process doesn't have children, pgrep gives "exit status 1", hence we ignore
+	// the error here.
+	children, _ := proc.Children()
 	for _, child := range children {
 		if err := child.Kill(); err != nil && err != process.ErrorProcessNotRunning {
 			return err
 		}
 	}
 
+	if err := proc.Kill(); err != nil && err != os.ErrProcessDone {
+		return err
+	}
 	return nil
 }
 

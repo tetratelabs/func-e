@@ -122,7 +122,7 @@ func TestSprintf_IdiomaticPerOS(t *testing.T) {
 
 func TestProcessGroupAttr_Interrupt(t *testing.T) {
 	// Fork a process that hangs
-	cmd := exec.Command("cat" + Exe)
+	cmd := exec.Command("sleep"+Exe, "1000")
 	cmd.SysProcAttr = ProcessGroupAttr()
 	require.NoError(t, cmd.Start())
 
@@ -142,7 +142,7 @@ func TestProcessGroupAttr_Interrupt(t *testing.T) {
 
 func Test_EnsureProcessDone(t *testing.T) {
 	// Fork a process that hangs
-	cmd := exec.Command("cat" + Exe)
+	cmd := exec.Command("sleep"+Exe, "1000")
 	cmd.SysProcAttr = ProcessGroupAttr()
 	require.NoError(t, cmd.Start())
 
