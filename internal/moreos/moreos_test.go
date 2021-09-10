@@ -199,13 +199,21 @@ func Test_EnsureChildProcessDone(t *testing.T) {
 	require.NoError(t, EnsureProcessDone(&os.Process{Pid: int(main.Pid)}))
 
 	// Wait and check the status of child process.
-	time.Sleep(1 * time.Millisecond)
+	time.Sleep(time.Millisecond)
+
+	// The following check is here to make sure the child is not killed because of the runner is died.
 	child := children[0]
 	running, err := child.IsRunning()
 	require.NoError(t, err)
 	require.False(t, running)
 
-	cmd.Wait()
+	// The runner needs to be killed too.
+	require.NoError(t, EnsureProcessDone(&os.Process{Pid: int(runner.Pid)}))
+	cmd.Wait() //nolint
+
+	require.Error(t, findProcess(&os.Process{Pid: int(runner.Pid)}))
+	require.Error(t, findProcess(&os.Process{Pid: int(child.Pid)}))
+	require.Error(t, findProcess(cmd.Process))
 
 	// Ensure killing it again doesn't error.
 	require.NoError(t, EnsureProcessDone(&os.Process{Pid: int(main.Pid)}))

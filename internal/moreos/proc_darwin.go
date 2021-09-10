@@ -17,6 +17,8 @@ package moreos
 import (
 	"os"
 	"syscall"
+
+	"github.com/shirou/gopsutil/v3/process"
 )
 
 const exe = ""
@@ -33,9 +35,25 @@ func interrupt(p *os.Process) error {
 }
 
 func ensureProcessDone(p *os.Process) error {
-	if err := p.Kill(); err != nil && err != os.ErrProcessDone {
+	proc, err := process.NewProcess(int32(p.Pid))
+	if err != nil {
+		if err == process.ErrorProcessNotRunning {
+			return nil
+		}
 		return err
 	}
+
+	children, err := proc.Children()
+	if err != nil && err != process.ErrorNoChildren {
+		return err
+	}
+
+	for _, child := range children {
+		if err := child.Kill(); err != nil && err != process.ErrorProcessNotRunning {
+			return err
+		}
+	}
+
 	return nil
 }
 
