@@ -39,7 +39,7 @@ func RequireFakeFuncE(t *testing.T, path string) {
 	require.NoError(t, os.WriteFile(path, fakeFuncEBin, 0700)) //nolint:gosec
 }
 
-// requireBuildFakeEnvoy builds a fake envoy binary and returns its contents.
+// requireBuildFakeFuncE builds a fake func-e binary and returns its contents.
 func requireBuildFakeFuncE(t *testing.T) []byte {
 	return requireBuildFakeBinary(t, "func-e", fakeBinarySrc{path: fakeFuncESrcPath})
 }

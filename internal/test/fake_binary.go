@@ -68,7 +68,7 @@ func requireGoBin(t *testing.T) string {
 	if _, err := os.Stat(goBin); err == nil {
 		return goBin
 	}
-	// Now, search the path
+	// Now, search the path for goBin.
 	goBin, err := exec.LookPath(binName)
 	require.NoError(t, err, "couldn't find %s in the PATH", goBin)
 	return goBin
