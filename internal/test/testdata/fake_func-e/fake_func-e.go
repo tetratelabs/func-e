@@ -31,6 +31,7 @@ import (
 func main() {
 	envoy := filepath.Join(os.Getenv("FUNC_E_HOME"), "versions", string(version.LastKnownEnvoy), "envoy")
 	cmd := exec.CommandContext(context.Background(), envoy+moreos.Exe, "-c")
+	// The fake func-e process uses the same operating system-specific attributes as the real func-e.
 	cmd.SysProcAttr = moreos.ProcessGroupAttr()
 	cmd.Stderr = os.Stderr // Forward the stderr output.
 	cmd.Run()
