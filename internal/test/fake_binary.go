@@ -42,16 +42,19 @@ type fakeBinarySrc struct {
 func requireBuildFakeBinary(t *testing.T, name string, binarySrc fakeBinarySrc) []byte {
 	goBin := requireGoBin(t)
 	tempDir := t.TempDir()
-	buildDir := funcEGoModDir // Allow to run "go build" inside func-e project directory.
+	workDir := funcEGoModDir // Allow to run "go build" inside func-e project directory.
 	bin := filepath.Join(tempDir, name+moreos.Exe)
 	src := binarySrc.path
 	if src == "" {
-		buildDir = tempDir
+		// When src is not set, we write the binary source content as the source file to build the
+		// binary from. We also set the working directory to be in the temp directory since we do not
+		// need to import any package from the func-e project.
 		src = name + ".go"
 		require.NoError(t, os.WriteFile(filepath.Join(tempDir, src), binarySrc.content, 0600))
+		workDir = tempDir
 	}
 	cmd := exec.Command(goBin, "build", "-o", bin, src) //nolint:gosec
-	cmd.Dir = buildDir
+	cmd.Dir = workDir
 	out, err := cmd.CombinedOutput()
 	require.NoError(t, err, "couldn't compile %s: %s", src, string(out))
 	bytes, err := os.ReadFile(bin)
