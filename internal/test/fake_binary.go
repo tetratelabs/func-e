@@ -41,7 +41,7 @@ type fakeBinarySrc struct {
 func requireBuildFakeBinary(t *testing.T, name string, binarySrc fakeBinarySrc) []byte {
 	goBin := requireGoBin(t)
 	tempDir := t.TempDir()
-	buildDir := funcEGoModuleDir
+	buildDir := funcEGoModuleDir // Allow to run "go build" inside func-e project directory.
 	bin := filepath.Join(tempDir, name+moreos.Exe)
 	src := binarySrc.path
 	if src == "" {

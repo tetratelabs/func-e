@@ -33,6 +33,5 @@ func main() {
 	cmd := exec.CommandContext(context.Background(), envoy+moreos.Exe, "-c")
 	cmd.SysProcAttr = moreos.ProcessGroupAttr()
 	cmd.Stderr = os.Stderr // Forward the stderr output.
-	cmd.Start()
-	cmd.Wait()
+	cmd.Run()
 }

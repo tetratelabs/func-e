@@ -33,6 +33,8 @@ import (
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
+// TestProcessGroupAttr_Kill test running a fake func-e that spawns a fake envoy process then
+// sending SIGKILL to the running fake func-e process.
 func TestProcessGroupAttr_Kill(t *testing.T) {
 	tempDir := t.TempDir()
 	fakeFuncE := filepath.Join(tempDir, "func-e")
@@ -47,7 +49,7 @@ func TestProcessGroupAttr_Kill(t *testing.T) {
 	cmd.Env = []string{"FUNC_E_HOME=" + tempDir}
 	stderr := new(bytes.Buffer)
 	cmd.Stderr = stderr
-	cmd.Start()
+	require.NoError(t, cmd.Start())
 
 	// Block until we reach an expected line or timeout.
 	reader := bufio.NewReader(stderr)
@@ -68,8 +70,11 @@ func TestProcessGroupAttr_Kill(t *testing.T) {
 	require.Equal(t, len(children), 1) // Should have only one child process i.e. the fake envoy process.
 
 	// Kill the fake func-e process.
-	cmd.Process.Kill()
-	cmd.Wait()
+	// This works only for linux, sending kill -9 on darwin will not kill the process, we need to kill
+	// via pgid or kill the child first.
+	require.NoError(t, cmd.Process.Kill())
+	// Wait for the process to die; this could error due to the kill signal.
+	cmd.Wait() //nolint
 
 	require.NoError(t, moreos.EnsureProcessDone(cmd.Process))
 	require.NoError(t, moreos.EnsureProcessDone(&os.Process{Pid: int(children[0].Pid)}))
