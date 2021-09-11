@@ -34,8 +34,7 @@ import (
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
-// TestProcessGroupAttr_Kill test running a fake func-e that spawns a fake envoy process then
-// sending SIGKILL to the running fake func-e process.
+// TestProcessGroupAttr_Kill sends SIGKILL to running fake func-e that spawns a fake envoy process.
 func TestProcessGroupAttr_Kill(t *testing.T) {
 	tempDir := t.TempDir()
 	fakeFuncE := filepath.Join(tempDir, "func-e")
