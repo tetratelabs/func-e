@@ -28,6 +28,7 @@ import (
 	"github.com/shirou/gopsutil/v3/process"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/test"
 	"github.com/tetratelabs/func-e/internal/version"

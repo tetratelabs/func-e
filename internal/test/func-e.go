@@ -24,10 +24,11 @@ import (
 )
 
 var (
-	// fakeFuncEBin is the compiled code of fakeEnvoySrc which will be runtime.GOOS dependent.
-	fakeFuncEBin     []byte
-	builtFakeFuncE   sync.Once
-	fakeFuncESrcPath = filepath.Join(funcEGoModuleDir, "internal", "test", "testdata", "fake_func-e", "fake_func-e.go")
+	// fakeFuncESrcPath is a test source file used to simulate func-e which runs envoy as its child.
+	fakeFuncESrcPath = filepath.Join(funcEGoModDir, "internal", "test", "testdata", "fake_func-e", "fake_func-e.go")
+	// fakeFuncEBin is the compiled code of fakeFuncESrcPath which will be runtime.GOOS dependent.
+	fakeFuncEBin   []byte
+	builtFakeFuncE sync.Once
 )
 
 // RequireFakeFuncE writes fakeFuncEBin to the given path.

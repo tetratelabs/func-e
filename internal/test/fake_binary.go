@@ -22,14 +22,15 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
 	"github.com/tetratelabs/func-e/internal/moreos"
 )
 
 var (
 	_, currentFilePath, _, _ = runtime.Caller(0)
 
-	// funcEGoModuleDir points to the directory where the func-e's go.mod resides.
-	funcEGoModuleDir = filepath.Join(filepath.Dir(currentFilePath), "..", "..")
+	// funcEGoModDir points to the directory where the func-e's go.mod resides.
+	funcEGoModDir = filepath.Join(filepath.Dir(currentFilePath), "..", "..")
 )
 
 type fakeBinarySrc struct {
@@ -41,7 +42,7 @@ type fakeBinarySrc struct {
 func requireBuildFakeBinary(t *testing.T, name string, binarySrc fakeBinarySrc) []byte {
 	goBin := requireGoBin(t)
 	tempDir := t.TempDir()
-	buildDir := funcEGoModuleDir // Allow to run "go build" inside func-e project directory.
+	buildDir := funcEGoModDir // Allow to run "go build" inside func-e project directory.
 	bin := filepath.Join(tempDir, name+moreos.Exe)
 	src := binarySrc.path
 	if src == "" {
