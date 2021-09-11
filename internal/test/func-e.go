@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	// fakeFuncESrcPath is a test source file used to simulate func-e which runs envoy as its child.
+	// fakeFuncESrcPath is a path to the test source file used to simulate func-e which runs envoy as its child.
 	fakeFuncESrcPath = filepath.Join(funcEGoModDir, "internal", "test", "testdata", "fake_func-e", "fake_func-e.go")
 	// fakeFuncEBin is the compiled code of fakeFuncESrcPath which will be runtime.GOOS dependent.
 	fakeFuncEBin   []byte
