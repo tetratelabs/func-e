@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// This file needs to be here since we need to consume packages some of func-e project packages.
-// When building this program, we need to run the "go build" from within the func-e root project
-// directory (the place where the func-e go.mod resides).
+// This file needs to be here since we need to consume some of func-e project packages. When
+// building this program, we need to run the "go build" from within the func-e root project
+// directory (i.e. the place where the func-e's go.mod resides).
 
 package main
 
