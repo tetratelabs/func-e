@@ -21,9 +21,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
-	"path/filepath"
-	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -31,8 +28,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/tetratelabs/func-e/internal/moreos"
 )
 
 // Runner allows us to not introduce dependency cycles on envoy.Runtime
@@ -97,30 +92,5 @@ func RequireFakeEnvoy(t *testing.T, path string) {
 
 // requireBuildFakeEnvoy builds a fake envoy binary and returns its contents.
 func requireBuildFakeEnvoy(t *testing.T) []byte {
-	goBin := requireGoBin(t)
-	tempDir := t.TempDir()
-
-	name := "envoy"
-	bin := name + moreos.Exe
-	src := name + ".go"
-	require.NoError(t, os.WriteFile(filepath.Join(tempDir, src), fakeEnvoySrc, 0600))
-	cmd := exec.Command(goBin, "build", "-o", bin, src) //nolint:gosec
-	cmd.Dir = tempDir
-	out, err := cmd.CombinedOutput()
-	require.NoError(t, err, "couldn't compile %s: %s", src, string(out))
-	bytes, err := os.ReadFile(filepath.Join(tempDir, bin))
-	require.NoError(t, err)
-	return bytes
-}
-
-func requireGoBin(t *testing.T) string {
-	binName := "go" + moreos.Exe
-	goBin := filepath.Join(runtime.GOROOT(), "bin", binName)
-	if _, err := os.Stat(goBin); err == nil {
-		return goBin
-	}
-	// Now, search the path
-	goBin, err := exec.LookPath(binName)
-	require.NoError(t, err, "couldn't find %s in the PATH", goBin)
-	return goBin
+	return requireBuildFakeBinary(t, "envoy", fakeBinarySrc{content: fakeEnvoySrc})
 }
