@@ -69,7 +69,7 @@ func TestProcessGroupAttr_Kill(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, len(children), 1) // Should have only one child process i.e. the fake envoy process.
 	fakeEnvoyProcess := &os.Process{Pid: int(children[0].Pid)}
-	requireProcessError(t, fakeEnvoyProcess, nil) // find fakeEnvoyProcess with no error.
+	requireFindProcessNoError(t, fakeEnvoyProcess)
 
 	// Kill the fake func-e process.
 	// This works only for linux, sending kill -9 on darwin will not kill the process, we need to kill
@@ -79,20 +79,27 @@ func TestProcessGroupAttr_Kill(t *testing.T) {
 	cmd.Wait() //nolint
 
 	// Wait and check if fake func-e and envoy processes are killed.
-	requireProcessError(t, cmd.Process, process.ErrorProcessNotRunning)
-	requireProcessError(t, fakeEnvoyProcess, process.ErrorProcessNotRunning)
+	requireFindProcessError(t, cmd.Process, process.ErrorProcessNotRunning)
+	requireFindProcessError(t, fakeEnvoyProcess, process.ErrorProcessNotRunning)
 
 	// Ensure both processes are killed.
 	require.NoError(t, moreos.EnsureProcessDone(cmd.Process))
 	require.NoError(t, moreos.EnsureProcessDone(fakeEnvoyProcess))
 }
 
-func requireProcessError(t *testing.T, proc *os.Process, expectedErr error) {
-	// Wait until the operating system removes the scheduled process.
+func requireFindProcessError(t *testing.T, proc *os.Process, expectedErr error) {
+	// Wait until the operating system removes or adds the scheduled process.
 	if !assert.Eventually(t, func() bool {
 		_, err := process.NewProcess(int32(proc.Pid)) // because os.FindProcess is no-op in Linux!
 		return err == expectedErr
 	}, 100*time.Millisecond, 5*time.Millisecond) {
+		if expectedErr == nil {
+			require.FailNow(t, "timeout waiting for finding process with no error")
+		}
 		require.FailNow(t, "timeout waiting for expected error %v", expectedErr)
 	}
+}
+
+func requireFindProcessNoError(t *testing.T, proc *os.Process) {
+	requireFindProcessError(t, proc, nil) // expect to find the process with no error.
 }
