@@ -89,7 +89,7 @@ func (r *Runtime) Run(ctx context.Context, args []string) (err error) { //nolint
 	// Block until it exits to ensure file descriptors are closed prior to archival.
 	// Allow up to 5 seconds for a clean stop, killing if it can't for any reason.
 	select {
-	case <-waitCtx.Done():
+	case <-waitCtx.Done(): // cmd.Wait goroutine finished
 	case <-time.After(5 * time.Second):
 		_ = moreos.EnsureProcessDone(r.cmd.Process)
 	}

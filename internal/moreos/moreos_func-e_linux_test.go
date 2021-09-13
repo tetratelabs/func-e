@@ -12,12 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package test
+package moreos
 
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -29,26 +28,30 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/func-e/internal/moreos"
-	"github.com/tetratelabs/func-e/internal/test"
+	"github.com/tetratelabs/func-e/internal/test/fakebinary"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
-// TestProcessGroupAttr_Kill sends SIGKILL to a running fake func-e that spawns a fake envoy process.
 func TestProcessGroupAttr_Kill(t *testing.T) {
 	tempDir := t.TempDir()
-	fakeFuncE := filepath.Join(tempDir, "func-e")
-	fakeEnvoyDir := filepath.Join(tempDir, "versions", string(version.LastKnownEnvoy))
-	fakeEnvoy := filepath.Join(fakeEnvoyDir, "envoy")
-	require.NoError(t, os.MkdirAll(fakeEnvoyDir, 0755))
 
-	test.RequireFakeFuncE(t, fakeFuncE+moreos.Exe)
-	test.RequireFakeEnvoy(t, fakeEnvoy+moreos.Exe)
+	// Build a fake envoy and pass the ENV hint so that fake func-e uses it
+	fakeEnvoy := filepath.Join(tempDir, "envoy"+Exe)
+	fakebinary.RequireFakeEnvoy(t, fakeEnvoy)
+	t.Setenv("ENVOY_PATH", fakeEnvoy)
 
-	cmd := exec.CommandContext(context.Background(), fakeFuncE)
-	cmd.Env = []string{"FUNC_E_HOME=" + tempDir}
+	fakeFuncE := filepath.Join(tempDir, "func-e"+Exe)
+	requireFakeFuncE(t, fakeFuncE)
+
 	stderr := new(bytes.Buffer)
+	stdout := new(bytes.Buffer)
+
+	// With an arg so fakeFuncE runs fakeEnvoy as its child and doesn't exit.
+	arg := string(version.LastKnownEnvoy)
+	cmd := exec.Command(fakeFuncE, "run", arg, "-c")
+	cmd.Stdout = stdout
 	cmd.Stderr = stderr
+
 	require.NoError(t, cmd.Start())
 
 	// Block until we reach an expected line or timeout.
@@ -60,6 +63,8 @@ func TestProcessGroupAttr_Kill(t *testing.T) {
 	}, 5*time.Second, 100*time.Millisecond) {
 		require.FailNowf(t, "timeout waiting for stderr to contain %q", waitFor)
 	}
+
+	require.Equal(t, Sprintf("starting: %s %s -c\n", fakeEnvoy, arg), stdout.String())
 
 	fakeFuncEProcess, err := process.NewProcess(int32(cmd.Process.Pid))
 	require.NoError(t, err)
@@ -83,8 +88,8 @@ func TestProcessGroupAttr_Kill(t *testing.T) {
 	requireFindProcessError(t, fakeEnvoyProcess, process.ErrorProcessNotRunning)
 
 	// Ensure both processes are killed.
-	require.NoError(t, moreos.EnsureProcessDone(cmd.Process))
-	require.NoError(t, moreos.EnsureProcessDone(fakeEnvoyProcess))
+	require.NoError(t, EnsureProcessDone(cmd.Process))
+	require.NoError(t, EnsureProcessDone(fakeEnvoyProcess))
 }
 
 func requireFindProcessError(t *testing.T, proc *os.Process, expectedErr error) {

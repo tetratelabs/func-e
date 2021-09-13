@@ -33,6 +33,7 @@ import (
 	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/tar"
+	"github.com/tetratelabs/func-e/internal/test/fakebinary"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
@@ -117,7 +118,7 @@ func RequireFakeEnvoyTarGz(t *testing.T, v version.Version) ([]byte, version.SHA
 	// construct the platform directory based on the input version
 	installDir := filepath.Join(tempDir, string(v))
 	require.NoError(t, os.MkdirAll(filepath.Join(installDir, "bin"), 0700)) //nolint:gosec
-	RequireFakeEnvoy(t, filepath.Join(installDir, "bin", "envoy"+moreos.Exe))
+	fakebinary.RequireFakeEnvoy(t, filepath.Join(installDir, "bin", "envoy"+moreos.Exe))
 
 	// tar.gz the platform dir
 	tempGz := filepath.Join(tempDir, "envoy.tar.gz")

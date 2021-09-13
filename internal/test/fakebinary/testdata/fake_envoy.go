@@ -1,5 +1,6 @@
 package main
 
+// It is essential that no func-e imports are used here. For example, internal/moreos is not used.
 import (
 	"fmt"
 	"net/http"

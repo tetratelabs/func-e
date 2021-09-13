@@ -31,6 +31,7 @@ import (
 	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/test"
+	"github.com/tetratelabs/func-e/internal/test/fakebinary"
 )
 
 func TestRuntime_Run(t *testing.T) {
@@ -41,7 +42,7 @@ func TestRuntime_Run(t *testing.T) {
 	adminFlag := fmt.Sprint("--admin-address-path ", filepath.Join(runDir, "admin-address.txt"))
 
 	fakeEnvoy := filepath.Join(tempDir, "envoy"+moreos.Exe)
-	test.RequireFakeEnvoy(t, fakeEnvoy)
+	fakebinary.RequireFakeEnvoy(t, fakeEnvoy)
 
 	tests := []struct {
 		name                           string
