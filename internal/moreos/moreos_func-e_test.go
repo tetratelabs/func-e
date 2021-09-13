@@ -38,8 +38,8 @@ var (
 	moreosSrcDir embed.FS
 )
 
-// Test_X tests multiple features include moreos.EnsureProcessDone and moreos.ProcessGroupAttr to ensure X occurs when Y
-func Test_X(t *testing.T) {
+// Test_ImmediateExit tests the case when fake func-e fails on running fake envoy.
+func Test_ImmediateExit(t *testing.T) {
 	tempDir := t.TempDir()
 
 	// Build a fake envoy and pass the ENV hint so that fake func-e uses it

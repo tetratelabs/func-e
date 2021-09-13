@@ -32,6 +32,8 @@ import (
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
+// TestProcessGroupAttr_Kill tests sending SIGKILL to fake func-e and makes sure fake envoy receives
+// SIGTERM (as defined in Pdeathsig).
 func TestProcessGroupAttr_Kill(t *testing.T) {
 	tempDir := t.TempDir()
 
