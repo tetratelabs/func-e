@@ -40,6 +40,7 @@ var (
 	fakeFuncESrc []byte // Embedding the fakeFuncESrc is easier than file I/O and ensures it doesn't skew coverage
 
 	// Include the source imported by fakeFuncESrc directly and indirectly
+	// TODO: replace wildcard with {{goos}} after https://github.com/golang/go/issues/48348.
 	//go:embed moreos.go
 	//go:embed proc_*.go
 	moreosSrcDir embed.FS
