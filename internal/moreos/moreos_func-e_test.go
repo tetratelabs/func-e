@@ -60,6 +60,7 @@ func Test_CallSignal(t *testing.T) {
 			name:           "interrupt",
 			signal:         Interrupt,
 			waitForExiting: true,
+			skip:           runtime.GOOS == OSWindows,
 		},
 		{
 			name:           "SIGTERM",
