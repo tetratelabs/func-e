@@ -27,7 +27,6 @@ import (
 	"time"
 
 	"github.com/shirou/gopsutil/v3/process"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/func-e/internal/test/fakebinary"
@@ -79,12 +78,10 @@ func TestProcessGroupAttr_Kill(t *testing.T) {
 	// Block until we reach an expected line or timeout.
 	reader := bufio.NewReader(stderr)
 	waitFor := "initializing epoch 0"
-	if !assert.Eventually(t, func() bool {
-		b, e := reader.Peek(512)
-		return e != nil && strings.Contains(string(b), waitFor)
-	}, 5*time.Second, 100*time.Millisecond) {
-		require.FailNowf(t, "timeout waiting for stderr to contain %q", waitFor)
-	}
+	require.Eventually(t, func() bool {
+		b, _ := reader.Peek(512) // the error value is always EOF.
+		return strings.HasPrefix(string(b), waitFor)
+	}, 5*time.Second, 100*time.Millisecond, "timeout waiting for stderr to contain %q", waitFor)
 
 	require.Equal(t, Sprintf("starting: %s %s -c\n", fakeEnvoy, arg), stdout.String())
 
@@ -134,10 +131,8 @@ func requireFakeFuncE(t *testing.T, path string) {
 
 func requireFindProcessError(t *testing.T, proc *os.Process, expectedErr error) {
 	// Wait until the operating system removes or adds the scheduled process.
-	if !assert.Eventually(t, func() bool {
+	require.Eventually(t, func() bool {
 		_, err := process.NewProcess(int32(proc.Pid)) // because os.FindProcess is no-op in Linux!
 		return err == expectedErr
-	}, 100*time.Millisecond, 5*time.Millisecond) {
-		require.FailNow(t, "timeout waiting for expected error %v", expectedErr)
-	}
+	}, 100*time.Millisecond, 5*time.Millisecond, "timeout waiting for expected error %v", expectedErr)
 }
