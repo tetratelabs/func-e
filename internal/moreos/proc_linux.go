@@ -22,8 +22,9 @@ import (
 const exe = ""
 
 func processGroupAttr() *syscall.SysProcAttr {
-	// Pdeathsig aims to ensure the process group is cleaned up even if this process dies
-	return &syscall.SysProcAttr{Setpgid: true, Pdeathsig: syscall.SIGTERM}
+	// Pdeathsig aims to ensure the process group is cleaned up even if this process dies. When func-e
+	// dies, the process (envoy) will get SIGKILL.
+	return &syscall.SysProcAttr{Setpgid: true, Pdeathsig: syscall.SIGKILL}
 }
 
 func interrupt(p *os.Process) error {

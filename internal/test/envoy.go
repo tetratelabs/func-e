@@ -20,19 +20,11 @@ import (
 	_ "embed" // Embedding the fakeEnvoySrc is easier than file I/O and ensures it doesn't skew coverage
 	"fmt"
 	"io"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"runtime"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
-	"github.com/tetratelabs/func-e/internal/moreos"
 )
 
 // Runner allows us to not introduce dependency cycles on envoy.Runtime
@@ -76,51 +68,4 @@ func RequireRun(t *testing.T, shutdown func(), r Runner, stderr io.Reader, args 
 	shutdown()
 	<-ran // block until the runner finished
 	return err
-}
-
-var (
-	// fakeEnvoySrc is a test source file used to simulate Envoy console output and signal processing.
-	//go:embed testdata/fake_envoy.go
-	fakeEnvoySrc []byte
-	// fakeEnvoyBin is the compiled code of fakeEnvoySrc which will be runtime.GOOS dependent.
-	fakeEnvoyBin   []byte
-	builtFakeEnvoy sync.Once
-)
-
-// RequireFakeEnvoy writes fakeEnvoyBin to the given path
-func RequireFakeEnvoy(t *testing.T, path string) {
-	builtFakeEnvoy.Do(func() {
-		fakeEnvoyBin = requireBuildFakeEnvoy(t)
-	})
-	require.NoError(t, os.WriteFile(path, fakeEnvoyBin, 0700)) //nolint:gosec
-}
-
-// requireBuildFakeEnvoy builds a fake envoy binary and returns its contents.
-func requireBuildFakeEnvoy(t *testing.T) []byte {
-	goBin := requireGoBin(t)
-	tempDir := t.TempDir()
-
-	name := "envoy"
-	bin := name + moreos.Exe
-	src := name + ".go"
-	require.NoError(t, os.WriteFile(filepath.Join(tempDir, src), fakeEnvoySrc, 0600))
-	cmd := exec.Command(goBin, "build", "-o", bin, src) //nolint:gosec
-	cmd.Dir = tempDir
-	out, err := cmd.CombinedOutput()
-	require.NoError(t, err, "couldn't compile %s: %s", src, string(out))
-	bytes, err := os.ReadFile(filepath.Join(tempDir, bin))
-	require.NoError(t, err)
-	return bytes
-}
-
-func requireGoBin(t *testing.T) string {
-	binName := "go" + moreos.Exe
-	goBin := filepath.Join(runtime.GOROOT(), "bin", binName)
-	if _, err := os.Stat(goBin); err == nil {
-		return goBin
-	}
-	// Now, search the path
-	goBin, err := exec.LookPath(binName)
-	require.NoError(t, err, "couldn't find %s in the PATH", goBin)
-	return goBin
 }
