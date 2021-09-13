@@ -23,7 +23,7 @@ const exe = ""
 
 func processGroupAttr() *syscall.SysProcAttr {
 	// Pdeathsig aims to ensure the process group is cleaned up even if this process dies
-	return &syscall.SysProcAttr{Setpgid: true, Pdeathsig: syscall.SIGTERM}
+	return &syscall.SysProcAttr{Setpgid: true, Pdeathsig: syscall.SIGKILL}
 }
 
 func interrupt(p *os.Process) error {
