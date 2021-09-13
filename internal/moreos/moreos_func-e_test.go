@@ -65,13 +65,13 @@ func Test_CallSignal(t *testing.T) {
 			name:           "SIGTERM",
 			signal:         func(proc *os.Process) error { return proc.Signal(syscall.SIGTERM) },
 			waitForExiting: true,
-			// On windows os.Process.Signal is not implemented; it will return an error instead of sending
+			// On Windows, os.Process.Signal is not implemented; it will return an error instead of sending
 			// a signal.
 			skip: runtime.GOOS == OSWindows,
 		},
 		{
 			name: "kill",
-			// On linux, we propagate SIGKILL to the child process as the configured SysProcAttr.Pdeathsig
+			// On Linux, we propagate SIGKILL to the child process as the configured SysProcAttr.Pdeathsig
 			// in proc_linux.go.
 			signal:         func(proc *os.Process) error { return proc.Kill() },
 			waitForExiting: false, // since the process is killed, it is immediately exit.
