@@ -80,6 +80,10 @@ func TestProcessGroupAttr_Kill(t *testing.T) {
 	// This works only for linux, sending kill -9 on darwin will not kill the process, we need to kill
 	// via pgid or kill the child first.
 	require.NoError(t, cmd.Process.Kill())
+
+	// The child process is expected to receive ENVOY_SIGTERM.
+	require.Contains(t, "caught ENVOY_SIGTERM\nexiting\n", stderr.String())
+
 	// Wait for the process to die; this could error due to the kill signal.
 	cmd.Wait() //nolint
 
