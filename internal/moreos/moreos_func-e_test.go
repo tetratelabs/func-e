@@ -46,8 +46,8 @@ var (
 	moreosSrcDir embed.FS
 )
 
-// Test_CallSignal tests sending signals to fake func-e.
-func Test_CallSignal(t *testing.T) {
+// Test_CallSignals tests sending signals to fake func-e.
+func Test_CallSignals(t *testing.T) {
 	type testCase struct {
 		name           string
 		signal         func(*os.Process) error
@@ -57,10 +57,9 @@ func Test_CallSignal(t *testing.T) {
 
 	tests := []testCase{
 		{
-			name:           "interrupt",
+			name:           "Interrupt",
 			signal:         Interrupt,
 			waitForExiting: true,
-			skip:           runtime.GOOS == OSWindows,
 		},
 		{
 			name:           "SIGTERM",
@@ -71,7 +70,7 @@ func Test_CallSignal(t *testing.T) {
 			skip: runtime.GOOS == OSWindows,
 		},
 		{
-			name: "kill",
+			name: "Kill",
 			// On Linux, we propagate SIGKILL to the child process as the configured SysProcAttr.Pdeathsig
 			// in proc_linux.go.
 			signal:         func(proc *os.Process) error { return proc.Kill() },
@@ -104,6 +103,7 @@ func Test_CallSignal(t *testing.T) {
 			// With an arg so fakeFuncE runs fakeEnvoy as its child and doesn't exit.
 			arg := string(version.LastKnownEnvoy)
 			cmd := exec.Command(fakeFuncE, "run", arg, "-c")
+			cmd.SysProcAttr = ProcessGroupAttr() // Make sure we have a new process group.
 			cmd.Stdout = stdout
 
 			stderr, err := cmd.StderrPipe()
