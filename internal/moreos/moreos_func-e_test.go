@@ -82,7 +82,8 @@ func Test_CallSignals(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tc := tc
+		tc := tc // pin! see https://github.com/kyoh86/scopelint for why.
+
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.skip {
 				t.Skip()
