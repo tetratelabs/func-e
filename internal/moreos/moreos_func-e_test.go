@@ -91,7 +91,7 @@ func Test_CallSignals(t *testing.T) {
 
 			tempDir := t.TempDir()
 
-			// Build a fake envoy and pass the ENV hint so that fake func-e uses it
+			// Build a fake envoy and pass the path via via ENVOY_PATH so that fake func-e uses it.
 			fakeEnvoy := filepath.Join(tempDir, "envoy"+Exe)
 			fakebinary.RequireFakeEnvoy(t, fakeEnvoy)
 			t.Setenv("ENVOY_PATH", fakeEnvoy)
@@ -128,6 +128,10 @@ func Test_CallSignals(t *testing.T) {
 
 			tc.signal(cmd.Process)
 			if tc.waitForExiting {
+				// When we decide to wait for the fake envoy for exiting, we wait for "exiting" message
+				// from envoy (see: internal/test/fakebinary/testdata/fake_envoy.go#82) after receiving
+				// interrupt from func-e (the fake func-e forwards fake envoy's stderr.
+				// See: internal/moreos/testdata/fake_func-e.go#38).
 				requireScannedWaitFor(t, stderrScanner, "exiting")
 			}
 

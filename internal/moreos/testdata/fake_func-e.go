@@ -39,8 +39,10 @@ func main() {
 
 	// Like envoy.Run.
 	waitCtx, waitCancel := context.WithCancel(context.Background())
-	sigCtx, stop := signal.NotifyContext(waitCtx, os.Interrupt, syscall.SIGTERM)
 	defer waitCancel()
+
+	sigCtx, stop := signal.NotifyContext(waitCtx, os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
 	moreos.Fprintf(os.Stdout, "starting: %s\n", strings.Join(cmd.Args, " ")) //nolint
 	if err := cmd.Start(); err != nil {
@@ -56,7 +58,6 @@ func main() {
 
 	// Block until we receive SIGINT or are canceled because Envoy has died.
 	<-sigCtx.Done()
-	stop()
 
 	// Simulate handleShutdown like in envoy.Run.
 	_ = moreos.Interrupt(cmd.Process)
