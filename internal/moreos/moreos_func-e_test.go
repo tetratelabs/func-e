@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -45,68 +46,111 @@ var (
 	moreosSrcDir embed.FS
 )
 
-// TestProcessGroupAttr_Kill tests sending SIGKILL to fake func-e.
-// On linux, we propagate SIGKILL to the child process as the configured SysProcAttr.Pdeathsig
-// in proc_linux.go.
-func TestProcessGroupAttr_Kill(t *testing.T) {
-	// This works only for linux, sending kill -9 on darwin will not kill the process, we need to kill
-	// via pgid or kill the child first.
-	if runtime.GOOS != "linux" {
-		t.Skip()
+// Test_CallSignals tests sending signals to fake func-e.
+func Test_CallSignals(t *testing.T) {
+	type testCase struct {
+		name           string
+		signal         func(*os.Process) error
+		skip           bool
+		waitForExiting bool
 	}
-	tempDir := t.TempDir()
 
-	// Build a fake envoy and pass the ENV hint so that fake func-e uses it
-	fakeEnvoy := filepath.Join(tempDir, "envoy"+Exe)
-	fakebinary.RequireFakeEnvoy(t, fakeEnvoy)
-	t.Setenv("ENVOY_PATH", fakeEnvoy)
+	tests := []testCase{
+		{
+			name:           "Interrupt",
+			signal:         Interrupt,
+			waitForExiting: true,
+		},
+		{
+			name:           "SIGTERM",
+			signal:         func(proc *os.Process) error { return proc.Signal(syscall.SIGTERM) },
+			waitForExiting: true,
+			// On Windows, os.Process.Signal is not implemented; it will return an error instead of sending
+			// a signal.
+			skip: runtime.GOOS == OSWindows,
+		},
+		{
+			name: "Kill",
+			// On Linux, we propagate SIGKILL to the child process as the configured SysProcAttr.Pdeathsig
+			// in proc_linux.go.
+			signal:         func(proc *os.Process) error { return proc.Kill() },
+			waitForExiting: false, // since the process is killed, it is immediately exit.
+			// This works only for Linux, sending kill -9 on Darwin will not kill the process, we need to
+			// kill via pgid or kill the child first.
+			skip: runtime.GOOS != OSLinux,
+		},
+	}
 
-	fakeFuncE := filepath.Join(tempDir, "func-e"+Exe)
-	requireFakeFuncE(t, fakeFuncE)
+	for _, tc := range tests {
+		tc := tc // pin! see https://github.com/kyoh86/scopelint for why.
 
-	stderr := new(bytes.Buffer)
-	stdout := new(bytes.Buffer)
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.skip {
+				t.Skip()
+			}
 
-	// With an arg so fakeFuncE runs fakeEnvoy as its child and doesn't exit.
-	arg := string(version.LastKnownEnvoy)
-	cmd := exec.Command(fakeFuncE, "run", arg, "-c")
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
+			tempDir := t.TempDir()
 
-	require.NoError(t, cmd.Start())
+			// Build a fake envoy and pass the path via via ENVOY_PATH so that fake func-e uses it.
+			fakeEnvoy := filepath.Join(tempDir, "envoy"+Exe)
+			fakebinary.RequireFakeEnvoy(t, fakeEnvoy)
+			t.Setenv("ENVOY_PATH", fakeEnvoy)
 
-	// Block until we reach an expected line or timeout.
-	reader := bufio.NewReader(stderr)
-	waitFor := "initializing epoch 0"
-	require.Eventually(t, func() bool {
-		b, _ := reader.Peek(512) // the error value is always EOF.
-		return strings.HasPrefix(string(b), waitFor)
-	}, 5*time.Second, 100*time.Millisecond, "timeout waiting for stderr to contain %q", waitFor)
+			fakeFuncE := filepath.Join(tempDir, "func-e"+Exe)
+			requireFakeFuncE(t, fakeFuncE)
 
-	require.Equal(t, Sprintf("starting: %s %s -c\n", fakeEnvoy, arg), stdout.String())
+			stdout := new(bytes.Buffer)
 
-	fakeFuncEProcess, err := process.NewProcess(int32(cmd.Process.Pid))
-	require.NoError(t, err)
+			// With an arg so fakeFuncE runs fakeEnvoy as its child and doesn't exit.
+			arg := string(version.LastKnownEnvoy)
+			cmd := exec.Command(fakeFuncE, "run", arg, "-c")
+			cmd.SysProcAttr = ProcessGroupAttr() // Make sure we have a new process group.
+			cmd.Stdout = stdout
 
-	// Get all fake func-e children processes.
-	children, err := fakeFuncEProcess.Children()
-	require.NoError(t, err)
-	require.Equal(t, len(children), 1) // Should have only one child process i.e. the fake envoy process.
-	fakeEnvoyProcess := &os.Process{Pid: int(children[0].Pid)}
+			stderr, err := cmd.StderrPipe()
+			require.NoError(t, err)
+			stderrScanner := bufio.NewScanner(stderr)
 
-	// Kill the fake func-e process.
-	require.NoError(t, cmd.Process.Kill())
+			require.NoError(t, cmd.Start())
 
-	// Wait for the process to die; this could error due to the kill signal.
-	cmd.Wait() //nolint
+			// Block until we reach an expected line or timeout.
+			requireScannedWaitFor(t, stderrScanner, "starting main dispatch loop")
+			require.Equal(t, Sprintf("starting: %s %s -c\n", fakeEnvoy, arg), stdout.String())
 
-	// Wait and check if fake func-e and envoy processes are killed.
-	requireFindProcessError(t, cmd.Process, process.ErrorProcessNotRunning)
-	requireFindProcessError(t, fakeEnvoyProcess, process.ErrorProcessNotRunning)
+			fakeFuncEProcess, err := process.NewProcess(int32(cmd.Process.Pid))
+			require.NoError(t, err)
 
-	// Ensure both processes are killed.
-	require.NoError(t, EnsureProcessDone(cmd.Process))
-	require.NoError(t, EnsureProcessDone(fakeEnvoyProcess))
+			// Get all fake func-e children processes.
+			children, err := fakeFuncEProcess.Children()
+			require.NoError(t, err)
+			require.Equal(t, len(children), 1) // Should have only one child process i.e. the fake envoy process.
+			fakeEnvoyProcess := &os.Process{Pid: int(children[0].Pid)}
+
+			tc.signal(cmd.Process)
+			if tc.waitForExiting {
+				// When we decide to wait for the fake envoy for exiting, we wait for "exiting" message
+				// from envoy (see: internal/test/fakebinary/testdata/fake_envoy.go#82) after receiving
+				// interrupt from func-e (the fake func-e forwards fake envoy's stderr.
+				// See: internal/moreos/testdata/fake_func-e.go#38).
+				requireScannedWaitFor(t, stderrScanner, "exiting")
+			}
+
+			// Wait for the process to die; this could error due to the kill signal.
+			err = cmd.Wait()
+			if tc.waitForExiting {
+				// When it is terminated using interrupt or SIGTERM, we expect cmd.Wait to be properly stopped.
+				require.NoError(t, err)
+			}
+
+			// Wait and check if fake func-e and envoy processes are stopped.
+			requireFindProcessError(t, cmd.Process, process.ErrorProcessNotRunning)
+			requireFindProcessError(t, fakeEnvoyProcess, process.ErrorProcessNotRunning)
+
+			// Ensure both processes are killed.
+			require.NoError(t, EnsureProcessDone(cmd.Process))
+			require.NoError(t, EnsureProcessDone(fakeEnvoyProcess))
+		})
+	}
 }
 
 // requireFakeFuncE builds a func-e binary only depends on fakeFuncESrc and the sources in this package.
@@ -135,4 +179,15 @@ func requireFindProcessError(t *testing.T, proc *os.Process, expectedErr error) 
 		_, err := process.NewProcess(int32(proc.Pid)) // because os.FindProcess is no-op in Linux!
 		return err == expectedErr
 	}, 100*time.Millisecond, 5*time.Millisecond, "timeout waiting for expected error %v", expectedErr)
+}
+
+func requireScannedWaitFor(t *testing.T, s *bufio.Scanner, waitFor string) {
+	require.Eventually(t, func() bool {
+		for s.Scan() {
+			if strings.HasPrefix(s.Text(), waitFor) {
+				return true
+			}
+		}
+		return false
+	}, 5*time.Second, 100*time.Millisecond, "timeout waiting for scanner to find %q", waitFor)
 }
