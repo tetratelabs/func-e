@@ -2,7 +2,7 @@
 # See https://docs.github.com/en/actions/configuring-and-managing-workflows/configuring-a-workflow#adding-a-workflow-status-badge-to-your-repository
 # yamllint --format github .github/workflows/msi.yaml
 ---
-name: "msi"
+name: "dist"
 
 on:
   push:  # We run tests on non-tagged pushes to master
@@ -30,8 +30,8 @@ defaults:
     shell: bash
 
 jobs:
-  msi:
-    name: "Test Windows Installer build (${{ matrix.os }})"
+  dist:
+    name: "Test packaging build (${{ matrix.os }})"
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false  # don't fail fast as sometimes failures are operating system specific
@@ -70,7 +70,7 @@ jobs:
           key: test-${{ runner.os }}-go-${{ hashFiles('go.mod', 'go.sum', 'Tools.mk') }}
           restore-keys: test-${{ runner.os }}-go-
 
-      - name: "Build Windows Installer (MSI)"
+      - name: "Build packages (.msi, .deb [amd64, arm64], .rpm [x86_64, aarch64])"
         run: make dist
 
       # This only checks the installer when built on Windows as it is simpler than switching OS.
@@ -86,3 +86,27 @@ jobs:
         run: |
           ./packaging/msi/winget_manifest.sh > Tetrate.func-e.yaml
           yamllint -sd '{extends: default, rules: {line-length: disable}}' Tetrate.func-e.yaml
+
+      # This only checks installing the Debian package (amd64) when running this job step on Linux
+      # (Ubuntu, amd64) as it is more efficient than having a new job definition (which requires to
+      # upload and download the built packages as artifacts) and do the verification there.
+      - name: "Test installing Debian package (Ubuntu, amd64)"
+        if: runner.os == 'Linux'
+        # Running dpkg and apt-get requires "sudo".
+        run: sudo packaging/nfpm/verify_deb.sh
+
+      # This only checks installing the RPM package when running this job on Linux, but using
+      # container (on CentOS 8 via ghcr.io/tetratelabs/func-e-internal:centos8, x86_64) as it is
+      # more efficient than having a new job definition (which requires to upload and download the
+      # built packages as artifacts) and do the verification there.
+      - name: "Test installing RPM package (on CentOS 8, x86_64 via ghcr.io/tetratelabs/func-e-internal:centos8)"
+        if: runner.os == 'Linux'
+        uses: docker://ghcr.io/tetratelabs/func-e-internal:centos8
+        with:
+          # Since we use the root user from within the container process when doing this, we don't
+          # require "sudo".
+          args: packaging/nfpm/verify_rpm.sh
+
+      # TODO: Verification for installing arm64 Debian and aarch64 RPM packages. Curently it is
+      # not attempted since we need to pass the artifacts to Travis CI every time this job is
+      # finished.
