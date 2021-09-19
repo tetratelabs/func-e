@@ -87,19 +87,20 @@ jobs:
           ./packaging/msi/winget_manifest.sh > Tetrate.func-e.yaml
           yamllint -sd '{extends: default, rules: {line-length: disable}}' Tetrate.func-e.yaml
 
-      # This only checks installing the Debian package (amd64) when running this job step on Linux
-      # (Ubuntu, amd64) as it is more efficient than having a new job definition (which requires to
-      # upload and download the built packages as artifacts) and do the verification there.
-      - name: "Test installing Debian package (on Ubuntu, amd64)"
+      # This only checks installing and unistalling the Debian package (amd64) when running this job
+      # step on Linux (Ubuntu, amd64) as it is more efficient than having a new job definition
+      # (which requires to upload and download the built packages as artifacts) and do the
+      # verification there.
+      - name: "Test installing and unistalling Debian package (on Ubuntu, amd64)"
         if: runner.os == 'Linux'
         # Running dpkg and apt-get requires "sudo".
         run: sudo packaging/nfpm/verify_deb.sh
 
-      # This only checks installing the RPM package when running this job on Linux, but using
-      # container (on CentOS 8 via ghcr.io/tetratelabs/func-e-internal:centos8, x86_64) as it is
-      # more efficient than having a new job definition (which requires to upload and download the
-      # built packages as artifacts) and do the verification there.
-      - name: "Test installing RPM package (on CentOS 8, x86_64 via ghcr.io/tetratelabs/func-e-internal:centos8)"
+      # This only checks installing and unistalling the RPM package when running this job on Linux,
+      # but using container (on CentOS 8 via ghcr.io/tetratelabs/func-e-internal:centos8, x86_64) as
+      # it is more efficient than having a new job definition (which requires to upload and download
+      # the built packages as artifacts) and do the verification there.
+      - name: "Test installing and unistalling RPM package (on CentOS 8, x86_64 via ghcr.io/tetratelabs/func-e-internal:centos8)"
         if: runner.os == 'Linux'
         uses: docker://ghcr.io/tetratelabs/func-e-internal:centos8
         with:
@@ -107,6 +108,6 @@ jobs:
           # require "sudo".
           args: packaging/nfpm/verify_rpm.sh
 
-      # TODO: Verification for installing arm64 Debian and aarch64 RPM packages. Curently it is
-      # not attempted since we need to pass the artifacts to Travis CI every time this job is
-      # finished.
+      # TODO: Verification for installing and unistalling arm64 Debian and aarch64 RPM packages.
+      # Curently it is not attempted since we need to pass the artifacts to Travis CI every time
+      # this job is finished.
