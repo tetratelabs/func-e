@@ -43,10 +43,34 @@ jobs:
           #   - needs repo:status, public_repo, write:packages, delete:packages
           password: ${{ secrets.GHCR_TOKEN }}
 
-      - name: Build and push
-        run: |  # This will only push a single architecture, which is fine as we currently only support amd64
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v1
+
+      - name: Setup Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Write Dockerfile for ${{ matrix.target-tag }}
+        run: |
           cat > Dockerfile <<'EOF'
           ${{ matrix.dockerfile }}
           EOF
-          docker build -t ghcr.io/tetratelabs/func-e-internal:${{ matrix.target_tag }} .
-          docker push ghcr.io/tetratelabs/func-e-internal:${{ matrix.target_tag }}
+
+      - name : Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64 # Build and push for amd64 and arm64 architectures.
+          tags:  ghcr.io/${{ github.repository_owner }}/func-e-internal:${{ matrix.target-tag }}
+
+      # We do re-tagging for easier usage when testing using emulation, so we can forcefuly pull
+      # arm64 image by directly specifiying the tag without the need of supplying
+      # `--platform linux/arm64`. Using `uses: docker://` only allows to override `args`, but not
+      # the `--platform` flag.
+      # Reference: https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#example-using-the-github-packages-container-registry.
+      # Related: https://github.com/actions/virtual-environments/issues/1368.
+      - name : Re-tag for arm64 only
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          platforms: linux/arm64 # Build and push for arm64 architecture only.
+          tags:  ghcr.io/${{ github.repository_owner }}/func-e-internal:${{ matrix.target-tag }}-arm64
