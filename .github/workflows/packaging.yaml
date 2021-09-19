@@ -1,8 +1,8 @@
 # `name` value will appear "as is" in the badge.
 # See https://docs.github.com/en/actions/configuring-and-managing-workflows/configuring-a-workflow#adding-a-workflow-status-badge-to-your-repository
-# yamllint --format github .github/workflows/msi.yaml
+# yamllint --format github .github/workflows/packaging.yaml
 ---
-name: "dist"
+name: "packaging"
 
 on:
   push:  # We run tests on non-tagged pushes to master
@@ -30,7 +30,7 @@ defaults:
     shell: bash
 
 jobs:
-  dist:
+  packaging:
     name: "Test packaging build (${{ matrix.os }})"
     runs-on: ${{ matrix.os }}
     strategy:
