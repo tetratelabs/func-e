@@ -66,8 +66,8 @@ jobs:
       # arm64 image by directly specifiying the tag without the need of supplying
       # `--platform linux/arm64`. Using `uses: docker://` only allows to override `args`, but not
       # the `--platform` flag.
-      # Reference: https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#example-using-the-github-packages-container-registry.
-      # Related: https://github.com/actions/virtual-environments/issues/1368.
+      # Reference: https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#example-using-the-github-packages-container-registry
+      # Related: https://github.com/actions/virtual-environments/issues/1368
       - name : Re-tag for arm64 only
         uses: docker/build-push-action@v2
         with:
