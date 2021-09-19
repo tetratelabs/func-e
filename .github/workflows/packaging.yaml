@@ -90,7 +90,7 @@ jobs:
       # This only checks installing the Debian package (amd64) when running this job step on Linux
       # (Ubuntu, amd64) as it is more efficient than having a new job definition (which requires to
       # upload and download the built packages as artifacts) and do the verification there.
-      - name: "Test installing Debian package (Ubuntu, amd64)"
+      - name: "Test installing Debian package (on Ubuntu, amd64)"
         if: runner.os == 'Linux'
         # Running dpkg and apt-get requires "sudo".
         run: sudo packaging/nfpm/verify_deb.sh
