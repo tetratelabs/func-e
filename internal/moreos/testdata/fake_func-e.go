@@ -3,6 +3,7 @@ package main
 // only import moreos, as that's what we are testing
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -31,23 +32,41 @@ func main() {
 		os.Exit(1)
 	}
 
+	// This is similar to main.go, except we don't import the validation error
+	if err := run(context.Background(), os.Args[2:]); err != nil {
+		moreos.Fprintf(os.Stderr, "error: %s\n", err) //nolint
+		os.Exit(1)
+	}
+	os.Exit(0)
+}
+
+// simulates envoy.Run with slight adjustments
+func run(ctx context.Context, args []string) (err error) { //nolint:gocyclo
 	// Like envoy.GetHomeVersion, $FUNC_E_HOME/versions/$(cat $FUNC_E_HOME/version)/bin/envoy$GOEXE.
-	cmd := exec.Command(os.Getenv("ENVOY_PATH"), os.Args[2:]...)
+	cmd := exec.Command(os.Getenv("ENVOY_PATH"), args...)
 	cmd.SysProcAttr = moreos.ProcessGroupAttr()
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	// Like envoy.Run.
-	waitCtx, waitCancel := context.WithCancel(context.Background())
+	// Suppress any error and replace it with the envoy exit status when > 1
+	defer func() {
+		if cmd.ProcessState != nil && cmd.ProcessState.ExitCode() > 0 {
+			if err != nil {
+				moreos.Fprintf(cmd.Stdout, "warning: %s\n", err) //nolint
+			}
+			err = fmt.Errorf("envoy exited with status: %d", cmd.ProcessState.ExitCode())
+		}
+	}()
+
+	waitCtx, waitCancel := context.WithCancel(ctx)
 	defer waitCancel()
 
 	sigCtx, stop := signal.NotifyContext(waitCtx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	moreos.Fprintf(os.Stdout, "starting: %s\n", strings.Join(cmd.Args, " ")) //nolint
+	moreos.Fprintf(cmd.Stdout, "starting: %s\n", strings.Join(cmd.Args, " ")) //nolint
 	if err := cmd.Start(); err != nil {
-		moreos.Fprintf(os.Stderr, "error: unable to start Envoy process: %s\n", err)
-		os.Exit(1)
+		return fmt.Errorf("unable to start Envoy process: %w", err)
 	}
 
 	// Wait in a goroutine. We may need to kill the process if a signal occurs first.
@@ -59,8 +78,7 @@ func main() {
 	// Block until we receive SIGINT or are canceled because Envoy has died.
 	<-sigCtx.Done()
 
-	// Simulate handleShutdown like in envoy.Run.
-	_ = moreos.Interrupt(cmd.Process)
+	handleShutdown(cmd)
 
 	// Block until it exits to ensure file descriptors are closed prior to archival.
 	// Allow up to 5 seconds for a clean stop, killing if it can't for any reason.
@@ -69,10 +87,15 @@ func main() {
 	case <-time.After(5 * time.Second):
 		_ = moreos.EnsureProcessDone(cmd.Process)
 	}
+	return
+}
 
-	if cmd.ProcessState != nil && cmd.ProcessState.ExitCode() > 0 {
-		moreos.Fprintf(os.Stderr, "envoy exited with status: %d\n", cmd.ProcessState.ExitCode())
-		os.Exit(1)
+// handleShutdown simulates the same named function in envoy.Run, except doesn't run any shutdown hooks.
+// This is a copy/paste of envoy.Runtime.interruptEnvoy() with some formatting differences.
+func handleShutdown(cmd *exec.Cmd) {
+	p := cmd.Process
+	moreos.Fprintf(cmd.Stdout, "sending interrupt to envoy (pid=%d)\n", p.Pid) //nolint
+	if err := moreos.Interrupt(p); err != nil {
+		moreos.Fprintf(cmd.Stdout, "warning: %s\n", err) //nolint
 	}
-	os.Exit(0)
 }

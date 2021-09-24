@@ -64,8 +64,10 @@ func (r *Runtime) Run(ctx context.Context, args []string) (err error) { //nolint
 	}
 
 	waitCtx, waitCancel := context.WithCancel(ctx)
-	sigCtx, sigCancel := signal.NotifyContext(waitCtx, syscall.SIGINT, syscall.SIGTERM)
 	defer waitCancel()
+
+	sigCtx, sigCancel := signal.NotifyContext(waitCtx, syscall.SIGINT, syscall.SIGTERM)
+	defer sigCancel()
 	r.FakeInterrupt = sigCancel
 
 	// Wait in a goroutine. We may need to kill the process if a signal occurs first.
