@@ -103,10 +103,8 @@ jobs:
           sudo timedatectl set-timezone America/Phoenix
           make test
 
-  # Github Action Runners don't support all operating systems we may need to test. Below ensures
-  # we run on the intended minimum platforms. Note: we also use Travis for arm64+ubuntu.
-  #
-  # Use only images from internal-images.yaml to avoid Docker rate limits and slow install steps.
+  # Github Action Runners doesn't support all operating systems and architectures we need to test.
+  # This adds CentOS+amd64 using docker. We use Travis for arm64. See RATIONALE.md
   test-e2e:
     name: "Run e2e tests via containers (${{ matrix.container }})"
     runs-on: ubuntu-latest
@@ -116,8 +114,8 @@ jobs:
     timeout-minutes: 90  # instead of 360 by default
     strategy:
       fail-fast: false  # don't fail fast as sometimes failures are operating system specific
-      matrix:
-        container: ["ghcr.io/tetratelabs/func-e-internal:centos8"]
+      matrix:  # only use images from internal-images.yaml. See RATIONALE.md
+        container: ["ghcr.io/${{ github.repository_owner }}/func-e-internal:centos8"]
 
     steps:
       - name: "Checkout"
