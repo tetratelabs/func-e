@@ -2,7 +2,7 @@
 ---
 name: internal-images
 
-# Refresh the tags once a day
+# Refresh the tags once a day. This limits impact of rate-limited images. See RATIONALE.md
 on:
   schedule:
     - cron: "23 3 * * *"
@@ -24,29 +24,37 @@ jobs:
       matrix:
         # Be precise in tag versions to improve reproducibility
         include:
-          - dockerfile: |
+          - dockerfile: |  # Don't install golang as the version often changes
               FROM centos:8
               RUN yum install -y --quiet make which git gcc && yum clean all
             target_tag: centos8
     runs-on: ubuntu-latest
     steps:
-      # Same as doing this locally: echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_TOKEN}" --password-stdin
-      - name: Login into GitHub Container Registry
-        uses: docker/login-action@v1
+      # We need QEMU and Buildx for multi-platform (amd64+arm64) image push. See RATIONALE.md
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v1
+
+      - name: Setup Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Write Dockerfile
+        run: |
+          cat > Dockerfile <<'EOF'
+          ${{ matrix.dockerfile }}
+          EOF
+
+      - name: Build and push
+        uses: docker/build-push-action@v2
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
+          push: true
+          context: .
+          platforms: linux/amd64,linux/arm64  # arm64 is run only by Travis. See RATIONALE.md
+          tags: ghcr.io/${{ github.repository_owner }}/func-e-internal:${{ matrix.target_tag }}
+          # Same as doing this locally: echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_TOKEN}" --password-stdin
           # GHCR_TOKEN=<hex token value>
           #   - pushes Docker images to ghcr.io
           #   - create via https://github.com/settings/tokens
           #   - assign via https://github.com/organizations/tetratelabs/settings/secrets/actions
           #   - needs repo:status, public_repo, write:packages, delete:packages
-          password: ${{ secrets.GHCR_TOKEN }}
-
-      - name: Build and push
-        run: |  # This will only push a single architecture, which is fine as we currently only support amd64
-          cat > Dockerfile <<'EOF'
-          ${{ matrix.dockerfile }}
-          EOF
-          docker build -t ghcr.io/tetratelabs/func-e-internal:${{ matrix.target_tag }} .
-          docker push ghcr.io/tetratelabs/func-e-internal:${{ matrix.target_tag }}
+          secrets: |
+            GIT_AUTH_TOKEN=${{ secrets.GHCR_TOKEN }}
