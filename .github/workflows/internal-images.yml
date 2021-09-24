@@ -30,6 +30,19 @@ jobs:
             target_tag: centos8
     runs-on: ubuntu-latest
     steps:
+      # Same as doing this locally: echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_TOKEN}" --password-stdin
+      - name: Login into GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          # GHCR_TOKEN=<hex token value>
+          #   - pushes Docker images to ghcr.io
+          #   - create via https://github.com/settings/tokens
+          #   - assign via https://github.com/organizations/tetratelabs/settings/secrets/actions
+          #   - needs repo:status, public_repo, write:packages, delete:packages
+          password: ${{ secrets.GHCR_TOKEN }}
+
       # We need QEMU and Buildx for multi-platform (amd64+arm64) image push. See RATIONALE.md
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v1
@@ -50,11 +63,3 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64  # arm64 is run only by Travis. See RATIONALE.md
           tags: ghcr.io/${{ github.repository_owner }}/func-e-internal:${{ matrix.target_tag }}
-          # Same as doing this locally: echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_TOKEN}" --password-stdin
-          # GHCR_TOKEN=<hex token value>
-          #   - pushes Docker images to ghcr.io
-          #   - create via https://github.com/settings/tokens
-          #   - assign via https://github.com/organizations/tetratelabs/settings/secrets/actions
-          #   - needs repo:status, public_repo, write:packages, delete:packages
-          secrets: |
-            GIT_AUTH_TOKEN=${{ secrets.GHCR_TOKEN }}
