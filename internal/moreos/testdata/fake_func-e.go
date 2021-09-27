@@ -41,22 +41,12 @@ func main() {
 }
 
 // simulates envoy.Run with slight adjustments
-func run(ctx context.Context, args []string) (err error) { //nolint:gocyclo
+func run(ctx context.Context, args []string) error {
 	// Like envoy.GetHomeVersion, $FUNC_E_HOME/versions/$(cat $FUNC_E_HOME/version)/bin/envoy$GOEXE.
 	cmd := exec.Command(os.Getenv("ENVOY_PATH"), args...)
 	cmd.SysProcAttr = moreos.ProcessGroupAttr()
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-
-	// Suppress any error and replace it with the envoy exit status when > 1
-	defer func() {
-		if cmd.ProcessState.ExitCode() > 0 {
-			if err != nil {
-				moreos.Fprintf(cmd.Stdout, "warning: %s\n", err) //nolint
-			}
-			err = fmt.Errorf("envoy exited with status: %d", cmd.ProcessState.ExitCode())
-		}
-	}()
 
 	waitCtx, waitCancel := context.WithCancel(ctx)
 	defer waitCancel()
@@ -78,7 +68,11 @@ func run(ctx context.Context, args []string) (err error) { //nolint:gocyclo
 	// Block until we receive SIGINT or are canceled because Envoy has died.
 	<-sigCtx.Done()
 
-	handleShutdown(cmd)
+	// The process could have exited due to incorrect arguments or otherwise.
+	// If it is still running, run shutdown hooks and propagate the interrupt.
+	if cmd.ProcessState == nil {
+		handleShutdown(cmd)
+	}
 
 	// Block until it exits to ensure file descriptors are closed prior to archival.
 	// Allow up to 5 seconds for a clean stop, killing if it can't for any reason.
@@ -87,7 +81,12 @@ func run(ctx context.Context, args []string) (err error) { //nolint:gocyclo
 	case <-time.After(5 * time.Second):
 		_ = moreos.EnsureProcessDone(cmd.Process)
 	}
-	return
+
+	// Unlike real func-e, we don't run shutdown hooks, so have no run directory to archive.
+	if cmd.ProcessState.ExitCode() > 0 {
+		return fmt.Errorf("envoy exited with status: %d", cmd.ProcessState.ExitCode())
+	}
+	return nil
 }
 
 // handleShutdown simulates the same named function in envoy.Run, except doesn't run any shutdown hooks.
