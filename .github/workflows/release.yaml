@@ -8,11 +8,13 @@ on:
   push:
     tags: 'v[0-9]+.[0-9]+.[0-9]+**'  # Ex. v0.2.0 v0.2.1-rc2
 
-env:  # Use the built-in latest patch of go to save install time
+# Use the built-in latest patch of go to save install time
+# Ex. https://github.com/actions/virtual-environments/blob/main/images/linux/Ubuntu2004-README.md#environment-variables-2
+env:
   GOROOT: GOROOT_1_17_X64
-  CONFIGURE_GO: |
-    echo "GOROOT=$${{ env.GOROOT }}" >> $GITHUB_ENV
-    echo "$${{ env.GOROOT }}/bin" >> $GITHUB_PATH
+  CONFIGURE_GO: |  # Note: We can't interpolate ${{ env.GOROOT }} here, hence repetition.
+    echo "GOROOT=$GOROOT_1_17_X64" >> $GITHUB_ENV
+    echo "$GOROOT_1_17_X64/bin" >> $GITHUB_PATH
 
 defaults:
   run:  # use bash for all operating systems unless overridden
@@ -107,4 +109,3 @@ jobs:
         shell: cmd
         env:  # use the stashed msi name instead of parsing it
           MSI_FILE: ${{ steps.download.outputs.msi }}
-

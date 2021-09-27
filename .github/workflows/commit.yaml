@@ -6,9 +6,9 @@ name: "build"
 
 env:  # Use the built-in latest patch of go to save install time
   GOROOT: GOROOT_1_17_X64
-  CONFIGURE_GO: |
-    echo "GOROOT=$${{ env.GOROOT }}" >> $GITHUB_ENV
-    echo "$${{ env.GOROOT }}/bin" >> $GITHUB_PATH
+  CONFIGURE_GO: |  # Note: We can't interpolate ${{ env.GOROOT }} here, hence repetition.
+    echo "GOROOT=$GOROOT_1_17_X64" >> $GITHUB_ENV
+    echo "$GOROOT_1_17_X64/bin" >> $GITHUB_PATH
 
 on:
   push:  # We run tests on non-tagged pushes to master
@@ -98,7 +98,7 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: bash <(curl -s https://codecov.io/bash)
 
-      - name: "Run unit tests in a different timezone" # https://github.com/tetratelabs/func-e/issues/303.
+      - name: "Run unit tests in a different timezone"  # https://github.com/tetratelabs/func-e/issues/303.
         if: runner.os == 'Linux'
         run: |
           sudo timedatectl set-timezone America/Phoenix
