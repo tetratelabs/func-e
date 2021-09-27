@@ -17,7 +17,6 @@ package envoy
 import (
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -50,8 +49,7 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 	}
 
 	// Warn, but don't fail if we can't write the pid file for some reason
-	err := os.WriteFile(r.pidPath, []byte(strconv.Itoa(cmd.Process.Pid)), 0600)
-	maybeWarn(r.Out, err)
+	r.maybeWarn(os.WriteFile(r.pidPath, []byte(strconv.Itoa(cmd.Process.Pid)), 0600))
 
 	waitCtx, waitCancel := context.WithCancel(ctx)
 	defer waitCancel()
@@ -86,22 +84,15 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 		_ = moreos.EnsureProcessDone(r.cmd.Process)
 	}
 
+	// Warn, but don't fail on error archiving the run directory
 	if !r.opts.DontArchiveRunDir {
-		err = r.archiveRunDir()
+		r.maybeWarn(r.archiveRunDir())
 	}
 
-	// Suppress any error archiving and replace it with the envoy exit status when > 1
 	if cmd.ProcessState.ExitCode() > 0 {
-		maybeWarn(r.Out, err)
-		err = fmt.Errorf("envoy exited with status: %d", cmd.ProcessState.ExitCode())
+		return fmt.Errorf("envoy exited with status: %d", cmd.ProcessState.ExitCode())
 	}
-	return err
-}
-
-func maybeWarn(w io.Writer, err error) {
-	if err != nil {
-		moreos.Fprintf(w, "warning: %s\n", err) //nolint
-	}
+	return nil
 }
 
 // awaitAdminAddress waits up to 2 seconds for the admin address to be available and logs it.
