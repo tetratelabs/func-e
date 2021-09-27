@@ -8,8 +8,8 @@ on:
   push:
     tags: 'v[0-9]+.[0-9]+.[0-9]+**'  # Ex. v0.2.0 v0.2.1-rc2
 
-env:  # As of 2021-08-05 images come with go 1.15 https://github.com/actions/virtual-environments/tree/main/images
-  GO_VERSION: "1.17.0"
+env:  # Update this prior to requiring a higher minor version in go.mod
+  GO_VERSION: "1.17"  # Latest patch
 
 defaults:
   run:  # use bash for all operating systems unless overridden

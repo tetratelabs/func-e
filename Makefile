@@ -149,20 +149,9 @@ lint:
          >./internal/version/last_known_envoy.txt
 	@printf "$(ansi_format_bright)" lint "ok"
 
-# Enforce go version matches what's in go.mod when running `make check` assuming the following:
-# * 'go version' returns output like "go version go1.16 darwin/amd64"
-# * go.mod contains a line like "go 1.16"
-expected_go_version_prefix := "go version go$(shell sed -ne '/^go /s/.* //gp' go.mod )"
-go_version := $(shell go version)
-
 # CI blocks merge until this passes. If this fails, run "make check" locally and commit the difference.
 # This formats code before running lint, as it is annoying to tell people to format first!
 check: ## Verify contents of last commit
-# case statement because /bin/sh cannot do prefix comparison, awk is awkward and assuming /bin/bash is brittle
-	@case "$(go_version)" in $(expected_go_version_prefix)* ) ;; * ) \
-		echo "Expected 'go version' to start with $(expected_go_version_prefix), but it didn't: $(go_version)"; \
-		exit 1; \
-	esac
 	@$(MAKE) lint
 	@$(MAKE) format
 	@# Make sure the check-in is clean
