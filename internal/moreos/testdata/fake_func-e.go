@@ -50,7 +50,7 @@ func run(ctx context.Context, args []string) (err error) { //nolint:gocyclo
 
 	// Suppress any error and replace it with the envoy exit status when > 1
 	defer func() {
-		if cmd.ProcessState != nil && cmd.ProcessState.ExitCode() > 0 {
+		if cmd.ProcessState.ExitCode() > 0 {
 			if err != nil {
 				moreos.Fprintf(cmd.Stdout, "warning: %s\n", err) //nolint
 			}
