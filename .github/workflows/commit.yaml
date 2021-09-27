@@ -60,7 +60,9 @@ jobs:
         uses: actions/checkout@v2
 
       - name: "echo Go"
-        run: echo $${{ env.GOROOT }}
+        run: |
+          echo $${{ env.GOROOT }}
+          ls /opt/hostedtoolcache/go/1.17.1/x64 || true
 
       - name: "Configure Go"
         run: ${{ env.CONFIGURE_GO }}
