@@ -4,7 +4,9 @@
 ---
 name: "msi"
 
-env:  # Use the built-in latest patch of go to save install time
+# Use the built-in latest patch of go to save install time
+# Ex. https://github.com/actions/virtual-environments/blob/main/images/linux/Ubuntu2004-README.md#environment-variables-2
+env:
   GOROOT: GOROOT_1_17_X64
   CONFIGURE_GO: |  # Note: We can't interpolate ${{ env.GOROOT }} here, hence repetition.
     echo "GOROOT=$GOROOT_1_17_X64" >> $GITHUB_ENV
