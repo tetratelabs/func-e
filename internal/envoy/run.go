@@ -30,7 +30,7 @@ import (
 )
 
 // Run execs the binary at the path with the args passed. It is a blocking function that can be shutdown via SIGINT.
-func (r *Runtime) Run(ctx context.Context, args []string) error { //nolint:gocyclo
+func (r *Runtime) Run(ctx context.Context, args []string) error {
 	// We can't use CommandContext even if that seems correct here. The reason is that we need to invoke shutdown hooks,
 	// and they expect the process to still be running. For example, this allows admin API hooks.
 	cmd := exec.Command(r.opts.EnvoyPath, args...) // #nosec -> users can run whatever binary they like!
