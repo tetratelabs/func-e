@@ -8,8 +8,11 @@ on:
   push:
     tags: 'v[0-9]+.[0-9]+.[0-9]+**'  # Ex. v0.2.0 v0.2.1-rc2
 
-env:  # As of 2021-08-05 images come with go 1.15 https://github.com/actions/virtual-environments/tree/main/images
-  GO_VERSION: "1.17.0"
+env:  # Use the built-in latest patch of go to save install time
+  GOROOT: GOROOT_1_17_X64
+  CONFIGURE_GO: |
+    echo "GOROOT=$${{ env.GOROOT }}" >> $GITHUB_ENV
+    echo "$${{ env.GOROOT }}/bin" >> $GITHUB_PATH
 
 defaults:
   run:  # use bash for all operating systems unless overridden
@@ -25,10 +28,8 @@ jobs:
         with:  # fetch all history for all tags and branches (needed for changelog)
           fetch-depth: 0
 
-      - name: "Set up Go"
-        uses: actions/setup-go@v2
-        with:
-          go-version: ${{ env.GO_VERSION }}
+      - name: "Configure Go"
+        run: ${{ env.CONFIGURE_GO }}
 
       - name: "Download Windows code signing certificate"
         id: p12
@@ -82,10 +83,8 @@ jobs:
       - name: "Checkout"
         uses: actions/checkout@v2
 
-      - name: "Install Go"
-        uses: actions/setup-go@v2
-        with:
-          go-version: ${{ env.GO_VERSION }}
+      - name: "Configure Go"
+        run: ${{ env.CONFIGURE_GO }}
 
       - name: "Extract `func-e` binary from GitHub release assets"
         id: download  # allows variables like ${{ steps.download.outputs.X }}

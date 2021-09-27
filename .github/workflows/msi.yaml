@@ -4,8 +4,11 @@
 ---
 name: "msi"
 
-env:  # As of 2021-08-05 images come with go 1.15 https://github.com/actions/virtual-environments/tree/main/images
-  GO_VERSION: "1.17.0"
+env:  # Use the built-in latest patch of go to save install time
+  GOROOT: GOROOT_1_17_X64
+  CONFIGURE_GO: |
+    echo "GOROOT=$${{ env.GOROOT }}" >> $GITHUB_ENV
+    echo "$${{ env.GOROOT }}/bin" >> $GITHUB_PATH
 
 on:
   push:  # We run tests on non-tagged pushes to master
@@ -64,19 +67,17 @@ jobs:
       - name: "Checkout"
         uses: actions/checkout@v2
 
-      - name: "Install Go"
-        uses: actions/setup-go@v2
-        with:
-          go-version: ${{ env.GO_VERSION }}
+      - name: "Configure Go"
+        run: ${{ env.CONFIGURE_GO }}
 
-      - name: "Cache golang"
+      - name: "Cache Go"
         uses: actions/cache@v2
         with:
           path: |  # TODO: go build cache if we care, noting it is OS-specific
             ~/go/pkg/mod
           # Makefile contains go run statements which affect the build cache
-          key: test-${{ runner.os }}-${{ env.GO_VERSION }}-go-${{ hashFiles('go.sum', 'Makefile') }}
-          restore-keys: test-${{ runner.os }}-${{ env.GO_VERSION }}-go-
+          key: test-${{ runner.os }}-${{ env.GOROOT }}-go-${{ hashFiles('go.sum', 'Makefile') }}
+          restore-keys: test-${{ runner.os }}-${{ env.GOROOT }}-go-
 
       - name: "Build Windows Installer (MSI)"
         run: make dist
