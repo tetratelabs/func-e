@@ -59,9 +59,7 @@ func (r *Runtime) handleShutdown(ctx context.Context) {
 func (r *Runtime) interruptEnvoy() {
 	p := r.cmd.Process
 	moreos.Fprintf(r.Out, "sending interrupt to envoy (pid=%d)\n", p.Pid) //nolint
-	if err := moreos.Interrupt(p); err != nil {
-		moreos.Fprintf(r.Out, "warning: %s\n", err) //nolint
-	}
+	r.maybeWarn(moreos.Interrupt(p))
 }
 
 func (r *Runtime) archiveRunDir() error {

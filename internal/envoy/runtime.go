@@ -25,6 +25,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/tetratelabs/func-e/internal/moreos"
+
 	"github.com/tetratelabs/func-e/internal/globals"
 )
 
@@ -73,6 +75,13 @@ func (r *Runtime) String() string {
 // GetRunDir returns the run-specific directory files can be written to.
 func (r *Runtime) GetRunDir() string {
 	return r.opts.RunDir
+}
+
+// maybeWarn writes a warning message to Runtime.Out when the error isn't nil
+func (r *Runtime) maybeWarn(err error) {
+	if err != nil {
+		moreos.Fprintf(r.Out, "warning: %s\n", err) //nolint
+	}
 }
 
 // ensureAdminAddressPath sets the "--admin-address-path" flag so that it can be used in /ready checks. If a value

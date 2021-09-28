@@ -29,7 +29,7 @@ import (
 )
 
 // Run execs the binary at the path with the args passed. It is a blocking function that can be shutdown via SIGINT.
-func (r *Runtime) Run(ctx context.Context, args []string) (err error) { //nolint:gocyclo
+func (r *Runtime) Run(ctx context.Context, args []string) error {
 	// We can't use CommandContext even if that seems correct here. The reason is that we need to invoke shutdown hooks,
 	// and they expect the process to still be running. For example, this allows admin API hooks.
 	cmd := exec.Command(r.opts.EnvoyPath, args...) // #nosec -> users can run whatever binary they like!
@@ -37,16 +37,6 @@ func (r *Runtime) Run(ctx context.Context, args []string) (err error) { //nolint
 	cmd.Stderr = r.Err
 	cmd.SysProcAttr = moreos.ProcessGroupAttr()
 	r.cmd = cmd
-
-	// Suppress any error and replace it with the envoy exit status when > 1
-	defer func() {
-		if cmd.ProcessState != nil && cmd.ProcessState.ExitCode() > 0 {
-			if err != nil {
-				moreos.Fprintf(r.Out, "warning: %s\n", err) //nolint
-			}
-			err = fmt.Errorf("envoy exited with status: %d", cmd.ProcessState.ExitCode())
-		}
-	}()
 
 	if err := r.ensureAdminAddressPath(); err != nil {
 		return err
@@ -59,13 +49,13 @@ func (r *Runtime) Run(ctx context.Context, args []string) (err error) { //nolint
 	}
 
 	// Warn, but don't fail if we can't write the pid file for some reason
-	if err := os.WriteFile(r.pidPath, []byte(strconv.Itoa(cmd.Process.Pid)), 0600); err != nil {
-		moreos.Fprintf(r.Out, "warning: %s\n", err) //nolint
-	}
+	r.maybeWarn(os.WriteFile(r.pidPath, []byte(strconv.Itoa(cmd.Process.Pid)), 0600))
 
 	waitCtx, waitCancel := context.WithCancel(ctx)
-	sigCtx, sigCancel := signal.NotifyContext(waitCtx, syscall.SIGINT, syscall.SIGTERM)
 	defer waitCancel()
+
+	sigCtx, sigCancel := signal.NotifyContext(waitCtx, syscall.SIGINT, syscall.SIGTERM)
+	defer sigCancel()
 	r.FakeInterrupt = sigCancel
 
 	// Wait in a goroutine. We may need to kill the process if a signal occurs first.
@@ -79,11 +69,11 @@ func (r *Runtime) Run(ctx context.Context, args []string) (err error) { //nolint
 	// Block until we receive SIGINT or are canceled because Envoy has died
 	<-sigCtx.Done()
 
-	if cmd.ProcessState != nil && !r.opts.DontArchiveRunDir {
-		return r.archiveRunDir()
+	// The process could have exited due to incorrect arguments or otherwise.
+	// If it is still running, run shutdown hooks and propagate the interrupt.
+	if cmd.ProcessState == nil {
+		r.handleShutdown(ctx)
 	}
-
-	r.handleShutdown(ctx)
 
 	// At this point, shutdown hooks have run and Envoy is interrupted.
 	// Block until it exits to ensure file descriptors are closed prior to archival.
@@ -93,7 +83,16 @@ func (r *Runtime) Run(ctx context.Context, args []string) (err error) { //nolint
 	case <-time.After(5 * time.Second):
 		_ = moreos.EnsureProcessDone(r.cmd.Process)
 	}
-	return r.archiveRunDir()
+
+	// Warn, but don't fail on error archiving the run directory
+	if !r.opts.DontArchiveRunDir {
+		r.maybeWarn(r.archiveRunDir())
+	}
+
+	if cmd.ProcessState.ExitCode() > 0 {
+		return fmt.Errorf("envoy exited with status: %d", cmd.ProcessState.ExitCode())
+	}
+	return nil
 }
 
 // awaitAdminAddress waits up to 2 seconds for the admin address to be available and logs it.
