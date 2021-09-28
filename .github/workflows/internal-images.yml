@@ -28,6 +28,10 @@ jobs:
         include:
           # This installs the dependencies needed to build func-e including the latest patch of go
           # CentOS' root user shell is /bin/bash so go env is set via ~/.bashrc
+          #
+          # Note: This uses gimme so that we can install the latest patch of go without knowing what
+          # that is, or parsing it on our own. This is more flexible and removes update maintenance
+          # we'd have if we hard coded a specific patch. See https://github.com/travis-ci/gimme
           - dockerfile: |
               FROM centos:8
               RUN yum install -y --quiet make which git gcc && yum clean all && \
