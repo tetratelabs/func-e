@@ -4,8 +4,8 @@
 ---
 name: "build"
 
-env:  # As of 2021-08-05 images come with go 1.15 https://github.com/actions/virtual-environments/tree/main/images
-  GO_VERSION: "1.17.0"
+env:  # Update this prior to requiring a higher minor version in go.mod
+  GO_VERSION: "1.17"  # Latest patch
 
 on:
   push:  # We run tests on non-tagged pushes to master
@@ -123,7 +123,7 @@ jobs:
 
       - name: "Install Go"
         uses: actions/setup-go@v2
-        with:
+        with:  # TODO: refactor this as the image will already have go installed
           go-version: ${{ env.GO_VERSION }}
 
       - name: "Cache golang"

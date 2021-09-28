@@ -8,6 +8,9 @@ on:
     - cron: "23 3 * * *"
   workflow_dispatch:  # Allows manual refresh
 
+env:  # Update this prior to requiring a higher minor version in go.mod
+  GO_VERSION: "1.17"  # Latest patch
+
 # This builds images and pushes them to ghcr.io/tetratelabs/func-e-internal:$tag
 # Using these in tests and as a parent (FROM) avoids docker.io rate-limits particularly on pull requests.
 #
@@ -15,7 +18,6 @@ on:
 # ```bash
 # $ docker run -ti -v $PWD:/func-e --rm centos:8
 # [root@d37da4601545 /]# cd /func-e
-# [root@d37da4601545 func-e]# eval "$(curl -sL https://raw.githubusercontent.com/travis-ci/gimme/master/gimme | GIMME_GO_VERSION=1.17 bash)"
 # now execute your setup commands!
 # ```
 jobs:
@@ -24,9 +26,18 @@ jobs:
       matrix:
         # Be precise in tag versions to improve reproducibility
         include:
-          - dockerfile: |  # Don't install golang as the version often changes
+          # This installs the dependencies needed to build func-e including the latest patch of go
+          # CentOS' root user shell is /bin/bash so go env is set via ~/.bashrc
+          #
+          # Note: This uses gimme so that we can install the latest patch of go without knowing what
+          # that is, or parsing it on our own. This is more flexible and removes update maintenance
+          # we'd have if we hard coded a specific patch. See https://github.com/travis-ci/gimme
+          - dockerfile: |
               FROM centos:8
-              RUN yum install -y --quiet make which git gcc && yum clean all
+              RUN yum install -y --quiet make which git gcc && yum clean all && \
+                  curl -sL https://raw.githubusercontent.com/travis-ci/gimme/master/gimme | GIMME_GO_VERSION=${{ env.GO_VERSION }}.x bash && \
+                  cat ~/.gimme/envs/latest.env >> ~/.bashrc
+              ENTRYPOINT ["/bin/bash"]
             target_tag: centos8
     runs-on: ubuntu-latest
     steps:

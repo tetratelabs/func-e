@@ -6,8 +6,8 @@ group: edge  # required for arm64-graviton2
 virt: lxd  # faster starting
 language: go
 
-go:
-  - 1.17
+go:  # Use gimme expression to get latest patch. See https://github.com/travis-ci/gimme
+  - 1.17.x
 
 cache:
   directories: # ~/.func-e/versions is cached so that we only re-download once: for TestFuncEInstall
