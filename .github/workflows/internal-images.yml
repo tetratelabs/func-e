@@ -27,12 +27,13 @@ jobs:
         # Be precise in tag versions to improve reproducibility
         include:
           # This installs the dependencies needed to build func-e including the latest patch of go
+          # CentOS' root user shell is /bin/bash so go env is set via ~/.bashrc
           - dockerfile: |
               FROM centos:8
               RUN yum install -y --quiet make which git gcc && yum clean all && \
                   curl -sL https://raw.githubusercontent.com/travis-ci/gimme/master/gimme | GIMME_GO_VERSION=${{ env.GO_VERSION }}.x bash && \
-                  source ~/.gimme/envs/latest.env && \
-                  go version
+                  cat ~/.gimme/envs/latest.env >> ~/.bashrc
+              ENTRYPOINT ["/bin/bash"]
             target_tag: centos8
     runs-on: ubuntu-latest
     steps:
