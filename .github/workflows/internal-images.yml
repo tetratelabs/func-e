@@ -35,7 +35,7 @@ jobs:
           - dockerfile: |
               FROM centos:8
               RUN yum install -y --quiet make which git gcc && yum clean all
-              RUN curl -sL https://raw.githubusercontent.com/travis-ci/gimme/master/gimme | GIMME_GO_VERSION=${{ env.GO_VERSION }}.x bash
+              RUN curl -sL https://raw.githubusercontent.com/travis-ci/gimme/master/gimme | GIMME_GO_VERSION=1.17.x bash
               RUN cat ~/.gimme/envs/latest.env >> ~/.bashrc
               ENTRYPOINT ["/bin/bash"]
             target_tag: centos8
