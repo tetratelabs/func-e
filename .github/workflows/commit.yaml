@@ -89,7 +89,7 @@ jobs:
 
       - name: "Run e2e tests using the `func-e` binary (CentOS)"
         if: runner.os == 'Linux'
-        run: docker run -v $PWD:/func-e --rm ${CENTOS_IMAGE} -c "cd /func-e; make -o ${E2E_FUNC_E_PATH} e2e"
+        run: docker run -v $HOME/.func-e:/root/.func-e -v $PWD:/func-e --rm ${CENTOS_IMAGE} -c "cd /func-e; make -o ${E2E_FUNC_E_PATH} e2e"
         env:  # CENTOS_IMAGE was built by internal-images.yaml; E2E_FUNC_E_PATH was built via `make build`
           CENTOS_IMAGE: ghcr.io/tetratelabs/func-e-internal:centos8
           E2E_FUNC_E_PATH: build/func-e_linux_amd64/func-e
