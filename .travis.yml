@@ -13,7 +13,6 @@ cache:
   directories: # ~/.func-e/versions is cached so that we only re-download once: for TestFuncEInstall
     - $HOME/.func-e/versions
     - $HOME/go/pkg/mod
-    - $HOME/go/bin/*-v*
 
 git:
   depth: false  # TRAVIS_COMMIT_RANGE requires full commit history.
@@ -28,4 +27,12 @@ before_install: |  # Prevent test build of a documentation or GitHub Actions onl
   fi
   make check || travis_terminate 1
 
-script: make e2e
+env:  # CENTOS_IMAGE was built by internal-images.yaml; E2E_FUNC_E_PATH was built via `make e2e`
+  - CENTOS_IMAGE=ghcr.io/tetratelabs/func-e-internal:centos8
+  - E2E_FUNC_E_PATH=build/func-e_linux_arm64/func-e
+
+script:
+  # Run e2e tests using the `func-e` binary (Ubuntu)
+  - make e2e
+  # Run e2e tests using the `func-e` binary (CentOS)
+  - docker run -v $HOME/.func-e:/root/.func-e -v $PWD:/func-e --rm ${CENTOS_IMAGE} -c "cd /func-e; make -o ${E2E_FUNC_E_PATH} e2e"
