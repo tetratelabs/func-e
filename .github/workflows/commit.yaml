@@ -4,12 +4,6 @@
 ---
 name: "build"
 
-# GOROOT_NAME resolves a GOROOT path corresponding to a major Golang release on the current runner.
-# Ex. Given GOROOT_NAME=GOROOT_1_17_X64, ${!GOROOT_NAME}=/opt/hostedtoolcache/go/1.17.1/x64
-# See https://github.com/actions/virtual-environments/blob/main/images/linux/Ubuntu2004-README.md#environment-variables-2
-env:
-  GOROOT_NAME: GOROOT_1_17_X64
-
 on:
   push:  # We run tests on non-tagged pushes to master
     tags: ''
@@ -57,32 +51,17 @@ jobs:
       - name: "Checkout"
         uses: actions/checkout@v2
 
-      # This sets the version-specific GOROOT env on macOS until actions/virtual-environments#4156
-      #
-      # This must happen before interpolating ${!GOROOT_NAME} on macOS
-      - name: "Set GOROOT_X64 env (macOS)"
-        if: runner.os == 'macOS'
-        run: |  # ex GOROOT_1_17_X64 -> 1.17
-          go_version=$(echo ${GOROOT_NAME//_/.}| cut -d. -f2,3)
-          go_root=$(ls -d /Users/runner/hostedtoolcache/go/${go_version}*/x64|sort -n|tail -1)
-          echo "${GOROOT_NAME}=${go_root}" >> $GITHUB_ENV
-
       - name: "Configure Go"
-        run: |  # This exports variables needed to run and cache a GOROOT set with ${!GOROOT_NAME}.
-          go_path=${!GOROOT_NAME}/bin
-          for var in GOROOT GOCACHE GOMODCACHE; do
-            echo ${var}=$(${go_path}/go env ${var}) >> $GITHUB_ENV
-          done
-          echo ${go_path} >> $GITHUB_PATH
+        run: .github/workflows/configure_go.sh
 
       - name: "Cache Go"
         uses: actions/cache@v2
         with:
-          path: |  # Cache downloaded go modules and the build cache (Makefile involves `go run`)
+          path: |  # Cache downloaded Go modules and the GOCACHE (to cache `go run` builds invoked by Makefile)
+            ~/go/pkg/mod
             ${{ env.GOCACHE }}
-            ${{ env.GOMODCACHE }}
-          key: test-${{ runner.os }}-${{ env.GOROOT_NAME }}-go-${{ hashFiles('go.sum', 'Makefile') }}
-          restore-keys: test-${{ runner.os }}-${{ env.GOROOT_NAME }}-go-
+          key: test-${{ runner.os }}-${{ env.GO_VERSION }}-go-${{ hashFiles('go.sum', 'Makefile') }}
+          restore-keys: test-${{ runner.os }}-${{ env.GO_VERSION }}-go-
 
       - name: "Cache Envoy binaries"
         uses: actions/cache@v2

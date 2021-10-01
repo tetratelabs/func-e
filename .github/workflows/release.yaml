@@ -29,7 +29,7 @@ jobs:
           fetch-depth: 0
 
       - name: "Configure Go"
-        run: |  # We don't use actions/cache on release, so don't need to export cache variables.
+        run: |  # We don't use actions/cache on release, so don't need to export GOMODCACHE as a variable.
           echo "GOROOT=${!GOROOT_NAME}" >> $GITHUB_ENV
           echo "${!GOROOT_NAME}/bin" >> $GITHUB_PATH
 
@@ -96,7 +96,7 @@ jobs:
           echo "${GOROOT_NAME}=${go_root}" >> $GITHUB_ENV
 
       - name: "Configure Go"
-        run: |  # We don't use actions/cache on release, so don't need to export cache variables.
+        run: |  # We don't use actions/cache on release, so don't need to export GOMODCACHE as a variable.
           echo "GOROOT=${!GOROOT_NAME}" >> $GITHUB_ENV
           echo "${!GOROOT_NAME}/bin" >> $GITHUB_PATH
 
