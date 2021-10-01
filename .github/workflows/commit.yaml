@@ -87,6 +87,13 @@ jobs:
       - name: "Run e2e tests using the `func-e` binary"
         run: make e2e
 
+      - name: "Run e2e tests using the `func-e` binary (CentOS)"
+        if: runner.os == 'Linux'
+        run: docker run -v $HOME/.func-e:/root/.func-e -v $PWD:/func-e --rm ${CENTOS_IMAGE} -c "cd /func-e; make -o ${E2E_FUNC_E_PATH} e2e"
+        env:  # CENTOS_IMAGE was built by internal-images.yaml; E2E_FUNC_E_PATH was built via `make build`
+          CENTOS_IMAGE: ghcr.io/tetratelabs/func-e-internal:centos8
+          E2E_FUNC_E_PATH: build/func-e_linux_amd64/func-e
+
       - name: "Generate coverage report"  # only once (not per OS)
         if: runner.os == 'Linux'
         run: make coverage
@@ -102,45 +109,3 @@ jobs:
         run: |
           sudo timedatectl set-timezone America/Phoenix
           make test
-
-  # Github Action Runners doesn't support all operating systems and architectures we need to test.
-  # This adds CentOS+amd64 using docker. We use Travis for arm64. See RATIONALE.md
-  test-e2e:
-    name: "Run e2e tests via containers (${{ matrix.container }})"
-    runs-on: ubuntu-latest
-    # "When you only specify a container image, you can omit the image keyword."
-    # See https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idcontainer
-    container: ${{ matrix.container }}
-    timeout-minutes: 90  # instead of 360 by default
-    strategy:
-      fail-fast: false  # don't fail fast as sometimes failures are operating system specific
-      matrix:  # only use images from internal-images.yaml. See RATIONALE.md
-        container: ["ghcr.io/${{ github.repository_owner }}/func-e-internal:centos8"]
-
-    steps:
-      - name: "Checkout"
-        uses: actions/checkout@v2
-
-      - name: "Install Go"
-        uses: actions/setup-go@v2
-        with:  # TODO: refactor this as the image will already have go installed
-          go-version: ${{ env.GO_VERSION }}
-
-      - name: "Cache golang"
-        uses: actions/cache@v2
-        with:
-          path: |  # TODO: go build cache if we care, noting it is OS-specific
-            ~/go/pkg/mod
-          # Makefile contains go run statements which affect the build cache
-          key: test-${{ runner.os }}-${{ env.GO_VERSION }}-go-${{ hashFiles('go.sum', 'Makefile') }}
-          restore-keys: test-${{ runner.os }}-${{ env.GO_VERSION }}-go-
-
-      - name: "Cache Envoy binaries"
-        uses: actions/cache@v2
-        with:  # ~/.func-e/versions is cached so that we only re-download once: for TestFuncEInstall
-          path: ~/.func-e/versions
-          key: test-${{ runner.os }}-envoy-${{ hashFiles('internal/version/last_known_envoy.txt') }}
-          restore-keys: test-${{ runner.os }}-envoy-
-
-      - name: "Run e2e tests using the `func-e` binary"
-        run: make e2e
