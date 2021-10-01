@@ -8,8 +8,11 @@ on:
     - cron: "23 3 * * *"
   workflow_dispatch:  # Allows manual refresh
 
-env:  # Update this prior to requiring a higher minor version in go.mod
-  GO_VERSION: "1.17"  # Latest patch
+# GOROOT_NAME resolves a GOROOT path corresponding to a major Golang release on the current runner.
+# Ex. Given GOROOT_NAME=GOROOT_1_17_X64, ${!GOROOT_NAME}=/opt/hostedtoolcache/go/1.17.1/x64
+# See https://github.com/actions/virtual-environments/blob/main/images/linux/Ubuntu2004-README.md#environment-variables-2
+env:
+  GOROOT_NAME: GOROOT_1_17_X64
 
 # This builds images and pushes them to ghcr.io/tetratelabs/func-e-internal:$tag
 # Using these in tests and as a parent (FROM) avoids docker.io rate-limits particularly on pull requests.
@@ -26,19 +29,19 @@ jobs:
       matrix:
         # Be precise in tag versions to improve reproducibility
         include:
-          # This installs the dependencies needed to build func-e including the latest patch of go
-          # CentOS' root user shell is /bin/bash so go env is set via ~/.bashrc
-          #
-          # Note: This uses gimme so that we can install the latest patch of go without knowing what
-          # that is, or parsing it on our own. This is more flexible and removes update maintenance
-          # we'd have if we hard coded a specific patch. See https://github.com/travis-ci/gimme
+          # This installs the dependencies of func-e's Makefile, and libraries needed to run Envoy.
+          # This Dockerfile is inlined, so we don't need to check out the source repository.
           - dockerfile: |
               FROM centos:8
               RUN yum install -y --quiet make which git gcc && yum clean all
-              ARG GO_VERSION
-              RUN curl -sSL https://raw.githubusercontent.com/travis-ci/gimme/master/gimme | GIMME_GO_VERSION=$GO_VERSION.x bash && \
-                  cat ~/.gimme/envs/latest.env >> ~/.bashrc
-              ENTRYPOINT ["/bin/bash"]
+
+              ARG GO_MINOR_REVISION
+              # See https://docs.docker.com/engine/reference/builder/#automatic-platform-args-in-the-global-scope
+              ARG TARGETARCH
+              RUN curl -sSL https://golang.org/dl/go$GO_MINOR_REVISION.linux-$TARGETARCH.tar.gz | tar -xzC /usr/local
+              ENV GOROOT=/usr/local/go
+              ENV GOPATH=/usr/lib/go
+              ENV PATH=$GOPATH/bin:$GOROOT/bin:$PATH
             target_tag: centos8
     runs-on: ubuntu-latest
     steps:
@@ -62,6 +65,15 @@ jobs:
       - name: Setup Buildx
         uses: docker/setup-buildx-action@v1
 
+      # This resolves GOROOT_NAME (ex GOROOT_1_17_X64) into GO_MINOR_REVISION (ex 1.17.1), by
+      # parsing the directory path GOROOT_NAME evaluates to.
+      #
+      # Ex. Given ${!GOROOT_NAME}=/opt/hostedtoolcache/go/1.17.1/x64 -> GO_MINOR_REVISION=1.17.1
+      - name: Export Go minor revision
+        run: |
+          rev=$(echo ${!GOROOT_NAME}|cut -d/ -f5)
+          echo "GO_MINOR_REVISION=${rev}" >> $GITHUB_ENV
+
       - name: Write Dockerfile
         run: |
           cat > Dockerfile <<'EOF'
@@ -73,6 +85,6 @@ jobs:
         with:
           push: true
           context: .
-          build-args: GO_VERSION=${{ env.GO_VERSION }}
+          build-args: GO_MINOR_REVISION=${{ env.GO_MINOR_REVISION }}
           platforms: linux/amd64,linux/arm64  # arm64 is run only by Travis. See RATIONALE.md
           tags: ghcr.io/${{ github.repository_owner }}/func-e-internal:${{ matrix.target_tag }}
