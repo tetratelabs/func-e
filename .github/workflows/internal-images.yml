@@ -42,6 +42,8 @@ jobs:
               ENV GOROOT=/usr/local/go
               ENV GOPATH=/usr/lib/go
               ENV PATH=$GOPATH/bin:$GOROOT/bin:$PATH
+
+              ENTRYPOINT ["/bin/bash"]
             target_tag: centos8
     runs-on: ubuntu-latest
     steps:
