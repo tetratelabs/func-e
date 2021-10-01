@@ -8,12 +8,6 @@ on:
   push:
     tags: 'v[0-9]+.[0-9]+.[0-9]+**'  # Ex. v0.2.0 v0.2.1-rc2
 
-# GOROOT_NAME resolves a GOROOT path corresponding to a major Golang release on the current runner.
-# Ex. Given GOROOT_NAME=GOROOT_1_17_X64, ${!GOROOT_NAME}=/opt/hostedtoolcache/go/1.17.1/x64
-# See https://github.com/actions/virtual-environments/blob/main/images/linux/Ubuntu2004-README.md#environment-variables-2
-env:
-  GOROOT_NAME: GOROOT_1_17_X64
-
 defaults:
   run:  # use bash for all operating systems unless overridden
     shell: bash
