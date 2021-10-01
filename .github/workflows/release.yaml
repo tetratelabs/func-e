@@ -23,9 +23,7 @@ jobs:
           fetch-depth: 0
 
       - name: "Configure Go"
-        run: |  # We don't use actions/cache on release, so don't need to export GOMODCACHE as a variable.
-          echo "GOROOT=${!GOROOT_NAME}" >> $GITHUB_ENV
-          echo "${!GOROOT_NAME}/bin" >> $GITHUB_PATH
+        run: .github/workflows/configure_go.sh
 
       - name: "Download Windows code signing certificate"
         id: p12
@@ -79,20 +77,8 @@ jobs:
       - name: "Checkout"
         uses: actions/checkout@v2
 
-      # This sets the version-specific GOROOT env on macOS until actions/virtual-environments#4156
-      #
-      # This must happen before interpolating ${!GOROOT_NAME} on macOS
-      - name: "Set GOROOT_X64 env (macOS)"
-        if: runner.os == 'macOS'
-        run: |  # ex GOROOT_1_17_X64 -> 1.17
-          go_version=$(echo ${GOROOT_NAME//_/.}| cut -d. -f2,3)
-          go_root=$(ls -d /Users/runner/hostedtoolcache/go/${go_version}*/x64|sort -n|tail -1)
-          echo "${GOROOT_NAME}=${go_root}" >> $GITHUB_ENV
-
       - name: "Configure Go"
-        run: |  # We don't use actions/cache on release, so don't need to export GOMODCACHE as a variable.
-          echo "GOROOT=${!GOROOT_NAME}" >> $GITHUB_ENV
-          echo "${!GOROOT_NAME}/bin" >> $GITHUB_PATH
+        run: .github/workflows/configure_go.sh
 
       - name: "Extract `func-e` binary from GitHub release assets"
         id: download  # allows variables like ${{ steps.download.outputs.X }}
