@@ -28,8 +28,9 @@ before_install: |  # Prevent test build of a documentation or GitHub Actions onl
   make check || travis_terminate 1
 
 env:  # CENTOS_IMAGE was built by internal-images.yaml; E2E_FUNC_E_PATH was built via `make e2e`
-  - CENTOS_IMAGE=ghcr.io/tetratelabs/func-e-internal:centos8
-  - E2E_FUNC_E_PATH=build/func-e_linux_arm64/func-e
+  global:
+    - CENTOS_IMAGE=ghcr.io/tetratelabs/func-e-internal:centos8
+    - E2E_FUNC_E_PATH=build/func-e_linux_arm64/func-e
 
 script:
   # Run e2e tests using the `func-e` binary (Ubuntu)
