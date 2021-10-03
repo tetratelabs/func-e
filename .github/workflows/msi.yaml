@@ -4,9 +4,6 @@
 ---
 name: "msi"
 
-env:  # Update this prior to requiring a higher minor version in go.mod
-  GO_VERSION: "1.17"  # Latest patch
-
 on:
   push:  # We run tests on non-tagged pushes to master
     tags: ''
@@ -58,23 +55,21 @@ jobs:
     steps:
       - name: "Setup msitools, wixtoolset, osslsigncode"
         run: ${{ matrix.setup }}
-        env: # `gh` requires auth even on public releases
+        env:  # `gh` requires auth even on public releases
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: "Checkout"
         uses: actions/checkout@v2
 
-      - name: "Install Go"
-        uses: actions/setup-go@v2
-        with:
-          go-version: ${{ env.GO_VERSION }}
+      - name: "Configure Go"
+        run: .github/workflows/configure_go.sh
 
-      - name: "Cache golang"
+      - name: "Cache Go"
         uses: actions/cache@v2
         with:
-          path: |  # TODO: go build cache if we care, noting it is OS-specific
+          path: |  # Cache downloaded Go modules and the GOCACHE (to cache `go run` builds invoked by Makefile)
             ~/go/pkg/mod
-          # Makefile contains go run statements which affect the build cache
+            ${{ env.GOCACHE }}
           key: test-${{ runner.os }}-${{ env.GO_VERSION }}-go-${{ hashFiles('go.sum', 'Makefile') }}
           restore-keys: test-${{ runner.os }}-${{ env.GO_VERSION }}-go-
 

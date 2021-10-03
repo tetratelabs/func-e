@@ -8,9 +8,6 @@ on:
   push:
     tags: 'v[0-9]+.[0-9]+.[0-9]+**'  # Ex. v0.2.0 v0.2.1-rc2
 
-env:  # Update this prior to requiring a higher minor version in go.mod
-  GO_VERSION: "1.17"  # Latest patch
-
 defaults:
   run:  # use bash for all operating systems unless overridden
     shell: bash
@@ -25,10 +22,8 @@ jobs:
         with:  # fetch all history for all tags and branches (needed for changelog)
           fetch-depth: 0
 
-      - name: "Set up Go"
-        uses: actions/setup-go@v2
-        with:
-          go-version: ${{ env.GO_VERSION }}
+      - name: "Configure Go"
+        run: .github/workflows/configure_go.sh
 
       - name: "Download Windows code signing certificate"
         id: p12
@@ -82,10 +77,8 @@ jobs:
       - name: "Checkout"
         uses: actions/checkout@v2
 
-      - name: "Install Go"
-        uses: actions/setup-go@v2
-        with:
-          go-version: ${{ env.GO_VERSION }}
+      - name: "Configure Go"
+        run: .github/workflows/configure_go.sh
 
       - name: "Extract `func-e` binary from GitHub release assets"
         id: download  # allows variables like ${{ steps.download.outputs.X }}
@@ -108,4 +101,3 @@ jobs:
         shell: cmd
         env:  # use the stashed msi name instead of parsing it
           MSI_FILE: ${{ steps.download.outputs.msi }}
-
