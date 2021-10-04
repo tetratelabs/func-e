@@ -5,15 +5,51 @@
 # Please see GNU make's documentation if unfamiliar: https://www.gnu.org/software/make/manual/html_node/
 .PHONY: test build e2e dist clean format lint check site
 
+# Include versions of tools we build on-demand
+include Tools.mk
+
 # This should be driven by automation and result in N.N.N, not vN.N.N
 VERSION   ?= dev
 build_dir := build
 dist_dir  := dist
 
-# Build the path relating to the current runtime (goos,goarch)
-goos   := $(shell go env GOOS)
-goarch := $(shell go env GOARCH)
-goexe  := $(shell go env GOEXE)
+# This selects the goroot to use in the following priority order:
+# 1. ${GOROOT}          - Ex actions/setup-go
+# 2. ${GOROOT_1_17_X64} - Ex GitHub Actions runner
+# 3. $(go env GOROOT)   - Implicit from the go binary in the path
+#
+# There may be multiple GOROOT variables, so pick the one matching go.mod.
+go_release           := $(shell sed -ne 's/^go //gp' go.mod)
+# https://github.com/actions/runner/blob/master/src/Runner.Common/Constants.cs
+github_runner_arch   := $(if $(findstring $(shell uname -m),x86_64),X64,ARM64)
+goroot_github_env    := $(GOROOT_$(subst .,_,$(go_release))_$(github_runner_arch))
+# This works around missing variables on macOS via naming convention.
+# Ex. /Users/runner/hostedtoolcache/go/1.17.1/x64
+# Remove this after actions/virtual-environments#4156 is solved.
+goroot_github_cache  := $(lastword $(shell ls -d $(RUNNER_TOOL_CACHE)/go/$(go_release)*/$(github_runner_arch) 2>/dev/null))
+goroot_path          := $(shell go env GOROOT 2>/dev/null)
+goroot               := $(firstword $(GOROOT) $(goroot_github_env) $(goroot_github_cache) $(goroot_path))
+
+# Ensure POSIX-style GOROOT even in Windows, to support PATH updates in bash.
+ifdef COMSPEC
+goroot := $(shell cygpath $(goroot))
+endif
+
+# We must ensure `go` executes with GOROOT and PATH variables exported:
+# * GOROOT ensures versions don't conflict with /usr/local/go or c:\Go
+# * PATH ensures tools like golint can fork and execute the correct go binary.
+#
+# We may be using a very old version of Make (ex. 3.81 on macOS). This means we
+# can't re-set GOROOT or PATH via 'export' or use '.ONESHELL' to persist
+# variables across lines. Hence, we set variables on one-line.
+go := export PATH="$(goroot)/bin:$${PATH}" && export GOROOT="$(goroot)" && go
+
+# Set variables corresponding to the selected goroot and the current host.
+goarch   := $(shell $(go) env GOARCH)
+goexe    := $(shell $(go) env GOEXE)
+goos     := $(shell $(go) env GOOS)
+
+# Build the path to the func-e binary for the current runtime (goos,goarch)
 current_binary := $(build_dir)/func-e_$(goos)_$(goarch)/func-e$(goexe)
 
 # ANSI escape codes. f_ means foreground, b_ background.
@@ -39,20 +75,21 @@ build: $(current_binary) ## Build the func-e binary
 test_packages := . ./internal/...
 test: ## Run all unit tests
 	@printf "$(ansi_format_dark)" test "running unit tests"
-	@go test . $(test_packages)
+	@$(go) test $(test_packages)
 	@printf "$(ansi_format_bright)" test "ok"
 
 coverage:  ## Generate test coverage
 	@printf "$(ansi_format_dark)" coverage "running unit tests with coverage"
-	@go test -coverprofile=coverage.txt -covermode=atomic --coverpkg $(test_packages: =,) $(test_packages)
-	@go tool cover -func coverage.txt
+	@$(go) test -coverprofile=coverage.txt -covermode=atomic --coverpkg $(test_packages: =,) $(test_packages)
+	@$(go) tool cover -func coverage.txt
 	@printf "$(ansi_format_bright)" coverage "ok"
 
 # Tests run one at a time, in verbose mode, so that failures are easy to diagnose.
 # Note: -failfast helps as it stops at the first error. However, it is not a cacheable flag, so runs won't cache.
-e2e: $(current_binary) ## Run all end-to-end tests
+export E2E_FUNC_E_PATH ?= $(dir $(current_binary))
+e2e: $(E2E_FUNC_E_PATH)/func-e$(goexe) ## Run all end-to-end tests
 	@printf "$(ansi_format_dark)" e2e "running end-to-end tests"
-	@E2E_FUNC_E_PATH=$(dir $(current_binary)) go test -parallel 1 -v -failfast ./e2e
+	@$(go) test -parallel 1 -v -failfast ./e2e
 	@printf "$(ansi_format_bright)" e2e "ok"
 
 non_windows_platforms := darwin_amd64 darwin_arm64 linux_amd64 linux_arm64
@@ -125,25 +162,21 @@ dist: $(archives) $(packages) $(checksums) ## Generate release assets
 clean:  ## Ensure a clean build
 	@printf "$(ansi_format_dark)" clean "deleting temporary files"
 	@rm -rf dist build coverage.txt
-	@go clean -testcache
+	@$(go) clean -testcache
 	@printf "$(ansi_format_bright)" clean "ok"
 
-goimports := golang.org/x/tools/cmd/goimports@v0.1.5
-licenser  := github.com/liamawhite/licenser@v0.6.0
 format:
 	@printf "$(ansi_format_dark)" format "formatting project files"
-	@go mod tidy
-	@go run $(licenser) apply -r "Tetrate"
-	@# NOTE: goimports does not arrange imports in 3 blocks if there are already more than three blocks.
-	@# To avoid that, before running it, we collapse all imports in one block, then run the formatter.
-	@find . -type f -name '*.go' | xargs gofmt -s -w
-	@find . -type f -name '*.go' | xargs go run $(goimports) -w -local github.com/tetratelabs/func-e
+	@$(go) mod tidy
+	@$(go) run $(licenser) apply -r "Tetrate"
+	@$(go)fmt -s -w $$(find . -type f -name '*.go')
+	@# -local ensures consistent ordering of our module in imports
+	@$(go) run $(goimports) -local $$(sed -ne 's/^module //gp' go.mod) -w $$(find . -type f -name '*.go')
 	@printf "$(ansi_format_bright)" format "ok"
 
-golangci_lint := github.com/golangci/golangci-lint/cmd/golangci-lint@v1.42.0
 lint:
 	@printf "$(ansi_format_dark)" lint "Running linters"
-	@go run $(golangci_lint) run --timeout 5m --config .golangci.yml ./...
+	@$(go) run $(golangci_lint) run --timeout 5m --config .golangci.yml ./...
 	@# this will taint if we are behind from latest binary. printf avoids adding a newline to the file
     @curl -fsSL https://archive.tetratelabs.io/envoy/envoy-versions.json |jq -er .latestVersion|xargs printf "%s" \
          >./internal/version/last_known_envoy.txt
@@ -160,10 +193,9 @@ check: ## Verify contents of last commit
 		git diff --exit-code; \
 	fi
 
-hugo := github.com/gohugoio/hugo@v0.87.0
 site:  ## Serve website content
 	@git submodule update
-	@cd site && go run $(hugo) server --disableFastRender -D
+	@cd site && $(go) run $(hugo) server --disableFastRender -D
 
 # this makes a marker file ending in .signed to avoid repeatedly calling codesign
 %.signed: %
@@ -175,7 +207,8 @@ go-arch = $(if $(findstring amd64,$1),amd64,arm64)
 go-os   = $(if $(findstring .exe,$1),windows,$(if $(findstring linux,$1),linux,darwin))
 define go-build
 	@printf "$(ansi_format_dark)" build "building $1"
-	@CGO_ENABLED=0 GOOS=$(call go-os,$1) GOARCH=$(call go-arch,$1) go build \
+	@# $(go:go=) removes the trailing 'go', so we can insert cross-build variables
+	$(go:go=) CGO_ENABLED=0 GOOS=$(call go-os,$1) GOARCH=$(call go-arch,$1) go build \
 		-ldflags "-s -w -X main.version=$(VERSION)" \
 		-o $1 $2
 	@printf "$(ansi_format_bright)" build "ok"

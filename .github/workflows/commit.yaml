@@ -51,17 +51,15 @@ jobs:
       - name: "Checkout"
         uses: actions/checkout@v2
 
-      - name: "Configure Go"
-        run: .github/workflows/configure_go.sh
+      - name: "Detect Go Release"  # only used for "Cache Go"
+        run: echo GO_RELEASE=$(sed -n 's/^go //gp' go.mod) >> "${GITHUB_ENV}"
 
       - name: "Cache Go"
         uses: actions/cache@v2
         with:
-          path: |  # Cache downloaded Go modules and the GOCACHE (to cache `go run` builds invoked by Makefile)
-            ~/go/pkg/mod
-            ${{ env.GOCACHE }}
-          key: test-${{ runner.os }}-${{ env.GO_VERSION }}-go-${{ hashFiles('go.sum', 'Makefile') }}
-          restore-keys: test-${{ runner.os }}-${{ env.GO_VERSION }}-go-
+          path: ~/go/pkg/mod
+          key: test-${{ runner.os }}-${{ env.GO_RELEASE }}-go-${{ hashFiles('go.sum', 'Tools.mk') }}
+          restore-keys: test-${{ runner.os }}-${{ env.GO_RELEASE }}-go-
 
       - name: "Cache Envoy binaries"
         uses: actions/cache@v2
