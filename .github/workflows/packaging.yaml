@@ -99,4 +99,4 @@ jobs:
         if: runner.os == 'Linux'
         run: docker run --rm -v $PWD:/work --entrypoint packaging/nfpm/verify_rpm.sh ${CENTOS_IMAGE}
         env:  # CENTOS_IMAGE was built by internal-images.yaml
-          CENTOS_IMAGE: ghcr.io/tetratelabs/func-e-internal:centos-8
+          CENTOS_IMAGE: ghcr.io/codefromthecrypt/func-e-internal:centos-8  # TODO: switch back after testing
