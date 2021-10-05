@@ -66,7 +66,7 @@ jobs:
         with:
           path: ~/go/pkg/mod
           # go.mod for go release version, go.sum for modules used, and Tools.mk for 'go run' tools
-          key: test-${{ runner.os }}-go-${{ hashFiles('go.mod', go.sum', 'Tools.mk') }}
+          key: test-${{ runner.os }}-go-${{ hashFiles('go.mod', 'go.sum', 'Tools.mk') }}
           restore-keys: test-${{ runner.os }}-go-
 
       - name: "Build Windows Installer (MSI)"
