@@ -61,15 +61,13 @@ jobs:
       - name: "Checkout"
         uses: actions/checkout@v2
 
-      - name: "Detect Go Release"  # only used for "Cache Go"
-        run: echo GO_RELEASE=$(sed -n 's/^go //gp' go.mod) >> "${GITHUB_ENV}"
-
       - name: "Cache Go"
         uses: actions/cache@v2
         with:
           path: ~/go/pkg/mod
-          key: test-${{ runner.os }}-${{ env.GO_RELEASE }}-go-${{ hashFiles('go.sum', 'Tools.mk') }}
-          restore-keys: test-${{ runner.os }}-${{ env.GO_RELEASE }}-go-
+          # go.mod for go release version, go.sum for modules used, and Tools.mk for 'go run' tools
+          key: test-${{ runner.os }}-go-${{ hashFiles('go.mod', go.sum', 'Tools.mk') }}
+          restore-keys: test-${{ runner.os }}-go-
 
       - name: "Build Windows Installer (MSI)"
         run: make dist
