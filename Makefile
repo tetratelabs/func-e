@@ -1,7 +1,7 @@
 # Copyright 2021 Tetrate
 # Licensed under the Apache License, Version 2.0 (the "License")
 #
-# This script uses automatic variables (ex $<) and substitution references $(<:.signed=)
+# This script uses automatic variables (ex $<, $(@D)) and substitution references $(<:.signed=)
 # Please see GNU make's documentation if unfamiliar: https://www.gnu.org/software/make/manual/html_node/
 .PHONY: test build e2e dist clean format lint check site
 
@@ -9,9 +9,7 @@
 include Tools.mk
 
 # This should be driven by automation and result in N.N.N, not vN.N.N
-VERSION   ?= dev
-build_dir := build
-dist_dir  := dist
+VERSION ?= dev
 
 # This selects the goroot to use in the following priority order:
 # 1. ${GOROOT}          - Ex actions/setup-go
@@ -19,17 +17,17 @@ dist_dir  := dist
 # 3. $(go env GOROOT)   - Implicit from the go binary in the path
 #
 # There may be multiple GOROOT variables, so pick the one matching go.mod.
-go_release           := $(shell sed -ne 's/^go //gp' go.mod)
+go_release          := $(shell sed -ne 's/^go //gp' go.mod)
 # https://github.com/actions/runner/blob/master/src/Runner.Common/Constants.cs
-github_runner_arch   := $(if $(findstring $(shell uname -m),x86_64),X64,ARM64)
-github_goroot_name   := GOROOT_$(subst .,_,$(go_release))_$(github_runner_arch)
-github_goroot_val    := $(value $(github_goroot_name))
+github_runner_arch  := $(if $(findstring $(shell uname -m),x86_64),X64,ARM64)
+github_goroot_name  := GOROOT_$(subst .,_,$(go_release))_$(github_runner_arch)
+github_goroot_val   := $(value $(github_goroot_name))
 # This works around missing variables on macOS via naming convention.
 # Ex. /Users/runner/hostedtoolcache/go/1.17.1/x64
 # Remove this after actions/virtual-environments#4156 is solved.
-github_goroot_cache  := $(lastword $(shell ls -d $(RUNNER_TOOL_CACHE)/go/$(go_release)*/$(github_runner_arch) 2>/dev/null))
-goroot_path          := $(shell go env GOROOT 2>/dev/null)
-goroot               := $(firstword $(GOROOT) $(github_goroot_val) $(github_goroot_cache) $(goroot_path))
+github_goroot_cache := $(lastword $(shell ls -d $(RUNNER_TOOL_CACHE)/go/$(go_release)*/$(github_runner_arch) 2>/dev/null))
+goroot_path         := $(shell go env GOROOT 2>/dev/null)
+goroot              := $(firstword $(GOROOT) $(github_goroot_val) $(github_goroot_cache) $(goroot_path))
 
 ifndef goroot
 $(error could not determine GOROOT)
@@ -50,12 +48,13 @@ endif
 go := export PATH="$(goroot)/bin:$${PATH}" && export GOROOT="$(goroot)" && go
 
 # Set variables corresponding to the selected goroot and the current host.
-goarch   := $(shell $(go) env GOARCH)
-goexe    := $(shell $(go) env GOEXE)
-goos     := $(shell $(go) env GOOS)
+goarch := $(shell $(go) env GOARCH)
+goexe  := $(shell $(go) env GOEXE)
+goos   := $(shell $(go) env GOOS)
 
 # Build the path to the func-e binary for the current runtime (goos,goarch)
-current_binary := $(build_dir)/func-e_$(goos)_$(goarch)/func-e$(goexe)
+current_binary_path := build/func-e_$(goos)_$(goarch)
+current_binary      := $(current_binary_path)/func-e$(goexe)
 
 # ANSI escape codes. f_ means foreground, b_ background.
 # See https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters
@@ -83,7 +82,7 @@ test: ## Run all unit tests
 	@$(go) test $(test_packages)
 	@printf "$(ansi_format_bright)" test "ok"
 
-coverage:  ## Generate test coverage
+coverage: ## Generate test coverage
 	@printf "$(ansi_format_dark)" coverage "running unit tests with coverage"
 	@$(go) test -coverprofile=coverage.txt -covermode=atomic --coverpkg $(test_packages: =,) $(test_packages)
 	@$(go) tool cover -func coverage.txt
@@ -91,7 +90,7 @@ coverage:  ## Generate test coverage
 
 # Tests run one at a time, in verbose mode, so that failures are easy to diagnose.
 # Note: -failfast helps as it stops at the first error. However, it is not a cacheable flag, so runs won't cache.
-export E2E_FUNC_E_PATH ?= $(dir $(current_binary))
+export E2E_FUNC_E_PATH ?= $(current_binary_path)
 e2e: $(E2E_FUNC_E_PATH)/func-e$(goexe) ## Run all end-to-end tests
 	@printf "$(ansi_format_dark)" e2e "running end-to-end tests"
 	@$(go) test -parallel 1 -v -failfast ./e2e
@@ -99,27 +98,28 @@ e2e: $(E2E_FUNC_E_PATH)/func-e$(goexe) ## Run all end-to-end tests
 
 non_windows_platforms := darwin_amd64 darwin_arm64 linux_amd64 linux_arm64
 # TODO: arm64 on Windows https://github.com/envoyproxy/envoy/issues/17572
-windows_platforms := windows_amd64
+windows_platforms     := windows_amd64
 
-# Excludes all *_test.go files.
-gocodes := [!_test].go
-sources := $(wildcard internal/*/*$(gocodes) internal/*/*/*$(gocodes))
+# Make 3.81 doesn't support '**' globbing: Set explicitly instead of recursion.
+all_patterns := *.go */*.go */*/*.go */*/*/*.go */*/*/*.go */*/*/*/*.go
+all_sources  := $(wildcard $(all_patterns))
+main_sources := $(wildcard $(subst *,*[!_test],$(all_patterns)))
 
-$(build_dir)/func-e_%/func-e: main.go $(sources)
+build/func-e_%/func-e: $(main_sources)
 	$(call go-build, $@, $<)
 
-$(dist_dir)/func-e_$(VERSION)_%.tar.gz: $(build_dir)/func-e_%/func-e
+dist/func-e_$(VERSION)_%.tar.gz: build/func-e_%/func-e
 	@printf "$(ansi_format_dark)" tar.gz "tarring $@"
-	@mkdir -p $(dir $@)
+	@mkdir -p $(@D)
 	@tar --strip-components 2 -cpzf $@ $<
 	@printf "$(ansi_format_bright)" tar.gz "ok"
 
-$(build_dir)/func-e_%/func-e.exe: main.go $(sources)
+build/func-e_%/func-e.exe: $(main_sources)
 	$(call go-build, $@, $<)
 
-$(dist_dir)/func-e_$(VERSION)_%.zip: $(build_dir)/func-e_%/func-e.exe.signed
+dist/func-e_$(VERSION)_%.zip: build/func-e_%/func-e.exe.signed
 	@printf "$(ansi_format_dark)" zip "zipping $@"
-	@mkdir -p $(dir $@)
+	@mkdir -p $(@D)
 ifeq ($(goos),windows)  # Windows 10 etc use 7zip
 	@# '-bso0 -bsp0' makes it quiet, except errors
 	@# Wildcards in 7zip will skip the directory. We single-quote to ensure they aren't interpreted by the shell.
@@ -130,14 +130,14 @@ endif
 	@printf "$(ansi_format_bright)" zip "ok"
 
 # msi-arch is a macro so we can detect it based on the file naming convention
-msi-arch = $(if $(findstring amd64,$1),x64,arm64)
+msi-arch     = $(if $(findstring amd64,$1),x64,arm64)
 # Default to a dummy version, which is always lower than a real release
-msi_version=$(VERSION:dev=0.0.1)
+msi_version := $(VERSION:dev=0.0.1)
 
 # This builds the Windows installer (MSI) using platform-dependent WIX commands.
-$(dist_dir)/func-e_$(VERSION)_%.msi: $(build_dir)/func-e_%/func-e.exe.signed
+dist/func-e_$(VERSION)_%.msi: build/func-e_%/func-e.exe.signed
 	@printf "$(ansi_format_dark)" msi "building $@"
-	@mkdir -p $(dir $@)
+	@mkdir -p $(@D)
 ifeq ($(goos),windows)  # Windows 10 etc use https://wixtoolset.org
 	@candle -nologo -arch $(call msi-arch,$@) -dVersion=$(msi_version) -dBin=$(<:.signed=) packaging/msi/func-e.wxs
 	@light -nologo func-e.wixobj -o $@ -spdb
@@ -149,9 +149,9 @@ endif
 	@printf "$(ansi_format_bright)" msi "ok"
 
 # Archives are tar.gz, except in the case of Windows, which uses zip.
-archives  := $(non_windows_platforms:%=$(dist_dir)/func-e_$(VERSION)_%.tar.gz) $(windows_platforms:%=$(dist_dir)/func-e_$(VERSION)_%.zip)
-packages  := $(windows_platforms:%=$(dist_dir)/func-e_$(VERSION)_%.msi)
-checksums := $(dist_dir)/func-e_$(VERSION)_checksums.txt
+archives  := $(non_windows_platforms:%=dist/func-e_$(VERSION)_%.tar.gz) $(windows_platforms:%=dist/func-e_$(VERSION)_%.zip)
+packages  := $(windows_platforms:%=dist/func-e_$(VERSION)_%.msi)
+checksums := dist/func-e_$(VERSION)_checksums.txt
 
 # Darwin doesn't have sha256sum. See https://github.com/actions/virtual-environments/issues/90
 sha256sum := $(if $(findstring darwin,$(goos)),shasum -a 256,sha256sum)
@@ -164,24 +164,34 @@ $(checksums): $(archives) $(packages)
 # Ex. https://github.com/tetratelabs/func-e/releases/tag/v$(VERSION)
 dist: $(archives) $(packages) $(checksums) ## Generate release assets
 
-clean:  ## Ensure a clean build
+clean: ## Ensure a clean build
 	@printf "$(ansi_format_dark)" clean "deleting temporary files"
 	@rm -rf dist build coverage.txt
 	@$(go) clean -testcache
 	@printf "$(ansi_format_bright)" clean "ok"
 
-format:
-	@printf "$(ansi_format_dark)" format "formatting project files"
+# format is a PHONY target, so always runs. This allows skipping when sources didn't change.
+build/format: go.mod $(all_sources)
 	@$(go) mod tidy
 	@$(go) run $(licenser) apply -r "Tetrate"
-	@$(go)fmt -s -w $$(find . -type f -name '*.go')
+	@$(go)fmt -s -w $(all_sources)
 	@# -local ensures consistent ordering of our module in imports
-	@$(go) run $(goimports) -local $$(sed -ne 's/^module //gp' go.mod) -w $$(find . -type f -name '*.go')
+	@$(go) run $(goimports) -local $$(sed -ne 's/^module //gp' go.mod) -w $(all_sources)
+	@mkdir -p $(@D) && touch $@
+
+format:
+	@printf "$(ansi_format_dark)" format "formatting project files"
+	@$(MAKE) build/format
 	@printf "$(ansi_format_bright)" format "ok"
+
+# lint is a PHONY target, so always runs. This allows skipping when sources didn't change.
+build/lint: .golangci.yml $(all_sources)
+	@$(go) run $(golangci_lint) run --timeout 5m --config $< ./...
+	@mkdir -p $(@D) && touch $@
 
 lint:
 	@printf "$(ansi_format_dark)" lint "Running linters"
-	@$(go) run $(golangci_lint) run --timeout 5m --config .golangci.yml ./...
+	@$(MAKE) build/lint
 	@# this will taint if we are behind from latest binary. printf avoids adding a newline to the file
     @curl -fsSL https://archive.tetratelabs.io/envoy/envoy-versions.json |jq -er .latestVersion|xargs printf "%s" \
          >./internal/version/last_known_envoy.txt
@@ -198,14 +208,14 @@ check: ## Verify contents of last commit
 		git diff --exit-code; \
 	fi
 
-site:  ## Serve website content
+site: ## Serve website content
 	@git submodule update
 	@cd site && $(go) run $(hugo) server --disableFastRender -D
 
 # this makes a marker file ending in .signed to avoid repeatedly calling codesign
 %.signed: %
 	$(call codesign, $<)
-	@echo > $@
+	@touch $@
 
 # define macros for multi-platform builds. these parse the filename being built
 go-arch = $(if $(findstring amd64,$1),amd64,arm64)
@@ -213,7 +223,7 @@ go-os   = $(if $(findstring .exe,$1),windows,$(if $(findstring linux,$1),linux,d
 define go-build
 	@printf "$(ansi_format_dark)" build "building $1"
 	@# $(go:go=) removes the trailing 'go', so we can insert cross-build variables
-	$(go:go=) CGO_ENABLED=0 GOOS=$(call go-os,$1) GOARCH=$(call go-arch,$1) go build \
+	@$(go:go=) CGO_ENABLED=0 GOOS=$(call go-os,$1) GOARCH=$(call go-arch,$1) go build \
 		-ldflags "-s -w -X main.version=$(VERSION)" \
 		-o $1 $2
 	@printf "$(ansi_format_bright)" build "ok"
@@ -228,7 +238,7 @@ endef
 # keytool -genkey -alias func-e -storetype PKCS12 -keyalg RSA -keysize 2048 -storepass func-e-bunch \
 # -keystore func-e.p12 -dname "O=func-e,CN=func-e.io" -validity 3650
 # ```
-WINDOWS_CODESIGN_P12 ?= packaging/msi/func-e.p12
+WINDOWS_CODESIGN_P12      ?= packaging/msi/func-e.p12
 WINDOWS_CODESIGN_PASSWORD ?= func-e-bunch
 define codesign
 	@printf "$(ansi_format_dark)" codesign "signing $1"
