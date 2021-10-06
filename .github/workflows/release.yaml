@@ -22,9 +22,6 @@ jobs:
         with:  # fetch all history for all tags and branches (needed for changelog)
           fetch-depth: 0
 
-      - name: "Configure Go"
-        run: .github/workflows/configure_go.sh
-
       - name: "Download Windows code signing certificate"
         id: p12
         uses: timheuer/base64-to-file@v1
@@ -77,9 +74,6 @@ jobs:
       - name: "Checkout"
         uses: actions/checkout@v2
 
-      - name: "Configure Go"
-        run: .github/workflows/configure_go.sh
-
       - name: "Extract `func-e` binary from GitHub release assets"
         id: download  # allows variables like ${{ steps.download.outputs.X }}
         run: |
@@ -89,7 +83,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: "Run e2e tests using draft `func-e` binary"
-        run: go test -parallel 1 -v -failfast ./e2e
+        run: E2E_FUNC_E_PATH=. make e2e
 
       # This only checks the installer when built on Windows as it is simpler than switching OS.
       # refreshenv is from choco, and lets you reload ENV variables (used here for PATH).
