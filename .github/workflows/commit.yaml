@@ -80,10 +80,12 @@ jobs:
 
       - name: "Run e2e tests using the `func-e` binary (CentOS)"
         if: runner.os == 'Linux'
-        run: docker run -v $HOME/.func-e:/root/.func-e -v $PWD:/func-e --rm ${CENTOS_IMAGE} -c "cd /func-e; make -o ${E2E_FUNC_E_PATH} e2e"
+        run: |  # TODO: clean this up after #387 as DOCKER_HOME, workdir and entrypoint will be correct by default
+          DOCKER_HOME=$(docker run --rm --entrypoint /bin/bash ${CENTOS_IMAGE} -c 'echo $HOME')
+          docker run --rm -v $HOME/.func-e:${DOCKER_HOME}/.func-e -v $PWD:/work -w /work --entrypoint /usr/bin/make ${CENTOS_IMAGE} -o ${E2E_FUNC_E_PATH}/func-e e2e
         env:  # CENTOS_IMAGE was built by internal-images.yaml; E2E_FUNC_E_PATH was built via `make build`
           CENTOS_IMAGE: ghcr.io/tetratelabs/func-e-internal:centos8
-          E2E_FUNC_E_PATH: build/func-e_linux_amd64/func-e
+          E2E_FUNC_E_PATH: build/func-e_linux_amd64
 
       - name: "Generate coverage report"  # only once (not per OS)
         if: runner.os == 'Linux'
@@ -94,9 +96,3 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: bash <(curl -s https://codecov.io/bash)
-
-      - name: "Run unit tests in a different timezone"  # https://github.com/tetratelabs/func-e/issues/303.
-        if: runner.os == 'Linux'
-        run: |
-          sudo timedatectl set-timezone America/Phoenix
-          make test
