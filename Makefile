@@ -53,7 +53,8 @@ goexe  := $(shell $(go) env GOEXE)
 goos   := $(shell $(go) env GOOS)
 
 # Build the path to the func-e binary for the current runtime (goos,goarch)
-current_binary := build/func-e_$(goos)_$(goarch)/func-e$(goexe)
+current_binary_path := build/func-e_$(goos)_$(goarch)
+current_binary      := $(current_binary_path)/func-e$(goexe)
 
 # ANSI escape codes. f_ means foreground, b_ background.
 # See https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters
@@ -89,11 +90,10 @@ coverage: ## Generate test coverage
 
 # Tests run one at a time, in verbose mode, so that failures are easy to diagnose.
 # Note: -failfast helps as it stops at the first error. However, it is not a cacheable flag, so runs won't cache.
-export E2E_FUNC_E_PATH ?= $(dir $(current_binary))
+export E2E_FUNC_E_PATH ?= $(current_binary_path)
 e2e: $(E2E_FUNC_E_PATH)/func-e$(goexe) ## Run all end-to-end tests
 	@printf "$(ansi_format_dark)" e2e "running end-to-end tests"
-	@# Disable CGO so that e2e test runners don't need to install gcc
-	@$(go:go=) CGO_ENABLED=0 go test -parallel 1 -v -failfast ./e2e
+	@$(go) test -parallel 1 -v -failfast ./e2e
 	@printf "$(ansi_format_bright)" e2e "ok"
 
 non_windows_platforms := darwin_amd64 darwin_arm64 linux_amd64 linux_arm64
