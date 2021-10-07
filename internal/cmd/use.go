@@ -100,10 +100,22 @@ func getLatestInstalledPatch(o *globals.GlobalOpts, minorVersion version.Version
 		}
 		return rows[i].releaseDate > rows[j].releaseDate
 	})
-	prefix := string(minorVersion) + "."
+
+	strMinorVersion := string(minorVersion)
+	splitStrMinorVersion := strings.Split(strMinorVersion, "_debug")
+
+	prefix := splitStrMinorVersion[0] + "."
+	hasDebug := strings.HasSuffix(strMinorVersion, "_debug")
 	for i := range rows {
-		if strings.HasPrefix(string(rows[i].version), prefix) {
+		v := string(rows[i].version)
+		if strings.HasPrefix(v, prefix) {
 			return rows[i].version, nil
+		}
+
+		if hasDebug && !strings.HasSuffix(v, "_debug") {
+			continue
+		} else if !hasDebug && strings.HasSuffix(v, "_debug") {
+			continue
 		}
 	}
 	return "", fmt.Errorf("couldn't find the latest patch for %q for platform %q", minorVersion, o.Platform)
