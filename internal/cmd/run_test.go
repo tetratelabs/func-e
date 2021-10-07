@@ -102,7 +102,7 @@ func TestFuncERun_ReadsHomeVersionFile(t *testing.T) {
 	o.Out = new(bytes.Buffer)
 	defer cleanup()
 
-	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte(version.LastKnownEnvoy), 0600))
+	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte(version.LastKnownMinorVersionEnvoy), 0600))
 
 	c, _, _ := newApp(o)
 	runWithoutConfig(t, c)
@@ -110,6 +110,10 @@ func TestFuncERun_ReadsHomeVersionFile(t *testing.T) {
 	// No implicit lookup
 	require.NotContains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up latest version"))
 	require.Equal(t, version.LastKnownEnvoy, o.EnvoyVersion)
+
+	writtenVersion, err := os.ReadFile(filepath.Join(o.HomeDir, "version"))
+	require.NoError(t, err)
+	require.Equal(t, string(version.LastKnownMinorVersionEnvoy), string(writtenVersion))
 }
 
 func TestFuncERun_CreatesHomeVersionFile(t *testing.T) {
@@ -128,6 +132,10 @@ func TestFuncERun_CreatesHomeVersionFile(t *testing.T) {
 	require.Contains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up the latest Envoy version"))
 	require.FileExists(t, filepath.Join(o.HomeDir, "version"))
 	require.Equal(t, version.LastKnownEnvoy, o.EnvoyVersion)
+
+	writtenVersion, err := os.ReadFile(filepath.Join(o.HomeDir, "version"))
+	require.NoError(t, err)
+	require.Equal(t, string(version.LastKnownMinorVersionEnvoy), string(writtenVersion))
 }
 
 // runWithoutConfig intentionally has envoy quit. This allows tests to not have to interrupt envoy to proceed.
@@ -183,4 +191,41 @@ func TestFuncERun_ErrsWhenVersionsServerDown(t *testing.T) {
 
 	require.Contains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up the latest Envoy version"))
 	require.Contains(t, err.Error(), fmt.Sprintf(`couldn't read latest version from %s`, o.EnvoyVersionsURL))
+}
+
+func TestExtractLatestPatchFormat(t *testing.T) {
+	tests := []struct {
+		Input    version.Version
+		Expected version.Version
+	}{
+		{
+			Input:    "1.1",
+			Expected: "1.1",
+		},
+		{
+			Input:    "1.18",
+			Expected: "1.18",
+		},
+		{
+			Input:    "1.18_debug",
+			Expected: "1.18_debug",
+		},
+		{
+			Input:    "1.1.1",
+			Expected: "1.1",
+		},
+		{
+			Input:    "1.18.1",
+			Expected: "1.18",
+		},
+		{
+			Input:    "1.18.1_debug",
+			Expected: "1.18_debug",
+		},
+	}
+
+	for _, tc := range tests {
+		actual := rootcmd.ExtractLatestPatchFormat(tc.Input)
+		require.Equal(t, tc.Expected, actual)
+	}
 }

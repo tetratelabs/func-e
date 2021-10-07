@@ -37,7 +37,7 @@ func TestFuncEVersions_FindLatestPatch(t *testing.T) {
 			input: "1.20",
 			versions: map[version.Version]version.Release{
 				"1.20.0_debug": {},
-				"1.20.0": {},
+				"1.20.0":       {},
 			},
 			want: "1.20.0",
 		},
@@ -45,8 +45,8 @@ func TestFuncEVersions_FindLatestPatch(t *testing.T) {
 			name:  "upgradable",
 			input: "1.18",
 			versions: map[version.Version]version.Release{
-				"1.18.3": {},
-				"1.18.4": {},
+				"1.18.3":       {},
+				"1.18.4":       {},
 				"1.18.4_debug": {},
 			},
 			want: "1.18.4",
@@ -55,7 +55,7 @@ func TestFuncEVersions_FindLatestPatch(t *testing.T) {
 			name:  "notfound",
 			input: "1.1",
 			versions: map[version.Version]version.Release{
-				"1.20.0": {},
+				"1.20.0":    {},
 				"1.1_debug": {},
 			},
 			want: "",
@@ -65,7 +65,7 @@ func TestFuncEVersions_FindLatestPatch(t *testing.T) {
 			input: "1.19_debug",
 			versions: map[version.Version]version.Release{
 				"1.19.1_debug": {},
-				"1.19.1": {},
+				"1.19.1":       {},
 			},
 			want: "1.19.1_debug",
 		},
