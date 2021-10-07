@@ -1,11 +1,15 @@
 #!/bin/sh -ue
 #
 # This script generates the release notes "func-e" for a specific release tag.
-# .github/release_notes.sh v0.3.0
+# .github/workflows/release_notes.sh v1.3.0
 
 tag=$1
 prior_tag=$(git tag -l 'v*'|sed "/${tag}/,+10d"|tail -1)
-range="${prior_tag}..${tag}"
+if [ -n "${prior_tag}" ]; then
+  range="${prior_tag}..${tag}"
+else
+  range=${tag}
+fi
 
 git config log.mailmap true
 changelog=$(git log --format='%h %s %aN, %(trailers:key=co-authored-by)' "${range}")
