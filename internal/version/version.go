@@ -48,6 +48,11 @@ type ReleaseVersions struct {
 // Version is a release version from https://github.com/envoyproxy/envoy/releases, without a 'v' prefix. Ex "1.18.3"
 type Version string
 
+// IsDebug shows if the version is a debug version
+func (v Version) IsDebug() bool {
+	return strings.HasSuffix(string(v), "_debug")
+}
+
 // Platform encodes 'runtime.GOOS/runtime.GOARCH'. Ex "darwin/amd64"
 type Platform string
 

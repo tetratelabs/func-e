@@ -21,6 +21,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/urfave/cli/v2"
@@ -132,7 +133,7 @@ func setHomeEnvoyVersion(ctx context.Context, o *globals.GlobalOpts) error {
 		return NewValidationError(`couldn't read latest version from %s: %s`, o.EnvoyVersionsURL, err)
 	}
 	// Persist it for the next invocation
-	return os.WriteFile(homeVersionFile, []byte(extractLatestPatchFormat(m.LatestVersion)), 0600)
+	return os.WriteFile(homeVersionFile, []byte(ExtractLatestPatchFormat(m.LatestVersion)), 0600)
 }
 
 func ensureEnvoyVersion(c *cli.Context, o *globals.GlobalOpts) error {
@@ -164,7 +165,14 @@ func ensureEnvoyVersion(c *cli.Context, o *globals.GlobalOpts) error {
 	return nil
 }
 
-func extractLatestPatchFormat(v version.Version) version.Version {
-	latestPatchFormat := globals.EnvoyLatestPatchVersionPattern.FindString(string(v))
-	return version.Version(latestPatchFormat)
+// ExtractLatestPatchFormat remove version.Version patch component
+func ExtractLatestPatchFormat(v version.Version) version.Version {
+	splitV := strings.Split(string(v), ".")
+	latestPatchFormat := version.Version(fmt.Sprintf("%s.%s", splitV[0], splitV[1]))
+
+	if v.IsDebug() && !latestPatchFormat.IsDebug() {
+		latestPatchFormat += "_debug"
+	}
+
+	return latestPatchFormat
 }
