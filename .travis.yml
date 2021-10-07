@@ -4,10 +4,8 @@ os: linux   # required for arch different than amd64
 arch: arm64-graviton2 # we only only test archs not already tested with GH actions
 group: edge  # required for arm64-graviton2
 virt: lxd  # faster starting
-language: go
-
-go:  # Use gimme expression to get latest patch. See https://github.com/travis-ci/gimme
-  - 1.17.x
+language: bash
+services: docker
 
 cache:
   directories: # ~/.func-e/versions is cached so that we only re-download once: for TestFuncEInstall
@@ -27,15 +25,20 @@ before_install: |  # Prevent test build of a documentation or GitHub Actions onl
   fi
   make check || travis_terminate 1
 
-env:  # CENTOS_IMAGE was built by internal-images.yaml; E2E_FUNC_E_PATH was built via `make e2e`
+env:  # CENTOS_IMAGE and UBUNTU_IMAGE were built by internal-images.yaml; E2E_FUNC_E_PATH was built via `make dist`
   global:
-    - CENTOS_IMAGE=ghcr.io/tetratelabs/func-e-internal:centos8
+    - CENTOS_IMAGE=ghcr.io/tetratelabs/func-e-internal:centos-8
+    - UBUNTU_IMAGE=ghcr.io/tetratelabs/func-e-internal:ubuntu-20.04
+    # Read/Write volume mounts for ~/go/pkg/mod and ~/.func-e assist in caching while $PWD shares build outputs
+    - DOCKER_ARGS="docker run --rm -v $HOME/go/pkg/mod:/home/runner/go/pkg/mod:rw -v $HOME/.func-e/versions:/home/runner/.func-e/versions:rw -v $PWD:/work:rw"
     - E2E_FUNC_E_PATH=build/func-e_linux_arm64
 
-script:
+script:  # Since files below are only written by Docker, there should be no uid/gid conflicts.
+  # Obviate tests on bad commit (Ubuntu)
+  - ${DOCKER_ARGS} ${UBUNTU_IMAGE} check
+  # Build the `func-e` binary (Ubuntu)
+  - ${DOCKER_ARGS} ${UBUNTU_IMAGE} dist
   # Run e2e tests using the `func-e` binary (Ubuntu)
-  - make e2e
+  - ${DOCKER_ARGS} ${UBUNTU_IMAGE} -o ${E2E_FUNC_E_PATH}/func-e e2e
   # Run e2e tests using the `func-e` binary (CentOS)
-  - |  # TODO: clean this up after #387 as DOCKER_HOME, workdir and entrypoint will be correct by default
-    DOCKER_HOME=$(docker run --rm --entrypoint /bin/bash ${CENTOS_IMAGE} -c 'echo $HOME')
-    docker run --rm -v $HOME/.func-e:${DOCKER_HOME}/.func-e -v $PWD:/work -w /work --entrypoint /usr/bin/make ${CENTOS_IMAGE} -o ${E2E_FUNC_E_PATH}/func-e e2e
+  - ${DOCKER_ARGS} ${CENTOS_IMAGE} -o ${E2E_FUNC_E_PATH}/func-e e2e

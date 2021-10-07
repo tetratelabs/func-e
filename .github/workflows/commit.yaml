@@ -45,7 +45,7 @@ jobs:
     strategy:
       fail-fast: false  # don't fail fast as sometimes failures are operating system specific
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-20.04, macos-latest, windows-latest]
 
     steps:
       - name: "Checkout"
@@ -80,11 +80,9 @@ jobs:
 
       - name: "Run e2e tests using the `func-e` binary (CentOS)"
         if: runner.os == 'Linux'
-        run: |  # TODO: clean this up after #387 as DOCKER_HOME, workdir and entrypoint will be correct by default
-          DOCKER_HOME=$(docker run --rm --entrypoint /bin/bash ${CENTOS_IMAGE} -c 'echo $HOME')
-          docker run --rm -v $HOME/.func-e:${DOCKER_HOME}/.func-e -v $PWD:/work -w /work --entrypoint /usr/bin/make ${CENTOS_IMAGE} -o ${E2E_FUNC_E_PATH}/func-e e2e
+        run: docker run --rm -v $HOME/.func-e:$HOME/.func-e -v $PWD:/work ${CENTOS_IMAGE} -o ${E2E_FUNC_E_PATH}/func-e e2e
         env:  # CENTOS_IMAGE was built by internal-images.yaml; E2E_FUNC_E_PATH was built via `make build`
-          CENTOS_IMAGE: ghcr.io/tetratelabs/func-e-internal:centos8
+          CENTOS_IMAGE: ghcr.io/tetratelabs/func-e-internal:centos-8
           E2E_FUNC_E_PATH: build/func-e_linux_amd64
 
       - name: "Generate coverage report"  # only once (not per OS)
