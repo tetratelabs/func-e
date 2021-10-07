@@ -96,4 +96,8 @@ var (
 	// EnvoyStrictMinorVersionPattern is used to validated minor versions. A Minor version is just
 	// like envoy.Version format, except missing the patch. For example: 1.18 or 1.20_debug.
 	EnvoyStrictMinorVersionPattern = regexp.MustCompile(`^[1-9][0-9]*\.[0-9]+(_debug)?$`)
+
+	// EnvoyLatestPatchVersionPattern is EnvoyStrictMinorVersionPattern but without $ pattern.
+	// use this to extract LatestPatch format from envoy.Version format.
+	EnvoyLatestPatchVersionPattern = regexp.MustCompile(`^[1-9][0-9]*\.[0-9]+(_debug)?`)
 )

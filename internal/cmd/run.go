@@ -132,7 +132,7 @@ func setHomeEnvoyVersion(ctx context.Context, o *globals.GlobalOpts) error {
 		return NewValidationError(`couldn't read latest version from %s: %s`, o.EnvoyVersionsURL, err)
 	}
 	// Persist it for the next invocation
-	return os.WriteFile(homeVersionFile, []byte(m.LatestVersion), 0600)
+	return os.WriteFile(homeVersionFile, []byte(extractLatestPatchFormat(m.LatestVersion)), 0600)
 }
 
 func ensureEnvoyVersion(c *cli.Context, o *globals.GlobalOpts) error {
@@ -162,4 +162,9 @@ func ensureEnvoyVersion(c *cli.Context, o *globals.GlobalOpts) error {
 		}
 	}
 	return nil
+}
+
+func extractLatestPatchFormat(v version.Version) version.Version {
+	latestPatchFormat := globals.EnvoyLatestPatchVersionPattern.FindString(string(v))
+	return version.Version(latestPatchFormat)
 }
