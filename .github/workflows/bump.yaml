@@ -32,7 +32,6 @@ jobs:
   homebrew:
     name: "Homebrew/homebrew-core"
     runs-on: ubuntu-20.04  # Hard-coding an LTS means maintenance, but only once each 2 years!
-
     steps:
       - name: "Configure git"
         run: |
