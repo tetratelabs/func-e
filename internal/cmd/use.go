@@ -101,17 +101,14 @@ func getLatestInstalledPatch(o *globals.GlobalOpts, minorVersion version.Version
 		return rows[i].releaseDate > rows[j].releaseDate
 	})
 
-	strMinorVersion := string(minorVersion)
-	splitStrMinorVersion := strings.Split(strMinorVersion, "_debug")
-
-	prefix := splitStrMinorVersion[0] + "."
+	minorPrefix := minorVersion.MinorPrefix(true)
 	wantDebug := minorVersion.IsDebug()
 	for i := range rows {
 		if wantDebug != rows[i].version.IsDebug() {
 			continue
 		}
 
-		if strings.HasPrefix(string(rows[i].version), prefix) {
+		if strings.HasPrefix(string(rows[i].version), minorPrefix) {
 			return rows[i].version, nil
 		}
 	}

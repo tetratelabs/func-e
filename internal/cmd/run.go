@@ -21,7 +21,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/urfave/cli/v2"
@@ -167,12 +166,11 @@ func ensureEnvoyVersion(c *cli.Context, o *globals.GlobalOpts) error {
 
 // ExtractLatestPatchFormat remove version.Version patch component
 func ExtractLatestPatchFormat(v version.Version) version.Version {
-	splitV := strings.Split(string(v), ".")
-	latestPatchFormat := version.Version(fmt.Sprintf("%s.%s", splitV[0], splitV[1]))
+	latestPatchFormat := v.MinorPrefix(false)
 
-	if v.IsDebug() && !latestPatchFormat.IsDebug() {
-		latestPatchFormat += "_debug"
+	if v.IsDebug() {
+		latestPatchFormat += globals.EnvoyVersionDebugSuffix
 	}
 
-	return latestPatchFormat
+	return version.Version(latestPatchFormat)
 }
