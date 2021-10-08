@@ -111,7 +111,7 @@ func (f *funcEVersions) FindLatestPatch(ctx context.Context, minorVersion versio
 	return latestVersion, nil
 }
 
-func (funcEVersions) findLatestVersion(matched [][]string, v version.Version) version.Version {
+func (f *funcEVersions) findLatestVersion(matched [][]string, v version.Version) version.Version {
 	var latestPatch int
 	var latestVersion version.Version
 	for _, sub := range matched {
