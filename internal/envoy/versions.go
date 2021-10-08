@@ -73,36 +73,35 @@ func (f *funcEVersions) Get(ctx context.Context) (version.ReleaseVersions, error
 // an error. The Envoy release versions fetching logic can be overridden by setting the getFunc with
 // different implementation.
 func (f *funcEVersions) FindLatestPatch(ctx context.Context, minorVersion version.Version) (version.Version, error) {
-	var latestPatch int
 	var latestVersion version.Version
 
 	releases, err := f.getFunc(ctx)
 	if err != nil {
 		return "", err
 	}
+
+	// The "." suffix is required to avoid false-matching, e.g. 1.1 to 1.18.
+	minorPrefix := minorVersion.MinorPrefix() + "."
+	wantDebug := minorVersion.IsDebug()
+
+	var latestPatch int
 	for v := range releases.Versions {
-		// The "." suffix is required to avoild false-matching, e.g. 1.1 to 1.18.
-		if !strings.HasPrefix(string(v), string(minorVersion)+".") {
+		if wantDebug != v.IsDebug() {
 			continue
 		}
 
-		var matched [][]string
-		if matched = globals.EnvoyMinorVersionPattern.FindAllStringSubmatch(string(v), -1); matched == nil {
+		if !strings.HasPrefix(string(v), minorPrefix) {
 			continue
 		}
-		for _, sub := range matched {
-			// A matched patch component should look like ".4".
-			if !strings.HasPrefix(sub[1], ".") {
-				continue
-			}
-			var p int
-			if p, err = strconv.Atoi(sub[1][1:]); err != nil {
-				continue
-			}
-			if p >= latestPatch {
-				latestPatch = p
-				latestVersion = v
-			}
+
+		var matched []string
+		if matched = globals.EnvoyMinorVersionPattern.FindStringSubmatch(string(v)); matched == nil {
+			continue
+		}
+
+		if p, err := strconv.Atoi(matched[1][1:]); err == nil && p >= latestPatch {
+			latestPatch = p
+			latestVersion = v
 		}
 	}
 

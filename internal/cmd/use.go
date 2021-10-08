@@ -100,9 +100,16 @@ func getLatestInstalledPatch(o *globals.GlobalOpts, minorVersion version.Version
 		}
 		return rows[i].releaseDate > rows[j].releaseDate
 	})
-	prefix := string(minorVersion) + "."
+
+	// The "." suffix is required to avoid false-matching, e.g. 1.1 to 1.18.
+	minorPrefix := minorVersion.MinorPrefix() + "."
+	wantDebug := minorVersion.IsDebug()
 	for i := range rows {
-		if strings.HasPrefix(string(rows[i].version), prefix) {
+		if wantDebug != rows[i].version.IsDebug() {
+			continue
+		}
+
+		if strings.HasPrefix(string(rows[i].version), minorPrefix) {
 			return rows[i].version, nil
 		}
 	}

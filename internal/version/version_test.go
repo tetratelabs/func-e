@@ -12,49 +12,68 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package version
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/tetratelabs/func-e/internal/version"
 )
 
-func TestExtractLatestPatchFormat(t *testing.T) {
+func TestVersion_IsDebug(t *testing.T) {
 	tests := []struct {
-		Input    version.Version
-		Expected version.Version
+		Input    Version
+		Expected bool
 	}{
 		{
-			Input:    "1.1",
-			Expected: "1.1",
+			Input:    "1.19",
+			Expected: false,
 		},
 		{
-			Input:    "1.18",
-			Expected: "1.18",
+			Input:    "1.19.1",
+			Expected: false,
 		},
 		{
-			Input:    "1.18_debug",
-			Expected: "1.18_debug",
+			Input:    "1.19_debug",
+			Expected: true,
 		},
 		{
-			Input:    "1.1.1",
-			Expected: "1.1",
-		},
-		{
-			Input:    "1.18.1",
-			Expected: "1.18",
-		},
-		{
-			Input:    "1.18.1_debug",
-			Expected: "1.18_debug",
+			Input:    "1.19.1_debug",
+			Expected: true,
 		},
 	}
 
 	for _, tc := range tests {
-		actual := extractLatestPatchFormat(tc.Input)
+		actual := tc.Input.IsDebug()
+		require.Equal(t, tc.Expected, actual)
+	}
+}
+
+func TestVersion_MinorPrefix(t *testing.T) {
+	tests := []struct {
+		Input    Version
+		Expected string
+	}{
+		{
+			Input:    "1.19",
+			Expected: "1.19",
+		},
+		{
+			Input:    "1.19_debug",
+			Expected: "1.19",
+		},
+		{
+			Input:    "1.19.1",
+			Expected: "1.19",
+		},
+		{
+			Input:    "1.19.1_debug",
+			Expected: "1.19",
+		},
+	}
+
+	for _, tc := range tests {
+		actual := tc.Input.MinorPrefix()
 		require.Equal(t, tc.Expected, actual)
 	}
 }

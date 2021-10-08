@@ -17,6 +17,7 @@ package version
 
 import (
 	_ "embed" // We embed the Envoy version so that we can cache it in CI
+	"fmt"
 	"strings"
 )
 
@@ -47,6 +48,22 @@ type ReleaseVersions struct {
 
 // Version is a release version from https://github.com/envoyproxy/envoy/releases, without a 'v' prefix. Ex "1.18.3"
 type Version string
+
+// IsDebug shows if the version is a debug version
+func (v *Version) IsDebug() bool {
+	return strings.HasSuffix(string(*v), "_debug")
+}
+
+// MinorPrefix expects the v is a valid version pattern
+// extracts the v and returns the EnvoyStrictMinorVersionPattern without debug component
+// e.g: 1.19.1_debug -> 1.19
+// note: you may need to append a dot to avoid false matching, e.g. 1.1 to 1.18.
+func (v *Version) MinorPrefix() string {
+	withoutDebug := strings.Split(string(*v), "_debug")[0]
+	splitVersion := strings.Split(withoutDebug, ".")
+
+	return fmt.Sprintf("%s.%s", splitVersion[0], splitVersion[1])
+}
 
 // Platform encodes 'runtime.GOOS/runtime.GOARCH'. Ex "darwin/amd64"
 type Platform string

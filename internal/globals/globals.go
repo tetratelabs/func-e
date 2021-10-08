@@ -89,11 +89,13 @@ const (
 var (
 	// DefaultHomeDir is the default value for GlobalOpts.HomeDir
 	DefaultHomeDir = moreos.ReplacePathSeparator("${HOME}/.func-e")
+	// EnvoyVersionDebugSuffix indicates a debug release, which is significantly larger, but has more information on crash.
+	EnvoyVersionDebugSuffix = "_debug"
 	// EnvoyVersionPattern is used to validate versions and is the same pattern as release-versions-schema.json.
-	EnvoyVersionPattern = regexp.MustCompile(`^[1-9][0-9]*\.[0-9]+\.[0-9]+(_debug)?$`)
+	EnvoyVersionPattern = regexp.MustCompile(`^[1-9][0-9]*\.[0-9]+\.[0-9]+(` + EnvoyVersionDebugSuffix + `)?$`)
 	// EnvoyMinorVersionPattern is EnvoyVersionPattern but with optional patch and _debug components.
-	EnvoyMinorVersionPattern = regexp.MustCompile(`^[1-9][0-9]*\.[0-9]+(\.[0-9]+)?(_debug)?$`)
+	EnvoyMinorVersionPattern = regexp.MustCompile(`^[1-9][0-9]*\.[0-9]+(\.[0-9]+)?(` + EnvoyVersionDebugSuffix + `)?$`)
 	// EnvoyStrictMinorVersionPattern is used to validated minor versions. A Minor version is just
 	// like envoy.Version format, except missing the patch. For example: 1.18 or 1.20_debug.
-	EnvoyStrictMinorVersionPattern = regexp.MustCompile(`^[1-9][0-9]*\.[0-9]+(_debug)?$`)
+	EnvoyStrictMinorVersionPattern = regexp.MustCompile(`^[1-9][0-9]*\.[0-9]+(` + EnvoyVersionDebugSuffix + `)?$`)
 )
