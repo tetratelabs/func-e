@@ -82,17 +82,16 @@ func (f *funcEVersions) FindLatestPatch(ctx context.Context, minorVersion versio
 
 	strMinorVersion := string(minorVersion)
 	splitStrMinorVersion := strings.Split(strMinorVersion, "_debug")
+
+	// The "." suffix is required to avoid false-matching, e.g. 1.1 to 1.18.
 	prefix := splitStrMinorVersion[0] + "."
-	hasDebug := minorVersion.IsDebug()
+	wantDebug := minorVersion.IsDebug()
 
 	for v := range releases.Versions {
-		if hasDebug && !v.IsDebug() {
-			continue
-		} else if !hasDebug && v.IsDebug() {
+		if wantDebug != v.IsDebug() {
 			continue
 		}
 
-		// The "." suffix is required to avoild false-matching, e.g. 1.1 to 1.18.
 		if !strings.HasPrefix(string(v), prefix) {
 			continue
 		}
