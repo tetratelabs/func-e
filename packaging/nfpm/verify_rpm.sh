@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh -ue
 
 # Copyright 2021 Tetrate
 #
@@ -14,18 +14,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -euo pipefail
-
 RPM_FILE=${RPM_FILE-"dist/func-e_dev_linux_x86_64.rpm"}
 
 echo installing "${RPM_FILE}"
-rpm -i "${RPM_FILE}" || exit 1
+rpm -i "${RPM_FILE}"
 
 echo ensuring func-e was installed
-func-e -version || exit 1
+func-e -version
 
 echo uninstalling func-e
-rpm -e func-e || exit 1
+rpm -e func-e
 
 echo ensuring func-e was uninstalled
 func-e -version && exit 1

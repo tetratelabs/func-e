@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh -ue
 
 # Copyright 2021 Tetrate
 #
@@ -14,18 +14,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -euo pipefail
-
 DEB_FILE=${DEB_FILE-"dist/func-e_dev_linux_amd64.deb"}
 
 echo installing "${DEB_FILE}"
-dpkg -i "${DEB_FILE}" || exit 1
+dpkg -i "${DEB_FILE}"
 
 echo ensuring func-e was installed
-func-e -version || exit 1
+func-e -version
 
 echo uninstalling func-e
-apt-get remove -yqq func-e || exit 1
+apt-get remove -yqq func-e
 
 echo ensuring func-e was uninstalled
 func-e -version && exit 1
