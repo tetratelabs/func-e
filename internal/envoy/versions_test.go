@@ -46,11 +46,11 @@ func TestFuncEVersions_FindLatestPatch(t *testing.T) {
 			input: "1.18",
 			versions: map[version.Version]version.Release{
 				"1.18.3":       {},
-				"1.18.14":     {},
+				"1.18.14":      {},
 				"1.18.4":       {},
 				"1.18.4_debug": {},
 			},
-			want: "1.18.4",
+			want: "1.18.14",
 		},
 		{
 			name:  "notfound",
@@ -66,10 +66,10 @@ func TestFuncEVersions_FindLatestPatch(t *testing.T) {
 			input: "1.19_debug",
 			versions: map[version.Version]version.Release{
 				"1.19.10_debug": {},
-				"1.19.2_debug": {},
-				"1.19.1":       {},
+				"1.19.2_debug":  {},
+				"1.19.1":        {},
 			},
-			want: "1.19.1_debug",
+			want: "1.19.10_debug",
 		},
 	}
 
@@ -77,12 +77,12 @@ func TestFuncEVersions_FindLatestPatch(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			tester := newFuncEVersionsTester(tc.versions)
-			have, err := tester.feV.FindLatestPatch(ctx, tc.input)
+			actual, err := tester.feV.FindLatestPatch(ctx, tc.input)
 			if tc.want == "" {
 				require.Errorf(t, err, "couldn't find latest version for %s", tc.input)
 			} else {
 				require.NoError(t, err)
-				require.Equal(t, have, tc.want)
+				require.Equal(t, tc.want, actual)
 			}
 		})
 	}

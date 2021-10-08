@@ -83,6 +83,7 @@ func (f *funcEVersions) FindLatestPatch(ctx context.Context, minorVersion versio
 	minorPrefix := minorVersion.MinorPrefix(true)
 	wantDebug := minorVersion.IsDebug()
 
+	var latestPatch int
 	for v := range releases.Versions {
 		if wantDebug != v.IsDebug() {
 			continue
@@ -92,38 +93,19 @@ func (f *funcEVersions) FindLatestPatch(ctx context.Context, minorVersion versio
 			continue
 		}
 
-		var matched [][]string
-		if matched = globals.EnvoyMinorVersionPattern.FindAllStringSubmatch(string(v), -1); matched == nil {
+		var matched []string
+		if matched = globals.EnvoyMinorVersionPattern.FindStringSubmatch(string(v)); matched == nil {
 			continue
 		}
 
-		latestVersion = f.findLatestVersion(matched, v)
+		if p, err := strconv.Atoi(matched[1][1:]); err == nil && p >= latestPatch {
+			latestPatch = p
+			latestVersion = v
+		}
 	}
 
 	if latestVersion == "" {
 		return "", fmt.Errorf("couldn't find latest version for %q", minorVersion)
 	}
 	return latestVersion, nil
-}
-
-func (f *funcEVersions) findLatestVersion(matched [][]string, v version.Version) version.Version {
-	var latestPatch int
-	var latestVersion version.Version
-	for _, sub := range matched {
-		// A matched patch component should look like ".4".
-		if !strings.HasPrefix(sub[1], ".") {
-			continue
-		}
-		var p int
-		var err error
-		if p, err = strconv.Atoi(sub[1][1:]); err != nil {
-			continue
-		}
-		if p >= latestPatch {
-			latestPatch = p
-			latestVersion = v
-		}
-	}
-
-	return latestVersion
 }
