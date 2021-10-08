@@ -12,14 +12,14 @@ on:
       - 'packaging/msi/*'
       - 'packaging/icon@48w.ico'
       - '.github/workflows/msi.yaml'
-      - 'Next.mk'
+      - 'Makefile'
   pull_request:  # We also run tests on pull requests targeted at the master branch
     branches: master
     paths:
       - 'packaging/msi/*'
       - 'packaging/icon@48w.ico'
       - '.github/workflows/msi.yaml'
-      - 'Next.mk'
+      - 'Makefile'
   # workflow_dispatch will let us manually trigger the workflow from GitHub actions dashboard.
   # For example, you can try to build a branch without raising a pull request.
   # See https://docs.github.com/en/free-pro-team@latest/actions/managing-workflow-runs/manually-running-a-workflow

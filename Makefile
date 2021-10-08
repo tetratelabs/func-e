@@ -111,7 +111,7 @@ build/func-e_%/func-e: $(main_sources)
 dist/func-e_$(VERSION)_%.tar.gz: build/func-e_%/func-e
 	@printf "$(ansi_format_dark)" tar.gz "tarring $@"
 	@mkdir -p $(@D)
-	@tar --strip-components 2 -cpzf $@ $<
+	@tar -C $(<D) -cpzf $@ $(<F)
 	@printf "$(ansi_format_bright)" tar.gz "ok"
 
 build/func-e_%/func-e.exe: $(main_sources)
