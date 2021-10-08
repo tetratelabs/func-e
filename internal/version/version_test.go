@@ -48,3 +48,57 @@ func TestVersion_IsDebug(t *testing.T) {
 		require.Equal(t, tc.Expected, actual)
 	}
 }
+
+func TestVersion_MinorPrefix(t *testing.T) {
+	tests := []struct {
+		Input           Version
+		WithTrailingDot bool
+		Expected        string
+	}{
+		{
+			Input:           "1.19",
+			WithTrailingDot: true,
+			Expected:        "1.19.",
+		},
+		{
+			Input:           "1.19",
+			WithTrailingDot: false,
+			Expected:        "1.19",
+		},
+		{
+			Input:           "1.19_debug",
+			WithTrailingDot: true,
+			Expected:        "1.19.",
+		},
+		{
+			Input:           "1.19_debug",
+			WithTrailingDot: false,
+			Expected:        "1.19",
+		},
+		{
+			Input:           "1.19.1",
+			WithTrailingDot: true,
+			Expected:        "1.19.",
+		},
+		{
+			Input:           "1.19.1",
+			WithTrailingDot: false,
+			Expected:        "1.19",
+		},
+		{
+			Input:           "1.19.1_debug",
+			WithTrailingDot: true,
+			Expected:        "1.19.",
+		},
+		{
+			Input:           "1.19.1_debug",
+			WithTrailingDot: false,
+			Expected:        "1.19",
+		},
+	}
+
+	for _, tc := range tests {
+		actual := tc.Input.MinorPrefix(tc.WithTrailingDot)
+		require.Equal(t, tc.Expected, actual)
+	}
+}
