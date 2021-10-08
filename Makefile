@@ -275,7 +275,7 @@ NFPM_PASSPHRASE ?= func-e-bunch
 define nfpm-pkg
 	@printf "$(ansi_format_dark)" nfpm "packaging $3"
 	@mkdir -p $(dir $3)
-	@go run $(nfpm) pkg -f $1 --packager $2 --target $3
+	@$(go) run $(nfpm) pkg -f $1 --packager $2 --target $3
 	@printf "$(ansi_format_bright)" nfpm "ok"
 endef
 
