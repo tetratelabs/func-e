@@ -50,7 +50,7 @@ type ReleaseVersions struct {
 type Version string
 
 // IsDebug shows if the version is a debug version
-func (v Version) IsDebug() bool {
+func (v *Version) IsDebug() bool {
 	return strings.HasSuffix(string(v), "_debug")
 }
 
