@@ -46,6 +46,7 @@ func TestFuncEVersions_FindLatestPatch(t *testing.T) {
 			input: "1.18",
 			versions: map[version.Version]version.Release{
 				"1.18.3":       {},
+				"1.18.14":     {},
 				"1.18.4":       {},
 				"1.18.4_debug": {},
 			},
