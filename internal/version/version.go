@@ -59,7 +59,7 @@ func (v *Version) IsDebug() bool {
 // withTrailingDot indicate whether the result would have a "." suffix or not
 // The "." suffix is required to avoid false-matching, e.g. 1.1 to 1.18.
 // e.g: 1.19.1_debug -> 1.19.
-func (v Version) MinorPrefix(withTrailingDot bool) string {
+func (v *Version) MinorPrefix() string {
 	withoutDebug := strings.Split(string(v), "_debug")[0]
 	splitVersion := strings.Split(withoutDebug, ".")
 	minorPrefix := fmt.Sprintf("%s.%s", splitVersion[0], splitVersion[1])
