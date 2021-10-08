@@ -14,18 +14,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-RPM_FILE=${RPM_FILE-"dist/func-e_dev_linux_x86_64.rpm"}
+rpm_file=${rpm_file:-$(ls dist/func-e_*_linux_$(uname -m).rpm)}
 
-echo installing "${RPM_FILE}"
-rpm -i "${RPM_FILE}"
+echo "installing ${rpm_file}"
+sudo rpm -i "${rpm_file}"
 
 echo ensuring func-e was installed
+test -f /usr/bin/func-e
 func-e -version
 
 echo uninstalling func-e
-rpm -e func-e
+sudo rpm -e func-e
 
 echo ensuring func-e was uninstalled
-func-e -version && exit 1
-
+test -f /usr/bin/func-e && exit 1
 exit 0

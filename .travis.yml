@@ -42,3 +42,7 @@ script:  # Since files below are only written by Docker, there should be no uid/
   - ${DOCKER_ARGS} ${UBUNTU_IMAGE} -o ${E2E_FUNC_E_PATH}/func-e e2e
   # Run e2e tests using the `func-e` binary (CentOS)
   - ${DOCKER_ARGS} ${CENTOS_IMAGE} -o ${E2E_FUNC_E_PATH}/func-e e2e
+  # Test Debian package (Ubuntu)
+  - ${DOCKER_ARGS} --entrypoint packaging/nfpm/verify_deb.sh ${UBUNTU_IMAGE}
+  # Test RPM package (CentOS)
+  - ${DOCKER_ARGS} --entrypoint packaging/nfpm/verify_rpm.sh ${CENTOS_IMAGE}

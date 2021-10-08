@@ -91,27 +91,12 @@ jobs:
         run: call packaging\msi\verify_msi.cmd
         shell: cmd
 
-      # This only checks installing and uninstalling the Debian package (amd64) when running this job
-      # step on Linux (Ubuntu, amd64) as it is more efficient than having a new job definition
-      # (which requires to upload and download the built packages as artifacts) and do the
-      # verification there.
-      - name: "Test installing and uninstalling Debian package (on Ubuntu, amd64)"
+      - name: "Test Debian package"
         if: runner.os == 'Linux'
-        # Running dpkg and apt-get requires "sudo".
-        run: sudo packaging/nfpm/verify_deb.sh
+        run: packaging/nfpm/verify_deb.sh
 
-      # This only checks installing and uninstalling the RPM package when running this job on Linux,
-      # but using container (on CentOS 8 via ghcr.io/tetratelabs/func-e-internal:centos8, x86_64) as
-      # it is more efficient than having a new job definition (which requires to upload and download
-      # the built packages as artifacts) and do the verification there.
-      - name: "Test installing and uninstalling RPM package (on CentOS 8, x86_64 via ghcr.io/tetratelabs/func-e-internal:centos8)"
+      - name: "Test RPM package (CentOS)"
         if: runner.os == 'Linux'
-        uses: docker://ghcr.io/tetratelabs/func-e-internal:centos8
-        with:
-          # Since we use the root user from within the container process when doing this, we don't
-          # require "sudo".
-          args: packaging/nfpm/verify_rpm.sh
-
-      # TODO: Verification for installing and uninstalling arm64 Debian and aarch64 RPM packages.
-      # Curently it is not attempted since we need to pass the artifacts to Travis CI every time
-      # this job is finished.
+        run: docker run --rm -v $PWD:/work --entrypoint packaging/nfpm/verify_rpm.sh ${CENTOS_IMAGE}
+        env:  # CENTOS_IMAGE was built by internal-images.yaml
+          CENTOS_IMAGE: ghcr.io/tetratelabs/func-e-internal:centos-8

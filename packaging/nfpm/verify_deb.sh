@@ -14,18 +14,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-DEB_FILE=${DEB_FILE-"dist/func-e_dev_linux_amd64.deb"}
+case $(uname -m) in
+  amd64* | x86_64* )
+    deb_arch=amd64
+    ;;
+  arm64* | aarch64* )
+    deb_arch=arm64
+    ;;
+  * )
+    >&2 echo "Unsupported hardware: $(uname -m)"
+    exit 1;
+esac
 
-echo installing "${DEB_FILE}"
-dpkg -i "${DEB_FILE}"
+deb_file=${deb_file:-$(ls dist/func-e_*_linux_${deb_arch}.deb)}
+
+echo installing "${deb_file}"
+sudo dpkg -i "${deb_file}"
 
 echo ensuring func-e was installed
+test -f /usr/bin/func-e
 func-e -version
 
 echo uninstalling func-e
-apt-get remove -yqq func-e
+sudo apt-get remove -yqq func-e
 
 echo ensuring func-e was uninstalled
-func-e -version && exit 1
-
+test -f /usr/bin/func-e && exit 1
 exit 0
