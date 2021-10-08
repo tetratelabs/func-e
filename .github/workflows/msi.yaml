@@ -37,8 +37,9 @@ jobs:
       fail-fast: false  # don't fail fast as sometimes failures are operating system specific
       matrix:
         include:
-          # ubuntu is missing wixl https://github.com/actions/virtual-environments/issues/3857
-          - os: ubuntu-latest
+          # ubuntu is missing windows build tools: wixl, msiinfo and osslsigncode
+          # See https://github.com/actions/virtual-environments/issues/3857
+          - os: ubuntu-20.04  # Hard-coding an LTS means maintenance, but only once each 2 years!
             setup: sudo apt update -qq && sudo apt install -qq -y wixl msitools osslsigncode
           # macos is missing wixl https://github.com/actions/virtual-environments/issues/3857
           - os: macos-latest

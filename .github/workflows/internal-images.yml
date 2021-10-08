@@ -11,35 +11,25 @@ on:
 # This builds images and pushes them to ghcr.io/tetratelabs/func-e-internal:$tag
 # Using these in tests and as a parent (FROM) avoids docker.io rate-limits particularly on pull requests.
 #
-# To troubleshoot, run locally with docker and install go directly. Ex:
+# To test this, try running end-to-end (e2e) tests!
 # ```bash
-# $ docker run -ti -v $PWD:/func-e --rm centos:8
-# [root@d37da4601545 /]# cd /func-e
-# now execute your setup commands!
+# $ docker run --pull always --rm -v $PWD:/work ghcr.io/tetratelabs/func-e-internal:centos-8 e2e
+# ```
+#
+# Make is the default entrypoint. To troubleshoot, use /bin/bash:
+# ```bash
+# $ docker run --pull always --rm -v $PWD:/work -it --entrypoint /bin/bash ghcr.io/tetratelabs/func-e-internal:centos-8
+# [runner@babce89b5580 work]$
 # ```
 jobs:
   build-and-push-images:
+    runs-on: ubuntu-20.04  # Hard-coding an LTS means maintenance, but only once each 2 years!
     strategy:
       matrix:
-        # Be precise in tag versions to improve reproducibility
         include:
-          # This installs the dependencies of func-e's Makefile, and libraries needed to run Envoy.
-          # This Dockerfile is inlined, so we don't need to check out the source repository.
-          - dockerfile: |
-              FROM centos:8
-              RUN yum install -y --quiet make which git gcc && yum clean all
+          - parent_image: centos:8  # Envoy requires CentOS >=8. See tetratelabs/archive-envoy#17
+          - parent_image: ubuntu:20.04  # Always match runs-on!
 
-              ARG GO_MINOR_REVISION
-              # See https://docs.docker.com/engine/reference/builder/#automatic-platform-args-in-the-global-scope
-              ARG TARGETARCH
-              RUN curl -sSL https://golang.org/dl/go$GO_MINOR_REVISION.linux-$TARGETARCH.tar.gz | tar -xzC /usr/local
-              ENV GOROOT=/usr/local/go
-              ENV GOPATH=/usr/lib/go
-              ENV PATH=$GOPATH/bin:$GOROOT/bin:$PATH
-
-              ENTRYPOINT ["/bin/bash"]
-            target_tag: centos8
-    runs-on: ubuntu-latest
     steps:
       # Same as doing this locally: echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_TOKEN}" --password-stdin
       - name: "Login into GitHub Container Registry"
@@ -54,7 +44,8 @@ jobs:
           #   - needs repo:status, public_repo, write:packages, delete:packages
           password: ${{ secrets.GHCR_TOKEN }}
 
-      # We need QEMU and Buildx for multi-platform (amd64+arm64) image push. See RATIONALE.md
+      # We need QEMU and Buildx for multi-platform (amd64+arm64) image push.
+      # Note: arm64 is run only by Travis. See RATIONALE.md
       - name: "Setup QEMU"
         uses: docker/setup-qemu-action@v1
 
@@ -64,25 +55,21 @@ jobs:
       - name: "Checkout"
         uses: actions/checkout@v2
 
-      - name: "Configure Go"
-        run: .github/workflows/configure_go.sh
-
-      - name: "Export Go minor revision"
-        run: |  # Ex. GOROOT=/opt/hostedtoolcache/go/1.17.1/x64 -> GO_MINOR_REVISION=1.17.1
-          rev=$(echo ${GOROOT}|cut -d/ -f5)
-          echo "GO_MINOR_REVISION=${rev}" >> $GITHUB_ENV
-
-      - name: "Write Dockerfile"
-        run: |
-          cat > Dockerfile <<'EOF'
-          ${{ matrix.dockerfile }}
-          EOF
+      - name: "Export Go revision matching go.mod"
+        run: |  # Ex. 1.17 -> /opt/hostedtoolcache/go/1.17.1/x64 -> GO_REVISION=1.17.1
+          go_release=$(sed -n 's/^go //gp' go.mod)
+          # Ex. /Users/runner/hostedtoolcache/go/1.17.1/x64
+          go_root=$(ls -d "${RUNNER_TOOL_CACHE}"/go/"${go_release}"*/x64|sort -n|tail -1)
+          rev=$(echo ${go_root}|cut -d/ -f5)
+          echo "GO_REVISION=${rev}" >> $GITHUB_ENV
 
       - name: "Build and push"
-        uses: docker/build-push-action@v2
-        with:
-          push: true
-          context: .
-          build-args: GO_MINOR_REVISION=${{ env.GO_MINOR_REVISION }}
-          platforms: linux/amd64,linux/arm64  # arm64 is run only by Travis. See RATIONALE.md
-          tags: ghcr.io/${{ github.repository_owner }}/func-e-internal:${{ matrix.target_tag }}
+        run: |
+          docker_tag=ghcr.io/${{ github.repository_owner }}/func-e-internal:${PARENT_IMAGE//:/-}
+          docker buildx build --push \
+            --platform linux/amd64,linux/arm64 \
+            --build-arg parent_image=${PARENT_IMAGE} \
+            --build-arg go_revision=${GO_REVISION} \
+            -t ${docker_tag} .github/workflows
+        env:
+          PARENT_IMAGE: ${{ matrix.parent_image }}
