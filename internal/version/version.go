@@ -51,24 +51,18 @@ type Version string
 
 // IsDebug shows if the version is a debug version
 func (v *Version) IsDebug() bool {
-	return strings.HasSuffix(string(v), "_debug")
+	return strings.HasSuffix(string(*v), "_debug")
 }
 
 // MinorPrefix expects the v is a valid version pattern
 // extracts the v and returns the EnvoyStrictMinorVersionPattern without debug component
-// withTrailingDot indicate whether the result would have a "." suffix or not
-// The "." suffix is required to avoid false-matching, e.g. 1.1 to 1.18.
-// e.g: 1.19.1_debug -> 1.19.
+// e.g: 1.19.1_debug -> 1.19
+// note: you may need to append a dot to avoid false matching, e.g. 1.1 to 1.18.
 func (v *Version) MinorPrefix() string {
-	withoutDebug := strings.Split(string(v), "_debug")[0]
+	withoutDebug := strings.Split(string(*v), "_debug")[0]
 	splitVersion := strings.Split(withoutDebug, ".")
-	minorPrefix := fmt.Sprintf("%s.%s", splitVersion[0], splitVersion[1])
 
-	if withTrailingDot {
-		minorPrefix += "."
-	}
-
-	return minorPrefix
+	return fmt.Sprintf("%s.%s", splitVersion[0], splitVersion[1])
 }
 
 // Platform encodes 'runtime.GOOS/runtime.GOARCH'. Ex "darwin/amd64"

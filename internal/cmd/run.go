@@ -166,7 +166,7 @@ func ensureEnvoyVersion(c *cli.Context, o *globals.GlobalOpts) error {
 
 // extractLatestPatchFormat remove version.Version patch component
 func extractLatestPatchFormat(v version.Version) version.Version {
-	latestPatchFormat := v.MinorPrefix(false)
+	latestPatchFormat := v.MinorPrefix()
 
 	if v.IsDebug() {
 		latestPatchFormat += globals.EnvoyVersionDebugSuffix

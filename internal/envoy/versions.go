@@ -80,7 +80,8 @@ func (f *funcEVersions) FindLatestPatch(ctx context.Context, minorVersion versio
 		return "", err
 	}
 
-	minorPrefix := minorVersion.MinorPrefix(true)
+	// The "." suffix is required to avoid false-matching, e.g. 1.1 to 1.18.
+	minorPrefix := minorVersion.MinorPrefix() + "."
 	wantDebug := minorVersion.IsDebug()
 
 	var latestPatch int

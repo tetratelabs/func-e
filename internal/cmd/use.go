@@ -101,7 +101,8 @@ func getLatestInstalledPatch(o *globals.GlobalOpts, minorVersion version.Version
 		return rows[i].releaseDate > rows[j].releaseDate
 	})
 
-	minorPrefix := minorVersion.MinorPrefix(true)
+	// The "." suffix is required to avoid false-matching, e.g. 1.1 to 1.18.
+	minorPrefix := minorVersion.MinorPrefix() + "."
 	wantDebug := minorVersion.IsDebug()
 	for i := range rows {
 		if wantDebug != rows[i].version.IsDebug() {
