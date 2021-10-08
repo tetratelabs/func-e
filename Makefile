@@ -107,7 +107,7 @@ all_sources  := $(wildcard $(all_patterns))
 main_sources := $(wildcard $(subst *,*[!_test],$(all_patterns)))
 
 build/func-e_%/func-e: $(main_sources)
-	$(call go-build, $@, $<)
+	$(call go-build,$@,$<)
 
 dist/func-e_$(VERSION)_%.tar.gz: build/func-e_%/func-e
 	@printf "$(ansi_format_dark)" tar.gz "tarring $@"
@@ -116,7 +116,7 @@ dist/func-e_$(VERSION)_%.tar.gz: build/func-e_%/func-e
 	@printf "$(ansi_format_bright)" tar.gz "ok"
 
 build/func-e_%/func-e.exe: $(main_sources)
-	$(call go-build, $@, $<)
+	$(call go-build,$@,$<)
 
 dist/func-e_$(VERSION)_%.zip: build/func-e_%/func-e.exe.signed
 	@printf "$(ansi_format_dark)" zip "zipping $@"
@@ -138,7 +138,7 @@ nfpm_version=v$(VERSION:dev=0.0.1)
 # Note: we are only generating this because the file isn't parameterized.
 # See https://github.com/goreleaser/nfpm/issues/362
 build/func-e_linux_%/nfpm.yaml: packaging/nfpm/nfpm.yaml build/func-e_linux_%/func-e
-	@mkdir -p $(dir $@)
+	@mkdir -p $(@D)
 	@sed -e 's/amd64/$(*)/g' -e 's/v0.0.1/$(nfpm_version)/g' $< > $@
 
 # We can't use a pattern (%) rule because in RPM amd64 -> x86_64, arm64 -> aarch64
@@ -172,7 +172,7 @@ ifeq ($(goos),windows)  # Windows 10 etc use https://wixtoolset.org
 else  # use https://wiki.gnome.org/msitools
 	@wixl -a $(call msi-arch,$@) -D Version=$(msi_version) -D Bin=$(<:.signed=) -o $@ packaging/msi/func-e.wxs
 endif
-	$(call codesign, $@)
+	$(call codesign,$@)
 	@printf "$(ansi_format_bright)" msi "ok"
 
 # Archives are tar.gz, except in the case of Windows, which uses zip.
@@ -241,7 +241,7 @@ site: ## Serve website content
 
 # this makes a marker file ending in .signed to avoid repeatedly calling codesign
 %.signed: %
-	$(call codesign, $<)
+	$(call codesign,$<)
 	@touch $@
 
 # define macros for multi-platform builds. these parse the filename being built
