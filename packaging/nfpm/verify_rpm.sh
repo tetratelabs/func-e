@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-rpm_file=${rpm_file:-$(ls dist/func-e_*_linux_$(uname -m).rpm)}
+rpm_file=${1:-$(ls dist/func-e_*_linux_$(uname -m).rpm)}
 
 echo "installing ${rpm_file}"
 sudo rpm -i "${rpm_file}"

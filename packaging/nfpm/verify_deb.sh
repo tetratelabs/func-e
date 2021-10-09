@@ -26,7 +26,7 @@ case $(uname -m) in
     exit 1;
 esac
 
-deb_file=${deb_file:-$(ls dist/func-e_*_linux_${deb_arch}.deb)}
+deb_file=${1:-$(ls dist/func-e_*_linux_${deb_arch}.deb)}
 
 echo installing "${deb_file}"
 sudo dpkg -i "${deb_file}"

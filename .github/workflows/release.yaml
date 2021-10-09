@@ -69,6 +69,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # Note: We don't test arm64 on release as it is unlikely to fail and too much effort.
   e2e:
     needs: func-e
     name: Run e2e tests (${{ matrix.os }})
@@ -78,7 +79,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-20.04  # Hard-coding an LTS means maintenance, but only once each 2 years!
-            pattern: '*linux_amd64.tar.gz'
+            pattern: '*linux_amd64*'
           - os: macos-latest
             pattern: '*darwin_amd64.tar.gz'
           - os: windows-latest
@@ -112,3 +113,17 @@ jobs:
         shell: cmd
         env:  # use the stashed msi name instead of parsing it
           MSI_FILE: ${{ steps.download.outputs.msi }}
+
+      - name: "Test Debian package"
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p dist && mv *.deb dist/
+          packaging/nfpm/verify_deb.sh
+
+      - name: "Test RPM package (CentOS)"
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p dist && mv *.rpm dist/
+          docker run --rm -v $PWD:/work --entrypoint packaging/nfpm/verify_rpm.sh ${CENTOS_IMAGE}
+        env:  # CENTOS_IMAGE was built by internal-images.yaml
+          CENTOS_IMAGE: ghcr.io/tetratelabs/func-e-internal:centos-8
