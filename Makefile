@@ -256,22 +256,6 @@ define go-build
 	@printf "$(ansi_format_bright)" build "ok"
 endef
 
-# The test signing key was generated similar to the production key.
-#
-# Ex.
-# ```bash
-# # choose DSA (sign only), 3072 bits, no expiry, "func-e test" username
-# $ gpg --full-generate-key
-# --snip--
-# pub   dsa3072 2021-08-31 [SC]
-#      97ED9B6D64632B09FDA4FAE87D4FF8350A5A6D61
-# uid                      func-e test
-# --snip--
-# $ gpg -a --export 97ED9B6D64632B09FDA4FAE87D4FF8350A5A6D61 > packaging/nfpm/func-e.asc
-# ```
-NFPM_KEYFILE    ?= packaging/nfpm/func-e.asc
-NFPM_KEYID      ?= 97ED9B6D64632B09FDA4FAE87D4FF8350A5A6D61
-NFPM_PASSPHRASE ?= func-e-bunch
 define nfpm-pkg
 	@printf "$(ansi_format_dark)" nfpm "packaging $3"
 	@mkdir -p $(dir $3)

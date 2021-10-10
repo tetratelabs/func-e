@@ -28,11 +28,3 @@ provides:
 contents:
   - src: build/func-e_linux_amd64/func-e
     dst: /usr/bin/func-e
-deb:
-  signature:
-    key_file: ${NFPM_KEYFILE}
-    key_id: ${NFPM_KEYID}
-rpm:
-  signature:
-    key_file: ${NFPM_KEYFILE}
-    key_id: ${NFPM_KEYID}
