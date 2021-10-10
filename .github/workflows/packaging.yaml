@@ -1,8 +1,8 @@
 # `name` value will appear "as is" in the badge.
 # See https://docs.github.com/en/actions/configuring-and-managing-workflows/configuring-a-workflow#adding-a-workflow-status-badge-to-your-repository
-# yamllint --format github .github/workflows/msi.yaml
+# yamllint --format github .github/workflows/packaging.yaml
 ---
-name: "msi"
+name: "packaging"
 
 on:
   push:  # We run tests on non-tagged pushes to master
@@ -10,16 +10,20 @@ on:
     branches: master
     paths:
       - 'packaging/msi/*'
+      - 'packaging/nfpm/*'
       - 'packaging/icon@48w.ico'
-      - '.github/workflows/msi.yaml'
+      - '.github/workflows/packaging.yaml'
       - 'Makefile'
+      - 'Tools.mk'
   pull_request:  # We also run tests on pull requests targeted at the master branch
     branches: master
     paths:
       - 'packaging/msi/*'
+      - 'packaging/nfpm/*'
       - 'packaging/icon@48w.ico'
-      - '.github/workflows/msi.yaml'
+      - '.github/workflows/packaging.yaml'
       - 'Makefile'
+      - 'Tools.mk'
   # workflow_dispatch will let us manually trigger the workflow from GitHub actions dashboard.
   # For example, you can try to build a branch without raising a pull request.
   # See https://docs.github.com/en/free-pro-team@latest/actions/managing-workflow-runs/manually-running-a-workflow
@@ -30,8 +34,8 @@ defaults:
     shell: bash
 
 jobs:
-  msi:
-    name: "Test Windows Installer build (${{ matrix.os }})"
+  packaging:
+    name: "Test packaging build (${{ matrix.os }})"
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false  # don't fail fast as sometimes failures are operating system specific
@@ -70,8 +74,15 @@ jobs:
           key: test-${{ runner.os }}-go-${{ hashFiles('go.mod', 'go.sum', 'Tools.mk') }}
           restore-keys: test-${{ runner.os }}-go-
 
-      - name: "Build Windows Installer (MSI)"
+      - name: "Build packages (Windows Installer, Debian, RPM)"
         run: make dist
+
+      # This tests the manifest via yamllint because validation via winget requires too much setup.
+      # See https://github.com/microsoft/winget-cli/issues/754#issuecomment-896475895
+      - name: "Test winget manifest generation"
+        run: |
+          ./packaging/msi/winget_manifest.sh > Tetrate.func-e.yaml
+          yamllint -sd '{extends: default, rules: {line-length: disable}}' Tetrate.func-e.yaml
 
       # This only checks the installer when built on Windows as it is simpler than switching OS.
       # refreshenv is from choco, and lets you reload ENV variables (used here for PATH).
@@ -80,9 +91,12 @@ jobs:
         run: call packaging\msi\verify_msi.cmd
         shell: cmd
 
-      # This tests the manifest via yamllint because validation via winget requires too much setup.
-      # See https://github.com/microsoft/winget-cli/issues/754#issuecomment-896475895
-      - name: "Test winget manifest generation"
-        run: |
-          ./packaging/msi/winget_manifest.sh > Tetrate.func-e.yaml
-          yamllint -sd '{extends: default, rules: {line-length: disable}}' Tetrate.func-e.yaml
+      - name: "Test Debian package"
+        if: runner.os == 'Linux'
+        run: packaging/nfpm/verify_deb.sh
+
+      - name: "Test RPM package (CentOS)"
+        if: runner.os == 'Linux'
+        run: docker run --rm -v $PWD:/work --entrypoint packaging/nfpm/verify_rpm.sh ${CENTOS_IMAGE}
+        env:  # CENTOS_IMAGE was built by internal-images.yaml
+          CENTOS_IMAGE: ghcr.io/tetratelabs/func-e-internal:centos-8

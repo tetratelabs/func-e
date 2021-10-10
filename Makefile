@@ -96,7 +96,8 @@ e2e: $(E2E_FUNC_E_PATH)/func-e$(goexe) ## Run all end-to-end tests
 	@$(go) test -parallel 1 -v -failfast ./e2e
 	@printf "$(ansi_format_bright)" e2e "ok"
 
-non_windows_platforms := darwin_amd64 darwin_arm64 linux_amd64 linux_arm64
+linux_platforms       := linux_amd64 linux_arm64
+non_windows_platforms := darwin_amd64 darwin_arm64 $(linux_platforms)
 # TODO: arm64 on Windows https://github.com/envoyproxy/envoy/issues/17572
 windows_platforms     := windows_amd64
 
@@ -106,7 +107,7 @@ all_sources  := $(wildcard $(all_patterns))
 main_sources := $(wildcard $(subst *,*[!_test],$(all_patterns)))
 
 build/func-e_%/func-e: $(main_sources)
-	$(call go-build, $@, $<)
+	$(call go-build,$@,$<)
 
 dist/func-e_$(VERSION)_%.tar.gz: build/func-e_%/func-e
 	@printf "$(ansi_format_dark)" tar.gz "tarring $@"
@@ -115,7 +116,7 @@ dist/func-e_$(VERSION)_%.tar.gz: build/func-e_%/func-e
 	@printf "$(ansi_format_bright)" tar.gz "ok"
 
 build/func-e_%/func-e.exe: $(main_sources)
-	$(call go-build, $@, $<)
+	$(call go-build,$@,$<)
 
 dist/func-e_$(VERSION)_%.zip: build/func-e_%/func-e.exe.signed
 	@printf "$(ansi_format_dark)" zip "zipping $@"
@@ -128,6 +129,32 @@ else  # Otherwise, assume zip is available
 	@zip -qj $@ $(<:.signed=)
 endif
 	@printf "$(ansi_format_bright)" zip "ok"
+
+# Default to a dummy version, which is always lower than a real release
+nfpm_version=v$(VERSION:dev=0.0.1)
+
+# It is not precise to put the func-e binary here, but it is easier because the arch pattern matches
+# whereas in RPM it won't.
+# Note: we are only generating this because the file isn't parameterized.
+# See https://github.com/goreleaser/nfpm/issues/362
+build/func-e_linux_%/nfpm.yaml: packaging/nfpm/nfpm.yaml build/func-e_linux_%/func-e
+	@mkdir -p $(@D)
+	@sed -e 's/amd64/$(*)/g' -e 's/v0.0.1/$(nfpm_version)/g' $< > $@
+
+# We can't use a pattern (%) rule because in RPM amd64 -> x86_64, arm64 -> aarch64
+rpm_x86_64  := dist/func-e_$(VERSION)_linux_x86_64.rpm
+rpm_aarch64 := dist/func-e_$(VERSION)_linux_aarch64.rpm
+rpms        := $(rpm_x86_64) $(rpm_aarch64)
+
+$(rpm_x86_64): build/func-e_linux_amd64/nfpm.yaml
+	$(call nfpm-pkg,$<,"rpm",$@)
+
+$(rpm_aarch64): build/func-e_linux_arm64/nfpm.yaml
+	$(call nfpm-pkg,$<,"rpm",$@)
+
+# Debian architectures map goarch for amd64 and arm64
+dist/func-e_$(VERSION)_linux_%.deb: build/func-e_linux_%/nfpm.yaml
+	$(call nfpm-pkg,$<,"deb",$@)
 
 # msi-arch is a macro so we can detect it based on the file naming convention
 msi-arch     = $(if $(findstring amd64,$1),x64,arm64)
@@ -145,12 +172,12 @@ ifeq ($(goos),windows)  # Windows 10 etc use https://wixtoolset.org
 else  # use https://wiki.gnome.org/msitools
 	@wixl -a $(call msi-arch,$@) -D Version=$(msi_version) -D Bin=$(<:.signed=) -o $@ packaging/msi/func-e.wxs
 endif
-	$(call codesign, $@)
+	$(call codesign,$@)
 	@printf "$(ansi_format_bright)" msi "ok"
 
 # Archives are tar.gz, except in the case of Windows, which uses zip.
 archives  := $(non_windows_platforms:%=dist/func-e_$(VERSION)_%.tar.gz) $(windows_platforms:%=dist/func-e_$(VERSION)_%.zip)
-packages  := $(windows_platforms:%=dist/func-e_$(VERSION)_%.msi)
+packages  := $(windows_platforms:%=dist/func-e_$(VERSION)_%.msi) $(linux_platforms:%=dist/func-e_$(VERSION)_%.deb) $(rpms)
 checksums := dist/func-e_$(VERSION)_checksums.txt
 
 # Darwin doesn't have sha256sum. See https://github.com/actions/virtual-environments/issues/90
@@ -214,7 +241,7 @@ site: ## Serve website content
 
 # this makes a marker file ending in .signed to avoid repeatedly calling codesign
 %.signed: %
-	$(call codesign, $<)
+	$(call codesign,$<)
 	@touch $@
 
 # define macros for multi-platform builds. these parse the filename being built
@@ -227,6 +254,29 @@ define go-build
 		-ldflags "-s -w -X main.version=$(VERSION)" \
 		-o $1 $2
 	@printf "$(ansi_format_bright)" build "ok"
+endef
+
+# The test signing key was generated similar to the production key.
+#
+# Ex.
+# ```bash
+# # choose DSA (sign only), 3072 bits, no expiry, "func-e test" username
+# $ gpg --full-generate-key
+# --snip--
+# pub   dsa3072 2021-08-31 [SC]
+#      97ED9B6D64632B09FDA4FAE87D4FF8350A5A6D61
+# uid                      func-e test
+# --snip--
+# $ gpg -a --export 97ED9B6D64632B09FDA4FAE87D4FF8350A5A6D61 > packaging/nfpm/func-e.asc
+# ```
+NFPM_KEYFILE    ?= packaging/nfpm/func-e.asc
+NFPM_KEYID      ?= 97ED9B6D64632B09FDA4FAE87D4FF8350A5A6D61
+NFPM_PASSPHRASE ?= func-e-bunch
+define nfpm-pkg
+	@printf "$(ansi_format_dark)" nfpm "packaging $3"
+	@mkdir -p $(dir $3)
+	@$(go) run $(nfpm) pkg -f $1 --packager $2 --target $3
+	@printf "$(ansi_format_bright)" nfpm "ok"
 endef
 
 # This requires osslsigncode package (apt or brew) or latest windows release from mtrojnar/osslsigncode
