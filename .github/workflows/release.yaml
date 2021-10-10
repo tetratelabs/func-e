@@ -54,7 +54,7 @@ jobs:
         env:
           NFPM_KEYFILE: ${{ steps.dsa.outputs.filePath }}
           NFPM_KEYID: ${{ env.SIGNING_DSA_KEY_ID }}
-          NFPM_PASSPHRASE: ${{ env.SIGNING_DSA_KEY_PASSPHRASE }}
+          NFPM_PASSPHRASE: ${{ secrets.SIGNING_DSA_KEY_PASSPHRASE }}
           WINDOWS_CODESIGN_P12: ${{ steps.p12.outputs.filePath }}
           WINDOWS_CODESIGN_PASSWORD: ${{ secrets.WINDOWS_CODESIGN_PASSWORD }}
 
