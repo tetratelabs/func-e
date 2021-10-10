@@ -8,12 +8,6 @@ on:
   push:
     tags: 'v[0-9]+.[0-9]+.[0-9]+**'  # Ex. v0.2.0 v0.2.1-rc2
 
-env:
-  # Generated like below with GPG and sent to keyserver.ubuntu.com keys.openpgp.org
-  # DSA (sign only) 3072bits (max) no expiration
-  # "Tetrate Labs (https://github.com/tetratelabs) <tetratelabs@tetratelabs.io>"
-  SIGNING_DSA_KEY_ID: E24407EDDBF028F6CD70CECE2940B97F4F5CB111
-
 defaults:
   run:  # use bash for all operating systems unless overridden
     shell: bash
@@ -28,14 +22,6 @@ jobs:
         uses: actions/checkout@v2
         with:  # fetch all history for all tags and branches (needed for changelog)
           fetch-depth: 0
-
-      - name: "Download Linux package signing DSA key"
-        id: dsa
-        uses: timheuer/base64-to-file@v1
-        with:
-          fileName: 'func-e.asc'
-          # gpg -a --export $key_id | base64 > func-e.asc
-          encodedString: ${{ secrets.SIGNING_DSA_KEY_ASC_BASE64 }}
 
       - name: "Download Windows code signing certificate"
         id: p12
@@ -52,9 +38,6 @@ jobs:
       - name: "Make release assets"
         run: VERSION=${GITHUB_REF#refs/tags/v} make dist
         env:
-          NFPM_KEYFILE: ${{ steps.dsa.outputs.filePath }}
-          NFPM_KEYID: ${{ env.SIGNING_DSA_KEY_ID }}
-          NFPM_PASSPHRASE: ${{ secrets.SIGNING_DSA_KEY_PASSPHRASE }}
           WINDOWS_CODESIGN_P12: ${{ steps.p12.outputs.filePath }}
           WINDOWS_CODESIGN_PASSWORD: ${{ secrets.WINDOWS_CODESIGN_PASSWORD }}
 
