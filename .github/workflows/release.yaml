@@ -80,7 +80,7 @@ jobs:
         run: |
           gh release download "${GITHUB_REF#refs/tags/}" -p '${{ matrix.pattern }}'
           ${{ matrix.unzip || 'tar -xzf *.tar.gz && rm *.tar.gz' }}
-        env:  # authenticate as the release is a draft
+        env:  # authenticate release downloads as drafts are not public
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: "Run e2e tests using draft `func-e` binary"
@@ -102,11 +102,14 @@ jobs:
         run: |
           gh release download "${GITHUB_REF#refs/tags/}" -p '*linux_amd64.deb' -D dist
           packaging/nfpm/verify_deb.sh
+        env:  # authenticate release downloads as drafts are not public
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: "Test RPM package (CentOS)"
         if: runner.os == 'Linux'
-        run: |
+        run: |  # Note: the naming convention is intentionally different for RPM: x86_64 not amd64!
           gh release download "${GITHUB_REF#refs/tags/}" -p '*linux_x86_64.rpm' -D dist
           docker run --rm -v $PWD:/work --entrypoint packaging/nfpm/verify_rpm.sh ${CENTOS_IMAGE}
-        env:  # CENTOS_IMAGE was built by internal-images.yaml
-          CENTOS_IMAGE: ghcr.io/tetratelabs/func-e-internal:centos-8
+        env:  # authenticate release downloads as drafts are not public
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CENTOS_IMAGE: ghcr.io/tetratelabs/func-e-internal:centos-8  # See internal-images.yaml
