@@ -62,7 +62,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-20.04  # Hard-coding an LTS means maintenance, but only once each 2 years!
-            pattern: '*linux_amd64*'
+            pattern: '*linux_amd64.tar.gz'
           - os: macos-latest
             pattern: '*darwin_amd64.tar.gz'
           - os: windows-latest
@@ -100,13 +100,13 @@ jobs:
       - name: "Test Debian package"
         if: runner.os == 'Linux'
         run: |
-          mkdir -p dist && mv *.deb dist/
+          gh release download "${GITHUB_REF#refs/tags/}" -p '*linux_amd64.deb' -D dist
           packaging/nfpm/verify_deb.sh
 
       - name: "Test RPM package (CentOS)"
         if: runner.os == 'Linux'
         run: |
-          mkdir -p dist && mv *.rpm dist/
+          gh release download "${GITHUB_REF#refs/tags/}" -p '*linux_x86_64.rpm' -D dist
           docker run --rm -v $PWD:/work --entrypoint packaging/nfpm/verify_rpm.sh ${CENTOS_IMAGE}
         env:  # CENTOS_IMAGE was built by internal-images.yaml
           CENTOS_IMAGE: ghcr.io/tetratelabs/func-e-internal:centos-8
