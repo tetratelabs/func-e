@@ -12,34 +12,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Run to generate func-e man page
-package main 
+package cmd
 
 import (
-	"flag"
-	"fmt"
-	"io/ioutil"
-	"path/filepath"
+	"os"
+	"runtime"
+	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/func-e/internal/globals"
-	"github.com/tetratelabs/func-e/internal/cmd"
+	"github.com/tetratelabs/func-e/internal/moreos"
 )
 
-func main() {
-	path := flag.String("p", ".", "Path to write man page to.")
-	flag.Parse()
+const siteManpageFile = "../../packaging/nfpm/func-e.8"
 
-	app := cmd.NewApp(&globals.GlobalOpts{})
-
-	manpage, err := app.ToMan()
-	if err != nil {
-		fmt.Printf("Unable to convert cli app to man page: %v\n", err)
+func TestManPageMatchesCommands(t *testing.T) {
+	if runtime.GOOS == moreos.OSWindows {
+		t.SkipNow()
 	}
 
-	clean_path := filepath.Clean(*path + "/func-e.8")
+	app := NewApp(&globals.GlobalOpts{})
 
-	err = ioutil.WriteFile(clean_path, []byte(manpage), 0777)
-	if err != nil {
-		fmt.Printf("Unable to write man page: %v\n", err)
-	}
+	want, err := app.ToMan()
+	require.NoError(t, err)
+
+	have, err := os.ReadFile(siteManpageFile)
+	require.NoError(t, err)
+
+	require.Equal(t, want, string(have))
 }

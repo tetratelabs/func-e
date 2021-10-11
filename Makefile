@@ -108,6 +108,7 @@ main_sources := $(wildcard $(subst *,*[!_test],$(all_patterns)))
 
 build/func-e_%/func-e: $(main_sources)
 	$(call go-build,$@,$<)
+	@cp ./packaging/nfpm/func-e.8 $@
 
 dist/func-e_$(VERSION)_%.tar.gz: build/func-e_%/func-e
 	@printf "$(ansi_format_dark)" tar.gz "tarring $@"

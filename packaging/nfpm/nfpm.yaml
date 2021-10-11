@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# check https://nfpm.goreleaser.com/configuration.html for detailed usage
+# check https://nfpm.goreleaser.com/configuration/ for detailed usage
 name: func-e
 arch: amd64
 platform: linux
@@ -28,3 +28,5 @@ provides:
 contents:
   - src: build/func-e_linux_amd64/func-e
     dst: /usr/bin/func-e
+  - src: packaging/nfpm/func-e.8
+    dst: /usr/local/share/man/man8/func-e.8
