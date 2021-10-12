@@ -109,7 +109,7 @@ main_sources := $(wildcard $(subst *,*[!_test],$(all_patterns)))
 build/func-e_%/func-e: $(main_sources)
 	$(call go-build,$@,$<)
 
-dist/func-e_$(VERSION)_%.tar.gz: build/func-e_%/func-e 
+dist/func-e_$(VERSION)_%.tar.gz: build/func-e_%/func-e
 	@printf "$(ansi_format_dark)" tar.gz "tarring $@"
 	@mkdir -p $(@D)
 	@tar -C $(<D) -cpzf $@ $(<F)
@@ -146,7 +146,7 @@ rpm_x86_64  := dist/func-e_$(VERSION)_linux_x86_64.rpm
 rpm_aarch64 := dist/func-e_$(VERSION)_linux_aarch64.rpm
 rpms        := $(rpm_x86_64) $(rpm_aarch64)
 
-man_page	:= packaging/nfpm/func-e.8 
+man_page := packaging/nfpm/func-e.8
 
 $(rpm_x86_64): build/func-e_linux_amd64/nfpm.yaml $(man_page)
 	$(call nfpm-pkg,$<,"rpm",$@)
