@@ -82,7 +82,7 @@ jobs:
         if: runner.os == 'Linux'
         run: docker run --rm -v $HOME/.func-e:$HOME/.func-e -v $PWD:/work ${CENTOS_IMAGE} -o ${E2E_FUNC_E_PATH}/func-e e2e
         env:  # CENTOS_IMAGE was built by internal-images.yaml; E2E_FUNC_E_PATH was built via `make build`
-          CENTOS_IMAGE: ghcr.io/codefromthecrypt/func-e-internal:centos-8  # TODO: switch back after testing
+          CENTOS_IMAGE: ghcr.io/tetratelabs/func-e-internal:centos-8
           E2E_FUNC_E_PATH: build/func-e_linux_amd64
 
       - name: "Generate coverage report"  # only once (not per OS)
