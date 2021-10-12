@@ -108,9 +108,8 @@ main_sources := $(wildcard $(subst *,*[!_test],$(all_patterns)))
 
 build/func-e_%/func-e: $(main_sources)
 	$(call go-build,$@,$<)
-	@cp ./packaging/nfpm/func-e.8 $@
 
-dist/func-e_$(VERSION)_%.tar.gz: build/func-e_%/func-e
+dist/func-e_$(VERSION)_%.tar.gz: build/func-e_%/func-e 
 	@printf "$(ansi_format_dark)" tar.gz "tarring $@"
 	@mkdir -p $(@D)
 	@tar -C $(<D) -cpzf $@ $(<F)
@@ -147,14 +146,16 @@ rpm_x86_64  := dist/func-e_$(VERSION)_linux_x86_64.rpm
 rpm_aarch64 := dist/func-e_$(VERSION)_linux_aarch64.rpm
 rpms        := $(rpm_x86_64) $(rpm_aarch64)
 
-$(rpm_x86_64): build/func-e_linux_amd64/nfpm.yaml
+man_page	:= packaging/nfpm/func-e.8 
+
+$(rpm_x86_64): build/func-e_linux_amd64/nfpm.yaml $(man_page)
 	$(call nfpm-pkg,$<,"rpm",$@)
 
-$(rpm_aarch64): build/func-e_linux_arm64/nfpm.yaml
+$(rpm_aarch64): build/func-e_linux_arm64/nfpm.yaml $(man_page)
 	$(call nfpm-pkg,$<,"rpm",$@)
 
 # Debian architectures map goarch for amd64 and arm64
-dist/func-e_$(VERSION)_linux_%.deb: build/func-e_linux_%/nfpm.yaml
+dist/func-e_$(VERSION)_linux_%.deb: build/func-e_linux_%/nfpm.yaml $(man_page)
 	$(call nfpm-pkg,$<,"deb",$@)
 
 # msi-arch is a macro so we can detect it based on the file naming convention
