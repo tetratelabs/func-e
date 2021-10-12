@@ -55,13 +55,23 @@ jobs:
       - name: "Checkout"
         uses: actions/checkout@v2
 
-      - name: "Export Go revision matching go.mod"
-        run: |  # Ex. 1.17 -> /opt/hostedtoolcache/go/1.17.1/x64 -> GO_REVISION=1.17.1
-          go_release=$(sed -n 's/^go //gp' go.mod)
-          # Ex. /Users/runner/hostedtoolcache/go/1.17.1/x64
-          go_root=$(ls -d "${RUNNER_TOOL_CACHE}"/go/"${go_release}"*/x64|sort -n|tail -1)
-          rev=$(echo ${go_root}|cut -d/ -f5)
-          echo "GO_REVISION=${rev}" >> $GITHUB_ENV
+      # This finds the last two GOROOT variables and parses them into Docker
+      # build args, so that the resulting image has them at the same location.
+      #
+      # We do this to allow pull requests to update go.mod with a new Golang
+      # release without worrying if the Docker image has it, yet.
+      #
+      # Ex. GOROOT_1_17_X64=/opt/hostedtoolcache/go/1.17.1/x64 ->
+      #     GO_STABLE_RELEASE=1_17, GO_STABLE_REVISION=1.17.1
+      - name: "Find and parse last two GOROOTs"
+        run: |  # Until Go releases hit triple digits, we can use simple ordering.
+          goroot_stable_env=$(env|grep GOROOT_|sort -n|tail -1)
+          echo "GO_STABLE_RELEASE=$(echo ${goroot_stable_env}|cut -d_ -f2,3)" >> $GITHUB_ENV
+          echo "GO_STABLE_REVISION=$(echo ${goroot_stable_env}|cut -d/ -f5)" >> $GITHUB_ENV
+
+          goroot_prior_env=$(env|grep GOROOT_|sort -n|tail -2|head -1)
+          echo "GO_PRIOR_RELEASE=$(echo ${goroot_prior_env}|cut -d_ -f2,3)" >> $GITHUB_ENV
+          echo "GO_PRIOR_REVISION=$(echo ${goroot_prior_env}|cut -d/ -f5)" >> $GITHUB_ENV
 
       - name: "Build and push"
         run: |
@@ -69,7 +79,10 @@ jobs:
           docker buildx build --push \
             --platform linux/amd64,linux/arm64 \
             --build-arg parent_image=${PARENT_IMAGE} \
-            --build-arg go_revision=${GO_REVISION} \
+            --build-arg go_stable_release=${GO_STABLE_RELEASE} \
+            --build-arg go_stable_revision=${GO_STABLE_REVISION} \
+            --build-arg go_prior_release=${GO_PRIOR_RELEASE} \
+            --build-arg go_prior_revision=${GO_PRIOR_REVISION} \
             -t ${docker_tag} .github/workflows
         env:
           PARENT_IMAGE: ${{ matrix.parent_image }}
