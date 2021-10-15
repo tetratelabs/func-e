@@ -34,9 +34,7 @@ import (
 // having to define a flag for everything needed in tests.
 func NewApp(o *globals.GlobalOpts) *cli.App {
 	var envoyVersionsURL, homeDir, platform string
-	lastKnownEnvoy := getLastKnownEnvoy(o)
-	lastKnownMinorVersionEnvoy := lastKnownEnvoy[:strings.LastIndex(string(lastKnownEnvoy), ".")]
-	lastKnownEnvoyPath := moreos.ReplacePathSeparator(fmt.Sprintf("`$FUNC_E_HOME/versions/%s`", lastKnownEnvoy))
+	lastKnownEnvoyPath := moreos.ReplacePathSeparator(fmt.Sprintf("`$FUNC_E_HOME/versions/%s`", version.LastKnownEnvoy))
 
 	app := cli.NewApp()
 	app.Name = "func-e"
@@ -48,9 +46,9 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
    downloads and installs the latest version of Envoy for you.
 
    To list versions of Envoy you can use, execute ` + "`func-e versions -a`" + `. To
-   choose one, invoke ` + fmt.Sprintf("`func-e use %s`", lastKnownEnvoy) + `. This installs into
+   choose one, invoke ` + fmt.Sprintf("`func-e use %s`", version.LastKnownEnvoy) + `. This installs into
    ` + lastKnownEnvoyPath + `, if not already present. You may also use
-   minor version, such as ` + fmt.Sprintf("`func-e use %s`", lastKnownMinorVersionEnvoy) + `.
+   minor version, such as ` + fmt.Sprintf("`func-e use %s`", version.LastKnownEnvoyMinor) + `.
 
    You may want to override ` + "`$ENVOY_VERSIONS_URL`" + ` to supply custom builds or
    otherwise control the source of Envoy binaries. When overriding, validate
@@ -112,14 +110,6 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 		NewWhichCmd(o),
 	}
 	return app
-}
-
-// getLastKnownEnvoy allows stable text comparison in "help" without breaking intentional version pinning in "usage".
-func getLastKnownEnvoy(o *globals.GlobalOpts) version.Version {
-	if o.EnvoyVersion != "" { // not overridden for tests
-		return o.EnvoyVersion
-	}
-	return version.LastKnownEnvoy
 }
 
 // helpCommand allows us to hide the global flags which cleans up help and markdown

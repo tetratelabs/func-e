@@ -68,7 +68,7 @@ func TestGetHomeVersion(t *testing.T) {
 	require.NoError(t, os.WriteFile(homeVersionFile, []byte(version.LastKnownEnvoy), 0600))
 
 	v, hvf, err := GetHomeVersion(homeDir)
-	require.Equal(t, version.LastKnownEnvoy, v)
+	require.Equal(t, version.Version(version.LastKnownEnvoy), v)
 	require.Equal(t, homeVersionFile, hvf)
 	require.NoError(t, err)
 }

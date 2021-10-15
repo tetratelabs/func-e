@@ -34,24 +34,24 @@ func TestFuncEUse(t *testing.T) {
 	homeDir := t.TempDir()
 
 	t.Run("not yet installed", func(t *testing.T) {
-		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", string(version.LastKnownEnvoy))
+		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", version.LastKnownEnvoy)
 
 		require.NoError(t, err)
 		require.Regexp(t, `^downloading https:.*tar.*z\r?\n$`, stdout)
 		require.Empty(t, stderr)
 
 		// The binary was installed
-		envoyBin := filepath.Join(homeDir, "versions", string(version.LastKnownEnvoy), "bin", "envoy"+moreos.Exe)
+		envoyBin := filepath.Join(homeDir, "versions", version.LastKnownEnvoy, "bin", "envoy"+moreos.Exe)
 		require.FileExists(t, envoyBin)
 
 		// The current version was written
 		f, err := os.ReadFile(filepath.Join(homeDir, "version"))
 		require.NoError(t, err)
-		require.Equal(t, version.LastKnownEnvoy, version.Version(f))
+		require.Equal(t, version.LastKnownEnvoy, f)
 	})
 
 	t.Run("already installed", func(t *testing.T) {
-		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", string(version.LastKnownEnvoy))
+		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", version.LastKnownEnvoy)
 
 		require.NoError(t, err)
 		require.Equal(t, moreos.Sprintf("%s is already downloaded\n", version.LastKnownEnvoy), stdout)
@@ -81,72 +81,68 @@ func TestFuncEUse_UnknownMinorVersion(t *testing.T) {
 
 func TestFuncEUse_MinorVersion(t *testing.T) {
 	// The intended minor version to be installed. This version is known to have darwin, linux, and windows binaries.
-	minorVersion := version.Version("1.18")
+	minorVersion := "1.18"
 
 	allVersions, _, err := funcEExec("versions", "-a")
 	require.NoError(t, err)
 
-	base, upgraded := getVersionsRange(allVersions, string(minorVersion))
-	// The initial version.
-	baseVersion := version.Version(base)
-	// The upgraded version.
-	upgradedVersion := version.Version(upgraded)
+	baseVersion, upgradedVersion := getVersionsRange(allVersions, minorVersion)
 
 	homeDir := t.TempDir()
 
 	t.Run("install last known", func(t *testing.T) {
-		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", string(version.LastKnownEnvoy))
+		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", version.LastKnownEnvoy)
 
 		require.NoError(t, err)
 		require.Regexp(t, `^downloading https:.*tar.*z\r?\n$`, stdout)
 		require.Empty(t, stderr)
 
 		// The binary was installed.
-		envoyBin := filepath.Join(homeDir, "versions", string(version.LastKnownEnvoy), "bin", "envoy"+moreos.Exe)
+		envoyBin := filepath.Join(homeDir, "versions", version.LastKnownEnvoy, "bin", "envoy"+moreos.Exe)
 		require.FileExists(t, envoyBin)
 
 		// The current version was written.
 		f, err := os.ReadFile(filepath.Join(homeDir, "version"))
 		require.NoError(t, err)
-		require.Equal(t, version.LastKnownEnvoy, version.Version(f))
+		require.Equal(t, version.LastKnownEnvoy, f)
 	})
 
-	t.Run(fmt.Sprintf("install %s as base version", base), func(t *testing.T) {
-		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", string(baseVersion))
+	t.Run(fmt.Sprintf("install %s as base version", baseVersion), func(t *testing.T) {
+		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", baseVersion)
 
 		require.NoError(t, err)
 		require.Regexp(t, `^downloading https:.*tar.*z\r?\n$`, stdout)
 		require.Empty(t, stderr)
 
 		// The binary was installed.
-		envoyBin := filepath.Join(homeDir, "versions", string(baseVersion), "bin", "envoy"+moreos.Exe)
+		envoyBin := filepath.Join(homeDir, "versions", baseVersion, "bin", "envoy"+moreos.Exe)
 		require.FileExists(t, envoyBin)
 
 		// The base version was written.
 		f, err := os.ReadFile(filepath.Join(homeDir, "version"))
 		require.NoError(t, err)
-		require.Equal(t, baseVersion, version.Version(f))
+		require.Equal(t, baseVersion, f)
 	})
 
-	t.Run(fmt.Sprintf("install %s as upgraded version", upgraded), func(t *testing.T) {
-		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", string(minorVersion))
+	t.Run(fmt.Sprintf("install %s as upgraded version", upgradedVersion), func(t *testing.T) {
+		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", minorVersion)
 
 		require.NoError(t, err)
 		require.Regexp(t, `^downloading https:.*tar.*z\r?\n$`, stdout)
 		require.Empty(t, stderr)
 
 		// The binary was installed.
-		envoyBin := filepath.Join(homeDir, "versions", string(upgradedVersion), "bin", "envoy"+moreos.Exe)
+		envoyBin := filepath.Join(homeDir, "versions", upgradedVersion, "bin", "envoy"+moreos.Exe)
 		require.FileExists(t, envoyBin)
 
 		// The upgraded version was written.
 		f, err := os.ReadFile(filepath.Join(homeDir, "version"))
 		require.NoError(t, err)
-		require.Equal(t, minorVersion, version.Version(f))
+		require.Equal(t, minorVersion, f)
 	})
 
 	t.Run("use upgraded version after downloaded", func(t *testing.T) {
-		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", string(minorVersion))
+		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", minorVersion)
 		require.NoError(t, err)
 		require.Equal(t, moreos.Sprintf("%s is already downloaded\n", upgradedVersion), stdout)
 		require.Empty(t, stderr)
@@ -154,7 +150,7 @@ func TestFuncEUse_MinorVersion(t *testing.T) {
 
 	t.Run("which upgraded version", func(t *testing.T) {
 		stdout, stderr, err := funcEExec("--home-dir", homeDir, "which")
-		relativeEnvoyBin := filepath.Join("versions", string(upgradedVersion), "bin", "envoy"+moreos.Exe)
+		relativeEnvoyBin := filepath.Join("versions", upgradedVersion, "bin", "envoy"+moreos.Exe)
 		require.Contains(t, stdout, moreos.Sprintf("%s\n", relativeEnvoyBin))
 		require.Empty(t, stderr)
 		require.NoError(t, err)
@@ -164,7 +160,7 @@ func TestFuncEUse_MinorVersion(t *testing.T) {
 // getVersionsRange returns the first and latest patch of a minor version.
 func getVersionsRange(stdout, minor string) (first, latest string) {
 	s := bufio.NewScanner(strings.NewReader(stdout))
-	rows := []string{}
+	var rows []string
 	for s.Scan() {
 		row := strings.TrimSpace(s.Text())
 		if strings.HasPrefix(row, minor+".") {

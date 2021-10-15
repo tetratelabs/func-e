@@ -26,7 +26,7 @@ import (
 
 func TestFuncEWhich(t *testing.T) { // not parallel as it can end up downloading concurrently
 	stdout, stderr, err := funcEExec("which")
-	relativeEnvoyBin := filepath.Join("versions", string(version.LastKnownEnvoy), "bin", "envoy"+moreos.Exe)
+	relativeEnvoyBin := filepath.Join("versions", version.LastKnownEnvoy, "bin", "envoy"+moreos.Exe)
 	require.Contains(t, stdout, moreos.Sprintf("%s\n", relativeEnvoyBin))
 	require.Empty(t, stderr)
 	require.NoError(t, err)

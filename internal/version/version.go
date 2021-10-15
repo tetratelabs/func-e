@@ -21,20 +21,17 @@ import (
 	"strings"
 )
 
-//go:embed last_known_envoy.txt
-var lastKnownEnvoy string
-
 // LastKnownEnvoy is the last known Envoy Version, used to ensure help statements aren't out-of-date.
-// This is derived from /site/envoy-versions.json, but not used directly because go:embed requires a file read from the
-// current directory tree.
+// This is derived from https://archive.tetratelabs.io/envoy/envoy-versions.json and validated in `make check`.
 //
-// This is different than the "latestVersion" because this is built into the binary. For example, after the binary is
+// This is different from the "latestVersion" because this is built into the binary. For example, after the binary is
 // built, a more recent "latestVersion" can be used, even if the help statements only know about the one from compile
 // time.
-var LastKnownEnvoy = Version(lastKnownEnvoy)
+//go:embed last_known_envoy.txt
+var LastKnownEnvoy string
 
-// LastKnownMinorVersionEnvoy is LastKnownEnvoy wihout the patch component.
-var LastKnownMinorVersionEnvoy = Version(lastKnownEnvoy[:strings.LastIndex(lastKnownEnvoy, ".")])
+// LastKnownEnvoyMinor is LastKnownEnvoy without the patch component.
+var LastKnownEnvoyMinor = LastKnownEnvoy[:strings.LastIndex(LastKnownEnvoy, ".")]
 
 // ReleaseVersions primarily maps Version to TarballURL and tracks the LatestVersion
 type ReleaseVersions struct {
