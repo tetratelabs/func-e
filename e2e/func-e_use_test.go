@@ -35,7 +35,6 @@ func TestFuncEUse(t *testing.T) {
 
 	t.Run("not yet installed", func(t *testing.T) {
 		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", version.LastKnownEnvoy)
-
 		require.NoError(t, err)
 		require.Regexp(t, `^downloading https:.*tar.*z\r?\n$`, stdout)
 		require.Empty(t, stderr)
@@ -47,7 +46,7 @@ func TestFuncEUse(t *testing.T) {
 		// The current version was written
 		f, err := os.ReadFile(filepath.Join(homeDir, "version"))
 		require.NoError(t, err)
-		require.Equal(t, version.LastKnownEnvoy, f)
+		require.Equal(t, version.LastKnownEnvoy, string(f))
 	})
 
 	t.Run("already installed", func(t *testing.T) {
@@ -104,7 +103,7 @@ func TestFuncEUse_MinorVersion(t *testing.T) {
 		// The current version was written.
 		f, err := os.ReadFile(filepath.Join(homeDir, "version"))
 		require.NoError(t, err)
-		require.Equal(t, version.LastKnownEnvoy, f)
+		require.Equal(t, version.LastKnownEnvoy, string(f))
 	})
 
 	t.Run(fmt.Sprintf("install %s as base version", baseVersion), func(t *testing.T) {
@@ -121,7 +120,7 @@ func TestFuncEUse_MinorVersion(t *testing.T) {
 		// The base version was written.
 		f, err := os.ReadFile(filepath.Join(homeDir, "version"))
 		require.NoError(t, err)
-		require.Equal(t, baseVersion, f)
+		require.Equal(t, baseVersion, string(f))
 	})
 
 	t.Run(fmt.Sprintf("install %s as upgraded version", upgradedVersion), func(t *testing.T) {
@@ -138,7 +137,7 @@ func TestFuncEUse_MinorVersion(t *testing.T) {
 		// The upgraded version was written.
 		f, err := os.ReadFile(filepath.Join(homeDir, "version"))
 		require.NoError(t, err)
-		require.Equal(t, minorVersion, f)
+		require.Equal(t, minorVersion, string(f))
 	})
 
 	t.Run("use upgraded version after downloaded", func(t *testing.T) {
