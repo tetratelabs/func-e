@@ -37,12 +37,12 @@ func TestFuncEUse_VersionValidates(t *testing.T) {
 	tests := []struct{ name, version, expectedErr string }{
 		{
 			name:        "version empty",
-			expectedErr: fmt.Sprintf(`invalid [version] argument: "" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownMinorVersionEnvoy),
+			expectedErr: fmt.Sprintf(`invalid [version] argument: "" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor),
 		},
 		{
 			name:        "version invalid",
 			version:     "a.b.c",
-			expectedErr: fmt.Sprintf(`invalid [version] argument: "a.b.c" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownMinorVersionEnvoy),
+			expectedErr: fmt.Sprintf(`invalid [version] argument: "a.b.c" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor),
 		},
 	}
 
@@ -234,11 +234,11 @@ func newFuncEVersionsTester(o *globals.GlobalOpts, av avaliableVersions) (versio
 	return &funcEVersionsTester{ev: copied, av: av}, nil
 }
 
-func (f *funcEVersionsTester) Get(ctx context.Context) (version.ReleaseVersions, error) {
+func (f *funcEVersionsTester) Get(_ context.Context) (version.ReleaseVersions, error) {
 	return f.ev, nil
 }
 
-func (f *funcEVersionsTester) FindLatestPatch(ctx context.Context, minorVersion version.Version) (version.Version, error) {
+func (f *funcEVersionsTester) FindLatestPatch(_ context.Context, minorVersion version.Version) (version.Version, error) {
 	// When the input latest patch is empty, send error. This is useful for simulating FindLatestPatch
 	// to return error.
 	if f.av.latestPatch == "" {

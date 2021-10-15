@@ -22,6 +22,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/tetratelabs/func-e/internal/version"
+
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/func-e/internal/globals"
@@ -32,7 +34,7 @@ func TestFuncEHelp(t *testing.T) {
 	for _, command := range []string{"", "use", "versions", "run", "which"} {
 		command := command
 		t.Run(command, func(t *testing.T) {
-			c, stdout, _ := newApp(&globals.GlobalOpts{Version: "1.0", EnvoyVersion: "1.99.0"})
+			c, stdout, _ := newApp(&globals.GlobalOpts{Version: "1.0"})
 			args := []string{"func-e"}
 			if command != "" {
 				args = []string{"func-e", "help", command}
@@ -46,6 +48,8 @@ func TestFuncEHelp(t *testing.T) {
 			bytes, err := os.ReadFile(filepath.Join("testdata", expected))
 			require.NoError(t, err)
 			expectedStdout := moreos.Sprintf(string(bytes))
+			expectedStdout = strings.ReplaceAll(expectedStdout, "1.99.0", version.LastKnownEnvoy)
+			expectedStdout = strings.ReplaceAll(expectedStdout, "1.99", version.LastKnownEnvoyMinor)
 			if runtime.GOOS == moreos.OSWindows {
 				expectedStdout = strings.ReplaceAll(expectedStdout, "/", "\\")
 				// As most maintainers don't use Windows, it is easier to revert piece-wise

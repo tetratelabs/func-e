@@ -29,7 +29,6 @@ import (
 
 // NewUseCmd create a command responsible for downloading and extracting Envoy
 func NewUseCmd(o *globals.GlobalOpts) *cli.Command {
-	lastKnownEnvoy := getLastKnownEnvoy(o)
 	versionsDir := moreos.ReplacePathSeparator("$FUNC_E_HOME/versions/")
 	currentVersionWorkingDirFile := moreos.ReplacePathSeparator(envoy.CurrentVersionWorkingDirFile)
 	currentVersionHomeDirFile := moreos.ReplacePathSeparator(envoy.CurrentVersionHomeDirFile)
@@ -49,11 +48,8 @@ depending on which is present.
 
 Example:
 $ func-e use %s
-$ func-e use %s`, currentVersionWorkingDirFile, currentVersionHomeDirFile, lastKnownEnvoy,
-			lastKnownEnvoy[:strings.LastIndex(string(lastKnownEnvoy), ".")]),
-		Before: func(c *cli.Context) error {
-			return validateVersionArg(c, o)
-		},
+$ func-e use %s`, currentVersionWorkingDirFile, currentVersionHomeDirFile, version.LastKnownEnvoy, version.LastKnownEnvoyMinor),
+		Before: validateVersionArg,
 		Action: func(c *cli.Context) error {
 			v := version.Version(c.Args().First())
 			latest := v
@@ -75,15 +71,14 @@ $ func-e use %s`, currentVersionWorkingDirFile, currentVersionHomeDirFile, lastK
 	}
 }
 
-func validateVersionArg(c *cli.Context, o *globals.GlobalOpts) error {
+func validateVersionArg(c *cli.Context) error {
 	if c.NArg() == 0 {
 		return NewValidationError("missing [version] argument")
 	}
 	v := c.Args().First()
 	if matched := globals.EnvoyMinorVersionPattern.MatchString(v); !matched {
-		lastKnownEnvoy := getLastKnownEnvoy(o)
-		return NewValidationError("invalid [version] argument: %q should look like %q or %q", v, lastKnownEnvoy,
-			lastKnownEnvoy[:strings.LastIndex(string(lastKnownEnvoy), ".")])
+		return NewValidationError("invalid [version] argument: %q should look like %q or %q", v,
+			version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
 	}
 	return nil
 }

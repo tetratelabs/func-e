@@ -13,7 +13,6 @@ fi
 
 git config log.mailmap true
 changelog=$(git log --format='%h %s %aN, %(trailers:key=co-authored-by)' "${range}")
-contributors=$(git shortlog -s --group=author --group=trailer:co-authored-by "${range}" | cut -f 2 |sort)
 
 # strip the v off the tag name more shell portable than ${tag:1}
 version=$(echo "${tag}" | cut -c2-100) || exit 1
@@ -36,10 +35,5 @@ Don't forget to cite who was involved and why
 TODO: don't add trivial things like fixing spaces or non-concerns like build glitches
 
 * Z is now fixed thanks to Yogi Bear
-
-## Thank you
-func-e ${version} was possible thanks to the following contributors:
-
-${contributors}
 
 EOF

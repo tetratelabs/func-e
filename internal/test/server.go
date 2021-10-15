@@ -47,13 +47,13 @@ const (
 )
 
 // RequireEnvoyVersionsTestServer serves "/envoy-versions.json", containing download links a fake Envoy archive.
-func RequireEnvoyVersionsTestServer(t *testing.T, v version.Version) *httptest.Server {
+func RequireEnvoyVersionsTestServer(t *testing.T, v string) *httptest.Server {
 	s := &server{t: t}
 	h := httptest.NewServer(s)
 	s.versions = version.ReleaseVersions{
-		LatestVersion: v,
+		LatestVersion: version.Version(v),
 		Versions: map[version.Version]version.Release{ // hard-code date so that tests don't drift
-			v: {ReleaseDate: FakeReleaseDate, Tarballs: map[version.Platform]version.TarballURL{
+			version.Version(v): {ReleaseDate: FakeReleaseDate, Tarballs: map[version.Platform]version.TarballURL{
 				version.Platform(moreos.OSLinux + "/" + runtime.GOARCH):   TarballURL(h.URL, moreos.OSLinux, runtime.GOARCH, v),
 				version.Platform(moreos.OSDarwin + "/" + runtime.GOARCH):  TarballURL(h.URL, moreos.OSDarwin, runtime.GOARCH, v),
 				version.Platform(moreos.OSWindows + "/" + runtime.GOARCH): TarballURL(h.URL, moreos.OSWindows, runtime.GOARCH, v),
@@ -62,14 +62,14 @@ func RequireEnvoyVersionsTestServer(t *testing.T, v version.Version) *httptest.S
 	}
 	fakeEnvoyTarGz, sha256Sum := RequireFakeEnvoyTarGz(s.t, v)
 	s.fakeEnvoyTarGz = fakeEnvoyTarGz
-	for _, u := range s.versions.Versions[v].Tarballs {
+	for _, u := range s.versions.Versions[version.Version(v)].Tarballs {
 		s.versions.SHA256Sums[version.Tarball(path.Base(string(u)))] = sha256Sum
 	}
 	return h
 }
 
 // TarballURL gives the expected download URL for the given runtime.GOOS and Envoy version.
-func TarballURL(baseURL, goos, goarch string, v version.Version) version.TarballURL {
+func TarballURL(baseURL, goos, goarch, v string) version.TarballURL {
 	var arch = "x86_64"
 	if goarch != "arm64" {
 		arch = goarch
@@ -112,11 +112,11 @@ func (s *server) funcEVersions() []byte {
 }
 
 // RequireFakeEnvoyTarGz makes a fake envoy.tar.gz
-func RequireFakeEnvoyTarGz(t *testing.T, v version.Version) ([]byte, version.SHA256Sum) {
+func RequireFakeEnvoyTarGz(t *testing.T, v string) ([]byte, version.SHA256Sum) {
 	tempDir := t.TempDir()
 
 	// construct the platform directory based on the input version
-	installDir := filepath.Join(tempDir, string(v))
+	installDir := filepath.Join(tempDir, v)
 	require.NoError(t, os.MkdirAll(filepath.Join(installDir, "bin"), 0700)) //nolint:gosec
 	fakebinary.RequireFakeEnvoy(t, filepath.Join(installDir, "bin", "envoy"+moreos.Exe))
 
