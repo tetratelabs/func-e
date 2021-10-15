@@ -35,6 +35,9 @@ echo ensuring func-e was installed
 test -f /usr/bin/func-e
 func-e -version
 
+echo ensuring func-e man page was installed
+test -f /usr/local/share/man/man8/func-e.8
+
 echo uninstalling func-e
 sudo apt-get remove -yqq func-e
 
