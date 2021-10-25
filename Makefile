@@ -22,12 +22,8 @@ go_release          := $(shell sed -ne 's/^go //gp' go.mod)
 github_runner_arch  := $(if $(findstring $(shell uname -m),x86_64),X64,ARM64)
 github_goroot_name  := GOROOT_$(subst .,_,$(go_release))_$(github_runner_arch)
 github_goroot_val   := $(value $(github_goroot_name))
-# This works around missing variables on macOS via naming convention.
-# Ex. /Users/runner/hostedtoolcache/go/1.17.1/x64
-# Remove this after actions/virtual-environments#4156 is solved.
-github_goroot_cache := $(lastword $(shell ls -d $(RUNNER_TOOL_CACHE)/go/$(go_release)*/$(github_runner_arch) 2>/dev/null))
 goroot_path         := $(shell go env GOROOT 2>/dev/null)
-goroot              := $(firstword $(GOROOT) $(github_goroot_val) $(github_goroot_cache) $(goroot_path))
+goroot              := $(firstword $(GOROOT) $(github_goroot_val) $(goroot_path))
 
 ifndef goroot
 $(error could not determine GOROOT)
