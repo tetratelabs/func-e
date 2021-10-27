@@ -30,7 +30,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/tar"
 	"github.com/tetratelabs/func-e/internal/test/fakebinary"
@@ -47,13 +46,13 @@ const (
 )
 
 // RequireEnvoyVersionsTestServer serves "/envoy-versions.json", containing download links a fake Envoy archive.
-func RequireEnvoyVersionsTestServer(t *testing.T, v string) *httptest.Server {
+func RequireEnvoyVersionsTestServer(t *testing.T, v version.PatchVersion) *httptest.Server {
 	s := &server{t: t}
 	h := httptest.NewServer(s)
 	s.versions = version.ReleaseVersions{
-		LatestVersion: version.Version(v),
-		Versions: map[version.Version]version.Release{ // hard-code date so that tests don't drift
-			version.Version(v): {ReleaseDate: FakeReleaseDate, Tarballs: map[version.Platform]version.TarballURL{
+		LatestVersion: v,
+		Versions: map[version.PatchVersion]version.Release{ // hard-code date so that tests don't drift
+			v: {ReleaseDate: FakeReleaseDate, Tarballs: map[version.Platform]version.TarballURL{
 				version.Platform(moreos.OSLinux + "/" + runtime.GOARCH):   TarballURL(h.URL, moreos.OSLinux, runtime.GOARCH, v),
 				version.Platform(moreos.OSDarwin + "/" + runtime.GOARCH):  TarballURL(h.URL, moreos.OSDarwin, runtime.GOARCH, v),
 				version.Platform(moreos.OSWindows + "/" + runtime.GOARCH): TarballURL(h.URL, moreos.OSWindows, runtime.GOARCH, v),
@@ -62,14 +61,14 @@ func RequireEnvoyVersionsTestServer(t *testing.T, v string) *httptest.Server {
 	}
 	fakeEnvoyTarGz, sha256Sum := RequireFakeEnvoyTarGz(s.t, v)
 	s.fakeEnvoyTarGz = fakeEnvoyTarGz
-	for _, u := range s.versions.Versions[version.Version(v)].Tarballs {
+	for _, u := range s.versions.Versions[v].Tarballs {
 		s.versions.SHA256Sums[version.Tarball(path.Base(string(u)))] = sha256Sum
 	}
 	return h
 }
 
 // TarballURL gives the expected download URL for the given runtime.GOOS and Envoy version.
-func TarballURL(baseURL, goos, goarch, v string) version.TarballURL {
+func TarballURL(baseURL, goos, goarch string, v version.PatchVersion) version.TarballURL {
 	var arch = "x86_64"
 	if goarch != "arm64" {
 		arch = goarch
@@ -95,7 +94,7 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		require.True(s.t, strings.HasSuffix(subpath, archiveFormat), "unexpected uri %q: expected archive suffix %q", subpath, archiveFormat)
 
 		v := strings.Split(subpath, "/")[0]
-		require.Regexpf(s.t, globals.EnvoyVersionPattern, v, "unsupported version in uri %q", subpath)
+		require.NotNil(s.t, version.NewPatchVersion(v), "unsupported version in uri %q", subpath)
 
 		w.WriteHeader(http.StatusOK)
 		_, err := w.Write(s.fakeEnvoyTarGz)
@@ -112,11 +111,11 @@ func (s *server) funcEVersions() []byte {
 }
 
 // RequireFakeEnvoyTarGz makes a fake envoy.tar.gz
-func RequireFakeEnvoyTarGz(t *testing.T, v string) ([]byte, version.SHA256Sum) {
+func RequireFakeEnvoyTarGz(t *testing.T, v version.PatchVersion) ([]byte, version.SHA256Sum) {
 	tempDir := t.TempDir()
 
 	// construct the platform directory based on the input version
-	installDir := filepath.Join(tempDir, v)
+	installDir := filepath.Join(tempDir, v.String())
 	require.NoError(t, os.MkdirAll(filepath.Join(installDir, "bin"), 0700)) //nolint:gosec
 	fakebinary.RequireFakeEnvoy(t, filepath.Join(installDir, "bin", "envoy"+moreos.Exe))
 

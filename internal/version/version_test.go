@@ -15,65 +15,258 @@
 package version
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
-func TestVersion_IsDebug(t *testing.T) {
+func TestNewVersion(t *testing.T) {
 	tests := []struct {
-		Input    Version
-		Expected bool
+		input       string
+		expected    Version
+		expectedErr string
 	}{
 		{
-			Input:    "1.19",
-			Expected: false,
+			input:    "1.19",
+			expected: MinorVersion("1.19"),
 		},
 		{
-			Input:    "1.19.1",
-			Expected: false,
+			input:    "1.19_debug",
+			expected: MinorVersion("1.19_debug"),
 		},
 		{
-			Input:    "1.19_debug",
-			Expected: true,
+			input:    "2.0",
+			expected: MinorVersion("2.0"),
 		},
 		{
-			Input:    "1.19.1_debug",
-			Expected: true,
+			input:    "2.0_debug",
+			expected: MinorVersion("2.0_debug"),
+		},
+		{
+			input:    "1.19.1",
+			expected: PatchVersion("1.19.1"),
+		},
+		{
+			input:    "1.19.1_debug",
+			expected: PatchVersion("1.19.1_debug"),
+		},
+		{
+			input:    "2.0.0",
+			expected: PatchVersion("2.0.0"),
+		},
+		{
+			input:    "2.0.0_debug",
+			expected: PatchVersion("2.0.0_debug"),
+		},
+		{
+			input:       "",
+			expectedErr: "missing [version] argument",
+		},
+		{
+			input:       "a.b.c",
+			expectedErr: fmt.Sprintf(`invalid [version] argument: "a.b.c" should look like %q or %q`, LastKnownEnvoy, LastKnownEnvoyMinor),
 		},
 	}
 
-	for _, tc := range tests {
-		actual := tc.Input.IsDebug()
-		require.Equal(t, tc.Expected, actual)
+	for _, tt := range tests {
+		tc := tt
+		t.Run(tc.input, func(t *testing.T) {
+			actual, err := NewVersion("[version] argument", tc.input)
+			require.Equal(t, tc.expected, actual)
+			if tc.expectedErr == "" {
+				require.NoError(t, err)
+			} else {
+				require.EqualError(t, err, tc.expectedErr)
+			}
+		})
 	}
 }
 
-func TestVersion_MinorPrefix(t *testing.T) {
+func TestNewMinorVersion(t *testing.T) {
 	tests := []struct {
-		Input    Version
-		Expected string
+		input    string
+		expected MinorVersion
 	}{
 		{
-			Input:    "1.19",
-			Expected: "1.19",
+			input:    "1.19",
+			expected: MinorVersion("1.19"),
 		},
 		{
-			Input:    "1.19_debug",
-			Expected: "1.19",
+			input:    "1.19_debug",
+			expected: MinorVersion("1.19_debug"),
 		},
 		{
-			Input:    "1.19.1",
-			Expected: "1.19",
+			input:    "2.0",
+			expected: MinorVersion("2.0"),
 		},
 		{
-			Input:    "1.19.1_debug",
-			Expected: "1.19",
+			input:    "2.0_debug",
+			expected: MinorVersion("2.0_debug"),
+		},
+		{input: "1.19.1"},
+		{input: "1.19.1_debug"},
+		{input: "1.19.1.2"},
+		{input: "1.19."},
+		{input: "1.19-debug"},
+		{input: "1."},
+		{input: "1"},
+		{},
+	}
+
+	for _, tt := range tests {
+		tc := tt
+		t.Run(tc.input, func(t *testing.T) {
+			actual := NewMinorVersion(tc.input)
+			require.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func TestNewPatchVersion(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected PatchVersion
+	}{
+		{
+			input:    "1.19.1",
+			expected: PatchVersion("1.19.1"),
+		},
+		{
+			input:    "1.19.1_debug",
+			expected: PatchVersion("1.19.1_debug"),
+		},
+		{
+			input:    "2.0.0",
+			expected: PatchVersion("2.0.0"),
+		},
+		{
+			input:    "2.0.0_debug",
+			expected: PatchVersion("2.0.0_debug"),
+		},
+		{input: "1.19"},
+		{input: "1.19_debug"},
+		{input: "1.19.1.2"},
+		{input: "1.19.1."},
+		{input: "1.19.1-debug"},
+		{input: "1."},
+		{input: "1"},
+		{},
+	}
+
+	for _, tt := range tests {
+		tc := tt
+		t.Run(tc.input, func(t *testing.T) {
+			actual := NewPatchVersion(tc.input)
+			require.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func TestPatchVersion_ParsePatch(t *testing.T) {
+	tests := []struct {
+		input    PatchVersion
+		expected int
+	}{
+		{
+			input:    PatchVersion("1.19.0"),
+			expected: 0,
+		},
+		{
+			input:    PatchVersion("1.19.0_debug"),
+			expected: 0,
+		},
+		{
+			input:    PatchVersion("1.19.1"),
+			expected: 1,
+		},
+		{
+			input:    PatchVersion("1.19.1_debug"),
+			expected: 1,
+		},
+		{
+			input:    PatchVersion("1.19.10"),
+			expected: 10,
+		},
+		{
+			input:    PatchVersion("1.19.10_debug"),
+			expected: 10,
+		},
+		{ // bad data which is impossible if instantiated properly
+			input:    PatchVersion("ice cream"),
+			expected: 0,
 		},
 	}
 
-	for _, tc := range tests {
-		actual := tc.Input.MinorPrefix()
-		require.Equal(t, tc.Expected, actual)
+	for _, tt := range tests {
+		tc := tt
+		t.Run(tc.input.String(), func(t *testing.T) {
+			actual := tc.input.ParsePatch()
+			require.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func TestVersion_String(t *testing.T) {
+	tests := []struct {
+		input    Version
+		expected string
+	}{
+		{
+			input:    MinorVersion("1.19"),
+			expected: "1.19",
+		},
+		{
+			input:    MinorVersion("1.19_debug"),
+			expected: "1.19_debug",
+		},
+		{
+			input:    PatchVersion("1.19.1"),
+			expected: "1.19.1",
+		},
+		{
+			input:    PatchVersion("1.19.1_debug"),
+			expected: "1.19.1_debug",
+		},
+	}
+
+	for _, tt := range tests {
+		tc := tt
+		t.Run(tc.input.String(), func(t *testing.T) {
+			actual := tc.input.String()
+			require.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func TestVersion_ToMinor(t *testing.T) {
+	tests := []struct {
+		input    Version
+		expected MinorVersion
+	}{
+		{
+			input:    MinorVersion("1.19"),
+			expected: MinorVersion("1.19"),
+		},
+		{
+			input:    MinorVersion("1.19_debug"),
+			expected: MinorVersion("1.19_debug"),
+		},
+		{
+			input:    PatchVersion("1.19.1"),
+			expected: MinorVersion("1.19"),
+		},
+		{
+			input:    PatchVersion("1.19.1_debug"),
+			expected: MinorVersion("1.19_debug"),
+		},
+	}
+
+	for _, tt := range tests {
+		tc := tt
+		t.Run(tc.input.String(), func(t *testing.T) {
+			actual := tc.input.ToMinor()
+			require.Equal(t, tc.expected, actual)
+		})
 	}
 }

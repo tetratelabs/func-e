@@ -20,6 +20,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"time"
 
@@ -57,7 +58,7 @@ state. On exit, these archive into ` + fmt.Sprintf("`%s.tar.gz`", runDirectoryEx
 			return ensureEnvoyVersion(c, o)
 		},
 		Action: func(c *cli.Context) error {
-			if err := initializeRunOpts(c.Context, o, o.EnvoyVersion); err != nil {
+			if err := initializeRunOpts(c.Context, o); err != nil {
 				return err
 			}
 			r := envoy.NewRuntime(&o.RunOpts)
@@ -94,10 +95,10 @@ state. On exit, these archive into ` + fmt.Sprintf("`%s.tar.gz`", runDirectoryEx
 // initializeRunOpts allows us to default values when not overridden for tests.
 // The version parameter correlates with the globals.GlobalOpts EnvoyPath which is installed if needed.
 // Notably, this creates and sets a globals.GlobalOpts WorkingDirectory for Envoy, and any files that precede it.
-func initializeRunOpts(ctx context.Context, o *globals.GlobalOpts, v version.Version) error {
+func initializeRunOpts(ctx context.Context, o *globals.GlobalOpts) error {
 	runOpts := &o.RunOpts
 	if o.EnvoyPath == "" { // not overridden for tests
-		envoyPath, err := envoy.InstallIfNeeded(ctx, o, v)
+		envoyPath, err := envoy.InstallIfNeeded(ctx, o)
 		if err != nil {
 			return err
 		}
@@ -121,18 +122,18 @@ func setHomeEnvoyVersion(ctx context.Context, o *globals.GlobalOpts) error {
 	v, homeVersionFile, err := envoy.GetHomeVersion(o.HomeDir)
 	if err != nil {
 		return NewValidationError(err.Error())
-	} else if v != "" { // home version is already valid
+	} else if v != nil { // home version is already valid
 		return nil
 	}
 
 	// First time install: look up the latest version, which may be newer than version.LastKnownEnvoy!
 	o.Logf("looking up the latest Envoy version\n") //nolint
-	m, err := o.FuncEVersions.Get(ctx)
+	rvs, err := o.FuncEVersions.Get(ctx)
 	if err != nil {
 		return NewValidationError(`couldn't read latest version from %s: %s`, o.EnvoyVersionsURL, err)
 	}
 	// Persist it for the next invocation
-	return os.WriteFile(homeVersionFile, []byte(extractLatestPatchFormat(m.LatestVersion)), 0600)
+	return os.WriteFile(homeVersionFile, []byte(rvs.LatestVersion.ToMinor()), 0600)
 }
 
 func ensureEnvoyVersion(c *cli.Context, o *globals.GlobalOpts) error {
@@ -148,29 +149,49 @@ func ensureEnvoyVersion(c *cli.Context, o *globals.GlobalOpts) error {
 		if err != nil {
 			return NewValidationError(err.Error())
 		}
-		o.EnvoyVersion = v
-		if matched := globals.EnvoyStrictMinorVersionPattern.MatchString(string(v)); matched {
-			var err error
-			var latest version.Version
-			if latest, err = o.FuncEVersions.FindLatestPatch(c.Context, v); err != nil {
-				if latest, err = getLatestInstalledPatch(o, v); err != nil {
-					return err
-				}
-				o.Logf("couldn't check the latest patch for %q for platform %q, using the latest installed version %q\n", v, o.Platform, latest)
-			}
-			o.EnvoyVersion = latest
+		pv, err := ensurePatchVersion(c.Context, o, v)
+		if err != nil {
+			return NewValidationError(err.Error())
 		}
+		o.EnvoyVersion = pv
 	}
 	return nil
 }
 
-// extractLatestPatchFormat remove version.Version patch component
-func extractLatestPatchFormat(v version.Version) version.Version {
-	latestPatchFormat := v.MinorPrefix()
+// ensurePatchVersion ensures we either have a valid version.PatchVersion or an error
+// If remote lookup of the latest patch fails, this falls back to the last installed one
+func ensurePatchVersion(ctx context.Context, o *globals.GlobalOpts, v version.Version) (version.PatchVersion, error) {
+	if mv, ok := v.(version.MinorVersion); ok {
+		pv, err := o.FuncEVersions.FindLatestPatch(ctx, mv)
+		if err != nil { // Try last installed version
+			if pv = getLatestInstalledPatch(o.HomeDir, mv); pv != "" {
+				return pv, nil
+			}
+		}
+		return pv, err
+	} // version.Version is a union type, so the only other option is a patch!
+	return v.(version.PatchVersion), nil
+}
 
-	if v.IsDebug() {
-		latestPatchFormat += globals.EnvoyVersionDebugSuffix
+func getLatestInstalledPatch(homeDir string, mv version.MinorVersion) version.PatchVersion {
+	rows, err := getInstalledVersions(homeDir)
+	if err != nil {
+		return ""
 	}
 
-	return version.Version(latestPatchFormat)
+	// Sort so that new release dates appear first and on conflict choosing the higher version.
+	sort.Slice(rows, func(i, j int) bool {
+		if rows[i].releaseDate == rows[j].releaseDate {
+			return rows[i].version.String() > rows[j].version.String()
+		}
+		return rows[i].releaseDate > rows[j].releaseDate
+	})
+
+	// The first version matching the current minor is the most recent patch. Return it!
+	for i := range rows {
+		if rows[i].version.ToMinor() == mv {
+			return rows[i].version
+		}
+	}
+	return ""
 }

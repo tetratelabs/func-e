@@ -16,7 +16,6 @@ package globals
 
 import (
 	"io"
-	"regexp"
 	"runtime"
 
 	"github.com/tetratelabs/func-e/internal/moreos"
@@ -49,14 +48,14 @@ type GlobalOpts struct {
 	RunOpts
 	// Version is the version of the CLI, used in help statements and HTTP requests via "User-Agent".
 	// Override this via "-X main.version=XXX"
-	Version version.Version
+	Version string
 	// EnvoyVersionsURL is the path to the envoy-versions.json. Defaults to DefaultEnvoyVersionsURL
 	EnvoyVersionsURL string
 	// EnvoyVersion is the default version of Envoy to run. Defaults to the contents of "$HomeDir/versions/version".
 	// When that file is missing, it is generated from ".latestVersion" from the EnvoyVersionsURL. Its
 	// value can be in full version major.minor.patch format, e.g. 1.18.1 or without patch component,
 	// major.minor, e.g. 1.18.
-	EnvoyVersion version.Version
+	EnvoyVersion version.PatchVersion
 	// HomeDir is an absolute path which most importantly contains "versions" installed from EnvoyVersionsURL. Defaults to DefaultHomeDir
 	HomeDir string
 	// Quiet means don't Logf to Out
@@ -86,16 +85,5 @@ const (
 	DefaultPlatform = version.Platform(runtime.GOOS + "/" + runtime.GOARCH)
 )
 
-var (
-	// DefaultHomeDir is the default value for GlobalOpts.HomeDir
-	DefaultHomeDir = moreos.ReplacePathSeparator("${HOME}/.func-e")
-	// EnvoyVersionDebugSuffix indicates a debug release, which is significantly larger, but has more information on crash.
-	EnvoyVersionDebugSuffix = "_debug"
-	// EnvoyVersionPattern is used to validate versions and is the same pattern as release-versions-schema.json.
-	EnvoyVersionPattern = regexp.MustCompile(`^[1-9][0-9]*\.[0-9]+\.[0-9]+(` + EnvoyVersionDebugSuffix + `)?$`)
-	// EnvoyMinorVersionPattern is EnvoyVersionPattern but with optional patch and _debug components.
-	EnvoyMinorVersionPattern = regexp.MustCompile(`^[1-9][0-9]*\.[0-9]+(\.[0-9]+)?(` + EnvoyVersionDebugSuffix + `)?$`)
-	// EnvoyStrictMinorVersionPattern is used to validated minor versions. A Minor version is just
-	// like envoy.Version format, except missing the patch. For example: 1.18 or 1.20_debug.
-	EnvoyStrictMinorVersionPattern = regexp.MustCompile(`^[1-9][0-9]*\.[0-9]+(` + EnvoyVersionDebugSuffix + `)?$`)
-)
+// DefaultHomeDir is the default value for GlobalOpts.HomeDir
+var DefaultHomeDir = moreos.ReplacePathSeparator("${HOME}/.func-e")

@@ -20,15 +20,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
-	"strings"
 
-	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
 // NewFuncEVersions creates a new Envoy versions fetcher.
-func NewFuncEVersions(envoyVersionsURL string, p version.Platform, v version.Version) version.FuncEVersions {
+func NewFuncEVersions(envoyVersionsURL string, p version.Platform, v string) version.FuncEVersions {
 	feV := &funcEVersions{envoyVersionsURL: envoyVersionsURL, platform: p, version: v}
 	feV.getFunc = feV.Get
 	return feV
@@ -37,13 +34,11 @@ func NewFuncEVersions(envoyVersionsURL string, p version.Platform, v version.Ver
 type funcEVersions struct {
 	envoyVersionsURL string
 	platform         version.Platform
-	version          version.Version
+	version          string
 
 	// getFunc allows to override the release versions getter implementation.
 	getFunc func(ctx context.Context) (version.ReleaseVersions, error)
 }
-
-var _ version.FuncEVersions = (*funcEVersions)(nil)
 
 // Get implements fetching the Envoy versions from the specified Envoy versions URL.
 func (f *funcEVersions) Get(ctx context.Context) (version.ReleaseVersions, error) {
@@ -72,41 +67,27 @@ func (f *funcEVersions) Get(ctx context.Context) (version.ReleaseVersions, error
 // FindLatestPatch implements finding the latest patch version for the given minor version or raises
 // an error. The Envoy release versions fetching logic can be overridden by setting the getFunc with
 // different implementation.
-func (f *funcEVersions) FindLatestPatch(ctx context.Context, minorVersion version.Version) (version.Version, error) {
-	var latestVersion version.Version
-
+func (f *funcEVersions) FindLatestPatch(ctx context.Context, minorVersion version.MinorVersion) (version.PatchVersion, error) {
 	releases, err := f.getFunc(ctx)
 	if err != nil {
 		return "", err
 	}
 
-	// The "." suffix is required to avoid false-matching, e.g. 1.1 to 1.18.
-	minorPrefix := minorVersion.MinorPrefix() + "."
-	wantDebug := minorVersion.IsDebug()
-
+	var latestVersion version.PatchVersion
 	var latestPatch int
 	for v := range releases.Versions {
-		if wantDebug != v.IsDebug() {
+		if v.ToMinor() != minorVersion {
 			continue
 		}
 
-		if !strings.HasPrefix(string(v), minorPrefix) {
-			continue
-		}
-
-		var matched []string
-		if matched = globals.EnvoyMinorVersionPattern.FindStringSubmatch(string(v)); matched == nil {
-			continue
-		}
-
-		if p, err := strconv.Atoi(matched[1][1:]); err == nil && p >= latestPatch {
+		if p := v.ParsePatch(); p >= latestPatch {
 			latestPatch = p
 			latestVersion = v
 		}
 	}
 
 	if latestVersion == "" {
-		return "", fmt.Errorf("couldn't find latest version for %q", minorVersion)
+		return "", fmt.Errorf("couldn't find the latest patch for version %s", minorVersion)
 	}
 	return latestVersion, nil
 }

@@ -140,12 +140,13 @@ func TestFuncEVersions_All_RemoteIsCurrent(t *testing.T) {
 	o, cleanup := setupTest(t)
 	defer cleanup()
 
-	versionDir := filepath.Join(o.HomeDir, "versions", version.LastKnownEnvoy)
+	v := version.LastKnownEnvoy.String()
+	versionDir := filepath.Join(o.HomeDir, "versions", v)
 	require.NoError(t, os.MkdirAll(versionDir, 0700))
 	morerequire.RequireSetMtime(t, versionDir, "2020-12-31")
-	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte(version.LastKnownEnvoy), 0600))
+	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte(v), 0600))
 
-	expected := moreos.Sprintf("* %s 2020-12-31 (set by $FUNC_E_HOME/version)\n", version.LastKnownEnvoy)
+	expected := moreos.Sprintf("* %s 2020-12-31 (set by $FUNC_E_HOME/version)\n", v)
 
 	c, stdout, stderr := newApp(o)
 	err := c.Run([]string{"func-e", "versions", "-a"})

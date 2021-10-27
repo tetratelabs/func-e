@@ -23,5 +23,5 @@ type FuncEVersions interface {
 	Get(context.Context) (ReleaseVersions, error)
 
 	// FindLatestPatch finds the latest patch version for the given minor version or raises an error.
-	FindLatestPatch(context.Context, Version) (Version, error)
+	FindLatestPatch(context.Context, MinorVersion) (PatchVersion, error)
 }

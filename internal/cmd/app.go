@@ -57,7 +57,7 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
    Advanced:
    ` + "`FUNC_E_PLATFORM`" + ` overrides the host OS and architecture of Envoy binaries.
    This value must be constant within a ` + "`$FUNC_E_HOME`" + `.`)
-	app.Version = string(o.Version)
+	app.Version = o.Version
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
 			Name:        "home-dir",

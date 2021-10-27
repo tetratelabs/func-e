@@ -24,7 +24,7 @@ import (
 )
 
 // httpGet adds the userAgent header to the request, so that we can tell what is a dev build vs release.
-func httpGet(ctx context.Context, url string, p version.Platform, v version.Version) (*http.Response, error) {
+func httpGet(ctx context.Context, url string, p version.Platform, v string) (*http.Response, error) {
 	// #nosec -> url can be anywhere by design
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -41,8 +41,8 @@ func httpGet(ctx context.Context, url string, p version.Platform, v version.Vers
 //
 // Note: Analytics may not work out-of-box. For example, Netlify does not support server-side analytics on 'User-Agent',
 // and even its 'Referer' analytics are limited to requests to HTML resources.
-func userAgent(p version.Platform, v version.Version) string {
-	if !strings.HasPrefix(string(v), "v") || strings.Contains(string(v), "SNAPSHOT") {
+func userAgent(p version.Platform, v string) string {
+	if !strings.HasPrefix(v, "v") || strings.Contains(v, "SNAPSHOT") {
 		return "func-e/dev"
 	}
 	return fmt.Sprintf("func-e/%s (%s)", v, p)

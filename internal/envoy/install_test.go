@@ -108,8 +108,8 @@ func TestInstallIfNeeded_ErrorOnIncorrectURL(t *testing.T) {
 
 	o.EnvoyVersionsURL += "/varsionz.json"
 	o.FuncEVersions = NewFuncEVersions(o.EnvoyVersionsURL, o.Platform, o.Version)
-
-	_, err := InstallIfNeeded(o.ctx, &o.GlobalOpts, version.Version(version.LastKnownEnvoy))
+	o.EnvoyVersion = version.LastKnownEnvoy
+	_, err := InstallIfNeeded(o.ctx, &o.GlobalOpts)
 	require.EqualError(t, err, "received 404 status code from "+o.EnvoyVersionsURL)
 	require.Empty(t, o.Out.(*bytes.Buffer))
 }
@@ -121,13 +121,13 @@ func TestInstallIfNeeded_Validates(t *testing.T) {
 	tests := []struct {
 		name        string
 		p           version.Platform
-		v           string
+		v           version.PatchVersion
 		expectedErr string
 	}{
 		{
 			name:        "invalid version",
 			p:           "darwin/amd64",
-			v:           `1.1.1`,
+			v:           version.PatchVersion("1.1.1"),
 			expectedErr: `couldn't find version "1.1.1" for platform "darwin/amd64"`,
 		},
 		{
@@ -143,7 +143,8 @@ func TestInstallIfNeeded_Validates(t *testing.T) {
 		o.Platform = tt.p
 		t.Run(tc.name, func(t *testing.T) {
 			o.Out = new(bytes.Buffer)
-			_, e := InstallIfNeeded(o.ctx, &o.GlobalOpts, version.Version(tc.v))
+			o.EnvoyVersion = tc.v
+			_, e := InstallIfNeeded(o.ctx, &o.GlobalOpts)
 			require.EqualError(t, e, tc.expectedErr)
 			require.Empty(t, o.Out.(*bytes.Buffer))
 		})
@@ -155,7 +156,8 @@ func TestInstallIfNeeded(t *testing.T) {
 	defer cleanup()
 	out := o.Out.(*bytes.Buffer)
 
-	envoyPath, e := InstallIfNeeded(o.ctx, &o.GlobalOpts, version.Version(version.LastKnownEnvoy))
+	o.EnvoyVersion = version.LastKnownEnvoy
+	envoyPath, e := InstallIfNeeded(o.ctx, &o.GlobalOpts)
 	require.NoError(t, e)
 	require.Equal(t, o.EnvoyPath, envoyPath)
 	require.FileExists(t, envoyPath)
@@ -175,12 +177,14 @@ func TestInstallIfNeeded_NotFound(t *testing.T) {
 
 	t.Run("unknown version", func(t *testing.T) {
 		o.Platform = "darwin/amd64"
-		_, e := InstallIfNeeded(o.ctx, &o.GlobalOpts, "1.1.1")
+		o.EnvoyVersion = version.PatchVersion("1.1.1")
+		_, e := InstallIfNeeded(o.ctx, &o.GlobalOpts)
 		require.EqualError(t, e, `couldn't find version "1.1.1" for platform "darwin/amd64"`)
 	})
 	t.Run("unknown platform", func(t *testing.T) {
 		o.Platform = "solaris/amd64"
-		_, e := InstallIfNeeded(o.ctx, &o.GlobalOpts, version.Version(version.LastKnownEnvoy))
+		o.EnvoyVersion = version.LastKnownEnvoy
+		_, e := InstallIfNeeded(o.ctx, &o.GlobalOpts)
 		require.EqualError(t, e, fmt.Sprintf(`couldn't find version "%s" for platform "solaris/amd64"`, version.LastKnownEnvoy))
 	})
 }
@@ -196,7 +200,8 @@ func TestInstallIfNeeded_AlreadyExists(t *testing.T) {
 	envoyStat, err := os.Stat(o.EnvoyPath)
 	require.NoError(t, err)
 
-	envoyPath, e := InstallIfNeeded(o.ctx, &o.GlobalOpts, version.Version(version.LastKnownEnvoy))
+	o.EnvoyVersion = version.LastKnownEnvoy
+	envoyPath, e := InstallIfNeeded(o.ctx, &o.GlobalOpts)
 	require.NoError(t, e)
 	require.Equal(t, moreos.Sprintf("%s is already downloaded\n", version.LastKnownEnvoy), out.String())
 
@@ -210,7 +215,7 @@ func TestInstallIfNeeded_AlreadyExists(t *testing.T) {
 func TestVerifyEnvoy(t *testing.T) {
 	tempDir := t.TempDir()
 
-	envoyPath := filepath.Join(tempDir, "versions", version.LastKnownEnvoy)
+	envoyPath := filepath.Join(tempDir, "versions", version.LastKnownEnvoy.String())
 	require.NoError(t, os.MkdirAll(filepath.Join(envoyPath, "bin"), 0755))
 	t.Run("envoy binary doesn't exist", func(t *testing.T) {
 		EnvoyPath, e := verifyEnvoy(envoyPath)
@@ -257,7 +262,7 @@ func setupInstallTest(t *testing.T) (*installTest, func()) {
 			Out:              new(bytes.Buffer),
 			Platform:         globals.DefaultPlatform,
 			RunOpts: globals.RunOpts{
-				EnvoyPath: filepath.Join(homeDir, "versions", version.LastKnownEnvoy, binEnvoy),
+				EnvoyPath: filepath.Join(homeDir, "versions", version.LastKnownEnvoy.String(), binEnvoy),
 			},
 		},
 	}

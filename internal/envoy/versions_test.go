@@ -26,50 +26,49 @@ import (
 func TestFuncEVersions_FindLatestPatch(t *testing.T) {
 	type testCase struct {
 		name     string
-		input    version.Version
-		versions map[version.Version]version.Release
-		want     version.Version
+		input    version.MinorVersion
+		versions map[version.PatchVersion]version.Release
+		want     version.PatchVersion
 	}
 
 	tests := []testCase{
 		{
 			name:  "zero",
-			input: "1.20",
-			versions: map[version.Version]version.Release{
-				"1.20.0_debug": {},
-				"1.20.0":       {},
+			input: version.MinorVersion("1.20"),
+			versions: map[version.PatchVersion]version.Release{
+				version.PatchVersion("1.20.0_debug"): {}, // mixed is unlikely, but possible
+				version.PatchVersion("1.20.0"):       {},
 			},
-			want: "1.20.0",
+			want: version.PatchVersion("1.20.0"),
 		},
 		{
 			name:  "upgradable",
-			input: "1.18",
-			versions: map[version.Version]version.Release{
-				"1.18.3":       {},
-				"1.18.14":      {},
-				"1.18.4":       {},
-				"1.18.4_debug": {},
+			input: version.MinorVersion("1.18"),
+			versions: map[version.PatchVersion]version.Release{
+				version.PatchVersion("1.18.3"):       {},
+				version.PatchVersion("1.18.14"):      {},
+				version.PatchVersion("1.18.4"):       {},
+				version.PatchVersion("1.18.4_debug"): {},
 			},
-			want: "1.18.14",
+			want: version.PatchVersion("1.18.14"),
 		},
 		{
 			name:  "notfound",
-			input: "1.1",
-			versions: map[version.Version]version.Release{
-				"1.20.0":    {},
-				"1.1_debug": {},
+			input: version.MinorVersion("1.1"),
+			versions: map[version.PatchVersion]version.Release{
+				version.PatchVersion("1.20.0"):    {},
+				version.PatchVersion("1.1_debug"): {},
 			},
-			want: "",
 		},
 		{
 			name:  "debug",
-			input: "1.19_debug",
-			versions: map[version.Version]version.Release{
-				"1.19.10_debug": {},
-				"1.19.2_debug":  {},
-				"1.19.1":        {},
+			input: version.MinorVersion("1.19_debug"),
+			versions: map[version.PatchVersion]version.Release{
+				version.PatchVersion("1.19.10_debug"): {},
+				version.PatchVersion("1.19.2_debug"):  {},
+				version.PatchVersion("1.19.1"):        {},
 			},
-			want: "1.19.10_debug",
+			want: version.PatchVersion("1.19.10_debug"),
 		},
 	}
 
@@ -79,7 +78,7 @@ func TestFuncEVersions_FindLatestPatch(t *testing.T) {
 			tester := newFuncEVersionsTester(tc.versions)
 			actual, err := tester.feV.FindLatestPatch(ctx, tc.input)
 			if tc.want == "" {
-				require.Errorf(t, err, "couldn't find latest version for %s", tc.input)
+				require.Errorf(t, err, "couldn't find the latest patch for version %s", tc.input)
 			} else {
 				require.NoError(t, err)
 				require.Equal(t, tc.want, actual)
@@ -92,7 +91,7 @@ type funcEVersionsTester struct {
 	feV funcEVersions
 }
 
-func newFuncEVersionsTester(versions map[version.Version]version.Release) funcEVersionsTester {
+func newFuncEVersionsTester(versions map[version.PatchVersion]version.Release) funcEVersionsTester {
 	return funcEVersionsTester{
 		feV: funcEVersions{
 			// Override Envoy versions getter for testing purpose only.

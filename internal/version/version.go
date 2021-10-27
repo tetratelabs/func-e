@@ -18,48 +18,125 @@ package version
 import (
 	_ "embed" // We embed the Envoy version so that we can cache it in CI
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 )
 
-// LastKnownEnvoy is the last known Envoy Version, used to ensure help statements aren't out-of-date.
+//go:embed last_known_envoy.txt
+var lastKnownEnvoy string
+
+// LastKnownEnvoy is the last known Envoy PatchVersion, used to ensure help statements aren't out-of-date.
 // This is derived from https://archive.tetratelabs.io/envoy/envoy-versions.json and validated in `make check`.
 //
 // This is different from the "latestVersion" because this is built into the binary. For example, after the binary is
 // built, a more recent "latestVersion" can be used, even if the help statements only know about the one from compile
 // time.
-//go:embed last_known_envoy.txt
-var LastKnownEnvoy string
+var LastKnownEnvoy = NewPatchVersion(lastKnownEnvoy)
 
-// LastKnownEnvoyMinor is LastKnownEnvoy without the patch component.
-var LastKnownEnvoyMinor = LastKnownEnvoy[:strings.LastIndex(LastKnownEnvoy, ".")]
+var (
+	// LastKnownEnvoyMinor is a convenience constant
+	LastKnownEnvoyMinor = LastKnownEnvoy.ToMinor()
+	versionPattern      = regexp.MustCompile(`^[1-9][0-9]*\.[0-9]+(\.[0-9]+)?(` + debugSuffix + `)?$`)
+)
+
+// debugSuffix is used to implement PatchVersion.ToMinor
+const debugSuffix = "_debug"
+
+// Version is a union type that allows commands to operate regardless of whether the input is a MinorVersion or a
+// PatchVersion.
+type Version interface {
+	// String allows access to the underlying representation. Ex. "1.18", "1.18_debug", "1.19.3_debug"
+	String() string
+	// ToMinor returns a variant used to look up the latest patch.
+	ToMinor() MinorVersion
+}
+
+// MinorVersion is desired release from https://github.com/envoyproxy/envoy/blob/main/RELEASES.md, as a minor version.
+// String will return a placeholder for the latest PatchVersion. Ex "1.18" or "1.20_debug"
+type MinorVersion string
+
+// NewMinorVersion returns a MinorVersion for a valid input like "1.19" or empty if invalid.
+func NewMinorVersion(input string) MinorVersion {
+	if matched := versionPattern.FindStringSubmatch(input); len(matched) == 3 && matched[0] != "" && matched[1] == "" {
+		return MinorVersion(input)
+	}
+	return ""
+}
+
+// PatchVersion is a release version from https://github.com/envoyproxy/envoy/releases, without a 'v' prefix.
+// This is the same form as "Version" in release-versions-schema.json. Ex "1.18.3" or "1.20.1_debug"
+type PatchVersion string
+
+// NewPatchVersion returns a PatchVersion for a valid input like "1.19.1" or empty if invalid.
+func NewPatchVersion(input string) PatchVersion {
+	if matched := versionPattern.FindStringSubmatch(input); len(matched) == 3 && matched[0] != "" && matched[1] != "" {
+		return PatchVersion(input)
+	}
+	return ""
+}
+
+// NewVersion returns a valid input or an error
+func NewVersion(tag, input string) (Version, error) {
+	if input == "" {
+		return nil, fmt.Errorf("missing %s", tag)
+	}
+	if pv := NewPatchVersion(input); pv != "" {
+		return pv, nil
+	}
+	if mv := NewMinorVersion(input); mv != "" {
+		return mv, nil
+	}
+	return nil, fmt.Errorf("invalid %s: %q should look like %q or %q", tag, input, LastKnownEnvoy, LastKnownEnvoy.ToMinor())
+}
+
+// String satisfies Version.String
+func (v MinorVersion) String() string {
+	return string(v)
+}
+
+// ToMinor satisfies Version.ToMinor
+func (v MinorVersion) ToMinor() MinorVersion {
+	return v
+}
+
+// String satisfies Version.String
+func (v PatchVersion) String() string {
+	return string(v)
+}
+
+// ToMinor satisfies Version.ToMinor
+func (v PatchVersion) ToMinor() MinorVersion {
+	splitDebug := strings.Split(string(v), debugSuffix)
+	splitVersion := strings.Split(splitDebug[0], ".")
+	latestPatchFormat := fmt.Sprintf("%s.%s", splitVersion[0], splitVersion[1])
+
+	if len(splitDebug) == 2 {
+		latestPatchFormat += debugSuffix
+	}
+
+	return MinorVersion(latestPatchFormat)
+}
+
+// ParsePatch attempts to parse a patch number from the Version.String.
+// This will always succeed when created via NewVersion or NewPatchVersion
+func (v PatchVersion) ParsePatch() int {
+	var matched []string
+	if matched = versionPattern.FindStringSubmatch(v.String()); matched == nil {
+		return 0 // impossible if created via NewVersion or NewPatchVersion
+	}
+	i, _ := strconv.Atoi(matched[1][1:]) // matched[1] will look like .1 or .10
+	return i
+}
 
 // ReleaseVersions primarily maps Version to TarballURL and tracks the LatestVersion
 type ReleaseVersions struct {
 	// LatestVersion is the latest stable Version
-	LatestVersion Version `json:"latestVersion"`
+	LatestVersion PatchVersion `json:"latestVersion"`
 	// Versions maps a Version to its Release
-	Versions map[Version]Release `json:"versions"`
+	Versions map[PatchVersion]Release `json:"versions"`
 	// SHA256Sums maps a Tarball to its SHA256Sum
 	SHA256Sums map[Tarball]SHA256Sum `json:"sha256sums"`
-}
-
-// Version is a release version from https://github.com/envoyproxy/envoy/releases, without a 'v' prefix. Ex "1.18.3"
-type Version string
-
-// IsDebug shows if the version is a debug version
-func (v *Version) IsDebug() bool {
-	return strings.HasSuffix(string(*v), "_debug")
-}
-
-// MinorPrefix expects the v is a valid version pattern
-// extracts the v and returns the EnvoyStrictMinorVersionPattern without debug component
-// e.g: 1.19.1_debug -> 1.19
-// note: you may need to append a dot to avoid false matching, e.g. 1.1 to 1.18.
-func (v *Version) MinorPrefix() string {
-	withoutDebug := strings.Split(string(*v), "_debug")[0]
-	splitVersion := strings.Split(withoutDebug, ".")
-
-	return fmt.Sprintf("%s.%s", splitVersion[0], splitVersion[1])
 }
 
 // Platform encodes 'runtime.GOOS/runtime.GOARCH'. Ex "darwin/amd64"

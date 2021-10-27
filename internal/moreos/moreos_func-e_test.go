@@ -102,7 +102,7 @@ func Test_CallSignals(t *testing.T) {
 			stdout := new(bytes.Buffer)
 
 			// With an arg so fakeFuncE runs fakeEnvoy as its child and doesn't exit.
-			arg := version.LastKnownEnvoy
+			arg := version.LastKnownEnvoy.String()
 			cmd := exec.Command(fakeFuncE, "run", arg, "-c")
 			cmd.SysProcAttr = ProcessGroupAttr() // Make sure we have a new process group.
 			cmd.Stdout = stdout
