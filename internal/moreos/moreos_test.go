@@ -28,6 +28,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestErrorf_ConvertsPathWhenWindows(t *testing.T) {
+	err := Errorf("/foo/bar is bad")
+	if runtime.GOOS == OSWindows {
+		require.EqualError(t, err, `\foo\bar is bad`)
+	} else {
+		require.EqualError(t, err, `/foo/bar is bad`)
+	}
+}
+
 // TestErrorWithWindowsPathSeparator makes sure errors don't accidentally escape the windows path separator.
 // this is extracted so that maintainers can make sure it works without using windows.
 func TestErrorWithWindowsPathSeparator(t *testing.T) {

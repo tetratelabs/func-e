@@ -21,6 +21,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/tetratelabs/func-e/internal/moreos"
 )
 
 //go:embed last_known_envoy.txt
@@ -87,7 +89,7 @@ func NewVersion(tag, input string) (Version, error) {
 	if mv := NewMinorVersion(input); mv != "" {
 		return mv, nil
 	}
-	return nil, fmt.Errorf("invalid %s: %q should look like %q or %q", tag, input, LastKnownEnvoy, LastKnownEnvoy.ToMinor())
+	return nil, moreos.Errorf("invalid %s: %q should look like %q or %q", tag, input, LastKnownEnvoy, LastKnownEnvoy.ToMinor())
 }
 
 // String satisfies Version.String
