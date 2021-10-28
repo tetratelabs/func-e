@@ -16,6 +16,7 @@
 package version
 
 import (
+	"context"
 	_ "embed" // We embed the Envoy version so that we can cache it in CI
 	"fmt"
 	"regexp"
@@ -120,9 +121,9 @@ func (v PatchVersion) ToMinor() MinorVersion {
 	return MinorVersion(latestPatchFormat)
 }
 
-// ParsePatch attempts to parse a patch number from the Version.String.
+// patch attempts to parse a patch number from the Version.String.
 // This will always succeed when created via NewVersion or NewPatchVersion
-func (v PatchVersion) ParsePatch() int {
+func (v PatchVersion) patch() int {
 	var matched []string
 	if matched = versionPattern.FindStringSubmatch(v.String()); matched == nil {
 		return 0 // impossible if created via NewVersion or NewPatchVersion
@@ -130,6 +131,26 @@ func (v PatchVersion) ParsePatch() int {
 	i, _ := strconv.Atoi(matched[1][1:]) // matched[1] will look like .1 or .10
 	return i
 }
+
+// FindLatestPatchVersion finds the latest patch version for the given minor version or empty if not found.
+func FindLatestPatchVersion(patchVersions []PatchVersion, minorVersion MinorVersion) PatchVersion {
+	var latestVersion PatchVersion
+	var latestPatch int
+	for _, v := range patchVersions {
+		if v.ToMinor() != minorVersion {
+			continue
+		}
+
+		if p := v.patch(); p >= latestPatch {
+			latestPatch = p
+			latestVersion = v
+		}
+	}
+	return latestVersion
+}
+
+// GetReleaseVersions returns a version map from a remote URL. e.g. from globals.DefaultEnvoyVersionsURL
+type GetReleaseVersions func(ctx context.Context) (*ReleaseVersions, error)
 
 // ReleaseVersions primarily maps Version to TarballURL and tracks the LatestVersion
 type ReleaseVersions struct {

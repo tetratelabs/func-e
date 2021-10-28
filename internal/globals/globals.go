@@ -64,8 +64,8 @@ type GlobalOpts struct {
 	Out io.Writer
 	// The platform to target for the Envoy install.
 	Platform version.Platform
-	// FuncEVersions is the interface for fetching Envoy release versions map from the EnvoyVersionsURL.
-	FuncEVersions version.FuncEVersions
+	// GetEnvoyVersions returns Envoy release versions from EnvoyVersionsURL.
+	GetEnvoyVersions version.GetReleaseVersions
 }
 
 // Logf is used for shared functions that log conditionally on GlobalOpts.Quiet

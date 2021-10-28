@@ -39,25 +39,25 @@ func InstallIfNeeded(ctx context.Context, o *globals.GlobalOpts) (string, error)
 	_, err := os.Stat(envoyPath)
 	switch {
 	case os.IsNotExist(err):
-		var ev version.ReleaseVersions // Get version metadata for what we will install
-		ev, err = o.FuncEVersions.Get(ctx)
+		var evs *version.ReleaseVersions // Get version metadata for what we will install
+		evs, err = o.GetEnvoyVersions(ctx)
 		if err != nil {
 			return "", err
 		}
 
-		tarballURL := ev.Versions[v].Tarballs[o.Platform] // Ensure there is a version for this platform
+		tarballURL := evs.Versions[v].Tarballs[o.Platform] // Ensure there is a version for this platform
 		if tarballURL == "" {
 			return "", fmt.Errorf("couldn't find version %q for platform %q", v, o.Platform)
 		}
 
 		tarball := version.Tarball(path.Base(string(tarballURL)))
-		sha256Sum := ev.SHA256Sums[tarball]
+		sha256Sum := evs.SHA256Sums[tarball]
 		if len(sha256Sum) != 64 {
 			return "", fmt.Errorf("couldn't find sha256Sum of version %q for platform %q: %w", v, o.Platform, err)
 		}
 
 		var mtime time.Time // Create a directory for the version, preserving the release date as its mtime
-		if mtime, err = time.Parse("2006-01-02", string(ev.Versions[v].ReleaseDate)); err != nil {
+		if mtime, err = time.Parse("2006-01-02", string(evs.Versions[v].ReleaseDate)); err != nil {
 			return "", fmt.Errorf("couldn't find releaseDate of version %q for platform %q: %w", v, o.Platform, err)
 		}
 		if err = os.MkdirAll(installPath, 0750); err != nil {

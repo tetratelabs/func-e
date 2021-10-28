@@ -20,7 +20,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"time"
 
@@ -128,12 +127,12 @@ func setHomeEnvoyVersion(ctx context.Context, o *globals.GlobalOpts) error {
 
 	// First time install: look up the latest version, which may be newer than version.LastKnownEnvoy!
 	o.Logf("looking up the latest Envoy version\n") //nolint
-	rvs, err := o.FuncEVersions.Get(ctx)
+	evs, err := o.GetEnvoyVersions(ctx)
 	if err != nil {
 		return NewValidationError(`couldn't read latest version from %s: %s`, o.EnvoyVersionsURL, err)
 	}
 	// Persist it for the next invocation
-	return os.WriteFile(homeVersionFile, []byte(rvs.LatestVersion.ToMinor()), 0600)
+	return os.WriteFile(homeVersionFile, []byte(evs.LatestVersion.ToMinor()), 0600)
 }
 
 func ensureEnvoyVersion(c *cli.Context, o *globals.GlobalOpts) error {
@@ -162,36 +161,25 @@ func ensureEnvoyVersion(c *cli.Context, o *globals.GlobalOpts) error {
 // If remote lookup of the latest patch fails, this falls back to the last installed one
 func ensurePatchVersion(ctx context.Context, o *globals.GlobalOpts, v version.Version) (version.PatchVersion, error) {
 	if mv, ok := v.(version.MinorVersion); ok {
-		pv, err := o.FuncEVersions.FindLatestPatch(ctx, mv)
-		if err != nil { // Try last installed version
-			if pv = getLatestInstalledPatch(o.HomeDir, mv); pv != "" {
+		evs, err := o.GetEnvoyVersions(ctx)
+		var patchVersions []version.PatchVersion
+		if err == nil {
+			for k := range evs.Versions {
+				patchVersions = append(patchVersions, k)
+			}
+			if pv := version.FindLatestPatchVersion(patchVersions, mv); pv != "" {
+				return pv, nil
+			}
+			return "", fmt.Errorf("couldn't find the latest patch for version %s", mv)
+		} else if rows, e := getInstalledVersions(o.HomeDir); e == nil {
+			for _, r := range rows { //nolint:gocritic
+				patchVersions = append(patchVersions, r.version)
+			}
+			if pv := version.FindLatestPatchVersion(patchVersions, mv); pv != "" {
 				return pv, nil
 			}
 		}
-		return pv, err
+		return "", err
 	} // version.Version is a union type, so the only other option is a patch!
 	return v.(version.PatchVersion), nil
-}
-
-func getLatestInstalledPatch(homeDir string, mv version.MinorVersion) version.PatchVersion {
-	rows, err := getInstalledVersions(homeDir)
-	if err != nil {
-		return ""
-	}
-
-	// Sort so that new release dates appear first and on conflict choosing the higher version.
-	sort.Slice(rows, func(i, j int) bool {
-		if rows[i].releaseDate == rows[j].releaseDate {
-			return rows[i].version.String() > rows[j].version.String()
-		}
-		return rows[i].releaseDate > rows[j].releaseDate
-	})
-
-	// The first version matching the current minor is the most recent patch. Return it!
-	for i := range rows {
-		if rows[i].version.ToMinor() == mv {
-			return rows[i].version
-		}
-	}
-	return ""
 }

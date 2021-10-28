@@ -16,72 +16,86 @@ package cmd
 
 import (
 	"context"
-	"net/http/httptest"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/tetratelabs/func-e/internal/envoy"
-	"github.com/tetratelabs/func-e/internal/globals"
-	"github.com/tetratelabs/func-e/internal/test"
-	"github.com/tetratelabs/func-e/internal/test/morerequire"
-
 	"github.com/stretchr/testify/require"
+
+	"github.com/tetratelabs/func-e/internal/globals"
 
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
-func TestEnsurePatchVersion_Remote(t *testing.T) {
-	server, o := setupTestServer(t)
-	defer server.Close()
+func TestEnsurePatchVersion(t *testing.T) {
+	versions := map[version.PatchVersion]version.Release{
+		version.PatchVersion("1.18.3"):       {},
+		version.PatchVersion("1.18.14"):      {},
+		version.PatchVersion("1.18.4"):       {},
+		version.PatchVersion("1.18.4_debug"): {},
+	}
 
-	// Ensure that when we ask for a minor, the latest version is returned from the remote JSON
-	v := version.LastKnownEnvoyMinor
-	pv, err := ensurePatchVersion(context.Background(), o, v)
+	o := &globals.GlobalOpts{
+		GetEnvoyVersions: func(context.Context) (*version.ReleaseVersions, error) {
+			return &version.ReleaseVersions{Versions: versions}, nil
+		},
+		HomeDir: t.TempDir(),
+	}
+	actual, err := ensurePatchVersion(context.Background(), o, version.MinorVersion("1.18"))
 	require.NoError(t, err)
-	require.Equal(t, version.LastKnownEnvoy, pv)
+	require.Equal(t, version.PatchVersion("1.18.14"), actual)
+}
+
+func TestEnsurePatchVersion_NotFound(t *testing.T) {
+	versions := map[version.PatchVersion]version.Release{
+		version.PatchVersion("1.20.0"):    {},
+		version.PatchVersion("1.1_debug"): {},
+	}
+
+	o := &globals.GlobalOpts{
+		GetEnvoyVersions: func(context.Context) (*version.ReleaseVersions, error) {
+			return &version.ReleaseVersions{Versions: versions}, nil
+		},
+		HomeDir: t.TempDir(),
+	}
+	_, err := ensurePatchVersion(context.Background(), o, version.MinorVersion("1.18"))
+	require.EqualError(t, err, "couldn't find the latest patch for version 1.18")
 }
 
 func TestEnsurePatchVersion_NoOpWhenAlreadyAPatchVersion(t *testing.T) {
-	v := version.PatchVersion("1.19.1")
-	pv, err := ensurePatchVersion(context.Background(), &globals.GlobalOpts{}, v)
+	expected := version.PatchVersion("1.19.1")
+	actual, err := ensurePatchVersion(context.Background(), &globals.GlobalOpts{}, expected)
 	require.NoError(t, err)
-	require.Equal(t, v, pv)
+	require.Equal(t, expected, actual)
 }
 
 func TestEnsurePatchVersion_FallbackOnLookupFailure(t *testing.T) {
-	server, o := setupTestServer(t)
-	defer server.Close()
+	o := &globals.GlobalOpts{
+		GetEnvoyVersions: func(context.Context) (*version.ReleaseVersions, error) {
+			return nil, errors.New("ice cream")
+		},
+		HomeDir: t.TempDir(),
+	}
 
-	minor := version.MinorVersion("1.12")
-	installedPatch := version.PatchVersion("1.12.1")
-
-	lastKnownEnvoyDir := filepath.Join(o.HomeDir, "versions", installedPatch.String())
+	lastKnownEnvoyDir := filepath.Join(o.HomeDir, "versions", "1.18.14")
 	require.NoError(t, os.MkdirAll(lastKnownEnvoyDir, 0700))
-	morerequire.RequireSetMtime(t, lastKnownEnvoyDir, "2020-12-31")
-
-	// Stop the server to simulate an outage
-	server.Close()
 
 	// Ensure that when we ask for a minor, the latest version is returned from the filesystem
-	pv, err := ensurePatchVersion(context.Background(), o, minor)
+	actual, err := ensurePatchVersion(context.Background(), o, version.MinorVersion("1.18"))
 	require.NoError(t, err)
-	require.Equal(t, installedPatch, pv)
+	require.Equal(t, version.PatchVersion("1.18.14"), actual)
 }
 
 func TestEnsurePatchVersion_RaisesErrorWhenNothingInstalled(t *testing.T) {
-	server, o := setupTestServer(t)
-	// Stop the server to simulate an outage
-	server.Close()
+	o := &globals.GlobalOpts{
+		GetEnvoyVersions: func(context.Context) (*version.ReleaseVersions, error) {
+			return nil, errors.New("ice cream")
+		},
+		HomeDir: t.TempDir(),
+	}
 
 	// Since we have nothing local to fall back to, we should raise the remote error
 	_, err := ensurePatchVersion(context.Background(), o, version.LastKnownEnvoyMinor)
-	require.Error(t, err)
-}
-
-func setupTestServer(t *testing.T) (*httptest.Server, *globals.GlobalOpts) {
-	server := test.RequireEnvoyVersionsTestServer(t, version.LastKnownEnvoy)
-	o := &globals.GlobalOpts{EnvoyVersionsURL: server.URL + "/envoy-versions.json", HomeDir: t.TempDir()}
-	o.FuncEVersions = envoy.NewFuncEVersions(o.EnvoyVersionsURL, globals.DefaultPlatform, "dev")
-	return server, o
+	require.EqualError(t, err, "ice cream")
 }

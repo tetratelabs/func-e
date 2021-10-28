@@ -57,11 +57,11 @@ func TestUsageMarkdownMatchesCommands(t *testing.T) {
 {{end}}| {{index $option.EnvVars 0}} | {{$option.Usage}} | {{$option.DefaultText}} |{{end}}
 `
 	a := NewApp(&globals.GlobalOpts{})
-	want, err := a.ToMarkdown()
+	expected, err := a.ToMarkdown()
 	require.NoError(t, err)
-	want = strings.ReplaceAll(want, "   ", "") // remove leading indent until urfave/cli#1275
+	expected = strings.ReplaceAll(expected, "   ", "") // remove leading indent until urfave/cli#1275
 
-	have, err := os.ReadFile(siteMarkdownFile)
+	actual, err := os.ReadFile(siteMarkdownFile)
 	require.NoError(t, err)
-	require.Equal(t, want, string(have))
+	require.Equal(t, expected, string(actual))
 }

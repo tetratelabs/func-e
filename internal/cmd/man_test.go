@@ -34,11 +34,10 @@ func TestManPageMatchesCommands(t *testing.T) {
 
 	app := NewApp(&globals.GlobalOpts{})
 
-	want, err := app.ToMan()
+	expected, err := app.ToMan()
 	require.NoError(t, err)
 
-	have, err := os.ReadFile(siteManpageFile)
+	actual, err := os.ReadFile(siteManpageFile)
 	require.NoError(t, err)
-
-	require.Equal(t, want, string(have))
+	require.Equal(t, expected, string(actual))
 }

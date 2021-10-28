@@ -18,86 +18,20 @@ import (
 	"context"
 	"testing"
 
+	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/test"
+
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
-func TestFuncEVersions_FindLatestPatch(t *testing.T) {
-	type testCase struct {
-		name     string
-		input    version.MinorVersion
-		versions map[version.PatchVersion]version.Release
-		want     version.PatchVersion
-	}
+func TestNewGetVersions(t *testing.T) {
+	versionsServer := test.RequireEnvoyVersionsTestServer(t, version.LastKnownEnvoy)
+	gv := NewGetVersions(versionsServer.URL+"/envoy-versions.json", globals.DefaultPlatform, "dev")
 
-	tests := []testCase{
-		{
-			name:  "zero",
-			input: version.MinorVersion("1.20"),
-			versions: map[version.PatchVersion]version.Release{
-				version.PatchVersion("1.20.0_debug"): {}, // mixed is unlikely, but possible
-				version.PatchVersion("1.20.0"):       {},
-			},
-			want: version.PatchVersion("1.20.0"),
-		},
-		{
-			name:  "upgradable",
-			input: version.MinorVersion("1.18"),
-			versions: map[version.PatchVersion]version.Release{
-				version.PatchVersion("1.18.3"):       {},
-				version.PatchVersion("1.18.14"):      {},
-				version.PatchVersion("1.18.4"):       {},
-				version.PatchVersion("1.18.4_debug"): {},
-			},
-			want: version.PatchVersion("1.18.14"),
-		},
-		{
-			name:  "notfound",
-			input: version.MinorVersion("1.1"),
-			versions: map[version.PatchVersion]version.Release{
-				version.PatchVersion("1.20.0"):    {},
-				version.PatchVersion("1.1_debug"): {},
-			},
-		},
-		{
-			name:  "debug",
-			input: version.MinorVersion("1.19_debug"),
-			versions: map[version.PatchVersion]version.Release{
-				version.PatchVersion("1.19.10_debug"): {},
-				version.PatchVersion("1.19.2_debug"):  {},
-				version.PatchVersion("1.19.1"):        {},
-			},
-			want: version.PatchVersion("1.19.10_debug"),
-		},
-	}
-
-	ctx := context.Background()
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			tester := newFuncEVersionsTester(tc.versions)
-			actual, err := tester.feV.FindLatestPatch(ctx, tc.input)
-			if tc.want == "" {
-				require.Errorf(t, err, "couldn't find the latest patch for version %s", tc.input)
-			} else {
-				require.NoError(t, err)
-				require.Equal(t, tc.want, actual)
-			}
-		})
-	}
-}
-
-type funcEVersionsTester struct {
-	feV funcEVersions
-}
-
-func newFuncEVersionsTester(versions map[version.PatchVersion]version.Release) funcEVersionsTester {
-	return funcEVersionsTester{
-		feV: funcEVersions{
-			// Override Envoy versions getter for testing purpose only.
-			getFunc: func(context.Context) (version.ReleaseVersions, error) {
-				return version.ReleaseVersions{Versions: versions}, nil
-			},
-		},
-	}
+	evs, err := gv(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, version.LastKnownEnvoy, evs.LatestVersion)
+	require.Contains(t, evs.Versions, version.LastKnownEnvoy)
 }

@@ -254,7 +254,7 @@ func setupTest(t *testing.T) (*globals.GlobalOpts, func()) {
 	result.EnvoyVersionsURL = versionsServer.URL + "/envoy-versions.json"
 	tearDown = append(tearDown, versionsServer.Close)
 
-	result.FuncEVersions = envoy.NewFuncEVersions(result.EnvoyVersionsURL, result.Platform, result.Version)
+	result.GetEnvoyVersions = envoy.NewGetVersions(result.EnvoyVersionsURL, result.Platform, result.Version)
 
 	return &result, func() {
 		for i := len(tearDown) - 1; i >= 0; i-- {

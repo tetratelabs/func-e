@@ -201,7 +201,7 @@ func TestPatchVersion_ParsePatch(t *testing.T) {
 	for _, tt := range tests {
 		tc := tt
 		t.Run(tc.input.String(), func(t *testing.T) {
-			actual := tc.input.ParsePatch()
+			actual := tc.input.patch()
 			require.Equal(t, tc.expected, actual)
 		})
 	}
@@ -266,6 +266,63 @@ func TestVersion_ToMinor(t *testing.T) {
 		tc := tt
 		t.Run(tc.input.String(), func(t *testing.T) {
 			actual := tc.input.ToMinor()
+			require.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func TestFindLatestPatch(t *testing.T) {
+	type testCase struct {
+		name          string
+		patchVersions []PatchVersion
+		minorVersion  MinorVersion
+		expected      PatchVersion
+	}
+
+	tests := []testCase{
+		{
+			name: "zero",
+			patchVersions: []PatchVersion{
+				PatchVersion("1.20.0_debug"), // mixed debug and not is unlikely, but possible
+				PatchVersion("1.20.0"),
+			},
+			minorVersion: MinorVersion("1.20"),
+			expected:     PatchVersion("1.20.0"),
+		},
+		{
+			name: "upgradable",
+			patchVersions: []PatchVersion{
+				PatchVersion("1.18.3"),
+				PatchVersion("1.18.14"),
+				PatchVersion("1.18.4"),
+				PatchVersion("1.18.4_debug"),
+			},
+			minorVersion: MinorVersion("1.18"),
+			expected:     PatchVersion("1.18.14"),
+		},
+		{
+			name: "notfound",
+			patchVersions: []PatchVersion{
+				PatchVersion("1.20.0"),
+				PatchVersion("1.1_debug"),
+			},
+			minorVersion: MinorVersion("1.1"),
+		},
+		{
+			name: "debug",
+			patchVersions: []PatchVersion{
+				PatchVersion("1.19.10_debug"),
+				PatchVersion("1.19.2_debug"),
+				PatchVersion("1.19.1"),
+			},
+			minorVersion: MinorVersion("1.19_debug"),
+			expected:     PatchVersion("1.19.10_debug"),
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := FindLatestPatchVersion(tc.patchVersions, tc.minorVersion)
 			require.Equal(t, tc.expected, actual)
 		})
 	}

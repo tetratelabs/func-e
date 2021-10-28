@@ -85,15 +85,15 @@ func TestFuncERun_TeesConsoleToLogs(t *testing.T) {
 	o.DontArchiveRunDir = true // we need to read-back the log files
 	runWithoutConfig(t, c)
 
-	have, err := os.ReadFile(filepath.Join(o.RunDir, "stdout.log"))
+	actual, err := os.ReadFile(filepath.Join(o.RunDir, "stdout.log"))
 	require.NoError(t, err)
-	require.NotEmpty(t, stdout.String())               // sanity check
-	require.Contains(t, stdout.String(), string(have)) // stdout will be more than in the log as func-e writes to it.
+	require.NotEmpty(t, stdout.String())                 // sanity check
+	require.Contains(t, stdout.String(), string(actual)) // stdout will be more than in the log as func-e writes to it.
 
-	have, err = os.ReadFile(filepath.Join(o.RunDir, "stderr.log"))
+	actual, err = os.ReadFile(filepath.Join(o.RunDir, "stderr.log"))
 	require.NoError(t, err)
 	require.NotEmpty(t, stderr.String()) // sanity check
-	require.Equal(t, stderr.String(), string(have))
+	require.Equal(t, stderr.String(), string(actual))
 }
 
 func TestFuncERun_ReadsHomeVersionFile(t *testing.T) {

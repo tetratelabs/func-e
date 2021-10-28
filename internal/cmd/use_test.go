@@ -79,6 +79,7 @@ func TestFuncEUse_InstallsAndWritesHomeVersion(t *testing.T) {
 	require.Equal(t, evs, string(f))
 }
 
+// TODO: everything from here down in this file needs to be rewritten
 func TestFuncEUse_InstallMinorVersion(t *testing.T) {
 	o, cleanup := setupTest(t)
 	defer cleanup()
@@ -121,7 +122,7 @@ func TestFuncEUse_InstallMinorVersion(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			var err error
-			o.FuncEVersions, err = newFuncEVersionsTester(o, tc.firstVersions)
+			o.GetEnvoyVersions, err = newFuncEVersionsTester(o, tc.firstVersions)
 			require.NoError(t, err)
 
 			c, _, _ := newApp(o)
@@ -139,7 +140,7 @@ func TestFuncEUse_InstallMinorVersion(t *testing.T) {
 			require.Empty(t, stderr)
 
 			// Update the map returned by Get.
-			o.FuncEVersions, err = newFuncEVersionsTester(o, tc.secondVersions)
+			o.GetEnvoyVersions, err = newFuncEVersionsTester(o, tc.secondVersions)
 			require.NoError(t, err)
 			c, _, _ = newApp(o)
 			require.NoError(t, c.Run([]string{"func-e", "use", tc.minorVersion}))
@@ -171,7 +172,7 @@ func TestFuncEUse_InstallMinorVersionCheckLatestPatchFailed(t *testing.T) {
 	}
 
 	var err error
-	o.FuncEVersions, err = newFuncEVersionsTester(o, initial)
+	o.GetEnvoyVersions, err = newFuncEVersionsTester(o, initial)
 	require.NoError(t, err)
 
 	c, _, _ := newApp(o)
@@ -187,9 +188,9 @@ func TestFuncEUse_InstallMinorVersionCheckLatestPatchFailed(t *testing.T) {
 	require.Equal(t, moreos.Sprintf("%s\n", envoyPath), stdout.String())
 	require.Empty(t, stderr)
 
-	// Simulate failure in fetching Envoy release versions by initializing o.FuncEVersions with empty
-	// available versions.
-	o.FuncEVersions = &funcEVersionsTester{}
+	o.GetEnvoyVersions = func(_ context.Context) (*version.ReleaseVersions, error) {
+		return nil, errors.New("ice cream")
+	}
 	c, _, _ = newApp(o)
 	require.NoError(t, c.Run([]string{"func-e", "use", minorVersion}))
 	f, err = os.ReadFile(filepath.Join(o.HomeDir, "version"))
@@ -211,14 +212,9 @@ type availableVersions struct {
 	versions    []version.PatchVersion
 }
 
-type funcEVersionsTester struct {
-	ev version.ReleaseVersions
-	av availableVersions
-}
-
-func newFuncEVersionsTester(o *globals.GlobalOpts, av availableVersions) (version.FuncEVersions, error) {
-	feV := envoy.NewFuncEVersions(o.EnvoyVersionsURL, o.Platform, o.Version)
-	ev, err := feV.Get(context.Background())
+func newFuncEVersionsTester(o *globals.GlobalOpts, av availableVersions) (version.GetReleaseVersions, error) {
+	feV := envoy.NewGetVersions(o.EnvoyVersionsURL, o.Platform, o.Version)
+	ev, err := feV(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -232,18 +228,7 @@ func newFuncEVersionsTester(o *globals.GlobalOpts, av availableVersions) (versio
 	for _, v := range av.versions {
 		copied.Versions[v] = m
 	}
-	return &funcEVersionsTester{ev: copied, av: av}, nil
-}
-
-func (f *funcEVersionsTester) Get(_ context.Context) (version.ReleaseVersions, error) {
-	return f.ev, nil
-}
-
-func (f *funcEVersionsTester) FindLatestPatch(_ context.Context, minorVersion version.MinorVersion) (version.PatchVersion, error) {
-	// When the input latest patch is empty, send error. This is useful for simulating FindLatestPatch
-	// to return error.
-	if f.av.latestPatch == "" {
-		return "", errors.New("failed to find latest patch")
-	}
-	return version.PatchVersion(minorVersion.String() + "." + f.av.latestPatch), nil
+	return func(_ context.Context) (*version.ReleaseVersions, error) {
+		return copied, nil
+	}, nil
 }

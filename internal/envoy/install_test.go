@@ -107,7 +107,7 @@ func TestInstallIfNeeded_ErrorOnIncorrectURL(t *testing.T) {
 	defer cleanup()
 
 	o.EnvoyVersionsURL += "/varsionz.json"
-	o.FuncEVersions = NewFuncEVersions(o.EnvoyVersionsURL, o.Platform, o.Version)
+	o.GetEnvoyVersions = NewGetVersions(o.EnvoyVersionsURL, o.Platform, o.Version)
 	o.EnvoyVersion = version.LastKnownEnvoy
 	_, err := InstallIfNeeded(o.ctx, &o.GlobalOpts)
 	require.EqualError(t, err, "received 404 status code from "+o.EnvoyVersionsURL)
@@ -266,6 +266,6 @@ func setupInstallTest(t *testing.T) (*installTest, func()) {
 			},
 		},
 	}
-	setup.FuncEVersions = NewFuncEVersions(setup.EnvoyVersionsURL, setup.Platform, setup.Version)
+	setup.GetEnvoyVersions = NewGetVersions(setup.EnvoyVersionsURL, setup.Platform, setup.Version)
 	return setup, versionsServer.Close
 }
