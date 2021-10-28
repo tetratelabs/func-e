@@ -57,7 +57,7 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
    Advanced:
    ` + "`FUNC_E_PLATFORM`" + ` overrides the host OS and architecture of Envoy binaries.
    This value must be constant within a ` + "`$FUNC_E_HOME`" + `.`)
-	app.Version = string(o.Version)
+	app.Version = o.Version
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
 			Name:        "home-dir",
@@ -89,9 +89,9 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 		if err := setEnvoyVersionsURL(o, envoyVersionsURL); err != nil {
 			return err
 		}
-		// The o.FuncEVersions may be initialized before this, and that can only happen in tests.
-		if o.FuncEVersions == nil { // not overridden for tests
-			o.FuncEVersions = envoy.NewFuncEVersions(o.EnvoyVersionsURL, o.Platform, o.Version)
+		// The o.GetEnvoyVersions may be initialized before this, and that can only happen in tests.
+		if o.GetEnvoyVersions == nil { // not overridden for tests
+			o.GetEnvoyVersions = envoy.NewGetVersions(o.EnvoyVersionsURL, o.Platform, o.Version)
 		}
 		return nil
 	}

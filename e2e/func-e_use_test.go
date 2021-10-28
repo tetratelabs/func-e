@@ -34,26 +34,26 @@ func TestFuncEUse(t *testing.T) {
 	homeDir := t.TempDir()
 
 	t.Run("not yet installed", func(t *testing.T) {
-		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", version.LastKnownEnvoy)
+		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", version.LastKnownEnvoy.String())
 		require.NoError(t, err)
 		require.Regexp(t, `^downloading https:.*tar.*z\r?\n$`, stdout)
 		require.Empty(t, stderr)
 
 		// The binary was installed
-		envoyBin := filepath.Join(homeDir, "versions", version.LastKnownEnvoy, "bin", "envoy"+moreos.Exe)
+		envoyBin := filepath.Join(homeDir, "versions", version.LastKnownEnvoy.String(), "bin", "envoy"+moreos.Exe)
 		require.FileExists(t, envoyBin)
 
 		// The current version was written
 		f, err := os.ReadFile(filepath.Join(homeDir, "version"))
 		require.NoError(t, err)
-		require.Equal(t, version.LastKnownEnvoy, string(f))
+		require.Equal(t, version.LastKnownEnvoy, version.PatchVersion(f))
 	})
 
 	t.Run("already installed", func(t *testing.T) {
-		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", version.LastKnownEnvoy)
+		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", version.LastKnownEnvoy.String())
 
 		require.NoError(t, err)
-		require.Equal(t, moreos.Sprintf("%s is already downloaded\n", version.LastKnownEnvoy), stdout)
+		require.Equal(t, moreos.Sprintf("%s is already downloaded\n", version.LastKnownEnvoy.String()), stdout)
 		require.Empty(t, stderr)
 	})
 }
@@ -74,8 +74,7 @@ func TestFuncEUse_UnknownMinorVersion(t *testing.T) {
 
 	require.EqualError(t, err, "exit status 1")
 	require.Empty(t, stdout)
-	require.Equal(t, moreos.Sprintf(`error: couldn't find the latest patch for "%s" for platform "%s/%s"
-`, v, runtime.GOOS, runtime.GOARCH), stderr)
+	require.Equal(t, moreos.Sprintf("error: couldn't find the latest patch for version %s\n", v), stderr)
 }
 
 func TestFuncEUse_MinorVersion(t *testing.T) {
@@ -90,20 +89,20 @@ func TestFuncEUse_MinorVersion(t *testing.T) {
 	homeDir := t.TempDir()
 
 	t.Run("install last known", func(t *testing.T) {
-		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", version.LastKnownEnvoy)
+		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", version.LastKnownEnvoy.String())
 
 		require.NoError(t, err)
 		require.Regexp(t, `^downloading https:.*tar.*z\r?\n$`, stdout)
 		require.Empty(t, stderr)
 
 		// The binary was installed.
-		envoyBin := filepath.Join(homeDir, "versions", version.LastKnownEnvoy, "bin", "envoy"+moreos.Exe)
+		envoyBin := filepath.Join(homeDir, "versions", version.LastKnownEnvoy.String(), "bin", "envoy"+moreos.Exe)
 		require.FileExists(t, envoyBin)
 
 		// The current version was written.
 		f, err := os.ReadFile(filepath.Join(homeDir, "version"))
 		require.NoError(t, err)
-		require.Equal(t, version.LastKnownEnvoy, string(f))
+		require.Equal(t, version.LastKnownEnvoy, version.PatchVersion(f))
 	})
 
 	t.Run(fmt.Sprintf("install %s as base version", baseVersion), func(t *testing.T) {

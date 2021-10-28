@@ -65,10 +65,10 @@ func TestGetHomeVersion(t *testing.T) {
 	homeDir := t.TempDir()
 
 	homeVersionFile := filepath.Join(homeDir, "version")
-	require.NoError(t, os.WriteFile(homeVersionFile, []byte(version.LastKnownEnvoy), 0600))
+	require.NoError(t, os.WriteFile(homeVersionFile, []byte(version.LastKnownEnvoy.String()), 0600))
 
 	v, hvf, err := GetHomeVersion(homeDir)
-	require.Equal(t, version.Version(version.LastKnownEnvoy), v)
+	require.Equal(t, version.LastKnownEnvoy, v)
 	require.Equal(t, homeVersionFile, hvf)
 	require.NoError(t, err)
 }
@@ -80,23 +80,20 @@ func TestGetHomeVersion_Validates(t *testing.T) {
 	require.NoError(t, os.WriteFile(homeVersionFile, []byte("a.a.a"), 0600))
 
 	_, _, err := GetHomeVersion(homeDir)
-	expectedErr := fmt.Sprintf(`invalid version in "%s": "a.a.a" should look like "%s"`, CurrentVersionHomeDirFile, version.LastKnownEnvoy)
+	expectedErr := fmt.Sprintf(`invalid version in %q: "a.a.a" should look like %q or %q`, CurrentVersionHomeDirFile, version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
 	require.EqualError(t, err, moreos.ReplacePathSeparator(expectedErr))
 }
 
 func TestWriteCurrentVersion_HomeDir(t *testing.T) {
 	homeDir := t.TempDir()
 
-	for _, tt := range []struct {
-		name string
-		v    version.Version
-	}{
+	for _, tt := range []struct{ name, v string }{
 		{"writes initial home version", "1.1.1"},
 		{"overwrites home version", "2.2.2"},
 	} {
 		tc := tt
 		t.Run(tc.name, func(t *testing.T) {
-			require.NoError(t, WriteCurrentVersion(tc.v, homeDir))
+			require.NoError(t, WriteCurrentVersion(version.PatchVersion(tc.v), homeDir))
 			v, src, err := getCurrentVersion(homeDir)
 			require.NoError(t, err)
 			require.Equal(t, tc.v, v)
@@ -116,16 +113,16 @@ func TestWriteCurrentVersion_OverwritesWorkingDirVersion(t *testing.T) {
 	defer revertWd()
 	require.NoError(t, os.WriteFile(".envoy-version", []byte("2.2.2"), 0600))
 
-	require.NoError(t, WriteCurrentVersion("3.3.3", homeDir))
+	require.NoError(t, WriteCurrentVersion(version.PatchVersion("3.3.3"), homeDir))
 	v, src, err := getCurrentVersion(homeDir)
 	require.NoError(t, err)
-	require.Equal(t, version.Version("3.3.3"), v)
+	require.Equal(t, "3.3.3", v)
 	require.Equal(t, CurrentVersionWorkingDirFile, src)
 
 	// didn't overwrite the home version
 	v, _, err = getHomeVersion(homeDir)
 	require.NoError(t, err)
-	require.Equal(t, version.Version("1.1.1"), v)
+	require.Equal(t, "1.1.1", v)
 }
 
 // TestCurrentVersion is intentionally written in priority order instead of via a matrix. This particularly helps with
@@ -136,7 +133,7 @@ func TestCurrentVersion(t *testing.T) {
 
 	t.Run("defaults to home version", func(t *testing.T) {
 		v, source, err := CurrentVersion(homeDir)
-		require.Equal(t, version.Version("1.1.1"), v)
+		require.Equal(t, version.PatchVersion("1.1.1"), v)
 		require.Equal(t, CurrentVersionHomeDirFile, source)
 		require.NoError(t, err)
 	})
@@ -147,7 +144,7 @@ func TestCurrentVersion(t *testing.T) {
 
 	t.Run("prefers $PWD/.envoy-version over home version", func(t *testing.T) {
 		v, source, err := CurrentVersion(homeDir)
-		require.Equal(t, version.Version("2.2.2"), v)
+		require.Equal(t, version.PatchVersion("2.2.2"), v)
 		require.Equal(t, CurrentVersionWorkingDirFile, source)
 		require.NoError(t, err)
 	})
@@ -156,7 +153,7 @@ func TestCurrentVersion(t *testing.T) {
 
 	t.Run("prefers $ENVOY_VERSION over $PWD/.envoy-version", func(t *testing.T) {
 		v, source, err := CurrentVersion(homeDir)
-		require.Equal(t, version.Version("3.3.3"), v)
+		require.Equal(t, version.PatchVersion("3.3.3"), v)
 		require.Equal(t, currentVersionVar, source)
 		require.NoError(t, err)
 	})
@@ -169,7 +166,7 @@ func TestCurrentVersion_Validates(t *testing.T) {
 
 	t.Run("validates home version", func(t *testing.T) {
 		_, _, err := CurrentVersion(homeDir)
-		expectedErr := fmt.Sprintf(`invalid version in "$FUNC_E_HOME/version": "a.a.a" should look like "%s"`, version.LastKnownEnvoy)
+		expectedErr := fmt.Sprintf(`invalid version in "$FUNC_E_HOME/version": "a.a.a" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
 		require.EqualError(t, err, moreos.ReplacePathSeparator(expectedErr))
 	})
 
@@ -179,7 +176,7 @@ func TestCurrentVersion_Validates(t *testing.T) {
 
 	t.Run("validates $PWD/.envoy-version", func(t *testing.T) {
 		_, _, err := CurrentVersion(homeDir)
-		expectedErr := fmt.Sprintf(`invalid version in "$PWD/.envoy-version": "b.b.b" should look like "%s"`, version.LastKnownEnvoy)
+		expectedErr := fmt.Sprintf(`invalid version in "$PWD/.envoy-version": "b.b.b" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
 		require.EqualError(t, err, moreos.ReplacePathSeparator(expectedErr))
 	})
 
@@ -196,6 +193,6 @@ func TestCurrentVersion_Validates(t *testing.T) {
 
 	t.Run("validates $ENVOY_VERSION", func(t *testing.T) {
 		_, _, err := CurrentVersion(homeDir)
-		require.EqualError(t, err, fmt.Sprintf(`invalid version in "$ENVOY_VERSION": "c.c.c" should look like "%s"`, version.LastKnownEnvoy))
+		require.EqualError(t, err, fmt.Sprintf(`invalid version in "$ENVOY_VERSION": "c.c.c" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor))
 	})
 }

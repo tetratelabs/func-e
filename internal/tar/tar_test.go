@@ -80,17 +80,17 @@ func TestNewDecompressor(t *testing.T) {
 			require.NoError(t, err)
 			defer f.Close()
 
-			want, err := os.ReadFile(strings.TrimSuffix(p, path.Ext(p)))
+			expected, err := os.ReadFile(strings.TrimSuffix(p, path.Ext(p)))
 			require.NoError(t, err)
 
 			d, err := newDecompressor(f)
 			require.NoError(t, err)
 			defer d.Close()
 
-			have, err := io.ReadAll(d)
+			actual, err := io.ReadAll(d)
 			require.NoError(t, err)
 
-			require.Equal(t, want, have)
+			require.Equal(t, expected, actual)
 		})
 	}
 }
@@ -192,13 +192,13 @@ const ignoreGroupWritePolicyMask = 0x1ef // 111101111 in binary.
 func requireTestFiles(t *testing.T, dst string) {
 	// NOTE: this will not include empty.txt as we don't want to clutter the tar with empty files
 	for _, p := range []string{"bar.sh", filepath.Join("bar", "baz.txt")} {
-		want, e := os.Stat(filepath.Join("testdata", "foo", p))
+		expected, e := os.Stat(filepath.Join("testdata", "foo", p))
 		require.NoError(t, e)
-		have, e := os.Stat(filepath.Join(dst, p))
+		actual, e := os.Stat(filepath.Join(dst, p))
 		require.NoError(t, e)
 
 		// Comparing files by ignoring group write permission bit.
-		require.Equal(t, want.Mode()&ignoreGroupWritePolicyMask, have.Mode()&ignoreGroupWritePolicyMask)
+		require.Equal(t, expected.Mode()&ignoreGroupWritePolicyMask, actual.Mode()&ignoreGroupWritePolicyMask)
 	}
 }
 

@@ -88,21 +88,21 @@ func TestGetInstalledVersions_SkipsFileInVersionsDir(t *testing.T) {
 }
 
 func TestAddAvailableVersions(t *testing.T) {
-	goodVersions := map[version.Version]version.Release{
-		"1.14.7": {
+	goodVersions := map[version.PatchVersion]version.Release{
+		version.PatchVersion("1.14.7"): {
 			ReleaseDate: "2021-04-15",
 			Tarballs: map[version.Platform]version.TarballURL{
 				"darwin/amd64": "https://func-e.io/versions/1.14.7/envoy-1.14.7-darwin-x86_64.tar.gz",
 				"linux/amd64":  "https://func-e.io/versions/1.14.7/envoy-1.14.7-linux-x86_64.tar.gz",
 			},
 		},
-		"1.17.3": {
+		version.PatchVersion("1.17.3"): {
 			ReleaseDate: "2021-05-11",
 			Tarballs: map[version.Platform]version.TarballURL{
 				"linux/amd64": "https://func-e.io/versions/1.17.3/envoy-1.17.3-linux-x86_64.tar.gz",
 			},
 		},
-		"1.18.3": {
+		version.PatchVersion("1.18.3"): {
 			ReleaseDate: "2021-05-11",
 			Tarballs: map[version.Platform]version.TarballURL{
 				"darwin/amd64": "https://func-e.io/versions/1.18.3/envoy-1.18.3-darwin-x86_64.tar.gz",
@@ -114,7 +114,7 @@ func TestAddAvailableVersions(t *testing.T) {
 	tests := []struct {
 		name     string
 		existing []versionReleaseDate
-		update   map[version.Version]version.Release
+		update   map[version.PatchVersion]version.Release
 		platform version.Platform
 		expected []versionReleaseDate
 	}{
@@ -123,21 +123,21 @@ func TestAddAvailableVersions(t *testing.T) {
 			existing: []versionReleaseDate{},
 			update:   goodVersions,
 			platform: "darwin/amd64",
-			expected: []versionReleaseDate{{"1.14.7", "2021-04-15"}, {"1.18.3", "2021-05-11"}},
+			expected: []versionReleaseDate{{version.PatchVersion("1.14.7"), "2021-04-15"}, {version.PatchVersion("1.18.3"), "2021-05-11"}},
 		},
 		{
 			name:     "linux",
 			platform: "linux/amd64",
 			existing: []versionReleaseDate{},
 			update:   goodVersions,
-			expected: []versionReleaseDate{{"1.14.7", "2021-04-15"}, {"1.17.3", "2021-05-11"}, {"1.18.3", "2021-05-11"}},
+			expected: []versionReleaseDate{{version.PatchVersion("1.14.7"), "2021-04-15"}, {version.PatchVersion("1.17.3"), "2021-05-11"}, {version.PatchVersion("1.18.3"), "2021-05-11"}},
 		},
 		{
 			name:     "already exists",
-			existing: []versionReleaseDate{{"1.14.7", "2020-01-01"}},
+			existing: []versionReleaseDate{{version.PatchVersion("1.14.7"), "2020-01-01"}},
 			update:   goodVersions,
 			platform: "darwin/amd64",
-			expected: []versionReleaseDate{{"1.14.7", "2020-01-01"}, {"1.18.3", "2021-05-11"}},
+			expected: []versionReleaseDate{{version.PatchVersion("1.14.7"), "2020-01-01"}, {version.PatchVersion("1.18.3"), "2021-05-11"}},
 		},
 		{
 			name:     "unsupported OS",
@@ -173,12 +173,12 @@ func TestAddAvailableVersions(t *testing.T) {
 func TestAddAvailableVersions_Validates(t *testing.T) {
 	tests := []struct {
 		name   string
-		update map[version.Version]version.Release
+		update map[version.PatchVersion]version.Release
 	}{
 		{
 			name: "invalid releaseDate",
-			update: map[version.Version]version.Release{
-				"1.14.7": {
+			update: map[version.PatchVersion]version.Release{
+				version.PatchVersion("1.14.7"): {
 					ReleaseDate: "ice cream",
 					Tarballs: map[version.Platform]version.TarballURL{
 						"darwin/amd64": "https://func-e.io/versions/1.14.7/envoy-1.14.7-darwin-x86_64.tar.gz",
@@ -188,8 +188,8 @@ func TestAddAvailableVersions_Validates(t *testing.T) {
 		},
 		{
 			name: "missing releaseDate",
-			update: map[version.Version]version.Release{
-				"1.14.7": {
+			update: map[version.PatchVersion]version.Release{
+				version.PatchVersion("1.14.7"): {
 					Tarballs: map[version.Platform]version.TarballURL{
 						"darwin/amd64": "https://func-e.io/versions/1.14.7/envoy-1.14.7-darwin-x86_64.tar.gz",
 					},

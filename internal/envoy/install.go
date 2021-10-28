@@ -31,39 +31,40 @@ import (
 
 var binEnvoy = filepath.Join("bin", "envoy"+moreos.Exe)
 
-// InstallIfNeeded downloads an Envoy binary corresponding to the given version and returns a path to it or an error.
-func InstallIfNeeded(ctx context.Context, o *globals.GlobalOpts, v version.Version) (string, error) {
-	installPath := filepath.Join(o.HomeDir, "versions", string(v))
+// InstallIfNeeded downloads an Envoy binary corresponding to globals.GlobalOpts and returns a path to it or an error.
+func InstallIfNeeded(ctx context.Context, o *globals.GlobalOpts) (string, error) {
+	v := o.EnvoyVersion
+	installPath := filepath.Join(o.HomeDir, "versions", v.String())
 	envoyPath := filepath.Join(installPath, binEnvoy)
 	_, err := os.Stat(envoyPath)
 	switch {
 	case os.IsNotExist(err):
-		var ev version.ReleaseVersions // Get version metadata for what we will install
-		ev, err = o.FuncEVersions.Get(ctx)
+		var evs *version.ReleaseVersions // Get version metadata for what we will install
+		evs, err = o.GetEnvoyVersions(ctx)
 		if err != nil {
 			return "", err
 		}
 
-		tarballURL := ev.Versions[v].Tarballs[o.Platform] // Ensure there is a version for this platform
+		tarballURL := evs.Versions[v].Tarballs[o.Platform] // Ensure there is a version for this platform
 		if tarballURL == "" {
 			return "", fmt.Errorf("couldn't find version %q for platform %q", v, o.Platform)
 		}
 
 		tarball := version.Tarball(path.Base(string(tarballURL)))
-		sha256Sum := ev.SHA256Sums[tarball]
+		sha256Sum := evs.SHA256Sums[tarball]
 		if len(sha256Sum) != 64 {
 			return "", fmt.Errorf("couldn't find sha256Sum of version %q for platform %q: %w", v, o.Platform, err)
 		}
 
 		var mtime time.Time // Create a directory for the version, preserving the release date as its mtime
-		if mtime, err = time.Parse("2006-01-02", string(ev.Versions[v].ReleaseDate)); err != nil {
+		if mtime, err = time.Parse("2006-01-02", string(evs.Versions[v].ReleaseDate)); err != nil {
 			return "", fmt.Errorf("couldn't find releaseDate of version %q for platform %q: %w", v, o.Platform, err)
 		}
 		if err = os.MkdirAll(installPath, 0750); err != nil {
 			return "", fmt.Errorf("unable to create directory %q: %w", installPath, err)
 		}
-		o.Logf("downloading %s\n", tarballURL)                                                    //nolint
-		if err = untarEnvoy(ctx, installPath, tarballURL, sha256Sum, o.Platform, v); err != nil { //nolint
+		o.Logf("downloading %s\n", tarballURL)                                                            //nolint
+		if err = untarEnvoy(ctx, installPath, tarballURL, sha256Sum, o.Platform, o.Version); err != nil { //nolint
 			return "", err
 		}
 		if err = os.Chtimes(installPath, mtime, mtime); err != nil { // overwrite the mtime to preserve it in the list
@@ -91,7 +92,7 @@ func verifyEnvoy(installPath string) (string, error) {
 }
 
 func untarEnvoy(ctx context.Context, dst string, src version.TarballURL, // dst, src order like io.Copy
-	sha256Sum version.SHA256Sum, p version.Platform, v version.Version) error {
+	sha256Sum version.SHA256Sum, p version.Platform, v string) error {
 	res, err := httpGet(ctx, string(src), p, v)
 	if err != nil {
 		return err

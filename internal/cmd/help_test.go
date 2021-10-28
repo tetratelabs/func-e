@@ -48,8 +48,8 @@ func TestFuncEHelp(t *testing.T) {
 			bytes, err := os.ReadFile(filepath.Join("testdata", expected))
 			require.NoError(t, err)
 			expectedStdout := moreos.Sprintf(string(bytes))
-			expectedStdout = strings.ReplaceAll(expectedStdout, "1.99.0", version.LastKnownEnvoy)
-			expectedStdout = strings.ReplaceAll(expectedStdout, "1.99", version.LastKnownEnvoyMinor)
+			expectedStdout = strings.ReplaceAll(expectedStdout, "1.99.0", version.LastKnownEnvoy.String())
+			expectedStdout = strings.ReplaceAll(expectedStdout, "1.99", version.LastKnownEnvoyMinor.String())
 			if runtime.GOOS == moreos.OSWindows {
 				expectedStdout = strings.ReplaceAll(expectedStdout, "/", "\\")
 				// As most maintainers don't use Windows, it is easier to revert piece-wise

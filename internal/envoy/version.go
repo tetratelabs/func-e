@@ -15,11 +15,11 @@
 package envoy
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/version"
 )
@@ -35,11 +35,11 @@ const (
 // GetHomeVersion returns the default version in the "homeDir" and path to to it (homeVersionFile). When "v" is empty,
 // homeVersionFile is not yet initialized.
 func GetHomeVersion(homeDir string) (v version.Version, homeVersionFile string, err error) {
-	v, homeVersionFile, err = getHomeVersion(homeDir)
-	if err == nil && v == "" { // no home version, yet
+	s, homeVersionFile, err := getHomeVersion(homeDir)
+	if err == nil && s == "" { // no home version, yet
 		return
 	}
-	err = verifyVersion(v, CurrentVersionHomeDirFile, err)
+	v, err = verifyVersion(s, CurrentVersionHomeDirFile, err)
 	return
 }
 
@@ -47,35 +47,32 @@ func GetHomeVersion(homeDir string) (v version.Version, homeVersionFile string, 
 // if the former is present.
 func WriteCurrentVersion(v version.Version, homeDir string) error {
 	if _, err := os.Stat(".envoy-version"); os.IsNotExist(err) {
-		return os.WriteFile(filepath.Join(homeDir, "version"), []byte(v), 0600)
+		return os.WriteFile(filepath.Join(homeDir, "version"), []byte(v.String()), 0600)
 	} else if err != nil {
 		return err
 	}
-	return os.WriteFile(".envoy-version", []byte(v), 0600)
+	return os.WriteFile(".envoy-version", []byte(v.String()), 0600)
 }
 
 // CurrentVersion returns the first version in priority of VersionUsageList and its source or an error. The "source"
 // and error messages returned include unexpanded variables to clarify the intended context.
 func CurrentVersion(homeDir string) (v version.Version, source string, err error) {
-	v, source, err = getCurrentVersion(homeDir)
-	err = verifyVersion(v, source, err)
+	s, source, err := getCurrentVersion(homeDir)
+	v, err = verifyVersion(s, source, err)
 	return
 }
 
-func verifyVersion(v version.Version, source string, err error) error {
+func verifyVersion(v, source string, err error) (version.Version, error) {
 	if err != nil {
-		return moreos.Errorf(`couldn't read version from %s: %w`, source, err)
+		return nil, moreos.Errorf(`couldn't read version from %s: %w`, source, err)
 	}
-	if matched := globals.EnvoyMinorVersionPattern.MatchString(string(v)); !matched {
-		return moreos.Errorf(`invalid version in %q: %q should look like %q`, source, v, version.LastKnownEnvoy)
-	}
-	return nil
+	return version.NewVersion(fmt.Sprintf("version in %q", source), v)
 }
 
-func getCurrentVersion(homeDir string) (v version.Version, source string, err error) {
+func getCurrentVersion(homeDir string) (v, source string, err error) {
 	// Priority 1: $ENVOY_VERSION
 	if ev, ok := os.LookupEnv("ENVOY_VERSION"); ok {
-		v = version.Version(ev)
+		v = ev
 		source = currentVersionVar
 		return
 	}
@@ -83,7 +80,7 @@ func getCurrentVersion(homeDir string) (v version.Version, source string, err er
 	// Priority 2: $PWD/.envoy-version
 	data, err := os.ReadFile(".envoy-version")
 	if err == nil {
-		v = version.Version(strings.TrimSpace(string(data)))
+		v = strings.TrimSpace(string(data))
 		source = CurrentVersionWorkingDirFile
 		return
 	} else if !os.IsNotExist(err) {
@@ -96,11 +93,11 @@ func getCurrentVersion(homeDir string) (v version.Version, source string, err er
 	return
 }
 
-func getHomeVersion(homeDir string) (v version.Version, homeVersionFile string, err error) {
+func getHomeVersion(homeDir string) (v, homeVersionFile string, err error) {
 	homeVersionFile = filepath.Join(homeDir, "version")
 	var data []byte
 	if data, err = os.ReadFile(homeVersionFile); err == nil {
-		v = version.Version(strings.TrimSpace(string(data)))
+		v = strings.TrimSpace(string(data))
 	} else if os.IsNotExist(err) {
 		err = nil // ok on file-not-found
 	}

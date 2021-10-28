@@ -23,7 +23,6 @@ import (
 	cmdutil "github.com/tetratelabs/func-e/internal/cmd"
 	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/moreos"
-	versionutil "github.com/tetratelabs/func-e/internal/version"
 )
 
 func main() {
@@ -37,7 +36,7 @@ var version = "dev"
 
 // run handles all error logging and coding so that no other place needs to.
 func run(stdout, stderr io.Writer, args []string) int {
-	app := cmdutil.NewApp(&globals.GlobalOpts{Version: versionutil.Version(version), Out: stdout})
+	app := cmdutil.NewApp(&globals.GlobalOpts{Version: version, Out: stdout})
 	app.Writer = stdout
 	app.ErrWriter = stderr
 	app.Action = func(c *cli.Context) error {

@@ -51,9 +51,9 @@ func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 			currentVersion, currentVersionSource, _ := envoy.CurrentVersion(o.HomeDir)
 
 			if c.Bool("all") {
-				if ev, err := o.FuncEVersions.Get(c.Context); err != nil {
+				if evs, err := o.GetEnvoyVersions(c.Context); err != nil {
 					return err
-				} else if err := addAvailableVersions(&rows, ev.Versions, o.Platform); err != nil {
+				} else if err := addAvailableVersions(&rows, evs.Versions, o.Platform); err != nil {
 					return err
 				}
 			}
@@ -69,7 +69,9 @@ func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 			// We use a tab writer to ensure we can format the current version
 			w := tabwriter.NewWriter(c.App.Writer, 0, 0, 1, ' ', tabwriter.AlignRight)
 			for _, vr := range rows { //nolint:gocritic
-				if vr.version == currentVersion {
+				// TODO: handle when currentVersion is a MinorVersion
+				pv, ok := currentVersion.(version.PatchVersion)
+				if ok && vr.version == pv {
 					moreos.Fprintf(w, "* %s %s (set by %s)\n", vr.version, vr.releaseDate, currentVersionSource) //nolint
 				} else {
 					moreos.Fprintf(w, "  %s %s\n", vr.version, vr.releaseDate) //nolint
@@ -82,7 +84,7 @@ func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 }
 
 type versionReleaseDate struct {
-	version     version.Version
+	version     version.PatchVersion
 	releaseDate version.ReleaseDate
 }
 
@@ -96,9 +98,10 @@ func getInstalledVersions(homeDir string) ([]versionReleaseDate, error) {
 	}
 
 	for _, f := range files {
-		if i, err := f.Info(); f.IsDir() && err == nil {
+		pv := version.NewPatchVersion(f.Name())
+		if i, err := f.Info(); f.IsDir() && pv != "" && err == nil {
 			rows = append(rows, versionReleaseDate{
-				version.Version(f.Name()),
+				pv,
 				version.ReleaseDate(i.ModTime().Format("2006-01-02")),
 			})
 		}
@@ -107,8 +110,8 @@ func getInstalledVersions(homeDir string) ([]versionReleaseDate, error) {
 }
 
 // addAvailableVersions adds remote Envoy versions valid for this platform to "rows", if they don't already exist
-func addAvailableVersions(rows *[]versionReleaseDate, remote map[version.Version]version.Release, p version.Platform) error {
-	existingVersions := make(map[version.Version]bool)
+func addAvailableVersions(rows *[]versionReleaseDate, remote map[version.PatchVersion]version.Release, p version.Platform) error {
+	existingVersions := make(map[version.PatchVersion]bool)
 	for _, v := range *rows { //nolint:gocritic
 		existingVersions[v.version] = true
 	}

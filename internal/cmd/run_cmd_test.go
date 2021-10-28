@@ -85,15 +85,15 @@ func TestFuncERun_TeesConsoleToLogs(t *testing.T) {
 	o.DontArchiveRunDir = true // we need to read-back the log files
 	runWithoutConfig(t, c)
 
-	have, err := os.ReadFile(filepath.Join(o.RunDir, "stdout.log"))
+	actual, err := os.ReadFile(filepath.Join(o.RunDir, "stdout.log"))
 	require.NoError(t, err)
-	require.NotEmpty(t, stdout.String())               // sanity check
-	require.Contains(t, stdout.String(), string(have)) // stdout will be more than in the log as func-e writes to it.
+	require.NotEmpty(t, stdout.String())                 // sanity check
+	require.Contains(t, stdout.String(), string(actual)) // stdout will be more than in the log as func-e writes to it.
 
-	have, err = os.ReadFile(filepath.Join(o.RunDir, "stderr.log"))
+	actual, err = os.ReadFile(filepath.Join(o.RunDir, "stderr.log"))
 	require.NoError(t, err)
 	require.NotEmpty(t, stderr.String()) // sanity check
-	require.Equal(t, stderr.String(), string(have))
+	require.Equal(t, stderr.String(), string(actual))
 }
 
 func TestFuncERun_ReadsHomeVersionFile(t *testing.T) {
@@ -109,11 +109,11 @@ func TestFuncERun_ReadsHomeVersionFile(t *testing.T) {
 
 	// No implicit lookup
 	require.NotContains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up latest version"))
-	require.Equal(t, version.Version(version.LastKnownEnvoy), o.EnvoyVersion)
+	require.Equal(t, version.LastKnownEnvoy, o.EnvoyVersion)
 
 	writtenVersion, err := os.ReadFile(filepath.Join(o.HomeDir, "version"))
 	require.NoError(t, err)
-	require.Equal(t, version.LastKnownEnvoyMinor, string(writtenVersion))
+	require.Equal(t, version.LastKnownEnvoyMinor.String(), string(writtenVersion))
 }
 
 func TestFuncERun_CreatesHomeVersionFile(t *testing.T) {
@@ -131,11 +131,11 @@ func TestFuncERun_CreatesHomeVersionFile(t *testing.T) {
 	// We logged the implicit lookup
 	require.Contains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up the latest Envoy version"))
 	require.FileExists(t, filepath.Join(o.HomeDir, "version"))
-	require.Equal(t, version.Version(version.LastKnownEnvoy), o.EnvoyVersion)
+	require.Equal(t, version.LastKnownEnvoy, o.EnvoyVersion)
 
 	writtenVersion, err := os.ReadFile(filepath.Join(o.HomeDir, "version"))
 	require.NoError(t, err)
-	require.Equal(t, version.LastKnownEnvoyMinor, string(writtenVersion))
+	require.Equal(t, version.LastKnownEnvoyMinor.String(), string(writtenVersion))
 }
 
 // runWithoutConfig intentionally has envoy quit. This allows tests to not have to interrupt envoy to proceed.
@@ -155,7 +155,7 @@ func TestFuncERun_ValidatesHomeVersion(t *testing.T) {
 	err := c.Run([]string{"func-e", "run"})
 
 	// Verify the command failed with the expected error
-	expectedErr := fmt.Sprintf(`invalid version in "$FUNC_E_HOME/version": "a.a.a" should look like "%s"`, version.LastKnownEnvoy)
+	expectedErr := fmt.Sprintf(`invalid version in "$FUNC_E_HOME/version": "a.a.a" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
 	require.EqualError(t, err, moreos.ReplacePathSeparator(expectedErr))
 }
 
@@ -174,7 +174,7 @@ func TestFuncERun_ValidatesWorkingVersion(t *testing.T) {
 	err := c.Run([]string{"func-e", "run"})
 
 	// Verify the command failed with the expected error
-	expectedErr := fmt.Sprintf(`invalid version in "$PWD/.envoy-version": "b.b.b" should look like "%s"`, version.LastKnownEnvoy)
+	expectedErr := fmt.Sprintf(`invalid version in "$PWD/.envoy-version": "b.b.b" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
 	require.EqualError(t, err, moreos.ReplacePathSeparator(expectedErr))
 }
 

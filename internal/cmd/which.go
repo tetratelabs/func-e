@@ -34,7 +34,7 @@ func NewWhichCmd(o *globals.GlobalOpts) *cli.Command {
 			return ensureEnvoyVersion(c, o)
 		},
 		Action: func(c *cli.Context) error {
-			ev, err := envoy.InstallIfNeeded(c.Context, o, o.EnvoyVersion)
+			ev, err := envoy.InstallIfNeeded(c.Context, o)
 			if err != nil {
 				return err
 			}

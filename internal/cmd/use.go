@@ -15,10 +15,6 @@
 package cmd
 
 import (
-	"fmt"
-	"sort"
-	"strings"
-
 	"github.com/urfave/cli/v2"
 
 	"github.com/tetratelabs/func-e/internal/envoy"
@@ -49,64 +45,35 @@ depending on which is present.
 Example:
 $ func-e use %s
 $ func-e use %s`, currentVersionWorkingDirFile, currentVersionHomeDirFile, version.LastKnownEnvoy, version.LastKnownEnvoyMinor),
-		Before: validateVersionArg,
+		Before: func(c *cli.Context) error {
+			_, err := validateVersionArg(c)
+			return err
+		},
 		Action: func(c *cli.Context) error {
-			v := version.Version(c.Args().First())
-			latest := v
-			if matched := globals.EnvoyStrictMinorVersionPattern.MatchString(string(v)); matched {
-				var err error
-				if latest, err = o.FuncEVersions.FindLatestPatch(c.Context, v); err != nil {
-					if latest, err = getLatestInstalledPatch(o, v); err != nil {
-						return err
-					}
-					o.Logf("couldn't check the latest patch for %q for platform %q using %q instead\n", v, o.Platform, latest)
-				}
-			}
-			if _, err := envoy.InstallIfNeeded(c.Context, o, latest); err != nil {
+			// The argument could be a MinorVersion (ex. 1.19) or a PatchVersion (ex. 1.19.3)
+			// We need to download and install a patch version
+			v, _ := validateVersionArg(c)
+			pv, err := ensurePatchVersion(c.Context, o, v)
+			if err != nil {
 				return err
 			}
+
+			o.EnvoyVersion = pv
+			_, err = envoy.InstallIfNeeded(c.Context, o)
+			if err != nil {
+				return err
+			}
+			// Persist the input precision. This allows those specifying a MinorVersion to always get the latest patch.
 			return envoy.WriteCurrentVersion(v, o.HomeDir)
 		},
 		CustomHelpTemplate: moreos.Sprintf(cli.CommandHelpTemplate),
 	}
 }
 
-func validateVersionArg(c *cli.Context) error {
-	if c.NArg() == 0 {
-		return NewValidationError("missing [version] argument")
-	}
-	v := c.Args().First()
-	if matched := globals.EnvoyMinorVersionPattern.MatchString(v); !matched {
-		return NewValidationError("invalid [version] argument: %q should look like %q or %q", v,
-			version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
-	}
-	return nil
-}
-
-func getLatestInstalledPatch(o *globals.GlobalOpts, minorVersion version.Version) (version.Version, error) {
-	rows, err := getInstalledVersions(o.HomeDir)
+func validateVersionArg(c *cli.Context) (version.Version, error) {
+	v, err := version.NewVersion("[version] argument", c.Args().First())
 	if err != nil {
-		return "", err
+		return nil, NewValidationError(err.Error())
 	}
-	// Sort so that new release dates appear first and on conflict choosing the higher version.
-	sort.Slice(rows, func(i, j int) bool {
-		if rows[i].releaseDate == rows[j].releaseDate {
-			return rows[i].version > rows[j].version
-		}
-		return rows[i].releaseDate > rows[j].releaseDate
-	})
-
-	// The "." suffix is required to avoid false-matching, e.g. 1.1 to 1.18.
-	minorPrefix := minorVersion.MinorPrefix() + "."
-	wantDebug := minorVersion.IsDebug()
-	for i := range rows {
-		if wantDebug != rows[i].version.IsDebug() {
-			continue
-		}
-
-		if strings.HasPrefix(string(rows[i].version), minorPrefix) {
-			return rows[i].version, nil
-		}
-	}
-	return "", fmt.Errorf("couldn't find the latest patch for %q for platform %q", minorVersion, o.Platform)
+	return v, nil
 }

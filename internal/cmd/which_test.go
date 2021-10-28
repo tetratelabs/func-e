@@ -35,7 +35,7 @@ func TestFuncEWhich(t *testing.T) {
 	c, stdout, stderr := newApp(o)
 
 	require.NoError(t, c.Run([]string{"func-e", "which"}))
-	envoyPath := filepath.Join(o.HomeDir, "versions", string(o.EnvoyVersion), "bin", "envoy"+moreos.Exe)
+	envoyPath := filepath.Join(o.HomeDir, "versions", o.EnvoyVersion.String(), "bin", "envoy"+moreos.Exe)
 	require.Equal(t, moreos.Sprintf("%s\n", envoyPath), stdout.String())
 	require.Empty(t, stderr)
 }

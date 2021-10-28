@@ -31,7 +31,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/func-e/internal/test/fakebinary"
-	"github.com/tetratelabs/func-e/internal/version"
 )
 
 var (
@@ -102,7 +101,7 @@ func Test_CallSignals(t *testing.T) {
 			stdout := new(bytes.Buffer)
 
 			// With an arg so fakeFuncE runs fakeEnvoy as its child and doesn't exit.
-			arg := version.LastKnownEnvoy
+			arg := "1.1.1" // version.LastKnownEnvoy would introduce an import cycle
 			cmd := exec.Command(fakeFuncE, "run", arg, "-c")
 			cmd.SysProcAttr = ProcessGroupAttr() // Make sure we have a new process group.
 			cmd.Stdout = stdout
