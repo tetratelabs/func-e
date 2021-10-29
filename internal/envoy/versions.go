@@ -25,6 +25,7 @@ import (
 )
 
 // NewGetVersions creates a new Envoy versions fetcher.
+// TODO: validate the data before returning it!
 func NewGetVersions(envoyVersionsURL string, p version.Platform, v string) version.GetReleaseVersions {
 	return func(ctx context.Context) (*version.ReleaseVersions, error) {
 		// #nosec => This is by design, users can call out to wherever they like!

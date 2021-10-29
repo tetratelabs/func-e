@@ -47,8 +47,10 @@ func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 				return err
 			}
 
-			// tolerate errors determining current version, as that can be due to initial or out-of-band setup
-			currentVersion, currentVersionSource, _ := envoy.CurrentVersion(o.HomeDir)
+			currentVersion, currentVersionSource, err := envoy.CurrentVersion(o.HomeDir)
+			if err != nil {
+				return err
+			}
 
 			if c.Bool("all") {
 				if evs, err := o.GetEnvoyVersions(c.Context); err != nil {

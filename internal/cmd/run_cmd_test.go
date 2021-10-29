@@ -190,5 +190,5 @@ func TestFuncERun_ErrsWhenVersionsServerDown(t *testing.T) {
 	err := c.Run([]string{"func-e", "run"})
 
 	require.Contains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up the latest Envoy version"))
-	require.Contains(t, err.Error(), fmt.Sprintf(`couldn't read latest version from %s`, o.EnvoyVersionsURL))
+	require.Contains(t, err.Error(), fmt.Sprintf(`couldn't lookup the latest Envoy version from %s`, o.EnvoyVersionsURL))
 }
