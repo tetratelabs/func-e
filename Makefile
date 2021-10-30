@@ -72,15 +72,14 @@ help: ## Describe how to use each target
 
 build: $(current_binary) ## Build the func-e binary
 
-test_packages := . ./internal/...
 test: ## Run all unit tests
 	@printf "$(ansi_format_dark)" test "running unit tests"
-	@$(go) test $(test_packages)
+	@$(go) test . ./internal/...
 	@printf "$(ansi_format_bright)" test "ok"
 
 coverage: ## Generate test coverage
 	@printf "$(ansi_format_dark)" coverage "running unit tests with coverage"
-	@$(go) test -coverprofile=coverage.txt -covermode=atomic --coverpkg $(test_packages: =,) $(test_packages)
+	$(go) test -coverprofile=coverage.txt -covermode=atomic --coverpkg=.,./internal/... . ./internal/...
 	@$(go) tool cover -func coverage.txt
 	@printf "$(ansi_format_bright)" coverage "ok"
 
