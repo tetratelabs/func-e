@@ -79,7 +79,7 @@ test: ## Run all unit tests
 
 coverage: ## Generate test coverage
 	@printf "$(ansi_format_dark)" coverage "running unit tests with coverage"
-	$(go) test -coverprofile=coverage.txt -covermode=atomic --coverpkg=.,./internal/... . ./internal/...
+	@$(go) test -coverprofile=coverage.txt -covermode=atomic --coverpkg=.,./internal/... . ./internal/...
 	@$(go) tool cover -func coverage.txt
 	@printf "$(ansi_format_bright)" coverage "ok"
 

@@ -16,9 +16,10 @@ package e2e
 
 import (
 	"bufio"
-	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/tetratelabs/func-e/internal/moreos"
 
 	"github.com/stretchr/testify/require"
 
@@ -40,7 +41,8 @@ func TestFuncEVersions(t *testing.T) {
 
 	stdout, stderr, err := funcEExec("versions")
 
-	require.Regexp(t, fmt.Sprintf("[ *] %s 202[1-9]-[01][0-9]-[0-3][0-9].*\r?\n", version.LastKnownEnvoy), stdout)
+	// Depending on ~/func-e/version, what's selected may not be the latest version or even installed at all.
+	require.Regexp(t, moreos.Sprintf("[ *] [1-9][0-9]*\\.[0-9]+\\.[0-9]+(_debug)? 202[1-9]-[01][0-9]-[0-3][0-9].*\n"), stdout)
 	require.Empty(t, stderr)
 	require.NoError(t, err)
 }
@@ -50,7 +52,7 @@ func TestFuncEVersions_All(t *testing.T) {
 
 	stdout, stderr, err := funcEExec("versions", "-a")
 
-	require.Regexp(t, fmt.Sprintf("[ *] %s 202[1-9]-[01][0-9]-[0-3][0-9].*\r?\n", version.LastKnownEnvoy), stdout)
+	require.Regexp(t, moreos.Sprintf("[ *] %s 202[1-9]-[01][0-9]-[0-3][0-9].*\n", version.LastKnownEnvoy), stdout)
 	require.Empty(t, stderr)
 	require.NoError(t, err)
 }
