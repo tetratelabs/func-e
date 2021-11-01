@@ -15,52 +15,177 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/urfave/cli/v2"
 
 	"github.com/tetratelabs/func-e/internal/globals"
-
+	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
+func TestEnsureEnvoyVersion(t *testing.T) {
+	o := &globals.GlobalOpts{HomeDir: t.TempDir()}
+	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte(version.LastKnownEnvoy.String()), 0600))
+
+	err := ensureEnvoyVersion(&cli.Context{Context: context.Background()}, o)
+	require.NoError(t, err)
+	require.Equal(t, version.LastKnownEnvoy, o.EnvoyVersion)
+}
+
+func TestEnsureEnvoyVersion_ErrorIsAValidationError(t *testing.T) {
+	o := &globals.GlobalOpts{HomeDir: t.TempDir()}
+	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte("a.b.c"), 0600))
+
+	expectedErr := fmt.Sprintf(`invalid version in "$FUNC_E_HOME/version": "a.b.c" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
+	err := ensureEnvoyVersion(&cli.Context{Context: context.Background()}, o)
+	require.IsType(t, err, &ValidationError{})
+	require.EqualError(t, err, moreos.ReplacePathSeparator(expectedErr))
+}
+
+func TestSetEnvoyVersion_ReadsExistingPatchVersion(t *testing.T) {
+	o := &globals.GlobalOpts{HomeDir: t.TempDir()}
+
+	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte("1.18.13"), 0600))
+
+	err := setEnvoyVersion(context.Background(), o)
+	require.NoError(t, err)
+	require.Equal(t, version.PatchVersion("1.18.13"), o.EnvoyVersion)
+}
+
+func TestSetEnvoyVersion_LooksUpLatestPatchForExistingMinorVersion(t *testing.T) {
+	o := &globals.GlobalOpts{
+		GetEnvoyVersions: func(context.Context) (*version.ReleaseVersions, error) {
+			return &version.ReleaseVersions{Versions: map[version.PatchVersion]version.Release{
+				"1.18.12": {Tarballs: map[version.Platform]version.TarballURL{globals.DefaultPlatform: ""}},
+				"1.18.13": {Tarballs: map[version.Platform]version.TarballURL{globals.DefaultPlatform: ""}},
+			}}, nil
+		},
+		HomeDir:  t.TempDir(),
+		Out:      new(bytes.Buffer), // we expect logging
+		Platform: globals.DefaultPlatform,
+	}
+
+	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte("1.18"), 0600))
+
+	err := setEnvoyVersion(context.Background(), o)
+	require.NoError(t, err)
+	require.Equal(t, version.PatchVersion("1.18.13"), o.EnvoyVersion)
+
+	// We notified the user about the remote lookup
+	require.Contains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up the latest patch for Envoy version 1.18\n"))
+}
+
+func TestSetEnvoyVersion_ErrorReadingExistingVersion(t *testing.T) {
+	o := &globals.GlobalOpts{HomeDir: t.TempDir()}
+	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte("a.b.c"), 0600))
+
+	expectedErr := fmt.Sprintf(`invalid version in "$FUNC_E_HOME/version": "a.b.c" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
+	err := setEnvoyVersion(context.Background(), o)
+	require.EqualError(t, err, moreos.ReplacePathSeparator(expectedErr))
+}
+
+// TODO: this is not platform-specific see #393
+func TestSetEnvoyVersion_UsesLatestVersionOnInitialRun(t *testing.T) {
+	o := &globals.GlobalOpts{
+		GetEnvoyVersions: func(context.Context) (*version.ReleaseVersions, error) {
+			return &version.ReleaseVersions{LatestVersion: "1.18.13"}, nil
+		},
+		HomeDir: t.TempDir(),
+		Out:     new(bytes.Buffer), // we expect logging
+	}
+
+	err := setEnvoyVersion(context.Background(), o)
+	require.NoError(t, err)
+
+	// The LatestVersion was set
+	require.Equal(t, version.PatchVersion("1.18.13"), o.EnvoyVersion)
+
+	// We notified the user about the remote lookup
+	require.Contains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up the latest Envoy version\n"))
+
+	// We persisted the minor component for next run!
+	writtenVersion, err := os.ReadFile(filepath.Join(o.HomeDir, "version"))
+	require.NoError(t, err)
+	require.Equal(t, o.EnvoyVersion.ToMinor().String(), string(writtenVersion))
+}
+
+func TestSetEnvoyVersion_ErrorLookingUpLatestVersionOnInitialRun(t *testing.T) {
+	o := &globals.GlobalOpts{
+		GetEnvoyVersions: func(context.Context) (*version.ReleaseVersions, error) {
+			return nil, errors.New("file not found")
+		},
+		EnvoyVersionsURL: "fake URL", // for logging
+		HomeDir:          t.TempDir(),
+		Out:              new(bytes.Buffer), // we expect logging
+	}
+
+	err := setEnvoyVersion(context.Background(), o)
+	require.EqualError(t, err, "couldn't lookup the latest Envoy version from fake URL: file not found")
+
+	// We notified the user about the remote lookup
+	require.Contains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up the latest Envoy version\n"))
+
+	// No version file was written
+	require.NoFileExists(t, filepath.Join(o.HomeDir, "version"))
+}
+
 func TestEnsurePatchVersion(t *testing.T) {
 	versions := map[version.PatchVersion]version.Release{
-		version.PatchVersion("1.18.3"):       {},
-		version.PatchVersion("1.18.14"):      {},
-		version.PatchVersion("1.18.4"):       {},
-		version.PatchVersion("1.18.4_debug"): {},
+		version.PatchVersion("1.18.3"):       {Tarballs: map[version.Platform]version.TarballURL{globals.DefaultPlatform: ""}},
+		version.PatchVersion("1.18.13"):      {Tarballs: map[version.Platform]version.TarballURL{globals.DefaultPlatform: ""}},
+		version.PatchVersion("1.18.14"):      {Tarballs: map[version.Platform]version.TarballURL{"solaris/sparc64": ""}},
+		version.PatchVersion("1.18.4"):       {Tarballs: map[version.Platform]version.TarballURL{globals.DefaultPlatform: ""}},
+		version.PatchVersion("1.18.4_debug"): {Tarballs: map[version.Platform]version.TarballURL{globals.DefaultPlatform: ""}},
 	}
 
 	o := &globals.GlobalOpts{
 		GetEnvoyVersions: func(context.Context) (*version.ReleaseVersions, error) {
 			return &version.ReleaseVersions{Versions: versions}, nil
 		},
-		HomeDir: t.TempDir(),
+		HomeDir:  t.TempDir(),
+		Out:      new(bytes.Buffer), // we expect logging
+		Platform: globals.DefaultPlatform,
 	}
+
 	actual, err := ensurePatchVersion(context.Background(), o, version.MinorVersion("1.18"))
 	require.NoError(t, err)
-	require.Equal(t, version.PatchVersion("1.18.14"), actual)
+	require.Equal(t, version.PatchVersion("1.18.13"), actual)
+
+	// We notified the user about the remote lookup
+	require.Contains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up the latest patch for Envoy version 1.18\n"))
 }
 
 func TestEnsurePatchVersion_NotFound(t *testing.T) {
 	versions := map[version.PatchVersion]version.Release{
-		version.PatchVersion("1.20.0"):    {},
-		version.PatchVersion("1.1_debug"): {},
+		version.PatchVersion("1.18.14"):   {Tarballs: map[version.Platform]version.TarballURL{"solaris/sparc64": ""}},
+		version.PatchVersion("1.20.0"):    {Tarballs: map[version.Platform]version.TarballURL{globals.DefaultPlatform: ""}},
+		version.PatchVersion("1.1_debug"): {Tarballs: map[version.Platform]version.TarballURL{globals.DefaultPlatform: ""}},
 	}
 
 	o := &globals.GlobalOpts{
 		GetEnvoyVersions: func(context.Context) (*version.ReleaseVersions, error) {
 			return &version.ReleaseVersions{Versions: versions}, nil
 		},
-		HomeDir: t.TempDir(),
+		EnvoyVersionsURL: "fake URL", // for logging
+		HomeDir:          t.TempDir(),
+		Out:              new(bytes.Buffer), // we expect logging
+		Platform:         globals.DefaultPlatform,
 	}
+
 	_, err := ensurePatchVersion(context.Background(), o, version.MinorVersion("1.18"))
-	require.EqualError(t, err, "couldn't find the latest patch for version 1.18")
+	expectedErr := fmt.Sprintf("fake URL does not contain an Envoy release for version 1.18 on platform %s", o.Platform)
+	require.EqualError(t, err, expectedErr)
+
+	// We notified the user about the remote lookup
+	require.Contains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up the latest patch for Envoy version 1.18\n"))
 }
 
 func TestEnsurePatchVersion_NoOpWhenAlreadyAPatchVersion(t *testing.T) {
@@ -70,32 +195,71 @@ func TestEnsurePatchVersion_NoOpWhenAlreadyAPatchVersion(t *testing.T) {
 	require.Equal(t, expected, actual)
 }
 
-func TestEnsurePatchVersion_FallbackOnLookupFailure(t *testing.T) {
-	o := &globals.GlobalOpts{
-		GetEnvoyVersions: func(context.Context) (*version.ReleaseVersions, error) {
-			return nil, errors.New("ice cream")
+func TestEnsurePatchVersion_FallbackSuccess(t *testing.T) {
+	tests := []struct {
+		name             string
+		getEnvoyVersions version.GetReleaseVersions
+	}{
+		{
+			"error on lookup",
+			func(context.Context) (*version.ReleaseVersions, error) {
+				return nil, errors.New("file not found")
+			},
+		}, {
+			"no versions",
+			func(context.Context) (*version.ReleaseVersions, error) {
+				return &version.ReleaseVersions{}, nil
+			},
 		},
-		HomeDir: t.TempDir(),
+		{
+			"no versions for this platform",
+			func(context.Context) (*version.ReleaseVersions, error) {
+				return &version.ReleaseVersions{
+					Versions: map[version.PatchVersion]version.Release{
+						"1.18.14": {Tarballs: map[version.Platform]version.TarballURL{"solaris/sparc64": ""}},
+					},
+				}, nil
+			},
+		},
 	}
 
-	lastKnownEnvoyDir := filepath.Join(o.HomeDir, "versions", "1.18.14")
-	require.NoError(t, os.MkdirAll(lastKnownEnvoyDir, 0700))
+	for _, tc := range tests {
+		tc := tc // pin! see https://github.com/kyoh86/scopelint for why
+		t.Run(tc.name, func(t *testing.T) {
 
-	// Ensure that when we ask for a minor, the latest version is returned from the filesystem
-	actual, err := ensurePatchVersion(context.Background(), o, version.MinorVersion("1.18"))
-	require.NoError(t, err)
-	require.Equal(t, version.PatchVersion("1.18.14"), actual)
+			o := &globals.GlobalOpts{
+				GetEnvoyVersions: tc.getEnvoyVersions,
+				HomeDir:          t.TempDir(),
+				Out:              new(bytes.Buffer), // we expect logging
+			}
+
+			lastKnownEnvoyDir := filepath.Join(o.HomeDir, "versions", "1.18.14")
+			require.NoError(t, os.MkdirAll(lastKnownEnvoyDir, 0700))
+
+			// Ensure that when we ask for a minor, the latest version is returned from the filesystem
+			actual, err := ensurePatchVersion(context.Background(), o, version.MinorVersion("1.18"))
+			require.NoError(t, err)
+			require.Equal(t, version.PatchVersion("1.18.14"), actual)
+
+			// We notified the user about the remote lookup
+			require.Contains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up the latest patch for Envoy version 1.18\n"))
+		})
+	}
 }
 
-func TestEnsurePatchVersion_RaisesErrorWhenNothingInstalled(t *testing.T) {
+func TestEnsurePatchVersion_FallbackFailure(t *testing.T) {
 	o := &globals.GlobalOpts{
 		GetEnvoyVersions: func(context.Context) (*version.ReleaseVersions, error) {
-			return nil, errors.New("ice cream")
+			return nil, errors.New("file not found")
 		},
 		HomeDir: t.TempDir(),
+		Out:     new(bytes.Buffer), // we expect logging
 	}
 
 	// Since we have nothing local to fall back to, we should raise the remote error
-	_, err := ensurePatchVersion(context.Background(), o, version.LastKnownEnvoyMinor)
-	require.EqualError(t, err, "ice cream")
+	_, err := ensurePatchVersion(context.Background(), o, version.MinorVersion("1.18"))
+	require.EqualError(t, err, "file not found")
+
+	// We notified the user about the remote lookup
+	require.Contains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up the latest patch for Envoy version 1.18\n"))
 }

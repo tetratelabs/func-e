@@ -22,12 +22,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tetratelabs/func-e/internal/version"
-
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/moreos"
+	"github.com/tetratelabs/func-e/internal/version"
 )
 
 func TestFuncEHelp(t *testing.T) {

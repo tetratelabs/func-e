@@ -29,6 +29,7 @@ func NewUseCmd(o *globals.GlobalOpts) *cli.Command {
 	currentVersionWorkingDirFile := moreos.ReplacePathSeparator(envoy.CurrentVersionWorkingDirFile)
 	currentVersionHomeDirFile := moreos.ReplacePathSeparator(envoy.CurrentVersionHomeDirFile)
 
+	var v version.Version
 	return &cli.Command{
 		Name:      "use",
 		Usage:     `Sets the current [version] used by the "run" command`,
@@ -45,22 +46,19 @@ depending on which is present.
 Example:
 $ func-e use %s
 $ func-e use %s`, currentVersionWorkingDirFile, currentVersionHomeDirFile, version.LastKnownEnvoy, version.LastKnownEnvoyMinor),
-		Before: func(c *cli.Context) error {
-			_, err := validateVersionArg(c)
-			return err
+		Before: func(c *cli.Context) (err error) {
+			if v, err = version.NewVersion("[version] argument", c.Args().First()); err != nil {
+				err = NewValidationError(err.Error())
+			}
+			return
 		},
-		Action: func(c *cli.Context) error {
+		Action: func(c *cli.Context) (err error) {
 			// The argument could be a MinorVersion (ex. 1.19) or a PatchVersion (ex. 1.19.3)
 			// We need to download and install a patch version
-			v, _ := validateVersionArg(c)
-			pv, err := ensurePatchVersion(c.Context, o, v)
-			if err != nil {
+			if o.EnvoyVersion, err = ensurePatchVersion(c.Context, o, v); err != nil {
 				return err
 			}
-
-			o.EnvoyVersion = pv
-			_, err = envoy.InstallIfNeeded(c.Context, o)
-			if err != nil {
+			if _, err = envoy.InstallIfNeeded(c.Context, o); err != nil {
 				return err
 			}
 			// Persist the input precision. This allows those specifying a MinorVersion to always get the latest patch.
@@ -68,12 +66,4 @@ $ func-e use %s`, currentVersionWorkingDirFile, currentVersionHomeDirFile, versi
 		},
 		CustomHelpTemplate: moreos.Sprintf(cli.CommandHelpTemplate),
 	}
-}
-
-func validateVersionArg(c *cli.Context) (version.Version, error) {
-	v, err := version.NewVersion("[version] argument", c.Args().First())
-	if err != nil {
-		return nil, NewValidationError(err.Error())
-	}
-	return v, nil
 }

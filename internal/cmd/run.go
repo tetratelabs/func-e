@@ -116,66 +116,65 @@ func initializeRunOpts(ctx context.Context, o *globals.GlobalOpts) error {
 	return nil
 }
 
-// setHomeEnvoyVersion makes sure the $FUNC_E_HOME/version exists.
-func setHomeEnvoyVersion(ctx context.Context, o *globals.GlobalOpts) error {
-	v, homeVersionFile, err := envoy.GetHomeVersion(o.HomeDir)
-	if err != nil {
-		return NewValidationError(err.Error())
-	} else if v != nil { // home version is already valid
-		return nil
-	}
-
-	// First time install: look up the latest version, which may be newer than version.LastKnownEnvoy!
-	o.Logf("looking up the latest Envoy version\n") //nolint
-	evs, err := o.GetEnvoyVersions(ctx)
-	if err != nil {
-		return NewValidationError(`couldn't read latest version from %s: %s`, o.EnvoyVersionsURL, err)
-	}
-	// Persist it for the next invocation
-	return os.WriteFile(homeVersionFile, []byte(evs.LatestVersion.ToMinor()), 0600)
-}
-
 func ensureEnvoyVersion(c *cli.Context, o *globals.GlobalOpts) error {
-	if err := os.MkdirAll(o.HomeDir, 0750); err != nil {
-		return NewValidationError(err.Error())
-	}
-
 	if o.EnvoyVersion == "" { // not overridden for tests
-		if err := setHomeEnvoyVersion(c.Context, o); err != nil {
-			return err
-		}
-		v, _, err := envoy.CurrentVersion(o.HomeDir)
-		if err != nil {
+		if err := setEnvoyVersion(c.Context, o); err != nil {
 			return NewValidationError(err.Error())
 		}
-		pv, err := ensurePatchVersion(c.Context, o, v)
-		if err != nil {
-			return NewValidationError(err.Error())
-		}
-		o.EnvoyVersion = pv
 	}
 	return nil
 }
 
+// setEnvoyVersion makes sure the $FUNC_E_HOME/version exists.
+func setEnvoyVersion(ctx context.Context, o *globals.GlobalOpts) (err error) {
+	var v version.Version
+	if v, _, err = envoy.CurrentVersion(o.HomeDir); err != nil {
+		return err
+	} else if v != nil { // We found an existing version, but it might be in MinorVersion format!
+		o.EnvoyVersion, err = ensurePatchVersion(ctx, o, v)
+		return err
+	}
+
+	// First time install: look up the latest version, which may be newer than version.LastKnownEnvoy!
+	o.Logf("looking up the latest Envoy version\n") //nolint
+	var evs *version.ReleaseVersions
+	if evs, err = o.GetEnvoyVersions(ctx); err != nil {
+		return fmt.Errorf("couldn't lookup the latest Envoy version from %s: %w", o.EnvoyVersionsURL, err)
+	}
+	// TODO: LatestVersion may not be available for this platform #393
+	o.EnvoyVersion = evs.LatestVersion
+	// Persist it as a minor version, so that each invocation checks for the latest patch.
+	return envoy.WriteCurrentVersion(o.EnvoyVersion.ToMinor(), o.HomeDir)
+}
+
 // ensurePatchVersion ensures we either have a valid version.PatchVersion or an error
-// If remote lookup of the latest patch fails, this falls back to the last installed one
+// If remote lookup of the latest patch fails, this logs and falls back to the last installed one
+// NOTE: Warnings and errors include the platform because a release isn't available at the same time for all platforms.
 func ensurePatchVersion(ctx context.Context, o *globals.GlobalOpts, v version.Version) (version.PatchVersion, error) {
 	if mv, ok := v.(version.MinorVersion); ok {
+		o.Logf("looking up the latest patch for Envoy version %s\n", mv) //nolint
 		evs, err := o.GetEnvoyVersions(ctx)
 		var patchVersions []version.PatchVersion
 		if err == nil {
-			for k := range evs.Versions {
-				patchVersions = append(patchVersions, k)
+			// Filter versions available for this platform
+			for k, v := range evs.Versions {
+				if _, ok = v.Tarballs[o.Platform]; ok {
+					patchVersions = append(patchVersions, k)
+				}
 			}
 			if pv := version.FindLatestPatchVersion(patchVersions, mv); pv != "" {
 				return pv, nil
 			}
-			return "", fmt.Errorf("couldn't find the latest patch for version %s", mv)
-		} else if rows, e := getInstalledVersions(o.HomeDir); e == nil {
+			err = fmt.Errorf("%s does not contain an Envoy release for version %s on platform %s", o.EnvoyVersionsURL, mv, o.Platform)
+		}
+
+		// Attempt the last installed version instead of raising an error. There may not be one!
+		if rows, e := getInstalledVersions(o.HomeDir); e == nil {
 			for _, r := range rows { //nolint:gocritic
 				patchVersions = append(patchVersions, r.version)
 			}
 			if pv := version.FindLatestPatchVersion(patchVersions, mv); pv != "" {
+				o.Logf("couldn't look up an Envoy release for version %s on platform %s: using last installed version\n", mv, o.Platform) //nolint
 				return pv, nil
 			}
 		}

@@ -32,58 +32,6 @@ func TestVersionUsageList(t *testing.T) {
 	require.Equal(t, expected, VersionUsageList())
 }
 
-func TestGetHomeVersion_Empty(t *testing.T) {
-	homeDir := t.TempDir()
-
-	homeVersionFile := filepath.Join(homeDir, "version")
-
-	for _, tt := range []struct {
-		name  string
-		setup func()
-	}{
-		{"empty home version file", func() {
-			require.NoError(t, os.WriteFile(homeVersionFile, []byte(""), 0600))
-		}},
-		{"missing home version file", func() {
-			require.NoError(t, os.Remove(homeVersionFile))
-		}},
-		{"missing home dir", func() {
-			require.NoError(t, os.Remove(homeDir))
-		}},
-	} {
-		tc := tt
-		t.Run(tc.name, func(t *testing.T) {
-			v, hvf, err := GetHomeVersion(homeDir)
-			require.Empty(t, v)
-			require.Equal(t, homeVersionFile, hvf)
-			require.NoError(t, err)
-		})
-	}
-}
-
-func TestGetHomeVersion(t *testing.T) {
-	homeDir := t.TempDir()
-
-	homeVersionFile := filepath.Join(homeDir, "version")
-	require.NoError(t, os.WriteFile(homeVersionFile, []byte(version.LastKnownEnvoy.String()), 0600))
-
-	v, hvf, err := GetHomeVersion(homeDir)
-	require.Equal(t, version.LastKnownEnvoy, v)
-	require.Equal(t, homeVersionFile, hvf)
-	require.NoError(t, err)
-}
-
-func TestGetHomeVersion_Validates(t *testing.T) {
-	homeDir := t.TempDir()
-
-	homeVersionFile := filepath.Join(homeDir, "version")
-	require.NoError(t, os.WriteFile(homeVersionFile, []byte("a.a.a"), 0600))
-
-	_, _, err := GetHomeVersion(homeDir)
-	expectedErr := fmt.Sprintf(`invalid version in %q: "a.a.a" should look like %q or %q`, CurrentVersionHomeDirFile, version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
-	require.EqualError(t, err, moreos.ReplacePathSeparator(expectedErr))
-}
-
 func TestWriteCurrentVersion_HomeDir(t *testing.T) {
 	homeDir := t.TempDir()
 
@@ -120,7 +68,7 @@ func TestWriteCurrentVersion_OverwritesWorkingDirVersion(t *testing.T) {
 	require.Equal(t, CurrentVersionWorkingDirFile, src)
 
 	// didn't overwrite the home version
-	v, _, err = getHomeVersion(homeDir)
+	v, err = getHomeVersion(homeDir)
 	require.NoError(t, err)
 	require.Equal(t, "1.1.1", v)
 }
@@ -129,9 +77,16 @@ func TestWriteCurrentVersion_OverwritesWorkingDirVersion(t *testing.T) {
 // test setup complexity required to ensure tiered priority (ex layering overridden PWD with an ENV)
 func TestCurrentVersion(t *testing.T) {
 	homeDir := t.TempDir()
-	require.NoError(t, os.WriteFile(filepath.Join(homeDir, "version"), []byte("1.1.1"), 0600))
 
-	t.Run("defaults to home version", func(t *testing.T) {
+	t.Run("defaults to nil", func(t *testing.T) {
+		v, source, err := CurrentVersion(homeDir)
+		require.Nil(t, v)
+		require.Equal(t, CurrentVersionHomeDirFile, source)
+		require.NoError(t, err)
+	})
+
+	require.NoError(t, os.WriteFile(filepath.Join(homeDir, "version"), []byte("1.1.1"), 0600))
+	t.Run("reads the home version", func(t *testing.T) {
 		v, source, err := CurrentVersion(homeDir)
 		require.Equal(t, version.PatchVersion("1.1.1"), v)
 		require.Equal(t, CurrentVersionHomeDirFile, source)

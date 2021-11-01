@@ -18,11 +18,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/tetratelabs/func-e/internal/globals"
-	"github.com/tetratelabs/func-e/internal/test"
-
 	"github.com/stretchr/testify/require"
 
+	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/test"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
