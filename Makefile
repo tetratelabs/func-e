@@ -216,14 +216,12 @@ format:
 # lint is a PHONY target, so always runs. This allows skipping when sources didn't change.
 build/lint: .golangci.yml $(all_sources)
 	@$(go) run $(golangci_lint) run --timeout 5m --config $< ./...
+	@$(go) test ./lint/...
 	@mkdir -p $(@D) && touch $@
 
 lint:
 	@printf "$(ansi_format_dark)" lint "Running linters"
 	@$(MAKE) build/lint
-	@# this will taint if we are behind from latest binary. printf avoids adding a newline to the file
-    @curl -fsSL https://archive.tetratelabs.io/envoy/envoy-versions.json |jq -er .latestVersion|xargs printf "%s" \
-         >./internal/version/last_known_envoy.txt
 	@printf "$(ansi_format_bright)" lint "ok"
 
 # CI blocks merge until this passes. If this fails, run "make check" locally and commit the difference.

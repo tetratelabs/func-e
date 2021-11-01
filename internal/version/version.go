@@ -51,7 +51,7 @@ const debugSuffix = "_debug"
 type Version interface {
 	// String allows access to the underlying representation. Ex. "1.18", "1.18_debug", "1.19.3_debug"
 	String() string
-	// ToMinor returns a variant used to look up the latest patch.
+	// ToMinor returns a variant used to look up the latest Patch.
 	ToMinor() MinorVersion
 }
 
@@ -121,9 +121,9 @@ func (v PatchVersion) ToMinor() MinorVersion {
 	return MinorVersion(latestPatchFormat)
 }
 
-// patch attempts to parse a patch number from the Version.String.
+// Patch attempts to parse a Patch number from the Version.String.
 // This will always succeed when created via NewVersion or NewPatchVersion
-func (v PatchVersion) patch() int {
+func (v PatchVersion) Patch() int {
 	var matched []string
 	if matched = versionPattern.FindStringSubmatch(v.String()); matched == nil {
 		return 0 // impossible if created via NewVersion or NewPatchVersion
@@ -132,7 +132,7 @@ func (v PatchVersion) patch() int {
 	return i
 }
 
-// FindLatestPatchVersion finds the latest patch version for the given minor version or empty if not found.
+// FindLatestPatchVersion finds the latest Patch version for the given minor version or empty if not found.
 func FindLatestPatchVersion(patchVersions []PatchVersion, minorVersion MinorVersion) PatchVersion {
 	var latestVersion PatchVersion
 	var latestPatch int
@@ -141,7 +141,7 @@ func FindLatestPatchVersion(patchVersions []PatchVersion, minorVersion MinorVers
 			continue
 		}
 
-		if p := v.patch(); p >= latestPatch {
+		if p := v.Patch(); p >= latestPatch {
 			latestPatch = p
 			latestVersion = v
 		}

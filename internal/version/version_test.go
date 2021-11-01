@@ -201,7 +201,7 @@ func TestPatchVersion_ParsePatch(t *testing.T) {
 	for _, tt := range tests {
 		tc := tt
 		t.Run(tc.input.String(), func(t *testing.T) {
-			actual := tc.input.patch()
+			actual := tc.input.Patch()
 			require.Equal(t, tc.expected, actual)
 		})
 	}
