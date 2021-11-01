@@ -23,14 +23,11 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
 
-	"github.com/tetratelabs/func-e/internal/moreos"
-
-	"github.com/stretchr/testify/require"
-
 	"github.com/tetratelabs/func-e/internal/globals"
-
+	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 

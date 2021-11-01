@@ -25,9 +25,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/tetratelabs/func-e/internal/moreos"
-
 	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/moreos"
 )
 
 const (
