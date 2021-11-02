@@ -5,6 +5,11 @@
 # Please see GNU make's documentation if unfamiliar: https://www.gnu.org/software/make/manual/html_node/
 .PHONY: test build e2e dist clean format lint check site
 
+# Make functions strip spaces and use commas to separate parameters. The below variables escape these characters.
+comma := ,
+space :=
+space +=
+
 # Include versions of tools we build on-demand
 include Tools.mk
 
@@ -77,9 +82,14 @@ test: ## Run all unit tests
 	@$(go) test . ./internal/...
 	@printf "$(ansi_format_bright)" test "ok"
 
+# coverage_packages is a lazy inclusion of source packages that comprise the binary.
+# To do this in make, we collect the unique main source directories (sort will dedupe).
+# Paths need to all start with ./, so we do that manually vs foreach which strips it.
+main_packages = $(sort $(foreach f,$(dir $(main_sources)),$(if $(findstring ./,$(f)),./,./$(f))))
+coverpkg      = $(subst $(space),$(comma),$(main_packages))
 coverage: ## Generate test coverage
 	@printf "$(ansi_format_dark)" coverage "running unit tests with coverage"
-	@$(go) test -coverprofile=coverage.txt -covermode=atomic --coverpkg=.,./internal/... . ./internal/...
+	@$(go) test -coverprofile=coverage.txt -covermode=atomic --coverpkg=$(coverpkg) $(main_packages)
 	@$(go) tool cover -func coverage.txt
 	@printf "$(ansi_format_bright)" coverage "ok"
 
@@ -99,6 +109,7 @@ windows_platforms     := windows_amd64
 # Make 3.81 doesn't support '**' globbing: Set explicitly instead of recursion.
 all_patterns := *.go */*.go */*/*.go */*/*/*.go */*/*/*.go */*/*/*/*.go
 all_sources  := $(wildcard $(all_patterns))
+# main_sources compose the binary, so exclude tests, test utilities and linters
 main_sources := $(wildcard $(subst *,*[!_test],$(all_patterns)))
 
 build/func-e_%/func-e: $(main_sources)
