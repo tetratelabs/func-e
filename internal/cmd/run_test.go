@@ -92,21 +92,25 @@ func TestSetEnvoyVersion_ErrorReadingExistingVersion(t *testing.T) {
 	require.EqualError(t, err, moreos.ReplacePathSeparator(expectedErr))
 }
 
-// TODO: this is not platform-specific see #393
 func TestSetEnvoyVersion_UsesLatestVersionOnInitialRun(t *testing.T) {
 	o := &globals.GlobalOpts{
 		GetEnvoyVersions: func(context.Context) (*version.ReleaseVersions, error) {
-			return &version.ReleaseVersions{LatestVersion: "1.18.13"}, nil
+			return &version.ReleaseVersions{Versions: map[version.PatchVersion]version.Release{
+				"1.19.2": {Tarballs: map[version.Platform]version.TarballURL{globals.DefaultPlatform: ""}},
+				"1.18.3": {Tarballs: map[version.Platform]version.TarballURL{globals.DefaultPlatform: ""}},
+				"1.20.4": {Tarballs: map[version.Platform]version.TarballURL{"solaris/sparc64": ""}},
+			}}, nil
 		},
-		HomeDir: t.TempDir(),
-		Out:     new(bytes.Buffer), // we expect logging
+		HomeDir:  t.TempDir(),
+		Out:      new(bytes.Buffer), // we expect logging
+		Platform: globals.DefaultPlatform,
 	}
 
 	err := setEnvoyVersion(context.Background(), o)
 	require.NoError(t, err)
 
-	// The LatestVersion was set
-	require.Equal(t, version.PatchVersion("1.18.13"), o.EnvoyVersion)
+	// The highest version for this platform was set
+	require.Equal(t, version.PatchVersion("1.19.2"), o.EnvoyVersion)
 
 	// We notified the user about the remote lookup
 	require.Contains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up the latest Envoy version\n"))
@@ -115,6 +119,27 @@ func TestSetEnvoyVersion_UsesLatestVersionOnInitialRun(t *testing.T) {
 	writtenVersion, err := os.ReadFile(filepath.Join(o.HomeDir, "version"))
 	require.NoError(t, err)
 	require.Equal(t, o.EnvoyVersion.ToMinor().String(), string(writtenVersion))
+}
+
+func TestSetEnvoyVersion_NotFound(t *testing.T) {
+	o := &globals.GlobalOpts{
+		GetEnvoyVersions: func(context.Context) (*version.ReleaseVersions, error) {
+			return &version.ReleaseVersions{Versions: map[version.PatchVersion]version.Release{
+				"1.18.14": {Tarballs: map[version.Platform]version.TarballURL{"solaris/sparc64": ""}},
+			}}, nil
+		},
+		EnvoyVersionsURL: "fake URL", // for logging
+		HomeDir:          t.TempDir(),
+		Out:              new(bytes.Buffer), // we expect logging
+		Platform:         globals.DefaultPlatform,
+	}
+
+	err := setEnvoyVersion(context.Background(), o)
+	expectedErr := fmt.Sprintf("fake URL does not contain an Envoy release for platform %s", o.Platform)
+	require.EqualError(t, err, expectedErr)
+
+	// We notified the user about the remote lookup
+	require.Contains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up the latest Envoy version\n"))
 }
 
 func TestSetEnvoyVersion_ErrorLookingUpLatestVersionOnInitialRun(t *testing.T) {
@@ -223,8 +248,8 @@ func TestEnsurePatchVersion_FallbackSuccess(t *testing.T) {
 		},
 	}
 
-	for _, tc := range tests {
-		tc := tc // pin! see https://github.com/kyoh86/scopelint for why
+	for _, tt := range tests {
+		tc := tt // pin! see https://github.com/kyoh86/scopelint for why
 		t.Run(tc.name, func(t *testing.T) {
 
 			o := &globals.GlobalOpts{
@@ -262,4 +287,37 @@ func TestEnsurePatchVersion_FallbackFailure(t *testing.T) {
 
 	// We notified the user about the remote lookup
 	require.Contains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up the latest patch for Envoy version 1.18\n"))
+}
+
+func TestVersionsForPlatform(t *testing.T) {
+	type testCase struct {
+		name     string
+		versions map[version.PatchVersion]version.Release
+		expected []version.PatchVersion
+	}
+	tests := []testCase{
+		{
+			name:     "empty",
+			versions: map[version.PatchVersion]version.Release{},
+		},
+		{
+			name: "skips other platform",
+			versions: map[version.PatchVersion]version.Release{
+				version.PatchVersion("1.18.3"):       {Tarballs: map[version.Platform]version.TarballURL{globals.DefaultPlatform: ""}},
+				version.PatchVersion("1.18.13"):      {Tarballs: map[version.Platform]version.TarballURL{globals.DefaultPlatform: ""}},
+				version.PatchVersion("1.18.14"):      {Tarballs: map[version.Platform]version.TarballURL{"solaris/sparc64": ""}},
+				version.PatchVersion("1.18.4"):       {Tarballs: map[version.Platform]version.TarballURL{globals.DefaultPlatform: ""}},
+				version.PatchVersion("1.18.4_debug"): {Tarballs: map[version.Platform]version.TarballURL{globals.DefaultPlatform: ""}},
+			},
+			expected: []version.PatchVersion{"1.18.3", "1.18.13", "1.18.4", "1.18.4_debug"},
+		},
+	}
+
+	for _, tt := range tests {
+		tc := tt // pin! see https://github.com/kyoh86/scopelint for why
+		t.Run(tc.name, func(t *testing.T) {
+			actual := versionsForPlatform(tc.versions, globals.DefaultPlatform)
+			require.ElementsMatch(t, tc.expected, actual)
+		})
+	}
 }

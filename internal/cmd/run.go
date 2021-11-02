@@ -141,8 +141,10 @@ func setEnvoyVersion(ctx context.Context, o *globals.GlobalOpts) (err error) {
 	if evs, err = o.GetEnvoyVersions(ctx); err != nil {
 		return fmt.Errorf("couldn't lookup the latest Envoy version from %s: %w", o.EnvoyVersionsURL, err)
 	}
-	// TODO: LatestVersion may not be available for this platform #393
-	o.EnvoyVersion = evs.LatestVersion
+	o.EnvoyVersion = version.FindLatestVersion(versionsForPlatform(evs.Versions, o.Platform))
+	if o.EnvoyVersion == "" {
+		return fmt.Errorf("%s does not contain an Envoy release for platform %s", o.EnvoyVersionsURL, o.Platform)
+	}
 	// Persist it as a minor version, so that each invocation checks for the latest patch.
 	return envoy.WriteCurrentVersion(o.EnvoyVersion.ToMinor(), o.HomeDir)
 }
@@ -156,12 +158,7 @@ func ensurePatchVersion(ctx context.Context, o *globals.GlobalOpts, v version.Ve
 		evs, err := o.GetEnvoyVersions(ctx)
 		var patchVersions []version.PatchVersion
 		if err == nil {
-			// Filter versions available for this platform
-			for k, v := range evs.Versions {
-				if _, ok = v.Tarballs[o.Platform]; ok {
-					patchVersions = append(patchVersions, k)
-				}
-			}
+			patchVersions = versionsForPlatform(evs.Versions, o.Platform)
 			if pv := version.FindLatestPatchVersion(patchVersions, mv); pv != "" {
 				return pv, nil
 			}
@@ -181,4 +178,14 @@ func ensurePatchVersion(ctx context.Context, o *globals.GlobalOpts, v version.Ve
 		return "", err
 	} // version.Version is a union type, so the only other option is a patch!
 	return v.(version.PatchVersion), nil
+}
+
+func versionsForPlatform(vs map[version.PatchVersion]version.Release, p version.Platform) []version.PatchVersion {
+	var patchVersions []version.PatchVersion
+	for k, v := range vs {
+		if _, ok := v.Tarballs[p]; ok {
+			patchVersions = append(patchVersions, k)
+		}
+	}
+	return patchVersions
 }

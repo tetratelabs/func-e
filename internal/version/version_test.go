@@ -70,7 +70,7 @@ func TestNewVersion(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tc := tt
+		tc := tt // pin! see https://github.com/kyoh86/scopelint for why
 		t.Run(tc.input, func(t *testing.T) {
 			actual, err := NewVersion("[version] argument", tc.input)
 			require.Equal(t, tc.expected, actual)
@@ -115,7 +115,7 @@ func TestNewMinorVersion(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tc := tt
+		tc := tt // pin! see https://github.com/kyoh86/scopelint for why
 		t.Run(tc.input, func(t *testing.T) {
 			actual := NewMinorVersion(tc.input)
 			require.Equal(t, tc.expected, actual)
@@ -155,7 +155,7 @@ func TestNewPatchVersion(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tc := tt
+		tc := tt // pin! see https://github.com/kyoh86/scopelint for why
 		t.Run(tc.input, func(t *testing.T) {
 			actual := NewPatchVersion(tc.input)
 			require.Equal(t, tc.expected, actual)
@@ -163,7 +163,7 @@ func TestNewPatchVersion(t *testing.T) {
 	}
 }
 
-func TestPatchVersion_ParsePatch(t *testing.T) {
+func TestPatchVersion_Patch(t *testing.T) {
 	tests := []struct {
 		input    PatchVersion
 		expected int
@@ -199,7 +199,7 @@ func TestPatchVersion_ParsePatch(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tc := tt
+		tc := tt // pin! see https://github.com/kyoh86/scopelint for why
 		t.Run(tc.input.String(), func(t *testing.T) {
 			actual := tc.input.Patch()
 			require.Equal(t, tc.expected, actual)
@@ -230,8 +230,8 @@ func TestVersion_String(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		tc := tt
+	for _, tc := range tests {
+		tc := tc // pin! see https://github.com/kyoh86/scopelint for why
 		t.Run(tc.input.String(), func(t *testing.T) {
 			actual := tc.input.String()
 			require.Equal(t, tc.expected, actual)
@@ -263,7 +263,7 @@ func TestVersion_ToMinor(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tc := tt
+		tc := tt // pin! see https://github.com/kyoh86/scopelint for why
 		t.Run(tc.input.String(), func(t *testing.T) {
 			actual := tc.input.ToMinor()
 			require.Equal(t, tc.expected, actual)
@@ -320,9 +320,65 @@ func TestFindLatestPatch(t *testing.T) {
 		},
 	}
 
-	for _, tc := range tests {
+	for _, tt := range tests {
+		tc := tt // pin! see https://github.com/kyoh86/scopelint for why
 		t.Run(tc.name, func(t *testing.T) {
 			actual := FindLatestPatchVersion(tc.patchVersions, tc.minorVersion)
+			require.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func TestFindLatestVersion(t *testing.T) {
+	type testCase struct {
+		name          string
+		patchVersions []PatchVersion
+		expected      PatchVersion
+	}
+
+	tests := []testCase{
+		{
+			name:          "empty",
+			patchVersions: []PatchVersion{},
+		},
+		{
+			name: "all debug is empty",
+			patchVersions: []PatchVersion{
+				PatchVersion("1.19.0_debug"),
+				PatchVersion("1.20.0_debug"),
+			},
+		},
+		{
+			name: "ignores debug",
+			patchVersions: []PatchVersion{
+				PatchVersion("1.20.0_debug"), // mixed debug and not is unlikely, but possible
+				PatchVersion("1.20.0"),
+			},
+			expected: PatchVersion("1.20.0"),
+		},
+		{
+			name: "latest patch",
+			patchVersions: []PatchVersion{
+				PatchVersion("1.18.1"),
+				PatchVersion("1.18.14"),
+				PatchVersion("1.18.4"),
+			},
+			expected: PatchVersion("1.18.14"),
+		},
+		{
+			name: "latest version",
+			patchVersions: []PatchVersion{
+				PatchVersion("1.20.1"),
+				PatchVersion("1.18.2"),
+			},
+			expected: PatchVersion("1.20.1"),
+		},
+	}
+
+	for _, tt := range tests {
+		tc := tt // pin! see https://github.com/kyoh86/scopelint for why
+		t.Run(tc.name, func(t *testing.T) {
+			actual := FindLatestVersion(tc.patchVersions)
 			require.Equal(t, tc.expected, actual)
 		})
 	}

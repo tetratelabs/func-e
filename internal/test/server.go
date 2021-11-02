@@ -50,7 +50,6 @@ func RequireEnvoyVersionsTestServer(t *testing.T, v version.PatchVersion) *httpt
 	s := &server{t: t}
 	h := httptest.NewServer(s)
 	s.versions = version.ReleaseVersions{
-		LatestVersion: v,
 		Versions: map[version.PatchVersion]version.Release{ // hard-code date so that tests don't drift
 			v: {ReleaseDate: FakeReleaseDate, Tarballs: map[version.Platform]version.TarballURL{
 				version.Platform(moreos.OSLinux + "/" + runtime.GOARCH):   TarballURL(h.URL, moreos.OSLinux, runtime.GOARCH, v),

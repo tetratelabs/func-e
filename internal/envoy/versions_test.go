@@ -31,6 +31,5 @@ func TestNewGetVersions(t *testing.T) {
 
 	evs, err := gv(context.Background())
 	require.NoError(t, err)
-	require.Equal(t, version.LastKnownEnvoy, evs.LatestVersion)
 	require.Contains(t, evs.Versions, version.LastKnownEnvoy)
 }

@@ -34,10 +34,27 @@ const lastKnownEnvoyFile = "../internal/version/last_known_envoy.txt"
 //
 // This issues a remote call to the versions server, so shouldn't be a normal unit test (as they must pass offline).
 // This is invoked via `make lint`.
+func TestLastKnownEnvoyAvailableOnAllPlatforms(t *testing.T) {
+	getEnvoyVersions := envoy.NewGetVersions(globals.DefaultEnvoyVersionsURL, globals.DefaultPlatform, "dev")
+	evs, err := getEnvoyVersions(context.Background())
+	require.NoError(t, err)
 
-// requiredPlatforms are the platforms that Envoy is available on, which may differ than func-e.
+	var patchVersions []version.PatchVersion
+	for v, r := range evs.Versions {
+		if supportsAllPlatforms(r.Tarballs) {
+			patchVersions = append(patchVersions, v)
+		}
+	}
+
+	lastKnownEnvoy := version.FindLatestVersion(patchVersions)
+	actual, err := os.ReadFile(lastKnownEnvoyFile)
+	require.NoError(t, err)
+	require.Equal(t, lastKnownEnvoy.String(), string(actual))
+}
+
+// allPlatforms are the platforms that Envoy is available on, which may differ than func-e.
 // func-e's platforms are defined in the Makefile and are slightly wider due to the --platform flag.
-var requiredPlatforms = []version.Platform{
+var allPlatforms = []version.Platform{
 	"linux/amd64",
 	"linux/arm64",
 	"darwin/amd64",
@@ -46,31 +63,11 @@ var requiredPlatforms = []version.Platform{
 	// "windows/arm64", TODO: https://github.com/envoyproxy/envoy/issues/17572
 }
 
-func TestLastKnownEnvoyAvailableOnAllPlatforms(t *testing.T) {
-	// We know that the canonical json never has a debug version, so that doesn't need to be handled.
-	getEnvoyVersions := envoy.NewGetVersions(globals.DefaultEnvoyVersionsURL, globals.DefaultPlatform, "dev")
-	evs, err := getEnvoyVersions(context.Background())
-	require.NoError(t, err)
-
-	lastKnownEnvoy := version.PatchVersion("1.10.0")
-version:
-	for v, r := range evs.Versions {
-		// Ensure all platforms are available, or skip the version
-		for _, p := range requiredPlatforms {
-			if _, ok := r.Tarballs[p]; !ok {
-				continue version
-			}
-		}
-
-		// Until Envoy 2.0.0, minor versions are double-digit and can be lexicographically compared.
-		// Patches have to be numerically compared, as they can be single or double-digit (albeit unlikely).
-		if m := v.ToMinor(); m > lastKnownEnvoy.ToMinor() ||
-			m == lastKnownEnvoy.ToMinor() && v.Patch() > lastKnownEnvoy.Patch() {
-			lastKnownEnvoy = v
+func supportsAllPlatforms(r map[version.Platform]version.TarballURL) bool {
+	for _, p := range allPlatforms {
+		if _, ok := r[p]; !ok {
+			return false
 		}
 	}
-
-	actual, err := os.ReadFile(lastKnownEnvoyFile)
-	require.NoError(t, err)
-	require.Equal(t, lastKnownEnvoy.String(), string(actual))
+	return true
 }
