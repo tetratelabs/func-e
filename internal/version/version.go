@@ -114,7 +114,7 @@ func (v PatchVersion) ToMinor() MinorVersion {
 	if matched == nil {
 		return "" // impossible if created via NewVersion or NewPatchVersion
 	}
-	return MinorVersion(matched[1] + matched[3])
+	return MinorVersion(matched[1] + matched[3]) // ex. "1.18" + ""  or "1.18" + "_debug"
 }
 
 // Patch attempts to parse a Patch number from the Version.String.
