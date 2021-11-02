@@ -40,7 +40,7 @@ var LastKnownEnvoy = NewPatchVersion(lastKnownEnvoy)
 var (
 	// LastKnownEnvoyMinor is a convenience constant
 	LastKnownEnvoyMinor = LastKnownEnvoy.ToMinor()
-	versionPattern      = regexp.MustCompile(`^[1-9][0-9]*\.[0-9]+(\.[0-9]+)?(` + debugSuffix + `)?$`)
+	versionPattern      = regexp.MustCompile(`^([1-9][0-9]*\.[0-9]+)(\.[0-9]+)?(` + debugSuffix + `)?$`)
 )
 
 // debugSuffix is used to implement PatchVersion.ToMinor
@@ -61,7 +61,7 @@ type MinorVersion string
 
 // NewMinorVersion returns a MinorVersion for a valid input like "1.19" or empty if invalid.
 func NewMinorVersion(input string) MinorVersion {
-	if matched := versionPattern.FindStringSubmatch(input); len(matched) == 3 && matched[0] != "" && matched[1] == "" {
+	if matched := versionPattern.FindStringSubmatch(input); len(matched) == 4 && matched[0] != "" && matched[2] == "" {
 		return MinorVersion(input)
 	}
 	return ""
@@ -73,7 +73,7 @@ type PatchVersion string
 
 // NewPatchVersion returns a PatchVersion for a valid input like "1.19.1" or empty if invalid.
 func NewPatchVersion(input string) PatchVersion {
-	if matched := versionPattern.FindStringSubmatch(input); len(matched) == 3 && matched[0] != "" && matched[1] != "" {
+	if matched := versionPattern.FindStringSubmatch(input); len(matched) == 4 && matched[0] != "" && matched[2] != "" {
 		return PatchVersion(input)
 	}
 	return ""
@@ -110,25 +110,21 @@ func (v PatchVersion) String() string {
 
 // ToMinor satisfies Version.ToMinor
 func (v PatchVersion) ToMinor() MinorVersion {
-	splitDebug := strings.Split(string(v), debugSuffix)
-	splitVersion := strings.Split(splitDebug[0], ".")
-	latestPatchFormat := fmt.Sprintf("%s.%s", splitVersion[0], splitVersion[1])
-
-	if len(splitDebug) == 2 {
-		latestPatchFormat += debugSuffix
+	matched := versionPattern.FindStringSubmatch(v.String())
+	if matched == nil {
+		return "" // impossible if created via NewVersion or NewPatchVersion
 	}
-
-	return MinorVersion(latestPatchFormat)
+	return MinorVersion(matched[1] + matched[3]) // ex. "1.18" + ""  or "1.18" + "_debug"
 }
 
 // Patch attempts to parse a Patch number from the Version.String.
 // This will always succeed when created via NewVersion or NewPatchVersion
 func (v PatchVersion) Patch() int {
-	var matched []string
-	if matched = versionPattern.FindStringSubmatch(v.String()); matched == nil {
+	matched := versionPattern.FindStringSubmatch(v.String())
+	if matched == nil {
 		return 0 // impossible if created via NewVersion or NewPatchVersion
 	}
-	i, _ := strconv.Atoi(matched[1][1:]) // matched[1] will look like .1 or .10
+	i, _ := strconv.Atoi(matched[2][1:]) // matched[2] will look like .1 or .10
 	return i
 }
 
@@ -149,13 +145,29 @@ func FindLatestPatchVersion(patchVersions []PatchVersion, minorVersion MinorVers
 	return latestVersion
 }
 
+// FindLatestVersion finds the latest non-debug version or empty if the input is.
+func FindLatestVersion(patchVersions []PatchVersion) PatchVersion {
+	var latestVersion PatchVersion
+	for _, v := range patchVersions {
+		if strings.HasSuffix(v.String(), debugSuffix) {
+			continue
+		}
+
+		// Until Envoy 2.0.0, minor versions are double-digit and can be lexicographically compared.
+		// Patches have to be numerically compared, as they can be single or double-digit (albeit unlikely).
+		if m := v.ToMinor(); m > latestVersion.ToMinor() ||
+			m == latestVersion.ToMinor() && v.Patch() > latestVersion.Patch() {
+			latestVersion = v
+		}
+	}
+	return latestVersion
+}
+
 // GetReleaseVersions returns a version map from a remote URL. e.g. from globals.DefaultEnvoyVersionsURL
 type GetReleaseVersions func(ctx context.Context) (*ReleaseVersions, error)
 
 // ReleaseVersions primarily maps Version to TarballURL and tracks the LatestVersion
 type ReleaseVersions struct {
-	// LatestVersion is the latest stable Version
-	LatestVersion PatchVersion `json:"latestVersion"`
 	// Versions maps a Version to its Release
 	Versions map[PatchVersion]Release `json:"versions"`
 	// SHA256Sums maps a Tarball to its SHA256Sum
