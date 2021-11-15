@@ -103,7 +103,7 @@ non_windows_platforms := darwin_amd64 darwin_arm64 $(linux_platforms)
 windows_platforms     := windows_amd64
 
 # Make 3.81 doesn't support '**' globbing: Set explicitly instead of recursion.
-all_sources   := $(wildcard $*.go */*.go */*/*.go */*/*/*.go */*/*/*.go */*/*/*/*.go)
+all_sources   := $(wildcard *.go */*.go */*/*.go */*/*/*.go */*/*/*.go */*/*/*/*.go)
 all_testdata  := $(wildcard testdata/* */testdata/* */*/testdata/* */*/*/testdata/*)
 all_testutil  := $(wildcard internal/test/* internal/test/*/* internal/test/*/*/*)
 # main_sources compose the binary, so exclude tests, test utilities and linters
