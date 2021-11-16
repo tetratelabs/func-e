@@ -82,7 +82,7 @@ func mockEnvoyVersionsServer() (*httptest.Server, error) {
 		return nil, err
 	}
 
-	defer f.Close() // nolint
+	defer f.Close()
 	b, err := io.ReadAll(f)
 	if err != nil {
 		return nil, err
@@ -94,13 +94,13 @@ func mockEnvoyVersionsServer() (*httptest.Server, error) {
 			h := r.Header.Get(k)
 			if h != v {
 				w.WriteHeader(500)
-				w.Write([]byte(moreos.Sprintf("invalid %q: %s != %s\n", k, h, v))) //nolint
+				_, _ = w.Write([]byte(moreos.Sprintf("invalid %q: %s != %s\n", k, h, v)))
 				return
 			}
 		}
 		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(200)
-		w.Write(b) //nolint
+		_, _ = w.Write(b)
 	}))
 	return ts, nil
 }

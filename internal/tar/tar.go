@@ -44,7 +44,7 @@ type digester struct {
 func (d *digester) Read(p []byte) (n int, err error) {
 	n, err = d.r.Read(p)
 	if n > 0 { // per docs on hash.Hash, an error is impossible on Write
-		d.h.Write(p[:n]) //nolint
+		d.h.Write(p[:n])
 	}
 	return
 }
@@ -142,7 +142,8 @@ func extractFile(dst string, src io.Reader, perm os.FileMode) error {
 // Ex If "src" includes "/tmp/envoy/bin" and "/tmp/build/bin". If "src" is "/tmp/envoy", "dst" includes "envoy/bin".
 //
 // This is used to compress the working directory of Envoy after it is stopped.
-func TarGz(dst, src string) error { //nolint dst, src order like io.Copy
+//nolint:revive
+func TarGz(dst, src string) error { // dst, src order like io.Copy
 	srcFS := os.DirFS(filepath.Dir(src))
 	basePath := filepath.Base(src)
 
@@ -151,11 +152,11 @@ func TarGz(dst, src string) error { //nolint dst, src order like io.Copy
 	if err != nil {
 		return err
 	}
-	defer file.Close() //nolint
+	defer func() { _ = file.Close() }()
 	gzw := gzip.NewWriter(file)
-	defer gzw.Close() //nolint
+	defer func() { _ = gzw.Close() }()
 	tw := tar.NewWriter(gzw)
-	defer tw.Close() //nolint
+	defer func() { _ = tw.Close() }()
 
 	// Recurse through the path including all files and directories
 	return fs.WalkDir(srcFS, basePath, func(path string, d os.DirEntry, err error) error {
@@ -196,7 +197,7 @@ func TarGz(dst, src string) error { //nolint dst, src order like io.Copy
 
 // Copy the contents of the file into the tar without buffering
 func cp(dst io.Writer, src fs.FS, path string, n int64) error { // dst, src order like io.Copy
-	f, err := src.Open(path) //nolint:gosec
+	f, err := src.Open(path)
 	if err != nil {
 		return err
 	}

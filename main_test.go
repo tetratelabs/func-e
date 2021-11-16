@@ -29,7 +29,7 @@ func TestRunErrors(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(200)
 	}))
-	defer server.Close()
+	t.Cleanup(func() { server.Close() })
 
 	tests := []struct {
 		name           string

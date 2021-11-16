@@ -32,6 +32,7 @@ import (
 var binEnvoy = filepath.Join("bin", "envoy"+moreos.Exe)
 
 // InstallIfNeeded downloads an Envoy binary corresponding to globals.GlobalOpts and returns a path to it or an error.
+//nolint
 func InstallIfNeeded(ctx context.Context, o *globals.GlobalOpts) (string, error) {
 	v := o.EnvoyVersion
 	installPath := filepath.Join(o.HomeDir, "versions", v.String())
@@ -63,15 +64,15 @@ func InstallIfNeeded(ctx context.Context, o *globals.GlobalOpts) (string, error)
 		if err = os.MkdirAll(installPath, 0o750); err != nil {
 			return "", fmt.Errorf("unable to create directory %q: %w", installPath, err)
 		}
-		o.Logf("downloading %s\n", tarballURL)                                                            //nolint
-		if err = untarEnvoy(ctx, installPath, tarballURL, sha256Sum, o.Platform, o.Version); err != nil { //nolint
+		o.Logf("downloading %s\n", tarballURL)
+		if err = untarEnvoy(ctx, installPath, tarballURL, sha256Sum, o.Platform, o.Version); err != nil {
 			return "", err
 		}
 		if err = os.Chtimes(installPath, mtime, mtime); err != nil { // overwrite the mtime to preserve it in the list
 			return "", fmt.Errorf("unable to set date of directory %q: %w", installPath, err)
 		}
 	case err == nil:
-		o.Logf("%s is already downloaded\n", v) //nolint
+		o.Logf("%s is already downloaded\n", v)
 	default:
 		// TODO: figure out how to get a stat error that isn't file not exist so we can test this
 		return "", err
@@ -97,7 +98,7 @@ func untarEnvoy(ctx context.Context, dst string, src version.TarballURL, // dst,
 	if err != nil {
 		return err
 	}
-	defer res.Body.Close() //nolint
+	defer func() { _ = res.Body.Close() }()
 
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("received %v status code from %s", res.StatusCode, src)

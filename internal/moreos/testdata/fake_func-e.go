@@ -23,18 +23,18 @@ import (
 // and internal/envoy/run.go (envoy.Run).
 func main() {
 	if len(os.Args) < 2 {
-		moreos.Fprintf(os.Stderr, "not enough args\n")
+		_, _ = moreos.Fprintf(os.Stderr, "not enough args\n")
 		os.Exit(1)
 	}
 
 	if os.Args[1] != "run" {
-		moreos.Fprintf(os.Stderr, "%s not supported\n", os.Args[1])
+		_, _ = moreos.Fprintf(os.Stderr, "%s not supported\n", os.Args[1])
 		os.Exit(1)
 	}
 
 	// This is similar to main.go, except we don't import the validation error
 	if err := run(context.Background(), os.Args[2:]); err != nil {
-		moreos.Fprintf(os.Stderr, "error: %s\n", err) //nolint
+		_, _ = moreos.Fprintf(os.Stderr, "error: %s\n", err)
 		os.Exit(1)
 	}
 	os.Exit(0)
@@ -54,7 +54,7 @@ func run(ctx context.Context, args []string) error {
 	sigCtx, stop := signal.NotifyContext(waitCtx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	moreos.Fprintf(cmd.Stdout, "starting: %s\n", strings.Join(cmd.Args, " ")) //nolint
+	_, _ = moreos.Fprintf(cmd.Stdout, "starting: %s\n", strings.Join(cmd.Args, " "))
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("unable to start Envoy process: %w", err)
 	}
@@ -93,8 +93,8 @@ func run(ctx context.Context, args []string) error {
 // This is a copy/paste of envoy.Runtime.interruptEnvoy() with some formatting differences.
 func handleShutdown(cmd *exec.Cmd) {
 	p := cmd.Process
-	moreos.Fprintf(cmd.Stdout, "sending interrupt to envoy (pid=%d)\n", p.Pid) //nolint
+	_, _ = moreos.Fprintf(cmd.Stdout, "sending interrupt to envoy (pid=%d)\n", p.Pid)
 	if err := moreos.Interrupt(p); err != nil {
-		moreos.Fprintf(cmd.Stdout, "warning: %s\n", err) //nolint
+		_, _ = moreos.Fprintf(cmd.Stdout, "warning: %s\n", err)
 	}
 }

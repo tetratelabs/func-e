@@ -140,7 +140,7 @@ func TestProcessGroupAttr_Interrupt(t *testing.T) {
 	require.NoError(t, Interrupt(cmd.Process))
 
 	// Wait for the process to die; this could error due to the interrupt signal
-	cmd.Wait() //nolint
+	_ = cmd.Wait()
 	require.Error(t, findProcess(cmd.Process))
 
 	// Ensure interrupting it again doesn't error
@@ -157,7 +157,7 @@ func Test_EnsureProcessDone(t *testing.T) {
 	require.NoError(t, EnsureProcessDone(cmd.Process))
 
 	// Wait for the process to die; this could error due to the kill signal
-	cmd.Wait() //nolint
+	_ = cmd.Wait()
 	require.Error(t, findProcess(cmd.Process))
 
 	// Ensure killing it again doesn't error

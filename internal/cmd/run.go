@@ -80,7 +80,7 @@ state. On exit, these archive into ` + fmt.Sprintf("`%s.tar.gz`", runDirectoryEx
 
 			for _, enableShutdownHook := range shutdown.EnableHooks {
 				if err := enableShutdownHook(r); err != nil {
-					moreos.Fprintf(r.Out, "failed to enable shutdown hook: %s\n", err) //nolint
+					_, _ = moreos.Fprintf(r.Out, "failed to enable shutdown hook: %s\n", err)
 				}
 			}
 
@@ -136,7 +136,7 @@ func setEnvoyVersion(ctx context.Context, o *globals.GlobalOpts) (err error) {
 	}
 
 	// First time install: look up the latest version, which may be newer than version.LastKnownEnvoy!
-	o.Logf("looking up the latest Envoy version\n") //nolint
+	o.Logf("looking up the latest Envoy version\n")
 	var evs *version.ReleaseVersions
 	if evs, err = o.GetEnvoyVersions(ctx); err != nil {
 		return fmt.Errorf("couldn't lookup the latest Envoy version from %s: %w", o.EnvoyVersionsURL, err)
@@ -154,7 +154,7 @@ func setEnvoyVersion(ctx context.Context, o *globals.GlobalOpts) (err error) {
 // NOTE: Warnings and errors include the platform because a release isn't available at the same time for all platforms.
 func ensurePatchVersion(ctx context.Context, o *globals.GlobalOpts, v version.Version) (version.PatchVersion, error) {
 	if mv, ok := v.(version.MinorVersion); ok {
-		o.Logf("looking up the latest patch for Envoy version %s\n", mv) //nolint
+		o.Logf("looking up the latest patch for Envoy version %s\n", mv)
 		evs, err := o.GetEnvoyVersions(ctx)
 		var patchVersions []version.PatchVersion
 		if err == nil {
@@ -171,7 +171,7 @@ func ensurePatchVersion(ctx context.Context, o *globals.GlobalOpts, v version.Ve
 				patchVersions = append(patchVersions, r.version)
 			}
 			if pv := version.FindLatestPatchVersion(patchVersions, mv); pv != "" {
-				o.Logf("couldn't look up an Envoy release for version %s on platform %s: using last installed version\n", mv, o.Platform) //nolint
+				o.Logf("couldn't look up an Envoy release for version %s on platform %s: using last installed version\n", mv, o.Platform)
 				return pv, nil
 			}
 		}

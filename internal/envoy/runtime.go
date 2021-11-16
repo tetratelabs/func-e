@@ -112,7 +112,7 @@ func (r *Runtime) GetAdminAddress() (string, error) {
 	if r.adminAddress != "" { // We don't expect the admin address to change once written, so cache it.
 		return r.adminAddress, nil
 	}
-	adminAddress, err := os.ReadFile(r.adminAddressPath) //nolint:gosec
+	adminAddress, err := os.ReadFile(r.adminAddressPath)
 	if err != nil {
 		return "", fmt.Errorf("unable to read %s: %w", r.adminAddressPath, err)
 	}

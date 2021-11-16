@@ -49,7 +49,7 @@ func main() {
 	// Start a fake admin listener that write the same sort of response Envoy's /ready would, but on all endpoints.
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Envoy console messages all write to stderr. Simulate access_log_path: '/dev/stdout'
-		os.Stdout.Write([]byte(fmt.Sprintf("GET %s HTTP/1.1%s", r.RequestURI, lf))) //nolint
+		_, _ = os.Stdout.Write([]byte(fmt.Sprintf("GET %s HTTP/1.1%s", r.RequestURI, lf)))
 
 		w.Header().Add("Content-Type", "text/plain; charset=UTF-8")
 		w.WriteHeader(200)
@@ -65,7 +65,7 @@ func main() {
 	}
 
 	// Echo the same line Envoy would on successful startup
-	os.Stderr.Write([]byte("starting main dispatch loop" + lf)) //nolint
+	_, _ = os.Stderr.Write([]byte("starting main dispatch loop" + lf))
 
 	// Block until we receive a signal
 	msg := "unexpected"

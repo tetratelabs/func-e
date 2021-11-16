@@ -120,7 +120,7 @@ func TestString(t *testing.T) {
 	cmdRunning.cmd = exec.Command("cat" + moreos.Exe)
 	cmdRunning.cmd.SysProcAttr = moreos.ProcessGroupAttr()
 	require.NoError(t, cmdRunning.cmd.Start())
-	defer cmdRunning.cmd.Process.Kill() //nolint
+	defer cmdRunning.cmd.Process.Kill()
 
 	tests := []struct {
 		name     string

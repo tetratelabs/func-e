@@ -219,7 +219,7 @@ func TestTarGZ(t *testing.T) {
 
 	f, e := os.Open(dst)
 	require.NoError(t, e)
-	defer f.Close() //nolint
+	defer f.Close()
 
 	e = Untar(tempDir, f)
 	require.NoError(t, e)
