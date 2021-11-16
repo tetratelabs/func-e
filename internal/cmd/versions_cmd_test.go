@@ -29,8 +29,7 @@ import (
 )
 
 func TestFuncEVersions_NothingYet(t *testing.T) {
-	o, cleanup := setupTest(t)
-	defer cleanup()
+	o := setupTest(t)
 
 	c, stdout, stderr := newApp(o)
 	err := c.Run([]string{"func-e", "versions"})
@@ -41,8 +40,7 @@ func TestFuncEVersions_NothingYet(t *testing.T) {
 }
 
 func TestFuncEVersions_NoCurrentVersion(t *testing.T) {
-	o, cleanup := setupTestVersions(t)
-	defer cleanup()
+	o := setupTestVersions(t)
 	require.NoError(t, os.Remove(filepath.Join(o.HomeDir, "version")))
 
 	c, stdout, stderr := newApp(o)
@@ -59,8 +57,7 @@ func TestFuncEVersions_NoCurrentVersion(t *testing.T) {
 // TestFuncEVersions_CurrentVersion tests depend on prior state, so execute sequentially. This doesn't use a matrix
 // to improve readability
 func TestFuncEVersions_CurrentVersion(t *testing.T) {
-	o, cleanup := setupTestVersions(t)
-	defer cleanup()
+	o := setupTestVersions(t)
 
 	t.Run("no current version", func(t *testing.T) {
 		require.NoError(t, os.Remove(filepath.Join(o.HomeDir, "version")))
@@ -110,8 +107,7 @@ func TestFuncEVersions_CurrentVersion(t *testing.T) {
 }
 
 func TestFuncEVersions_Sorted(t *testing.T) {
-	o, cleanup := setupTestVersions(t)
-	defer cleanup()
+	o := setupTestVersions(t)
 
 	c, stdout, stderr := newApp(o)
 	err := c.Run([]string{"func-e", "versions"})
@@ -125,8 +121,7 @@ func TestFuncEVersions_Sorted(t *testing.T) {
 }
 
 func TestFuncEVersions_All_OnlyRemote(t *testing.T) {
-	o, cleanup := setupTest(t)
-	defer cleanup()
+	o := setupTest(t)
 
 	c, stdout, stderr := newApp(o)
 	err := c.Run([]string{"func-e", "versions", "-a"})
@@ -137,8 +132,7 @@ func TestFuncEVersions_All_OnlyRemote(t *testing.T) {
 }
 
 func TestFuncEVersions_All_RemoteIsCurrent(t *testing.T) {
-	o, cleanup := setupTest(t)
-	defer cleanup()
+	o := setupTest(t)
 
 	v := version.LastKnownEnvoy.String()
 	versionDir := filepath.Join(o.HomeDir, "versions", v)
@@ -157,8 +151,7 @@ func TestFuncEVersions_All_RemoteIsCurrent(t *testing.T) {
 }
 
 func TestFuncEVersions_All_Mixed(t *testing.T) {
-	o, cleanup := setupTestVersions(t)
-	defer cleanup()
+	o := setupTestVersions(t)
 
 	c, stdout, stderr := newApp(o)
 	err := c.Run([]string{"func-e", "versions", "-a"})
@@ -172,8 +165,8 @@ func TestFuncEVersions_All_Mixed(t *testing.T) {
 	require.Empty(t, stderr)
 }
 
-func setupTestVersions(t *testing.T) (o *globals.GlobalOpts, cleanup func()) {
-	o, cleanup = setupTest(t)
+func setupTestVersions(t *testing.T) (o *globals.GlobalOpts) {
+	o = setupTest(t)
 
 	oneOneTwo := filepath.Join(o.HomeDir, "versions", "1.1.2")
 	require.NoError(t, os.MkdirAll(oneOneTwo, 0700))

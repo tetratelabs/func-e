@@ -103,8 +103,7 @@ func TestUntarEnvoy(t *testing.T) {
 }
 
 func TestInstallIfNeeded_ErrorOnIncorrectURL(t *testing.T) {
-	o, cleanup := setupInstallTest(t)
-	defer cleanup()
+	o := setupInstallTest(t)
 
 	o.EnvoyVersionsURL += "/varsionz.json"
 	o.GetEnvoyVersions = NewGetVersions(o.EnvoyVersionsURL, o.Platform, o.Version)
@@ -115,8 +114,7 @@ func TestInstallIfNeeded_ErrorOnIncorrectURL(t *testing.T) {
 }
 
 func TestInstallIfNeeded_Validates(t *testing.T) {
-	o, cleanup := setupInstallTest(t)
-	defer cleanup()
+	o := setupInstallTest(t)
 
 	tests := []struct {
 		name        string
@@ -152,8 +150,7 @@ func TestInstallIfNeeded_Validates(t *testing.T) {
 }
 
 func TestInstallIfNeeded(t *testing.T) {
-	o, cleanup := setupInstallTest(t)
-	defer cleanup()
+	o := setupInstallTest(t)
 	out := o.Out.(*bytes.Buffer)
 
 	o.EnvoyVersion = version.LastKnownEnvoy
@@ -172,8 +169,7 @@ func TestInstallIfNeeded(t *testing.T) {
 }
 
 func TestInstallIfNeeded_NotFound(t *testing.T) {
-	o, cleanup := setupInstallTest(t)
-	defer cleanup()
+	o := setupInstallTest(t)
 
 	t.Run("unknown version", func(t *testing.T) {
 		o.Platform = "darwin/amd64"
@@ -190,8 +186,7 @@ func TestInstallIfNeeded_NotFound(t *testing.T) {
 }
 
 func TestInstallIfNeeded_AlreadyExists(t *testing.T) {
-	o, cleanup := setupInstallTest(t)
-	defer cleanup()
+	o := setupInstallTest(t)
 	out := o.Out.(*bytes.Buffer)
 
 	require.NoError(t, os.MkdirAll(filepath.Dir(o.EnvoyPath), 0700))
@@ -249,7 +244,7 @@ type installTest struct {
 	tarballURL version.TarballURL
 }
 
-func setupInstallTest(t *testing.T) (*installTest, func()) {
+func setupInstallTest(t *testing.T) *installTest {
 	versionsServer := test.RequireEnvoyVersionsTestServer(t, version.LastKnownEnvoy)
 	homeDir := t.TempDir()
 	setup := &installTest{
@@ -267,5 +262,6 @@ func setupInstallTest(t *testing.T) (*installTest, func()) {
 		},
 	}
 	setup.GetEnvoyVersions = NewGetVersions(setup.EnvoyVersionsURL, setup.Platform, setup.Version)
-	return setup, versionsServer.Close
+	t.Cleanup(versionsServer.Close)
+	return setup
 }

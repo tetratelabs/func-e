@@ -31,8 +31,7 @@ import (
 )
 
 func TestFuncEUse_VersionValidates(t *testing.T) {
-	o, cleanup := setupTest(t)
-	defer cleanup()
+	o := setupTest(t)
 
 	tests := []struct{ name, version, expectedErr string }{
 		{
@@ -63,9 +62,8 @@ func TestFuncEUse_VersionValidates(t *testing.T) {
 }
 
 func TestFuncEUse_InstallsAndWritesHomeVersion(t *testing.T) {
-	o, cleanup := setupTest(t)
+	o := setupTest(t)
 	evs := o.EnvoyVersion.String()
-	defer cleanup()
 
 	c, _, _ := newApp(o)
 	require.NoError(t, c.Run([]string{"func-e", "use", evs}))
@@ -81,8 +79,7 @@ func TestFuncEUse_InstallsAndWritesHomeVersion(t *testing.T) {
 
 // TODO: everything from here down in this file needs to be rewritten
 func TestFuncEUse_InstallMinorVersion(t *testing.T) {
-	o, cleanup := setupTest(t)
-	defer cleanup()
+	o := setupTest(t)
 
 	type testCase struct {
 		name           string
@@ -160,8 +157,7 @@ func TestFuncEUse_InstallMinorVersion(t *testing.T) {
 }
 
 func TestFuncEUse_InstallMinorVersionCheckLatestPatchFailed(t *testing.T) {
-	o, cleanup := setupTest(t)
-	defer cleanup()
+	o := setupTest(t)
 
 	// The initial version to be installed.
 	minorVersion := "1.12"
