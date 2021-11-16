@@ -50,8 +50,7 @@ func (r *runner) String() string {
 
 // TestFuncERun executes envoy then cancels the context. This results in no stdout
 func TestFuncERun(t *testing.T) {
-	o, cleanup := setupTest(t)
-	defer cleanup()
+	o := setupTest(t)
 
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
@@ -77,8 +76,7 @@ func TestFuncERun(t *testing.T) {
 }
 
 func TestFuncERun_TeesConsoleToLogs(t *testing.T) {
-	o, cleanup := setupTest(t)
-	defer cleanup()
+	o := setupTest(t)
 
 	c, stdout, stderr := newApp(o)
 	o.Out = io.Discard         // stdout/stderr only includes what envoy writes, not our status messages
@@ -97,10 +95,9 @@ func TestFuncERun_TeesConsoleToLogs(t *testing.T) {
 }
 
 func TestFuncERun_ReadsHomeVersionFile(t *testing.T) {
-	o, cleanup := setupTest(t)
+	o := setupTest(t)
 	o.EnvoyVersion = "" // pretend this is an initial setup
 	o.Out = new(bytes.Buffer)
-	defer cleanup()
 
 	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte(version.LastKnownEnvoyMinor), 0600))
 
@@ -117,10 +114,9 @@ func TestFuncERun_ReadsHomeVersionFile(t *testing.T) {
 }
 
 func TestFuncERun_CreatesHomeVersionFile(t *testing.T) {
-	o, cleanup := setupTest(t)
+	o := setupTest(t)
 	o.EnvoyVersion = "" // pretend this is an initial setup
 	o.Out = new(bytes.Buffer)
-	defer cleanup()
 
 	// make sure first run where the home doesn't exist yet, works!
 	require.NoError(t, os.RemoveAll(o.HomeDir))
@@ -144,9 +140,8 @@ func runWithoutConfig(t *testing.T, c *cli.App) {
 }
 
 func TestFuncERun_ValidatesHomeVersion(t *testing.T) {
-	o, cleanup := setupTest(t)
+	o := setupTest(t)
 	o.Out = new(bytes.Buffer)
-	defer cleanup()
 
 	o.EnvoyVersion = ""
 	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte("a.a.a"), 0600))
@@ -161,10 +156,9 @@ func TestFuncERun_ValidatesHomeVersion(t *testing.T) {
 
 // TestFuncERun_ValidatesWorkingVersion duplicates logic in version_test.go to ensure a non-home version validates.
 func TestFuncERun_ValidatesWorkingVersion(t *testing.T) {
-	o, cleanup := setupTest(t)
+	o := setupTest(t)
 	o.Out = new(bytes.Buffer)
 	o.EnvoyVersion = ""
-	defer cleanup()
 
 	revertWd := morerequire.RequireChdir(t, t.TempDir())
 	defer revertWd()

@@ -238,7 +238,7 @@ func runTestCommand(t *testing.T, o *globals.GlobalOpts, args []string) error {
 
 // setupTest returns globals.GlobalOpts and a tear-down function.
 // The tear-down functions reverts side-effects such as temp directories and a fake Envoy versions server.
-func setupTest(t *testing.T) (*globals.GlobalOpts, func()) {
+func setupTest(t *testing.T) *globals.GlobalOpts {
 	result := globals.GlobalOpts{}
 	result.EnvoyVersion = version.LastKnownEnvoy
 	result.Out = io.Discard // ignore logging by default
@@ -256,9 +256,10 @@ func setupTest(t *testing.T) (*globals.GlobalOpts, func()) {
 
 	result.GetEnvoyVersions = envoy.NewGetVersions(result.EnvoyVersionsURL, result.Platform, result.Version)
 
-	return &result, func() {
+	t.Cleanup(func() {
 		for i := len(tearDown) - 1; i >= 0; i-- {
 			tearDown[i]()
 		}
-	}
+	})
+	return &result
 }

@@ -29,8 +29,7 @@ func (r *runner) Which(ctx context.Context, args []string) error {
 }
 
 func TestFuncEWhich(t *testing.T) {
-	o, cleanup := setupTest(t)
-	defer cleanup()
+	o := setupTest(t)
 
 	c, stdout, stderr := newApp(o)
 

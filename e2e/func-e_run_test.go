@@ -52,8 +52,7 @@ var (
 func TestFuncERun(t *testing.T) {
 	t.Parallel() // uses random ports so safe to run parallel
 
-	cmd, cleanup := envoyRunTest(t, nil, minRunArgs...)
-	defer cleanup()
+	cmd := envoyRunTest(t, nil, minRunArgs...)
 
 	verifyRunArchive(t, cmd)
 }
@@ -68,7 +67,7 @@ func TestFuncERun_StaticFilesystem(t *testing.T) {
 	responseFromRunDirectory := []byte("foo")
 	require.NoError(t, os.WriteFile("response.txt", responseFromRunDirectory, 0600))
 
-	_, cleanup := envoyRunTest(t, func(ctx context.Context, c *funcE, a *adminClient) {
+	_ = envoyRunTest(t, func(ctx context.Context, c *funcE, a *adminClient) {
 		mainURL, err := a.getMainListenerURL(ctx)
 		require.NoError(t, err, "couldn't read mainURL after running [%v]", c)
 
@@ -78,8 +77,6 @@ func TestFuncERun_StaticFilesystem(t *testing.T) {
 		// If this passes, we know Envoy is running in the current directory, so can resolve relative configuration.
 		require.Equal(t, responseFromRunDirectory, body, "unexpected content in %s after running [%v]", mainURL, c)
 	}, "run", "-c", "envoy.yaml")
-
-	cleanup()
 }
 
 // envoyRunTest runs the given args and the test function once envoy is available. This returns the command and a
@@ -87,7 +84,7 @@ func TestFuncERun_StaticFilesystem(t *testing.T) {
 //
 // If the process successfully starts, this blocks until the adminClient is available.  The process is interrupted when
 // the test completes, or a timeout occurs.
-func envoyRunTest(t *testing.T, test func(context.Context, *funcE, *adminClient), args ...string) (*funcE, func()) {
+func envoyRunTest(t *testing.T, test func(context.Context, *funcE, *adminClient), args ...string) *funcE {
 	ctx, cancel := context.WithTimeout(context.Background(), runTimeout)
 	defer cancel()
 
@@ -145,10 +142,12 @@ func envoyRunTest(t *testing.T, test func(context.Context, *funcE, *adminClient)
 	_, err = process.NewProcessWithContext(ctx, c.envoyPid) // because os.FindProcess is no-op in Linux!
 	require.Error(t, err, "expected func-e to terminate Envoy after running [%v]", c)
 
-	return c, func() {
+	t.Cleanup(func() {
 		// this may not be present if the process was kill -9'd so don't error
-		os.Remove(c.runDir + ".tar.gz") //nolint
-	}
+		require.NoError(t, os.Remove(c.runDir+".tar.gz"))
+	})
+
+	return c
 }
 
 func runTestAndInterruptEnvoy(ctx context.Context, t *testing.T, c *funcE, test func(context.Context, *funcE, *adminClient)) {
