@@ -144,7 +144,7 @@ func envoyRunTest(t *testing.T, test func(context.Context, *funcE, *adminClient)
 
 	t.Cleanup(func() {
 		// this may not be present if the process was kill -9'd so don't error
-		require.NoError(t, os.Remove(c.runDir+".tar.gz"))
+		_ = os.Remove(c.runDir + ".tar.gz")
 	})
 
 	return c

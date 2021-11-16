@@ -262,8 +262,6 @@ func setupInstallTest(t *testing.T) *installTest {
 		},
 	}
 	setup.GetEnvoyVersions = NewGetVersions(setup.EnvoyVersionsURL, setup.Platform, setup.Version)
-	t.Cleanup(func() {
-		versionsServer.Close()
-	})
+	t.Cleanup(versionsServer.Close)
 	return setup
 }

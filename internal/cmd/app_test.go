@@ -242,7 +242,6 @@ func setupTest(t *testing.T) *globals.GlobalOpts {
 	result := globals.GlobalOpts{}
 	result.EnvoyVersion = version.LastKnownEnvoy
 	result.Out = io.Discard // ignore logging by default
-	var tearDown []func()
 
 	tempDir := t.TempDir()
 
@@ -252,14 +251,8 @@ func setupTest(t *testing.T) *globals.GlobalOpts {
 
 	versionsServer := test.RequireEnvoyVersionsTestServer(t, version.LastKnownEnvoy)
 	result.EnvoyVersionsURL = versionsServer.URL + "/envoy-versions.json"
-	tearDown = append(tearDown, versionsServer.Close)
-
 	result.GetEnvoyVersions = envoy.NewGetVersions(result.EnvoyVersionsURL, result.Platform, result.Version)
 
-	t.Cleanup(func() {
-		for i := len(tearDown) - 1; i >= 0; i-- {
-			tearDown[i]()
-		}
-	})
+	t.Cleanup(versionsServer.Close)
 	return &result
 }
