@@ -79,14 +79,10 @@ build: $(current_binary) ## Build the func-e binary
 
 test: ## Run all unit tests
 	@printf "$(ansi_format_dark)" test "running unit tests"
-	@$(go) test . ./internal/...
+	@$(go) test $(main_packages)
 	@printf "$(ansi_format_bright)" test "ok"
 
-# coverage_packages is a lazy inclusion of source packages that comprise the binary.
-# To do this in make, we collect the unique main source directories (sort will dedupe).
-# Paths need to all start with ./, so we do that manually vs foreach which strips it.
-main_packages = $(sort $(foreach f,$(dir $(main_sources)),$(if $(findstring ./,$(f)),./,./$(f))))
-coverpkg      = $(subst $(space),$(comma),$(main_packages))
+coverpkg = $(subst $(space),$(comma),$(main_packages))
 coverage: ## Generate test coverage
 	@printf "$(ansi_format_dark)" coverage "running unit tests with coverage"
 	@$(go) test -coverprofile=coverage.txt -covermode=atomic --coverpkg=$(coverpkg) $(main_packages)
@@ -107,10 +103,14 @@ non_windows_platforms := darwin_amd64 darwin_arm64 $(linux_platforms)
 windows_platforms     := windows_amd64
 
 # Make 3.81 doesn't support '**' globbing: Set explicitly instead of recursion.
-all_patterns := *.go */*.go */*/*.go */*/*/*.go */*/*/*.go */*/*/*/*.go
-all_sources  := $(wildcard $(all_patterns))
+all_sources   := $(wildcard *.go */*.go */*/*.go */*/*/*.go */*/*/*.go */*/*/*/*.go)
+all_testdata  := $(wildcard testdata/* */testdata/* */*/testdata/* */*/*/testdata/*)
+all_testutil  := $(wildcard internal/test/* internal/test/*/* internal/test/*/*/*)
 # main_sources compose the binary, so exclude tests, test utilities and linters
-main_sources := $(wildcard $(subst *,*[!_test],$(all_patterns)))
+main_sources  := $(wildcard $(filter-out %_test.go $(all_testdata) $(all_testutil) $(wildcard lint/*), $(all_sources)))
+# main_packages collect the unique main source directories (sort will dedupe).
+# Paths need to all start with ./, so we do that manually vs foreach which strips it.
+main_packages := $(sort $(foreach f,$(dir $(main_sources)),$(if $(findstring ./,$(f)),./,./$(f))))
 
 build/func-e_%/func-e: $(main_sources)
 	$(call go-build,$@,$<)
