@@ -39,7 +39,7 @@ func (r *Runtime) handleShutdown(ctx context.Context) {
 	timeout, cancel := context.WithDeadline(ctx, deadline)
 	defer cancel()
 
-	_, _ = moreos.Fprintf(r.Out, "invoking shutdown hooks with deadline %s\n", deadline.Format(dateFormat))
+	moreos.Fprintf(r.Out, "invoking shutdown hooks with deadline %s\n", deadline.Format(dateFormat))
 
 	// Run each hook in parallel, logging each error
 	var wg sync.WaitGroup
@@ -49,7 +49,7 @@ func (r *Runtime) handleShutdown(ctx context.Context) {
 		go func() {
 			defer wg.Done()
 			if err := f(timeout); err != nil {
-				_, _ = moreos.Fprintf(r.Out, "failed shutdown hook: %s\n", err)
+				moreos.Fprintf(r.Out, "failed shutdown hook: %s\n", err)
 			}
 		}()
 	}
@@ -58,7 +58,7 @@ func (r *Runtime) handleShutdown(ctx context.Context) {
 
 func (r *Runtime) interruptEnvoy() {
 	p := r.cmd.Process
-	_, _ = moreos.Fprintf(r.Out, "sending interrupt to envoy (pid=%d)\n", p.Pid)
+	moreos.Fprintf(r.Out, "sending interrupt to envoy (pid=%d)\n", p.Pid)
 	r.maybeWarn(moreos.Interrupt(p))
 }
 

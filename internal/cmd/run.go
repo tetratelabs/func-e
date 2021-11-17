@@ -80,7 +80,7 @@ state. On exit, these archive into ` + fmt.Sprintf("`%s.tar.gz`", runDirectoryEx
 
 			for _, enableShutdownHook := range shutdown.EnableHooks {
 				if err := enableShutdownHook(r); err != nil {
-					_, _ = moreos.Fprintf(r.Out, "failed to enable shutdown hook: %s\n", err)
+					moreos.Fprintf(r.Out, "failed to enable shutdown hook: %s\n", err)
 				}
 			}
 

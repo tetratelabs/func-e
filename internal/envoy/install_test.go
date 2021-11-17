@@ -67,7 +67,7 @@ func TestUntarEnvoyError(t *testing.T) {
 
 	realHandler = func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(200)
-		_, _ = w.Write([]byte("mary had a little lamb"))
+		w.Write([]byte("mary had a little lamb")) //nolint
 	}
 	t.Run("error on not a tar", func(t *testing.T) {
 		err := untarEnvoy(ctx, dst, url, tarballSHA256sum, globals.DefaultPlatform, "dev")
@@ -76,7 +76,7 @@ func TestUntarEnvoyError(t *testing.T) {
 
 	realHandler = func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(200)
-		_, _ = w.Write(tarball)
+		w.Write(tarball) //nolint
 	}
 	t.Run("error on wrong sha256sum a tar", func(t *testing.T) {
 		err := untarEnvoy(ctx, dst, url, "cafebabe", globals.DefaultPlatform, "dev")

@@ -51,10 +51,10 @@ func run(stdout, stderr io.Writer, args []string) int {
 	}
 	if err := app.Run(args); err != nil {
 		if _, ok := err.(*cmdutil.ValidationError); ok {
-			_, _ = moreos.Fprintf(stderr, "%s\n", err)
+			moreos.Fprintf(stderr, "%s\n", err)
 			logUsageError(app.Name, stderr)
 		} else {
-			_, _ = moreos.Fprintf(stderr, "error: %s\n", err)
+			moreos.Fprintf(stderr, "error: %s\n", err)
 		}
 		return 1
 	}
@@ -62,5 +62,5 @@ func run(stdout, stderr io.Writer, args []string) int {
 }
 
 func logUsageError(name string, stderr io.Writer) {
-	_, _ = moreos.Fprintf(stderr, "show usage with: %s help\n", name)
+	moreos.Fprintf(stderr, "show usage with: %s help\n", name)
 }

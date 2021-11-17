@@ -95,11 +95,13 @@ func Sprintf(format string, a ...interface{}) string {
 }
 
 // Fprintf is like fmt.Fprintf, but handles EOL according runtime.GOOS. See Sprintf for notes.
-func Fprintf(w io.Writer, format string, a ...interface{}) (n int, err error) {
+func Fprintf(w io.Writer, format string, a ...interface{}) {
 	if runtime.GOOS != OSWindows {
-		return fmt.Fprintf(w, format, a...)
+		_, _ = fmt.Fprintf(w, format, a...)
+		return
 	}
-	return fmt.Fprint(w, Sprintf(format, a...))
+
+	_, _ = fmt.Fprint(w, Sprintf(format, a...))
 }
 
 // ProcessGroupAttr sets attributes that ensure exec.Cmd doesn't propagate signals from func-e by default.

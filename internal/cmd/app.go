@@ -174,7 +174,7 @@ func setHomeDir(o *globals.GlobalOpts, homeDir string) error {
 }
 
 func printVersion(c *cli.Context) {
-	_, _ = moreos.Fprintf(c.App.Writer, "%v version %v\n", c.App.Name, c.App.Version)
+	moreos.Fprintf(c.App.Writer, "%v version %v\n", c.App.Name, c.App.Version)
 }
 
 var defaultFlagStringer = cli.FlagStringer

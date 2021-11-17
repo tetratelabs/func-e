@@ -74,9 +74,9 @@ func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 				// TODO: handle when currentVersion is a MinorVersion
 				pv, ok := currentVersion.(version.PatchVersion)
 				if ok && vr.version == pv {
-					_, _ = moreos.Fprintf(w, "* %s %s (set by %s)\n", vr.version, vr.releaseDate, currentVersionSource)
+					moreos.Fprintf(w, "* %s %s (set by %s)\n", vr.version, vr.releaseDate, currentVersionSource)
 				} else {
-					_, _ = moreos.Fprintf(w, "  %s %s\n", vr.version, vr.releaseDate)
+					moreos.Fprintf(w, "  %s %s\n", vr.version, vr.releaseDate)
 				}
 			}
 			return w.Flush()

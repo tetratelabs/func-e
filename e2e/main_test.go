@@ -94,13 +94,13 @@ func mockEnvoyVersionsServer() (*httptest.Server, error) {
 			h := r.Header.Get(k)
 			if h != v {
 				w.WriteHeader(500)
-				_, _ = w.Write([]byte(moreos.Sprintf("invalid %q: %s != %s\n", k, h, v)))
+				w.Write([]byte(moreos.Sprintf("invalid %q: %s != %s\n", k, h, v))) //nolint
 				return
 			}
 		}
 		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(200)
-		_, _ = w.Write(b)
+		w.Write(b) //nolint
 	}))
 	return ts, nil
 }
