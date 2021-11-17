@@ -50,7 +50,7 @@ func RequireFakeEnvoy(t *testing.T, path string) {
 	builtFakeEnvoy.Do(func() {
 		fakeEnvoyBin = RequireBuildFakeBinary(t, t.TempDir(), "envoy", fakeEnvoySrc)
 	})
-	require.NoError(t, os.WriteFile(path, fakeEnvoyBin, 0700)) //nolint:gosec
+	require.NoError(t, os.WriteFile(path, fakeEnvoyBin, 0o700)) //nolint:gosec
 }
 
 // RequireBuildFakeBinary builds a fake binary and returns its contents.
@@ -59,17 +59,17 @@ func RequireBuildFakeBinary(t *testing.T, workDir, name string, mainSrc []byte) 
 
 	bin := name + exe
 	goArgs := []string{"build", "-o", bin, "main.go"}
-	require.NoError(t, os.WriteFile(filepath.Join(workDir, "main.go"), mainSrc, 0600))
+	require.NoError(t, os.WriteFile(filepath.Join(workDir, "main.go"), mainSrc, 0o600))
 
 	// Don't allow any third party dependencies for now.
 	require.NoError(t, os.WriteFile(filepath.Join(workDir, "go.mod"),
-		[]byte("module github.com/tetratelabs/func-e\n\ngo 1.17\n"), 0600))
+		[]byte("module github.com/tetratelabs/func-e\n\ngo 1.17\n"), 0o600))
 
 	cmd := exec.Command(goBin, goArgs...) //nolint:gosec
 	cmd.Dir = workDir
 	out, err := cmd.CombinedOutput()
 	require.NoError(t, err, "couldn't compile %s: %s", bin, string(out))
-	bytes, err := os.ReadFile(filepath.Join(workDir, bin))
+	bytes, err := os.ReadFile(filepath.Join(workDir, bin)) //nolint:gosec
 	require.NoError(t, err)
 	return bytes
 }

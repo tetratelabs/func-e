@@ -62,7 +62,7 @@ state. On exit, these archive into ` + fmt.Sprintf("`%s.tar.gz`", runDirectoryEx
 			}
 			r := envoy.NewRuntime(&o.RunOpts)
 
-			stdoutLog, err := os.OpenFile(filepath.Join(r.GetRunDir(), "stdout.log"), os.O_CREATE|os.O_WRONLY, 0600)
+			stdoutLog, err := os.OpenFile(filepath.Join(r.GetRunDir(), "stdout.log"), os.O_CREATE|os.O_WRONLY, 0o600)
 			if err != nil {
 				return fmt.Errorf("couldn't create stdout log file: %w", err)
 			}
@@ -70,7 +70,7 @@ state. On exit, these archive into ` + fmt.Sprintf("`%s.tar.gz`", runDirectoryEx
 			r.OutFile = stdoutLog
 			r.Out = io.MultiWriter(c.App.Writer, stdoutLog)
 
-			stderrLog, err := os.OpenFile(filepath.Join(r.GetRunDir(), "stderr.log"), os.O_CREATE|os.O_WRONLY, 0600)
+			stderrLog, err := os.OpenFile(filepath.Join(r.GetRunDir(), "stderr.log"), os.O_CREATE|os.O_WRONLY, 0o600)
 			if err != nil {
 				return fmt.Errorf("couldn't create stderr log file: %w", err)
 			}
@@ -108,7 +108,7 @@ func initializeRunOpts(ctx context.Context, o *globals.GlobalOpts) error {
 		runDir := filepath.Join(filepath.Join(o.HomeDir, "runs"), runID)
 
 		// Eagerly create the run dir, so that errors raise early
-		if err := os.MkdirAll(runDir, 0750); err != nil {
+		if err := os.MkdirAll(runDir, 0o750); err != nil {
 			return NewValidationError("unable to create working directory %q, so we cannot run envoy", runDir)
 		}
 		runOpts.RunDir = runDir

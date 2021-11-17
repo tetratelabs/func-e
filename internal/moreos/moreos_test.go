@@ -54,7 +54,7 @@ func TestIsExecutable(t *testing.T) {
 	tempDir := t.TempDir()
 
 	bin := filepath.Join(tempDir, "envoy"+Exe)
-	require.NoError(t, os.WriteFile(bin, []byte{}, 0700))
+	require.NoError(t, os.WriteFile(bin, []byte{}, 0o700))
 
 	f, err := os.Stat(bin)
 	require.NoError(t, err)
@@ -66,7 +66,7 @@ func TestIsExecutable_Not(t *testing.T) {
 	tempDir := t.TempDir()
 
 	bin := filepath.Join(tempDir, "foo.txt")
-	require.NoError(t, os.WriteFile(bin, []byte{}, 0600))
+	require.NoError(t, os.WriteFile(bin, []byte{}, 0o600))
 
 	f, err := os.Stat(bin)
 	require.NoError(t, err)

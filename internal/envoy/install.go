@@ -60,7 +60,7 @@ func InstallIfNeeded(ctx context.Context, o *globals.GlobalOpts) (string, error)
 		if mtime, err = time.Parse("2006-01-02", string(evs.Versions[v].ReleaseDate)); err != nil {
 			return "", fmt.Errorf("couldn't find releaseDate of version %q for platform %q: %w", v, o.Platform, err)
 		}
-		if err = os.MkdirAll(installPath, 0750); err != nil {
+		if err = os.MkdirAll(installPath, 0o750); err != nil {
 			return "", fmt.Errorf("unable to create directory %q: %w", installPath, err)
 		}
 		o.Logf("downloading %s\n", tarballURL)                                                            //nolint

@@ -1,22 +1,22 @@
 .nh
-.TH func\-e 8
+.TH func-e 8
 
 .SH NAME
 .PP
-func\-e \- Install and run Envoy
+func-e - Install and run Envoy
 
 
 .SH SYNOPSIS
 .PP
-func\-e
+func-e
 
 .PP
 .RS
 
 .nf
-[\-\-envoy\-versions\-url]=[value]
-[\-\-home\-dir]=[value]
-[\-\-platform]=[value]
+[--envoy-versions-url]=[value]
+[--home-dir]=[value]
+[--platform]=[value]
 
 .fi
 .RE
@@ -24,24 +24,24 @@ func\-e
 
 .SH DESCRIPTION
 .PP
-To run Envoy, execute \fB\fCfunc\-e run \-c your\_envoy\_config.yaml\fR\&. This
+To run Envoy, execute \fB\fCfunc-e run -c your_envoy_config.yaml\fR\&. This
    downloads and installs the latest version of Envoy for you.
 
 .PP
-To list versions of Envoy you can use, execute \fB\fCfunc\-e versions \-a\fR\&. To
-   choose one, invoke \fB\fCfunc\-e use 1.20.0\fR\&. This installs into
-   \fB\fC$FUNC\_E\_HOME/versions/1.20.0\fR, if not already present. You may also use
-   minor version, such as \fB\fCfunc\-e use 1.20\fR\&.
+To list versions of Envoy you can use, execute \fB\fCfunc-e versions -a\fR\&. To
+   choose one, invoke \fB\fCfunc-e use 1.20.0\fR\&. This installs into
+   \fB\fC$FUNC_E_HOME/versions/1.20.0\fR, if not already present. You may also use
+   minor version, such as \fB\fCfunc-e use 1.20\fR\&.
 
 .PP
-You may want to override \fB\fC$ENVOY\_VERSIONS\_URL\fR to supply custom builds or
+You may want to override \fB\fC$ENVOY_VERSIONS_URL\fR to supply custom builds or
    otherwise control the source of Envoy binaries. When overriding, validate
-   your JSON first: https://archive.tetratelabs.io/release\-versions\-schema.json
+   your JSON first: https://archive.tetratelabs.io/release-versions-schema.json
 
 .PP
 Advanced:
-   \fB\fCFUNC\_E\_PLATFORM\fR overrides the host OS and architecture of Envoy binaries.
-   This value must be constant within a \fB\fC$FUNC\_E\_HOME\fR\&.
+   \fB\fCFUNC_E_PLATFORM\fR overrides the host OS and architecture of Envoy binaries.
+   This value must be constant within a \fB\fC$FUNC_E_HOME\fR\&.
 
 .PP
 \fBUsage\fP:
@@ -50,7 +50,7 @@ Advanced:
 .RS
 
 .nf
-func\-e [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
+func-e [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 .fi
 .RE
@@ -58,13 +58,13 @@ func\-e [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 .SH GLOBAL OPTIONS
 .PP
-\fB\-\-envoy\-versions\-url\fP="": URL of Envoy versions JSON
+\fB--envoy-versions-url\fP="": URL of Envoy versions JSON
 
 .PP
-\fB\-\-home\-dir\fP="": func\-e home directory (location of installed versions and run archives)
+\fB--home-dir\fP="": func-e home directory (location of installed versions and run archives)
 
 .PP
-\fB\-\-platform\fP="": the host OS and architecture of Envoy binaries. Ex. darwin/arm64
+\fB--platform\fP="": the host OS and architecture of Envoy binaries. Ex. darwin/arm64
 
 
 .SH COMMANDS
@@ -81,7 +81,7 @@ Run Envoy with the given [arguments...] until interrupted
 List Envoy versions
 
 .PP
-\fB\-\-all, \-a\fP: Show all versions including ones not yet installed
+\fB--all, -a\fP: Show all versions including ones not yet installed
 
 .SH use
 .PP

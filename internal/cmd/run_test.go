@@ -33,7 +33,7 @@ import (
 
 func TestEnsureEnvoyVersion(t *testing.T) {
 	o := &globals.GlobalOpts{HomeDir: t.TempDir()}
-	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte(version.LastKnownEnvoy.String()), 0600))
+	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte(version.LastKnownEnvoy.String()), 0o600))
 
 	err := ensureEnvoyVersion(&cli.Context{Context: context.Background()}, o)
 	require.NoError(t, err)
@@ -42,7 +42,7 @@ func TestEnsureEnvoyVersion(t *testing.T) {
 
 func TestEnsureEnvoyVersion_ErrorIsAValidationError(t *testing.T) {
 	o := &globals.GlobalOpts{HomeDir: t.TempDir()}
-	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte("a.b.c"), 0600))
+	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte("a.b.c"), 0o600))
 
 	expectedErr := fmt.Sprintf(`invalid version in "$FUNC_E_HOME/version": "a.b.c" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
 	err := ensureEnvoyVersion(&cli.Context{Context: context.Background()}, o)
@@ -53,7 +53,7 @@ func TestEnsureEnvoyVersion_ErrorIsAValidationError(t *testing.T) {
 func TestSetEnvoyVersion_ReadsExistingPatchVersion(t *testing.T) {
 	o := &globals.GlobalOpts{HomeDir: t.TempDir()}
 
-	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte("1.18.13"), 0600))
+	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte("1.18.13"), 0o600))
 
 	err := setEnvoyVersion(context.Background(), o)
 	require.NoError(t, err)
@@ -73,7 +73,7 @@ func TestSetEnvoyVersion_LooksUpLatestPatchForExistingMinorVersion(t *testing.T)
 		Platform: globals.DefaultPlatform,
 	}
 
-	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte("1.18"), 0600))
+	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte("1.18"), 0o600))
 
 	err := setEnvoyVersion(context.Background(), o)
 	require.NoError(t, err)
@@ -85,7 +85,7 @@ func TestSetEnvoyVersion_LooksUpLatestPatchForExistingMinorVersion(t *testing.T)
 
 func TestSetEnvoyVersion_ErrorReadingExistingVersion(t *testing.T) {
 	o := &globals.GlobalOpts{HomeDir: t.TempDir()}
-	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte("a.b.c"), 0600))
+	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte("a.b.c"), 0o600))
 
 	expectedErr := fmt.Sprintf(`invalid version in "$FUNC_E_HOME/version": "a.b.c" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
 	err := setEnvoyVersion(context.Background(), o)
@@ -259,7 +259,7 @@ func TestEnsurePatchVersion_FallbackSuccess(t *testing.T) {
 			}
 
 			lastKnownEnvoyDir := filepath.Join(o.HomeDir, "versions", "1.18.14")
-			require.NoError(t, os.MkdirAll(lastKnownEnvoyDir, 0700))
+			require.NoError(t, os.MkdirAll(lastKnownEnvoyDir, 0o700))
 
 			// Ensure that when we ask for a minor, the latest version is returned from the filesystem
 			actual, err := ensurePatchVersion(context.Background(), o, version.MinorVersion("1.18"))

@@ -49,7 +49,7 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 	}
 
 	// Warn, but don't fail if we can't write the pid file for some reason
-	r.maybeWarn(os.WriteFile(r.pidPath, []byte(strconv.Itoa(cmd.Process.Pid)), 0600))
+	r.maybeWarn(os.WriteFile(r.pidPath, []byte(strconv.Itoa(cmd.Process.Pid)), 0o600))
 
 	waitCtx, waitCancel := context.WithCancel(ctx)
 	defer waitCancel()
