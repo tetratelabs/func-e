@@ -127,7 +127,7 @@ func RequireFakeEnvoyTarGz(t *testing.T, v version.PatchVersion) ([]byte, versio
 	// Read the tar.gz into a byte array. This allows the mock server to set content length correctly
 	f, err := os.Open(tempGz)
 	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, f.Close()) })
+	defer f.Close() //nolint
 	b, err := io.ReadAll(f)
 	require.NoError(t, err)
 	return b, version.SHA256Sum(fmt.Sprintf("%x", sha256.Sum256(b)))

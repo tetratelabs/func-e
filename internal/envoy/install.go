@@ -98,7 +98,7 @@ func untarEnvoy(ctx context.Context, dst string, src version.TarballURL, // dst,
 	if err != nil {
 		return err
 	}
-	defer func() { _ = res.Body.Close() }()
+	defer res.Body.Close() //nolint
 
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("received %v status code from %s", res.StatusCode, src)

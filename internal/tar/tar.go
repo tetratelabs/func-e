@@ -21,6 +21,7 @@ import (
 	"compress/gzip"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"hash"
 	"io"
@@ -82,7 +83,7 @@ func Untar(dst string, src io.Reader) error { // dst, src order like io.Copy
 	tr := tar.NewReader(zSrc)
 	for {
 		header, err := tr.Next()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		} else if err != nil {
 			return err
@@ -152,11 +153,11 @@ func TarGz(dst, src string) error { // dst, src order like io.Copy
 	if err != nil {
 		return err
 	}
-	defer func() { _ = file.Close() }()
+	defer file.Close() //nolint
 	gzw := gzip.NewWriter(file)
-	defer func() { _ = gzw.Close() }()
+	defer gzw.Close() //nolint
 	tw := tar.NewWriter(gzw)
-	defer func() { _ = tw.Close() }()
+	defer tw.Close() //nolint
 
 	// Recurse through the path including all files and directories
 	return fs.WalkDir(srcFS, basePath, func(path string, d os.DirEntry, err error) error {

@@ -18,6 +18,7 @@ import (
 	"bufio"
 	"bytes"
 	"embed"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -176,7 +177,7 @@ func requireFindProcessError(t *testing.T, proc *os.Process, expectedErr error) 
 	// Wait until the operating system removes or adds the scheduled process.
 	require.Eventually(t, func() bool {
 		_, err := process.NewProcess(int32(proc.Pid)) // because os.FindProcess is no-op in Linux!
-		return err == expectedErr
+		return errors.Is(err, expectedErr)
 	}, 100*time.Millisecond, 5*time.Millisecond, "timeout waiting for expected error %v", expectedErr)
 }
 
