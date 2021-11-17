@@ -61,7 +61,7 @@ func main() {
 	// We don't echo the admin address intentionally as it makes tests complicated as they
 	// would have to use regex to address the random port value.
 	if adminAddressPath != "" {
-		os.WriteFile(adminAddressPath, []byte(adminAddress), 0600)
+		os.WriteFile(adminAddressPath, []byte(adminAddress), 0o600)
 	}
 
 	// Echo the same line Envoy would on successful startup

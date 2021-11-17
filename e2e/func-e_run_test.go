@@ -63,9 +63,9 @@ func TestFuncERun_StaticFilesystem(t *testing.T) {
 	revertWd := morerequire.RequireChdir(t, t.TempDir())
 	defer revertWd()
 
-	require.NoError(t, os.WriteFile("envoy.yaml", staticFilesystemConfig, 0600))
+	require.NoError(t, os.WriteFile("envoy.yaml", staticFilesystemConfig, 0o600))
 	responseFromRunDirectory := []byte("foo")
-	require.NoError(t, os.WriteFile("response.txt", responseFromRunDirectory, 0600))
+	require.NoError(t, os.WriteFile("response.txt", responseFromRunDirectory, 0o600))
 
 	_ = envoyRunTest(t, func(ctx context.Context, c *funcE, a *adminClient) {
 		mainURL, err := a.getMainListenerURL(ctx)

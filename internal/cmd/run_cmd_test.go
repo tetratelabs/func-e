@@ -99,7 +99,7 @@ func TestFuncERun_ReadsHomeVersionFile(t *testing.T) {
 	o.EnvoyVersion = "" // pretend this is an initial setup
 	o.Out = new(bytes.Buffer)
 
-	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte(version.LastKnownEnvoyMinor), 0600))
+	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte(version.LastKnownEnvoyMinor), 0o600))
 
 	c, _, _ := newApp(o)
 	runWithoutConfig(t, c)
@@ -144,7 +144,7 @@ func TestFuncERun_ValidatesHomeVersion(t *testing.T) {
 	o.Out = new(bytes.Buffer)
 
 	o.EnvoyVersion = ""
-	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte("a.a.a"), 0600))
+	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte("a.a.a"), 0o600))
 
 	c, _, _ := newApp(o)
 	err := c.Run([]string{"func-e", "run"})
@@ -162,7 +162,7 @@ func TestFuncERun_ValidatesWorkingVersion(t *testing.T) {
 
 	revertWd := morerequire.RequireChdir(t, t.TempDir())
 	defer revertWd()
-	require.NoError(t, os.WriteFile(".envoy-version", []byte("b.b.b"), 0600))
+	require.NoError(t, os.WriteFile(".envoy-version", []byte("b.b.b"), 0o600))
 
 	c, _, _ := newApp(o)
 	err := c.Run([]string{"func-e", "run"})

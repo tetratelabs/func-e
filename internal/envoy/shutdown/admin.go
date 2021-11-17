@@ -73,7 +73,7 @@ func (e *envoyAdminDataCollection) retrieveAdminAPIData(ctx context.Context) err
 
 func copyURLToFile(ctx context.Context, url, fullPath string) error {
 	// #nosec -> e.workingDir is allowed to be anywhere
-	f, err := os.OpenFile(fullPath, os.O_CREATE|os.O_WRONLY, 0600)
+	f, err := os.OpenFile(fullPath, os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {
 		return fmt.Errorf("could not open %q: %w", fullPath, err)
 	}

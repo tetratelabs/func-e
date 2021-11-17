@@ -115,7 +115,7 @@ func RequireFakeEnvoyTarGz(t *testing.T, v version.PatchVersion) ([]byte, versio
 
 	// construct the platform directory based on the input version
 	installDir := filepath.Join(tempDir, v.String())
-	require.NoError(t, os.MkdirAll(filepath.Join(installDir, "bin"), 0700)) //nolint:gosec
+	require.NoError(t, os.MkdirAll(filepath.Join(installDir, "bin"), 0o700)) //nolint:gosec
 	fakebinary.RequireFakeEnvoy(t, filepath.Join(installDir, "bin", "envoy"+moreos.Exe))
 
 	// tar.gz the platform dir

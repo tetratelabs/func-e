@@ -36,14 +36,14 @@ const (
 // if the former is present.
 func WriteCurrentVersion(v version.Version, homeDir string) error {
 	if _, err := os.Stat(".envoy-version"); os.IsNotExist(err) {
-		if e := os.MkdirAll(homeDir, 0750); e != nil {
+		if e := os.MkdirAll(homeDir, 0o750); e != nil {
 			return e
 		}
-		return os.WriteFile(filepath.Join(homeDir, "version"), []byte(v.String()), 0600)
+		return os.WriteFile(filepath.Join(homeDir, "version"), []byte(v.String()), 0o600)
 	} else if err != nil {
 		return err
 	}
-	return os.WriteFile(".envoy-version", []byte(v.String()), 0600)
+	return os.WriteFile(".envoy-version", []byte(v.String()), 0o600)
 }
 
 // CurrentVersion returns the first version in priority of VersionUsageList and its source or an error. The "source"
@@ -90,7 +90,7 @@ func getCurrentVersion(homeDir string) (v, source string, err error) {
 
 func getHomeVersion(homeDir string) (v string, err error) {
 	var data []byte
-	if data, err = os.ReadFile(filepath.Join(homeDir, "version")); err == nil {
+	if data, err = os.ReadFile(filepath.Join(homeDir, "version")); err == nil { //nolint:gosec
 		v = strings.TrimSpace(string(data))
 	} else if os.IsNotExist(err) {
 		err = nil // ok on file-not-found

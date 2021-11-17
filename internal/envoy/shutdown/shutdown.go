@@ -45,5 +45,5 @@ func writeJSON(result interface{}, filename string) error {
 	if err := json.NewEncoder(sb).Encode(result); err != nil {
 		return fmt.Errorf("error serializing %v as JSON: %w", sb, err)
 	}
-	return os.WriteFile(filename, []byte(sb.String()), 0600)
+	return os.WriteFile(filename, []byte(sb.String()), 0o600)
 }

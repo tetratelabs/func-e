@@ -246,7 +246,7 @@ func setupTest(t *testing.T) *globals.GlobalOpts {
 	tempDir := t.TempDir()
 
 	result.HomeDir = filepath.Join(tempDir, "envoy_home")
-	err := os.Mkdir(result.HomeDir, 0700)
+	err := os.Mkdir(result.HomeDir, 0o700)
 	require.NoError(t, err, `error creating directory: %s`, result.HomeDir)
 
 	versionsServer := test.RequireEnvoyVersionsTestServer(t, version.LastKnownEnvoy)

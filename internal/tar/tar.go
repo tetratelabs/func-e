@@ -69,7 +69,7 @@ func UntarAndVerify(dst string, src io.Reader, sha256Sum version.SHA256Sum) erro
 // To keep the binary size small, only supports compression formats used in practice. As of May 2021, all
 // "tarballURL" from stable releases were "tar.xz".
 func Untar(dst string, src io.Reader) error { // dst, src order like io.Copy
-	if err := os.MkdirAll(dst, 0750); err != nil {
+	if err := os.MkdirAll(dst, 0o750); err != nil {
 		return err
 	}
 
@@ -147,7 +147,7 @@ func TarGz(dst, src string) error { //nolint dst, src order like io.Copy
 	basePath := filepath.Base(src)
 
 	// create the tar.gz file
-	file, err := os.OpenFile(dst, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600) //nolint:gosec
+	file, err := os.OpenFile(dst, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600) //nolint:gosec
 	if err != nil {
 		return err
 	}

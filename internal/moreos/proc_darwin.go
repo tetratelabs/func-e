@@ -40,5 +40,5 @@ func ensureProcessDone(p *os.Process) error {
 }
 
 func isExecutable(f os.FileInfo) bool {
-	return f.Mode()&0111 != 0
+	return f.Mode()&0o111 != 0
 }

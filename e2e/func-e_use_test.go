@@ -162,15 +162,17 @@ func TestFuncEUse_MinorVersion(t *testing.T) {
 // getVersionsRange returns the first and latest patch of a minor version.
 func getVersionsRange(stdout, minor string) (first, latest string) {
 	s := bufio.NewScanner(strings.NewReader(stdout))
-	var rows []string
 	for s.Scan() {
-		row := strings.TrimSpace(s.Text())
-		if strings.HasPrefix(row, minor+".") {
-			rows = append(rows, row[:strings.Index(row, " ")])
+		// Ex. "  1.20.0 2021-10-05" or "* 1.20.0 2021-10-05" -> "1.20.0"
+		v := strings.Split(s.Text()[2:], " ")[0]
+		if strings.HasPrefix(v, minor+".") {
+			// "func-e versions" returns in descending order
+			if latest == "" {
+				latest = v
+			} else {
+				first = v
+			}
 		}
 	}
-	// The rows is sorted in descending order.
-	first = rows[len(rows)-1]
-	latest = rows[0]
 	return
 }

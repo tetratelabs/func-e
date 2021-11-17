@@ -189,8 +189,8 @@ func TestInstallIfNeeded_AlreadyExists(t *testing.T) {
 	o := setupInstallTest(t)
 	out := o.Out.(*bytes.Buffer)
 
-	require.NoError(t, os.MkdirAll(filepath.Dir(o.EnvoyPath), 0700))
-	require.NoError(t, os.WriteFile(o.EnvoyPath, []byte("fake"), 0700))
+	require.NoError(t, os.MkdirAll(filepath.Dir(o.EnvoyPath), 0o700))
+	require.NoError(t, os.WriteFile(o.EnvoyPath, []byte("fake"), 0o700))
 
 	envoyStat, err := os.Stat(o.EnvoyPath)
 	require.NoError(t, err)
@@ -211,7 +211,7 @@ func TestVerifyEnvoy(t *testing.T) {
 	tempDir := t.TempDir()
 
 	envoyPath := filepath.Join(tempDir, "versions", version.LastKnownEnvoy.String())
-	require.NoError(t, os.MkdirAll(filepath.Join(envoyPath, "bin"), 0755))
+	require.NoError(t, os.MkdirAll(filepath.Join(envoyPath, "bin"), 0o755))
 	t.Run("envoy binary doesn't exist", func(t *testing.T) {
 		EnvoyPath, e := verifyEnvoy(envoyPath)
 		require.Empty(t, EnvoyPath)
@@ -219,14 +219,14 @@ func TestVerifyEnvoy(t *testing.T) {
 	})
 
 	expectedEnvoyPath := filepath.Join(envoyPath, binEnvoy)
-	require.NoError(t, os.WriteFile(expectedEnvoyPath, []byte{}, 0700))
+	require.NoError(t, os.WriteFile(expectedEnvoyPath, []byte{}, 0o700))
 	t.Run("envoy binary ok", func(t *testing.T) {
 		EnvoyPath, e := verifyEnvoy(envoyPath)
 		require.Equal(t, expectedEnvoyPath, EnvoyPath)
 		require.Nil(t, e)
 	})
 
-	require.NoError(t, os.Chmod(expectedEnvoyPath, 0600))
+	require.NoError(t, os.Chmod(expectedEnvoyPath, 0o600))
 	t.Run("envoy binary not executable", func(t *testing.T) {
 		if runtime.GOOS == moreos.OSWindows {
 			t.Skip("execute bit isn't visible on windows")

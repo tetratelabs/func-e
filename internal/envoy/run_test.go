@@ -76,7 +76,7 @@ func TestRuntime_Run(t *testing.T) {
 		tc := tt
 		t.Run(tc.name, func(t *testing.T) {
 			o := &globals.RunOpts{EnvoyPath: fakeEnvoy, RunDir: runDir}
-			require.NoError(t, os.MkdirAll(runDir, 0750))
+			require.NoError(t, os.MkdirAll(runDir, 0o750))
 
 			stdout := new(bytes.Buffer)
 			stderr := new(bytes.Buffer)

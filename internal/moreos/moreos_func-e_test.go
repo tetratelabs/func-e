@@ -159,17 +159,17 @@ func requireFakeFuncE(t *testing.T, path string) {
 
 	// Copy the sources needed for fake func-e, but nothing else
 	moreosDir := filepath.Join(workDir, "internal", "moreos")
-	require.NoError(t, os.MkdirAll(moreosDir, 0700))
+	require.NoError(t, os.MkdirAll(moreosDir, 0o700))
 	moreosSrcs, err := moreosSrcDir.ReadDir(".")
 	require.NoError(t, err)
 	for _, src := range moreosSrcs {
 		data, err := moreosSrcDir.ReadFile(src.Name())
 		require.NoError(t, err)
-		require.NoError(t, os.WriteFile(filepath.Join(moreosDir, src.Name()), data, 0600))
+		require.NoError(t, os.WriteFile(filepath.Join(moreosDir, src.Name()), data, 0o600))
 	}
 
 	fakeFuncEBin := fakebinary.RequireBuildFakeBinary(t, workDir, "func-e", fakeFuncESrc)
-	require.NoError(t, os.WriteFile(path, fakeFuncEBin, 0700)) //nolint:gosec
+	require.NoError(t, os.WriteFile(path, fakeFuncEBin, 0o700)) //nolint:gosec
 }
 
 func requireFindProcessError(t *testing.T, proc *os.Process, expectedErr error) {
