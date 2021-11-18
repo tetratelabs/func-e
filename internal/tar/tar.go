@@ -142,8 +142,7 @@ func extractFile(dst string, src io.Reader, perm os.FileMode) error {
 // Ex If "src" includes "/tmp/envoy/bin" and "/tmp/build/bin". If "src" is "/tmp/envoy", "dst" includes "envoy/bin".
 //
 // This is used to compress the working directory of Envoy after it is stopped.
-//nolint:revive
-func TarGz(dst, src string) error { // dst, src order like io.Copy
+func TarGz(dst, src string) error { //nolint dst, src order like io.Copy
 	srcFS := os.DirFS(filepath.Dir(src))
 	basePath := filepath.Base(src)
 

@@ -32,7 +32,6 @@ import (
 var binEnvoy = filepath.Join("bin", "envoy"+moreos.Exe)
 
 // InstallIfNeeded downloads an Envoy binary corresponding to globals.GlobalOpts and returns a path to it or an error.
-//nolint
 func InstallIfNeeded(ctx context.Context, o *globals.GlobalOpts) (string, error) {
 	v := o.EnvoyVersion
 	installPath := filepath.Join(o.HomeDir, "versions", v.String())
@@ -65,7 +64,7 @@ func InstallIfNeeded(ctx context.Context, o *globals.GlobalOpts) (string, error)
 			return "", fmt.Errorf("unable to create directory %q: %w", installPath, err)
 		}
 		o.Logf("downloading %s\n", tarballURL)
-		if err = untarEnvoy(ctx, installPath, tarballURL, sha256Sum, o.Platform, o.Version); err != nil {
+		if err = untarEnvoy(ctx, installPath, tarballURL, sha256Sum, o.Platform, o.Version); err != nil { //nolint
 			return "", err
 		}
 		if err = os.Chtimes(installPath, mtime, mtime); err != nil { // overwrite the mtime to preserve it in the list
