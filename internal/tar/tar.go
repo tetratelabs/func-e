@@ -21,7 +21,6 @@ import (
 	"compress/gzip"
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"hash"
 	"io"
@@ -83,7 +82,7 @@ func Untar(dst string, src io.Reader) error { // dst, src order like io.Copy
 	tr := tar.NewReader(zSrc)
 	for {
 		header, err := tr.Next()
-		if errors.Is(err, io.EOF) {
+		if err == io.EOF {
 			break
 		} else if err != nil {
 			return err
