@@ -82,7 +82,7 @@ func mockEnvoyVersionsServer() (*httptest.Server, error) {
 		return nil, err
 	}
 
-	defer f.Close() // nolint
+	defer f.Close()
 	b, err := io.ReadAll(f)
 	if err != nil {
 		return nil, err

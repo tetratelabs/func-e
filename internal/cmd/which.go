@@ -38,8 +38,8 @@ func NewWhichCmd(o *globals.GlobalOpts) *cli.Command {
 			if err != nil {
 				return err
 			}
-			_, err = moreos.Fprintf(o.Out, "%s\n", ev)
-			return err
+			moreos.Fprintf(o.Out, "%s\n", ev)
+			return nil
 		},
 		CustomHelpTemplate: moreos.Sprintf(cli.CommandHelpTemplate),
 	}

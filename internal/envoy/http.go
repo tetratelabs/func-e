@@ -26,7 +26,7 @@ import (
 // httpGet adds the userAgent header to the request, so that we can tell what is a dev build vs release.
 func httpGet(ctx context.Context, url string, p version.Platform, v string) (*http.Response, error) {
 	// #nosec -> url can be anywhere by design
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}

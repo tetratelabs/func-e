@@ -102,8 +102,7 @@ func TestSprintf(t *testing.T) {
 func TestFprintf(t *testing.T) {
 	template := "%s\n\n%s\n"
 	stdout := new(bytes.Buffer)
-	count, err := Fprintf(stdout, template, "foo", "bar")
-	require.NoError(t, err)
+	Fprintf(stdout, template, "foo", "bar")
 
 	expected := "foo\n\nbar\n"
 	if runtime.GOOS == OSWindows {
@@ -111,7 +110,6 @@ func TestFprintf(t *testing.T) {
 	}
 
 	require.Equal(t, expected, stdout.String())
-	require.Equal(t, len(expected), count)
 }
 
 // TestSprintf_IdiomaticPerOS is here to ensure that the EOL translation makes sense. For example, in UNIX, we expect
@@ -140,7 +138,7 @@ func TestProcessGroupAttr_Interrupt(t *testing.T) {
 	require.NoError(t, Interrupt(cmd.Process))
 
 	// Wait for the process to die; this could error due to the interrupt signal
-	cmd.Wait() //nolint
+	_ = cmd.Wait()
 	require.Error(t, findProcess(cmd.Process))
 
 	// Ensure interrupting it again doesn't error
@@ -157,7 +155,7 @@ func Test_EnsureProcessDone(t *testing.T) {
 	require.NoError(t, EnsureProcessDone(cmd.Process))
 
 	// Wait for the process to die; this could error due to the kill signal
-	cmd.Wait() //nolint
+	_ = cmd.Wait()
 	require.Error(t, findProcess(cmd.Process))
 
 	// Ensure killing it again doesn't error

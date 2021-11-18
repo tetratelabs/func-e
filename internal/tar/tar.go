@@ -44,7 +44,7 @@ type digester struct {
 func (d *digester) Read(p []byte) (n int, err error) {
 	n, err = d.r.Read(p)
 	if n > 0 { // per docs on hash.Hash, an error is impossible on Write
-		d.h.Write(p[:n]) //nolint
+		d.h.Write(p[:n])
 	}
 	return
 }
@@ -196,7 +196,7 @@ func TarGz(dst, src string) error { //nolint dst, src order like io.Copy
 
 // Copy the contents of the file into the tar without buffering
 func cp(dst io.Writer, src fs.FS, path string, n int64) error { // dst, src order like io.Copy
-	f, err := src.Open(path) //nolint:gosec
+	f, err := src.Open(path)
 	if err != nil {
 		return err
 	}

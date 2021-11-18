@@ -110,6 +110,7 @@ func (s *server) funcEVersions() []byte {
 }
 
 // RequireFakeEnvoyTarGz makes a fake envoy.tar.gz
+//nolint:gosec
 func RequireFakeEnvoyTarGz(t *testing.T, v version.PatchVersion) ([]byte, version.SHA256Sum) {
 	tempDir := t.TempDir()
 
@@ -124,9 +125,9 @@ func RequireFakeEnvoyTarGz(t *testing.T, v version.PatchVersion) ([]byte, versio
 	require.NoError(t, err)
 
 	// Read the tar.gz into a byte array. This allows the mock server to set content length correctly
-	f, err := os.Open(tempGz) //nolint:gosec
+	f, err := os.Open(tempGz)
 	require.NoError(t, err)
-	defer f.Close() // nolint
+	defer f.Close() //nolint
 	b, err := io.ReadAll(f)
 	require.NoError(t, err)
 	return b, version.SHA256Sum(fmt.Sprintf("%x", sha256.Sum256(b)))

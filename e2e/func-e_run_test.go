@@ -163,7 +163,7 @@ func runTestAndInterruptEnvoy(ctx context.Context, t *testing.T, c *funcE, test 
 
 func requireEnvoyReady(ctx context.Context, t *testing.T, c *funcE) *adminClient {
 	adminAddressPath := filepath.Join(c.runDir, "admin-address.txt")
-	adminAddress, err := os.ReadFile(adminAddressPath) //nolint:gosec
+	adminAddress, err := os.ReadFile(adminAddressPath)
 	require.NoError(t, err, "error reading admin address file %q after running [%v]", adminAddressPath, c)
 
 	log.Printf("waiting for Envoy adminClient to connect after running [%v]", c)

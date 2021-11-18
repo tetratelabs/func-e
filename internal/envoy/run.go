@@ -101,7 +101,7 @@ func awaitAdminAddress(sigCtx context.Context, r *Runtime) {
 	for i := 0; i < 10 && sigCtx.Err() == nil; i++ {
 		adminAddress, adminErr := r.GetAdminAddress()
 		if adminErr == nil {
-			moreos.Fprintf(r.Out, "discovered admin address: %s\n", adminAddress) //nolint
+			moreos.Fprintf(r.Out, "discovered admin address: %s\n", adminAddress)
 			return
 		}
 		time.Sleep(200 * time.Millisecond)

@@ -160,19 +160,15 @@ func parseProc(ctx context.Context, p *process.Process) (*proc, error) {
 func printProcessTable(out io.Writer, parsed []*proc) error {
 	// Now, start writing the process table
 	w := tabwriter.NewWriter(out, 0, 8, 5, ' ', 0)
-	if _, err := moreos.Fprintf(w, "PID\tUSERNAME\tSTATUS\tRSS\tVSZ\tMINFLT\tMAJFLT\tPCPU\tPMEM\tARGS\n"); err != nil {
-		return err
-	}
+	moreos.Fprintf(w, "PID\tUSERNAME\tSTATUS\tRSS\tVSZ\tMINFLT\tMAJFLT\tPCPU\tPMEM\tARGS\n")
 
 	for _, p := range parsed {
 		status := ""
 		if len(p.status) > 0 {
 			status = p.status[0]
 		}
-		if _, err := moreos.Fprintf(w, "%v\t%v\t%v\t%v\t%v\t%v\t%v\t%.2f\t%.2f\t%v\n",
-			p.pid, p.username, status, p.rss, p.vms, p.minflt, p.majflt, p.pCPU, p.pMem, p.cmd); err != nil {
-			return err
-		}
+		moreos.Fprintf(w, "%v\t%v\t%v\t%v\t%v\t%v\t%v\t%.2f\t%.2f\t%v\n",
+			p.pid, p.username, status, p.rss, p.vms, p.minflt, p.majflt, p.pCPU, p.pMem, p.cmd)
 	}
 	return w.Flush()
 }

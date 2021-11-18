@@ -36,10 +36,7 @@ func RequireSetMtime(t *testing.T, dir, date string) {
 func RequireChdir(t *testing.T, dir string) func() {
 	wd, err := os.Getwd()
 	require.NoError(t, err)
-
-	if err = os.Chdir(dir); err != nil {
-		require.NoError(t, err)
-	}
+	require.NoError(t, os.Chdir(dir))
 
 	return func() {
 		require.NoError(t, os.Chdir(wd))

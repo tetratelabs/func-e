@@ -73,7 +73,7 @@ func (o *GlobalOpts) Logf(format string, a ...interface{}) {
 	if o.Quiet { // TODO: we may want to do scoped logging via a Context property, if this becomes common.
 		return
 	}
-	moreos.Fprintf(o.Out, format, a...) //nolint
+	moreos.Fprintf(o.Out, format, a...)
 }
 
 const (

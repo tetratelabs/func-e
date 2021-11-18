@@ -80,7 +80,7 @@ func copyURLToFile(ctx context.Context, url, fullPath string) error {
 	defer f.Close() //nolint
 
 	// #nosec -> adminAddress is written by Envoy and the paths are hard-coded
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return fmt.Errorf("could not create request %v: %w", url, err)
 	}
