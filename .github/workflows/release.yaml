@@ -41,8 +41,6 @@ jobs:
           WINDOWS_CODESIGN_P12: ${{ steps.p12.outputs.filePath }}
           WINDOWS_CODESIGN_PASSWORD: ${{ secrets.WINDOWS_CODESIGN_PASSWORD }}
 
-      # The release notable has a discussion channel to avoid people having to
-      # raise issues to ask about it.
       - name: "Create draft release"
         run: |
           tag="${GITHUB_REF#refs/tags/}"
@@ -63,9 +61,9 @@ jobs:
         include:
           - os: ubuntu-20.04  # Hard-coding an LTS means maintenance, but only once each 2 years!
             pattern: '*linux_amd64.tar.gz'
-          - os: macos-latest
+          - os: macos-11
             pattern: '*darwin_amd64.tar.gz'
-          - os: windows-latest
+          - os: windows-2022
             pattern: '*windows_amd64.*'
             unzip: | # the above downloads both the zip and msi, stash the msi name
               printf "::set-output name=msi::%s\n" *.msi
