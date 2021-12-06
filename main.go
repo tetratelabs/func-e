@@ -20,9 +20,9 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	cmdutil "github.com/tetratelabs/func-e/internal/cmd"
-	"github.com/tetratelabs/func-e/internal/globals"
-	"github.com/tetratelabs/func-e/internal/moreos"
+	cmdutil "github.com/tetratelabs/func-e/pkg/cmd"
+	"github.com/tetratelabs/func-e/pkg/globals"
+	"github.com/tetratelabs/func-e/pkg/moreos"
 )
 
 func main() {
