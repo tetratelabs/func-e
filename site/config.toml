@@ -1,4 +1,4 @@
-baseurl = "https://func-e.io/"
+baseURL = "https://func-e.io/"
 languageCode = "en-us"
 defaultContentLanguage = "en"
 title = "func-e"
@@ -8,20 +8,25 @@ theme = "hello-friend"
   defaultTheme = "light"
   showReadingTime = false
 
-[params.logo]
-  logoText = "func-e"
-
-[[menu.main]]
-  url = "https://github.com/tetratelabs/func-e/blob/master/USAGE.md"
-  name = "Usage"
-  weight = 20
-
-[[menu.main]]
-  url = "https://github.com/tetratelabs/func-e/releases"
-  name = "Releases"
-  weight = 30
-
-[[menu.main]]
-  url = "https://github.com/tetratelabs/func-e"
-  name = "GitHub"
-  weight = 40
+[languages]
+  [languages.en]
+    [languages.en.params.logo]
+      logoText = "func-e"
+    [languages.en.menu]
+      [[languages.en.menu.main]]
+        url = "/learn/"
+        identifier = "learn"
+        name = "Start learning"
+        weight = 10
+      [[languages.en.menu.main]]
+        url = "https://github.com/tetratelabs/func-e/blob/master/USAGE.md"
+        name = "Usage"
+        weight = 20
+      [[languages.en.menu.main]]
+        url = "https://github.com/tetratelabs/func-e/releases"
+        name = "Releases"
+        weight = 30
+      [[languages.en.menu.main]]
+        url = "https://github.com/tetratelabs/func-e"
+        name = "GitHub"
+        weight = 40
