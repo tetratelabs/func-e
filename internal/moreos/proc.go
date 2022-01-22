@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build !windows
+
 package moreos
 
 import (
@@ -20,12 +22,6 @@ import (
 )
 
 const exe = ""
-
-func processGroupAttr() *syscall.SysProcAttr {
-	// Pdeathsig aims to ensure the process group is cleaned up even if this process dies. When func-e
-	// dies, the process (envoy) will get SIGKILL.
-	return &syscall.SysProcAttr{Setpgid: true, Pdeathsig: syscall.SIGKILL}
-}
 
 func interrupt(p *os.Process) error {
 	if err := p.Signal(syscall.SIGINT); err != nil && err != os.ErrProcessDone {
