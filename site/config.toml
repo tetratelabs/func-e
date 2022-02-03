@@ -16,7 +16,7 @@ theme = "hello-friend"
       [[languages.en.menu.main]]
         url = "/learn/"
         identifier = "learn"
-        name = "Start learning"
+        name = "Start Learning"
         weight = 10
       [[languages.en.menu.main]]
         url = "https://github.com/tetratelabs/func-e/blob/master/USAGE.md"
