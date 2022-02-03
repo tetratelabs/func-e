@@ -1,5 +1,6 @@
 +++
 title = "func-e makes running Envoy® easy"
+layout = "single"
 +++
 
 func-e (pronounced funky) allows you to quickly see available versions of Envoy and try them out. This makes it easy to validate
