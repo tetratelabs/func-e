@@ -248,7 +248,7 @@ check: ## Verify contents of last commit
 
 site: ## Serve website content
 	@git submodule update
-	@cd site && $(go) run $(hugo) server --disableFastRender -D
+	@cd site && $(go) run $(hugo) server --minify --disableFastRender --baseURL localhost:1313 --cleanDestinationDir -D
 
 # this makes a marker file ending in .signed to avoid repeatedly calling codesign
 %.signed: %
