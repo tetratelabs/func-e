@@ -9,10 +9,10 @@ your behalf. This makes knowledge sharing and troubleshooting easier, especially
 
 ```sh
 curl https://func-e.io/install.sh | bash -s -- -b /usr/local/bin
+func-e run -c /path/to/envoy.yaml
 ```
 
+If you don't have a configuration file, you can start the admin port like this:
 ```sh
-func-e run -c /path/to/envoy.yaml
-# If you don't have a configuration file, you can start the admin port like this
 func-e run --config-yaml "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 9901}}}"
 ```
