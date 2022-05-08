@@ -16,12 +16,13 @@
 #
 # Ex. Build the images:
 # ```bash
-# $ for parent_image in ubuntu:20.04 centos:8; do docker build \
+# for parent_image in ubuntu:20.04 centos:8; do docker buildx build \
+#                --platform linux/amd64 \
 #                --build-arg parent_image=${parent_image} \
-#                --build-arg go_stable_release=1_17 \
-#                --build-arg go_stable_revision=1.17.1 \
-#                --build-arg go_prior_release=1_16 \
-#                --build-arg go_prior_revision=1.16.8 \
+#                --build-arg go_stable_release=1_18 \
+#                --build-arg go_stable_revision=1.18.1 \
+#                --build-arg go_prior_release=1_17 \
+#                --build-arg go_prior_revision=1.17.9 \
 #                -t func-e-internal:${parent_image//:/-} .github/workflows; done
 # ```
 #
@@ -33,7 +34,7 @@
 #
 # You can troubleshoot like this:
 # ```bash
-# $ docker run --rm -v $PWD:/work -it --entrypoint --entrypoint /bin/bash func-e-internal:centos-8
+# $ docker run --rm -v $PWD:/work -it --entrypoint /bin/bash func-e-internal:centos-8
 # ```
 ARG parent_image=centos:8
 
@@ -60,10 +61,13 @@ ARG centos_packages="make sudo"
 # Ubuntu runs check, dist, and e2e, so needs more packages.
 ARG ubuntu_packages="make sudo curl git zip wixl msitools osslsigncode"
 RUN if [ -f /etc/centos-release ]; then \
-    # Use Dandified YUM on CentOS >=8. \
+    # Change mirrors to vault.centos.org because CentOS 8 went EOL.
+    sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* && \
+    sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* && \
+    # Use Dandified YUM on CentOS >=8.
     dnf="dnf -qy" && ${dnf} install ${centos_packages} && ${dnf} clean all; \
     else \
-    # Use noninteractive to prevent hangs asking about timezone on Ubuntu. \
+    # Use noninteractive to prevent hangs asking about timezone on Ubuntu.
     export DEBIAN_FRONTEND=noninteractive && apt_get="apt-get -qq -y" && \
     ${apt_get} update && ${apt_get} install ${ubuntu_packages} && ${apt_get} clean; \
     fi

@@ -17,7 +17,6 @@ package cmd
 import (
 	"os"
 	"runtime"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -59,7 +58,6 @@ func TestUsageMarkdownMatchesCommands(t *testing.T) {
 	a := NewApp(&globals.GlobalOpts{})
 	expected, err := a.ToMarkdown()
 	require.NoError(t, err)
-	expected = strings.ReplaceAll(expected, "   ", "") // remove leading indent until urfave/cli#1275
 
 	actual, err := os.ReadFile(siteMarkdownFile)
 	require.NoError(t, err)

@@ -19,7 +19,7 @@ jobs:
 
     steps:
       - name: "Checkout"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:  # fetch all history for all tags and branches (needed for changelog)
           fetch-depth: 0
 
@@ -71,7 +71,7 @@ jobs:
 
     steps:
       - name: "Checkout"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: "Extract `func-e` binary from GitHub release assets"
         id: download  # allows variables like ${{ steps.download.outputs.X }}

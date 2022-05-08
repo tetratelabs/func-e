@@ -47,13 +47,13 @@ jobs:
       # We need QEMU and Buildx for multi-platform (amd64+arm64) image push.
       # Note: arm64 is run only by Travis. See RATIONALE.md
       - name: "Setup QEMU"
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v2
 
       - name: "Setup Buildx"
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
 
       - name: "Checkout"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       # This finds the last two GOROOT variables and parses them into Docker
       # build args, so that the resulting image has them at the same location.
