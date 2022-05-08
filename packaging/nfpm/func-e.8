@@ -21,28 +21,6 @@ func-e
 .fi
 .RE
 
-
-.SH DESCRIPTION
-.PP
-To run Envoy, execute \fB\fCfunc-e run -c your_envoy_config.yaml\fR\&. This
-   downloads and installs the latest version of Envoy for you.
-
-.PP
-To list versions of Envoy you can use, execute \fB\fCfunc-e versions -a\fR\&. To
-   choose one, invoke \fB\fCfunc-e use 1.21.0\fR\&. This installs into
-   \fB\fC$FUNC_E_HOME/versions/1.21.0\fR, if not already present. You may also use
-   minor version, such as \fB\fCfunc-e use 1.21\fR\&.
-
-.PP
-You may want to override \fB\fC$ENVOY_VERSIONS_URL\fR to supply custom builds or
-   otherwise control the source of Envoy binaries. When overriding, validate
-   your JSON first: https://archive.tetratelabs.io/release-versions-schema.json
-
-.PP
-Advanced:
-   \fB\fCFUNC_E_PLATFORM\fR overrides the host OS and architecture of Envoy binaries.
-   This value must be constant within a \fB\fC$FUNC_E_HOME\fR\&.
-
 .PP
 \fBUsage\fP:
 
@@ -50,7 +28,21 @@ Advanced:
 .RS
 
 .nf
-func-e [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
+To run Envoy, execute `func-e run -c your_envoy_config.yaml`. This
+downloads and installs the latest version of Envoy for you.
+
+To list versions of Envoy you can use, execute `func-e versions -a`. To
+choose one, invoke `func-e use 1.21.1`. This installs into
+`$FUNC_E_HOME/versions/1.21.1`, if not already present. You may also use
+minor version, such as `func-e use 1.21`.
+
+You may want to override `$ENVOY_VERSIONS_URL` to supply custom builds or
+otherwise control the source of Envoy binaries. When overriding, validate
+your JSON first: https://archive.tetratelabs.io/release-versions-schema.json
+
+Advanced:
+`FUNC_E_PLATFORM` overrides the host OS and architecture of Envoy binaries.
+This value must be constant within a `$FUNC_E_HOME`.
 
 .fi
 .RE

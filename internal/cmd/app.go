@@ -41,22 +41,21 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 	app.HelpName = "func-e"
 	app.Usage = `Install and run Envoy`
 	// Keep lines at 77 to address leading indent of 3 in help statements
-	// NOTE: remove indenting ourselves after the first line after urfave/cli#1275.
 	app.UsageText = moreos.Sprintf(`To run Envoy, execute ` + "`func-e run -c your_envoy_config.yaml`" + `. This
-   downloads and installs the latest version of Envoy for you.
+downloads and installs the latest version of Envoy for you.
 
-   To list versions of Envoy you can use, execute ` + "`func-e versions -a`" + `. To
-   choose one, invoke ` + fmt.Sprintf("`func-e use %s`", version.LastKnownEnvoy) + `. This installs into
-   ` + lastKnownEnvoyPath + `, if not already present. You may also use
-   minor version, such as ` + fmt.Sprintf("`func-e use %s`", version.LastKnownEnvoyMinor) + `.
+To list versions of Envoy you can use, execute ` + "`func-e versions -a`" + `. To
+choose one, invoke ` + fmt.Sprintf("`func-e use %s`", version.LastKnownEnvoy) + `. This installs into
+` + lastKnownEnvoyPath + `, if not already present. You may also use
+minor version, such as ` + fmt.Sprintf("`func-e use %s`", version.LastKnownEnvoyMinor) + `.
 
-   You may want to override ` + "`$ENVOY_VERSIONS_URL`" + ` to supply custom builds or
-   otherwise control the source of Envoy binaries. When overriding, validate
-   your JSON first: ` + globals.DefaultEnvoyVersionsSchemaURL + `
+You may want to override ` + "`$ENVOY_VERSIONS_URL`" + ` to supply custom builds or
+otherwise control the source of Envoy binaries. When overriding, validate
+your JSON first: ` + globals.DefaultEnvoyVersionsSchemaURL + `
 
-   Advanced:
-   ` + "`FUNC_E_PLATFORM`" + ` overrides the host OS and architecture of Envoy binaries.
-   This value must be constant within a ` + "`$FUNC_E_HOME`" + `.`)
+Advanced:
+` + "`FUNC_E_PLATFORM`" + ` overrides the host OS and architecture of Envoy binaries.
+This value must be constant within a ` + "`$FUNC_E_HOME`" + `.`)
 	app.Version = o.Version
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
