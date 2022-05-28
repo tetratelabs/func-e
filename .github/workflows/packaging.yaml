@@ -46,7 +46,7 @@ jobs:
           - os: ubuntu-20.04  # Hard-coding an LTS means maintenance, but only once each 2 years!
             setup: sudo apt update -qq && sudo apt install -qq -y wixl msitools osslsigncode
           # macos is missing wixl https://github.com/actions/virtual-environments/issues/3857
-          - os: macos-11
+          - os: macos-12
             setup: brew install -q msitools osslsigncode
           # wixtoolset isn't in the path https://github.com/wixtoolset/wix3/blob/develop/src/Setup/CoreMsi/Toolset.wxs#L87
           - os: windows-2022

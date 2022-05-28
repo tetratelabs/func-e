@@ -1,6 +1,7 @@
 .travis.yml
 
 .editorconfig
+codecov.yml
 
 /LICENSE
 

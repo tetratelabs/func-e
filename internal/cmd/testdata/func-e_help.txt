@@ -29,7 +29,8 @@ COMMANDS:
    which     Prints the path to the Envoy binary used by the "run" command
 
 GLOBAL OPTIONS:
-   --home-dir value            func-e home directory (location of installed versions and run archives) (default: ${HOME}/.func-e) [$FUNC_E_HOME]
    --envoy-versions-url value  URL of Envoy versions JSON (default: https://archive.tetratelabs.io/envoy/envoy-versions.json) [$ENVOY_VERSIONS_URL]
+   --home-dir value            func-e home directory (location of installed versions and run archives) (default: ${HOME}/.func-e) [$FUNC_E_HOME]
    --platform value            the host OS and architecture of Envoy binaries. Ex. darwin/arm64 (default: $GOOS/$GOARCH) [$FUNC_E_PLATFORM]
    --version, -v               print the version (default: false)
+   

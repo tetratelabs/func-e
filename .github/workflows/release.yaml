@@ -61,7 +61,7 @@ jobs:
         include:
           - os: ubuntu-20.04  # Hard-coding an LTS means maintenance, but only once each 2 years!
             pattern: '*linux_amd64.tar.gz'
-          - os: macos-11
+          - os: macos-12
             pattern: '*darwin_amd64.tar.gz'
           - os: windows-2022
             pattern: '*windows_amd64.*'
