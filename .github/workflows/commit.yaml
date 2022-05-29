@@ -93,5 +93,4 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/master' && runner.os == 'Linux'
         uses: codecov/codecov-action@v2
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
           file: ./coverage.txt
