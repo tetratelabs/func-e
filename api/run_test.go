@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"os"
 	"path/filepath"
 
@@ -16,16 +17,18 @@ var (
 )
 
 func TestRunWithHomeDir(t *testing.T) {
+	ctx := context.Background()
 	tmpDir := t.TempDir()
-	require.NoError(t, Run(minRunArgs, HomeDir(tmpDir)))
+	require.NoError(t, Run(ctx, minRunArgs, HomeDir(tmpDir)))
 	_, err := os.Stat(filepath.Join(tmpDir, "versions"))
 	require.NoError(t, err)
 }
 
 func TestRunWithOut(t *testing.T) {
+	ctx := context.Background()
 	tmpDir := t.TempDir()
 	b := bytes.NewBufferString("")
 	require.Equal(t, 0, b.Len())
-	require.NoError(t, Run(minRunArgs, Out(b), HomeDir(tmpDir)))
+	require.NoError(t, Run(ctx, minRunArgs, Out(b), HomeDir(tmpDir)))
 	require.NotEqual(t, 0, b.Len())
 }

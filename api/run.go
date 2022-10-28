@@ -2,12 +2,14 @@
 package api
 
 import (
-	"github.com/tetratelabs/func-e/internal/cmd"
-	"github.com/tetratelabs/func-e/internal/globals"
-	"github.com/tetratelabs/func-e/internal/version"
+	"context"
 	"io"
 	"os"
 	"runtime"
+
+	"github.com/tetratelabs/func-e/internal/cmd"
+	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/version"
 )
 
 // HomeDir is an absolute path which most importantly contains "versions"
@@ -55,7 +57,7 @@ type runOpts struct {
 	out              io.Writer
 }
 
-func Run(args []string, options ...RunOption) error {
+func Run(ctx context.Context, args []string, options ...RunOption) error {
 	ro := &runOpts{
 		homeDir:          globals.DefaultHomeDir,
 		envoyVersion:     "", // default to lookup
@@ -77,5 +79,17 @@ func Run(args []string, options ...RunOption) error {
 
 	funcERunArgs := []string{"func-e", "--platform", runtime.GOOS + "/" + runtime.GOARCH, "run"}
 	funcERunArgs = append(funcERunArgs, args...)
-	return funcECmd.Run(funcERunArgs)
+
+	errChan := make(chan error)
+	go func() {
+		errChan <- funcECmd.Run(funcERunArgs)
+	}()
+
+	// Wait for run to exit or an explicit stop.
+	select {
+	case <-ctx.Done():
+		return nil
+	case err := <-errChan:
+		return err
+	}
 }
