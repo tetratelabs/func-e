@@ -57,6 +57,8 @@ type runOpts struct {
 	out              io.Writer
 }
 
+// Run downloads Envoy and runs it as a process with the arguments
+// passed to it. Use RunOption for configuration options.
 func Run(ctx context.Context, args []string, options ...RunOption) error {
 	ro := &runOpts{
 		homeDir:          globals.DefaultHomeDir,
