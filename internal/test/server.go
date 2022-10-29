@@ -110,6 +110,7 @@ func (s *server) funcEVersions() []byte {
 }
 
 // RequireFakeEnvoyTarGz makes a fake envoy.tar.gz
+//
 //nolint:gosec
 func RequireFakeEnvoyTarGz(t *testing.T, v version.PatchVersion) ([]byte, version.SHA256Sum) {
 	tempDir := t.TempDir()

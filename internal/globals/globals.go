@@ -39,10 +39,10 @@ type RunOpts struct {
 // GlobalOpts represents options that affect more than one func-e commands.
 //
 // Fields representing non-hidden flags have values set according to the following rules:
-//  1) value that precedes flag parsing, used in tests
-//  2) to a value of the command line argument, e.g. `--home-dir`
-//  3) optional mapping to an environment variable, e.g. `FUNC_E_HOME` (not all flags are mapped to ENV)
-//  4) otherwise, to the default value, e.g. DefaultHomeDir
+//  1. value that precedes flag parsing, used in tests
+//  2. to a value of the command line argument, e.g. `--home-dir`
+//  3. optional mapping to an environment variable, e.g. `FUNC_E_HOME` (not all flags are mapped to ENV)
+//  4. otherwise, to the default value, e.g. DefaultHomeDir
 type GlobalOpts struct {
 	// RunOpts are inlined to allow tests to override parameters without changing ENV variables or flags
 	RunOpts
