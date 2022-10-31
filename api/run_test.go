@@ -38,6 +38,7 @@ func TestRun(t *testing.T) {
 	tmpDir := t.TempDir()
 	envoyVersion := version.LastKnownEnvoy
 	versionsServer := test.RequireEnvoyVersionsTestServer(t, envoyVersion)
+	defer versionsServer.Close()
 	envoyVersionsURL := versionsServer.URL + "/envoy-versions.json"
 	b := bytes.NewBufferString("")
 
@@ -59,5 +60,4 @@ func TestRun(t *testing.T) {
 	require.NotEqual(t, 0, b.Len())
 	_, err = os.Stat(filepath.Join(tmpDir, "versions"))
 	require.NoError(t, err)
-	t.Cleanup(versionsServer.Close)
 }
