@@ -20,9 +20,9 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
-
 	"github.com/tetratelabs/func-e/internal/test"
 	"github.com/tetratelabs/func-e/internal/version"
 )
@@ -33,17 +33,29 @@ var (
 )
 
 func TestRun(t *testing.T) {
-	ctx := context.Background()
+
 	tmpDir := t.TempDir()
 	envoyVersion := version.LastKnownEnvoy
 	versionsServer := test.RequireEnvoyVersionsTestServer(t, envoyVersion)
-	defer versionsServer.Close()
 	envoyVersionsURL := versionsServer.URL + "/envoy-versions.json"
 	b := bytes.NewBufferString("")
 
 	require.Equal(t, 0, b.Len())
-	require.NoError(t, Run(ctx, minRunArgs, Out(b), HomeDir(tmpDir), EnvoyVersionsURL(envoyVersionsURL)))
-	require.NotEqual(t, 0, b.Len())
-	_, err := os.Stat(filepath.Join(tmpDir, "versions"))
+
+	// 1. Pass a context with a timeout to Run to start running Envoy
+	// 2. Wait until the context is done
+	// 3. Ensure that the error is nil
+	var err error
+	ctx := context.Background()
+	ctx, _ = context.WithTimeout(ctx, 2*time.Second)
+	go func() {
+		err = Run(ctx, minRunArgs, Out(b), HomeDir(tmpDir), EnvoyVersionsURL(envoyVersionsURL))
+	}()
+	<-ctx.Done()
 	require.NoError(t, err)
+
+	require.NotEqual(t, 0, b.Len())
+	_, err = os.Stat(filepath.Join(tmpDir, "versions"))
+	require.NoError(t, err)
+	t.Cleanup(versionsServer.Close)
 }
