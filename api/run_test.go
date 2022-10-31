@@ -47,7 +47,8 @@ func TestRun(t *testing.T) {
 	// 3. Ensure that the error is nil
 	var err error
 	ctx := context.Background()
-	ctx, _ = context.WithTimeout(ctx, 2*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
 	go func() {
 		err = Run(ctx, minRunArgs, Out(b), HomeDir(tmpDir), EnvoyVersionsURL(envoyVersionsURL))
 	}()
