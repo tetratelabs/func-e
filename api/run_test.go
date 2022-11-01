@@ -29,8 +29,7 @@ import (
 )
 
 var (
-	// minRunArgs is the minimal config needed to run Envoy 1.18+, non-windows <1.18 need access_log_path: '/dev/stdout'
-	minRunArgs = []string{"--config-yaml", "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 0}}}"}
+	runArgs = []string{"--version"}
 )
 
 func TestRun(t *testing.T) {
@@ -44,17 +43,10 @@ func TestRun(t *testing.T) {
 
 	require.Equal(t, 0, b.Len())
 
-	// 1. Pass a context with a timeout to Run to start running Envoy
-	// 2. Wait until the context is done
-	// 3. Ensure that the error is nil
-	var err error
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	go func() {
-		err = Run(ctx, minRunArgs, Out(b), HomeDir(tmpDir), EnvoyVersionsURL(envoyVersionsURL))
-	}()
-	<-ctx.Done()
+	err := Run(ctx, runArgs, Out(b), HomeDir(tmpDir), EnvoyVersionsURL(envoyVersionsURL))
 	require.NoError(t, err)
 
 	require.NotEqual(t, 0, b.Len())
