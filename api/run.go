@@ -98,7 +98,7 @@ func Run(ctx context.Context, args []string, options ...RunOption) error {
 
 	errChan := make(chan error)
 	go func() {
-		errChan <- funcECmd.Run(funcERunArgs)
+		errChan <- funcECmd.RunContext(ctx, funcERunArgs)
 	}()
 
 	// Wait for run to exit or an explicit stop.
