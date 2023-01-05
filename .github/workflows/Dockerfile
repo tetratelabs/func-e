@@ -19,10 +19,10 @@
 # for parent_image in ubuntu:20.04 centos:8; do docker buildx build \
 #                --platform linux/amd64 \
 #                --build-arg parent_image=${parent_image} \
-#                --build-arg go_stable_release=1_18 \
-#                --build-arg go_stable_revision=1.18.1 \
-#                --build-arg go_prior_release=1_17 \
-#                --build-arg go_prior_revision=1.17.9 \
+#                --build-arg go_stable_release=1_19 \
+#                --build-arg go_stable_revision=1.19.4 \
+#                --build-arg go_prior_release=1_18 \
+#                --build-arg go_prior_revision=1.18.8 \
 #                -t func-e-internal:${parent_image//:/-} .github/workflows; done
 # ```
 #

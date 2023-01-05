@@ -61,8 +61,8 @@ jobs:
       # We do this to allow pull requests to update go.mod with a new Golang
       # release without worrying if the Docker image has it, yet.
       #
-      # Ex. GOROOT_1_17_X64=/opt/hostedtoolcache/go/1.17.1/x64 ->
-      #     GO_STABLE_RELEASE=1_17, GO_STABLE_REVISION=1.17.1
+      # Ex. GOROOT_1_19_X64=/opt/hostedtoolcache/go/1.19.4/x64 ->
+      #     GO_STABLE_RELEASE=1_19, GO_STABLE_REVISION=1.19.4
       - name: "Find and parse last two GOROOTs"
         run: |  # Until Go releases hit triple digits, we can use simple ordering.
           goroot_stable_env=$(env|grep GOROOT_|sort -n|tail -1)
