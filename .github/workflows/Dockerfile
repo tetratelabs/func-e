@@ -14,19 +14,21 @@
 # intended to run arm64 with Travis (as opposed to via emulation). In any case,
 # all matrixes should be pushed for local debugging.
 #
-# Ex. Build the images:
+# e.g. Build the images:
 # ```bash
-# for parent_image in ubuntu:20.04 centos:9; do docker buildx build \
-#                --platform linux/amd64 \
-#                --build-arg parent_image=${parent_image} \
-#                --build-arg go_stable_release=1_19 \
-#                --build-arg go_stable_revision=1.19.4 \
-#                --build-arg go_prior_release=1_18 \
-#                --build-arg go_prior_revision=1.18.8 \
-#                -t func-e-internal:${parent_image//:/-} .github/workflows; done
+# parent_image=quay.io/centos/centos:stream9
+# image_tag=centos-9
+# docker-buildx build \
+#   --platform linux/amd64 \
+#   --build-arg parent_image=${parent_image} \
+#   --build-arg go_stable_release=1_19 \
+#   --build-arg go_stable_revision=1.19.4 \
+#   --build-arg go_prior_release=1_18 \
+#   --build-arg go_prior_revision=1.18.8 \
+#   -t func-e-internal:${image_tag} .github/workflows
 # ```
 #
-# Ex. Build func-e on Ubuntu, then end-to-end test on CentOS
+# e.g. Build func-e on Ubuntu, then end-to-end test on CentOS
 # ```bash
 # $ docker run --rm -v $PWD:/work func-e-internal:ubuntu-20.04 dist
 # $ docker run --rm -v $PWD:/work func-e-internal:centos-9 -o build/func-e_linux_amd64/func-e e2e
@@ -83,11 +85,11 @@ ARG TARGETARCH
 # normal runners and Docker, with version skew bounded by image push frequency.
 # See https://github.com/actions/virtual-environments for current versions.
 #
-# go_XXX_release is the underscore delimited release version. Ex. "1_17"
-# go_XXX_revision is the full version number. Ex. "1.17.1"
+# go_XXX_release is the underscore delimited release version. e.g. "1_19"
+# go_XXX_revision is the full version number. e.g. "1.19.4"
 #
 # These are used along with the architecture to build GOROOT variables.
-# Ex. GOROOT_1_17_X64=/opt/hostedtoolcache/go/1.17.1/x64
+# e.g. GOROOT_1_19_X64=/opt/hostedtoolcache/go/1.19.4/x64
 ARG go_stable_revision
 ARG go_stable_url=https://golang.org/dl/go${go_stable_revision}.linux-${TARGETARCH}.tar.gz
 ARG goroot_stable=${runner_tool_cache}/go/${go_stable_revision}/${arch_lc}

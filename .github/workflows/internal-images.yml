@@ -28,9 +28,9 @@ jobs:
       matrix:
         include:
           - parent_image: quay.io/centos/centos:stream9  # Envoy requires CentOS >=9.
-            func-e_tag: centos-9
+            image_tag: centos-9
           - parent_image: ubuntu:20.04  # Always match runs-on!
-            func-e_tag: ubuntu-20.04
+            image_tag: ubuntu-20.04
 
     steps:
       # Same as doing this locally: echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_TOKEN}" --password-stdin
@@ -77,7 +77,7 @@ jobs:
 
       - name: "Build and push"
         run: |
-          docker_tag=ghcr.io/${{ github.repository_owner }}/func-e-internal:${FUNC-E_TAG}
+          docker_tag=ghcr.io/${{ github.repository_owner }}/func-e-internal:${IMAGE_TAG}
           docker buildx build --push \
             --platform linux/amd64,linux/arm64 \
             --build-arg parent_image=${PARENT_IMAGE} \
@@ -88,4 +88,4 @@ jobs:
             -t ${docker_tag} .github/workflows
         env:
           PARENT_IMAGE: ${{ matrix.parent_image }}
-          FUNC-E_TAG: ${{ matrix.func-e_tag }}
+          IMAGE_TAG: ${{ matrix.image_tag }}
