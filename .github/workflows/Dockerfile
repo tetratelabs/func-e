@@ -16,7 +16,7 @@
 #
 # Ex. Build the images:
 # ```bash
-# for parent_image in ubuntu:20.04 centos:8; do docker buildx build \
+# for parent_image in ubuntu:20.04 centos:9; do docker buildx build \
 #                --platform linux/amd64 \
 #                --build-arg parent_image=${parent_image} \
 #                --build-arg go_stable_release=1_19 \
@@ -36,7 +36,7 @@
 # ```bash
 # $ docker run --rm -v $PWD:/work -it --entrypoint /bin/bash func-e-internal:centos-8
 # ```
-ARG parent_image=centos:8
+ARG parent_image=centos:9
 
 # This section looks odd, but it is needed to match conventions of the GitHub
 # Actions runner. For example, TARGETARCH in Docker is "amd64" whereas GitHub

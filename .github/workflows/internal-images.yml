@@ -27,7 +27,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - parent_image: centos:8  # Envoy requires CentOS >=8. See tetratelabs/archive-envoy#17
+          - parent_image: centos:9  # Envoy requires CentOS >=9. See tetratelabs/func-e#437 for the failure.
           - parent_image: ubuntu:20.04  # Always match runs-on!
 
     steps:
