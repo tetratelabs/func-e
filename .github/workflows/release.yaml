@@ -110,4 +110,4 @@ jobs:
           docker run --rm -v $PWD:/work --entrypoint packaging/nfpm/verify_rpm.sh ${CENTOS_IMAGE}
         env:  # authenticate release downloads as drafts are not public
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CENTOS_IMAGE: ghcr.io/tetratelabs/func-e-internal:centos-8  # See internal-images.yaml
+          CENTOS_IMAGE: ghcr.io/tetratelabs/func-e-internal:centos-9  # See internal-images.yaml

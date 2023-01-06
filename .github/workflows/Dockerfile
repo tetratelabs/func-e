@@ -29,14 +29,15 @@
 # Ex. Build func-e on Ubuntu, then end-to-end test on CentOS
 # ```bash
 # $ docker run --rm -v $PWD:/work func-e-internal:ubuntu-20.04 dist
-# $ docker run --rm -v $PWD:/work func-e-internal:centos-8 -o build/func-e_linux_amd64/func-e e2e
+# $ docker run --rm -v $PWD:/work func-e-internal:centos-9 -o build/func-e_linux_amd64/func-e e2e
 # ```
 #
 # You can troubleshoot like this:
 # ```bash
-# $ docker run --rm -v $PWD:/work -it --entrypoint /bin/bash func-e-internal:centos-8
+# $ docker run --rm -v $PWD:/work -it --entrypoint /bin/bash func-e-internal:centos-9
 # ```
-ARG parent_image=centos:9
+# https://quay.io/repository/centos/centos?tag=stream9&tab=tags
+ARG parent_image=quay.io/centos/centos:stream9
 
 # This section looks odd, but it is needed to match conventions of the GitHub
 # Actions runner. For example, TARGETARCH in Docker is "amd64" whereas GitHub
@@ -61,9 +62,6 @@ ARG centos_packages="make sudo"
 # Ubuntu runs check, dist, and e2e, so needs more packages.
 ARG ubuntu_packages="make sudo curl git zip wixl msitools osslsigncode"
 RUN if [ -f /etc/centos-release ]; then \
-    # Change mirrors to vault.centos.org because CentOS 8 went EOL.
-    sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* && \
-    sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* && \
     # Use Dandified YUM on CentOS >=8.
     dnf="dnf -qy" && ${dnf} install ${centos_packages} && ${dnf} clean all; \
     else \
