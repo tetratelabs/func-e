@@ -13,12 +13,12 @@ on:
 #
 # To test this, try running end-to-end (e2e) tests!
 # ```bash
-# $ docker run --pull always --rm -v $PWD:/work ghcr.io/tetratelabs/func-e-internal:centos-8 e2e
+# $ docker run --pull always --rm -v $PWD:/work ghcr.io/tetratelabs/func-e-internal:centos-9 e2e
 # ```
 #
 # Make is the default entrypoint. To troubleshoot, use /bin/bash:
 # ```bash
-# $ docker run --pull always --rm -v $PWD:/work -it --entrypoint /bin/bash ghcr.io/tetratelabs/func-e-internal:centos-8
+# $ docker run --pull always --rm -v $PWD:/work -it --entrypoint /bin/bash ghcr.io/tetratelabs/func-e-internal:centos-9
 # [runner@babce89b5580 work]$
 # ```
 jobs:
@@ -27,8 +27,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - parent_image: centos:8  # Envoy requires CentOS >=8. See tetratelabs/archive-envoy#17
+          - parent_image: quay.io/centos/centos:stream9  # Envoy requires CentOS >=9.
+            image_tag: centos-9
           - parent_image: ubuntu:20.04  # Always match runs-on!
+            image_tag: ubuntu-20.04
 
     steps:
       # Same as doing this locally: echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_TOKEN}" --password-stdin
@@ -61,8 +63,8 @@ jobs:
       # We do this to allow pull requests to update go.mod with a new Golang
       # release without worrying if the Docker image has it, yet.
       #
-      # Ex. GOROOT_1_17_X64=/opt/hostedtoolcache/go/1.17.1/x64 ->
-      #     GO_STABLE_RELEASE=1_17, GO_STABLE_REVISION=1.17.1
+      # Ex. GOROOT_1_19_X64=/opt/hostedtoolcache/go/1.19.4/x64 ->
+      #     GO_STABLE_RELEASE=1_19, GO_STABLE_REVISION=1.19.4
       - name: "Find and parse last two GOROOTs"
         run: |  # Until Go releases hit triple digits, we can use simple ordering.
           goroot_stable_env=$(env|grep GOROOT_|sort -n|tail -1)
@@ -75,7 +77,7 @@ jobs:
 
       - name: "Build and push"
         run: |
-          docker_tag=ghcr.io/${{ github.repository_owner }}/func-e-internal:${PARENT_IMAGE//:/-}
+          docker_tag=ghcr.io/${{ github.repository_owner }}/func-e-internal:${IMAGE_TAG}
           docker buildx build --push \
             --platform linux/amd64,linux/arm64 \
             --build-arg parent_image=${PARENT_IMAGE} \
@@ -86,3 +88,4 @@ jobs:
             -t ${docker_tag} .github/workflows
         env:
           PARENT_IMAGE: ${{ matrix.parent_image }}
+          IMAGE_TAG: ${{ matrix.image_tag }}

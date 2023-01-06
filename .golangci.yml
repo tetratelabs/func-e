@@ -34,7 +34,6 @@ linters:
     - "gofmt"
     - "gocyclo"
     - "goimports"
-    - "revive"
     - "gosec"
     - "gosimple"
     - "lll"
@@ -48,6 +47,7 @@ linters:
   disable:
     - "gochecknoglobals"
     - "gochecknoinits"
+    - "revive"  # pedantic about package docs
 
 # all available settings of specific linters
 linters-settings:
