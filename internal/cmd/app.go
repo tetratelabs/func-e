@@ -55,7 +55,9 @@ your JSON first: ` + globals.DefaultEnvoyVersionsSchemaURL + `
 
 Advanced:
 ` + "`FUNC_E_PLATFORM`" + ` overrides the host OS and architecture of Envoy binaries.
-This value must be constant within a ` + "`$FUNC_E_HOME`" + `.`)
+This is used when emulating another platform, e.g. x86 on Apple Silicon M1.
+Note: Changing the OS value can cause problems as Envoy has dependencies,
+such as glibc. This value must be constant within a ` + "`$FUNC_E_HOME`" + `.`)
 	app.Version = o.Version
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
