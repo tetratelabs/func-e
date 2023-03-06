@@ -5,11 +5,6 @@
 # Please see GNU make's documentation if unfamiliar: https://www.gnu.org/software/make/manual/html_node/
 .PHONY: test build e2e dist clean format lint check site
 
-# Make functions strip spaces and use commas to separate parameters. The below variables escape these characters.
-comma := ,
-space :=
-space +=
-
 # Include versions of tools we build on-demand
 include Tools.mk
 
@@ -82,7 +77,8 @@ test: ## Run all unit tests
 	@$(go) test $(main_packages)
 	@printf "$(ansi_format_bright)" test "ok"
 
-coverpkg = $(subst $(space),$(comma),$(main_packages))
+# replace spaces with commas
+coverpkg = $(main_packages: =,)
 coverage: ## Generate test coverage
 	@printf "$(ansi_format_dark)" coverage "running unit tests with coverage"
 	@$(go) test -coverprofile=coverage.txt -covermode=atomic --coverpkg=$(coverpkg) $(main_packages)
