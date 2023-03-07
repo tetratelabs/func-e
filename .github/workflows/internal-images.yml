@@ -23,14 +23,14 @@ on:
 # ```
 jobs:
   build-and-push-images:
-    runs-on: ubuntu-20.04  # Hard-coding an LTS means maintenance, but only once each 2 years!
+    runs-on: ubuntu-22.04  # Hard-coding an LTS means maintenance, but only once each 2 years!
     strategy:
       matrix:
         include:
           - parent_image: quay.io/centos/centos:stream9  # Envoy requires CentOS >=9.
             image_tag: centos-9
-          - parent_image: ubuntu:20.04  # Always match runs-on!
-            image_tag: ubuntu-20.04
+          - parent_image: ubuntu:22.04  # Always match runs-on!
+            image_tag: ubuntu-22.04
 
     steps:
       # Same as doing this locally: echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_TOKEN}" --password-stdin

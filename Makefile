@@ -205,14 +205,9 @@ clean: ## Ensure a clean build
 build/format: go.mod $(all_sources)
 	@$(go) mod tidy
 	@$(go) run $(licenser) apply -r "Tetrate"
-	@$(go)fmt -s -w $(all_sources)
-	@# Workaround inconsistent goimports grouping with awk until golang/go#20818 or incu6us/goimports-reviser#50
-	@for f in $(all_sources); do \
-	    awk '/^import \($$/,/^\)$$/{if($$0=="")next}{print}' $$f > /tmp/fmt; \
-	    mv /tmp/fmt $$f; \
-	done
+	@$(go) run $(gofumpt) -l -w .
 	@# -local ensures consistent ordering of our module in imports
-	@$(go) run $(goimports) -local $$(sed -ne 's/^module //gp' go.mod) -w $(all_sources)
+	@$(go) run $(gosimports) -local $$(sed -ne 's/^module //gp' go.mod) -w $(all_sources)
 	@mkdir -p $(@D) && touch $@
 
 format:

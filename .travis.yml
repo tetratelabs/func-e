@@ -28,7 +28,7 @@ before_install: |  # Prevent test build of a documentation or GitHub Actions onl
 env:  # CENTOS_IMAGE and UBUNTU_IMAGE were built by internal-images.yaml; E2E_FUNC_E_PATH was built via `make dist`
   global:
     - CENTOS_IMAGE=ghcr.io/tetratelabs/func-e-internal:centos-8
-    - UBUNTU_IMAGE=ghcr.io/tetratelabs/func-e-internal:ubuntu-20.04
+    - UBUNTU_IMAGE=ghcr.io/tetratelabs/func-e-internal:ubuntu-22.04
     # Read/Write volume mounts for ~/go/pkg/mod and ~/.func-e assist in caching while $PWD shares build outputs
     - DOCKER_ARGS="docker run --rm -v $HOME/go/pkg/mod:/home/runner/go/pkg/mod:rw -v $HOME/.func-e/versions:/home/runner/.func-e/versions:rw -v $PWD:/work:rw"
     - E2E_FUNC_E_PATH=build/func-e_linux_arm64

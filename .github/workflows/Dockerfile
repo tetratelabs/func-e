@@ -30,7 +30,7 @@
 #
 # e.g. Build func-e on Ubuntu, then end-to-end test on CentOS
 # ```bash
-# $ docker run --rm -v $PWD:/work func-e-internal:ubuntu-20.04 dist
+# $ docker run --rm -v $PWD:/work func-e-internal:ubuntu-22.04 dist
 # $ docker run --rm -v $PWD:/work func-e-internal:centos-9 -o build/func-e_linux_amd64/func-e e2e
 # ```
 #

@@ -43,7 +43,7 @@ jobs:
         include:
           # ubuntu is missing windows build tools: wixl, msiinfo and osslsigncode
           # See https://github.com/actions/virtual-environments/issues/3857
-          - os: ubuntu-20.04  # Hard-coding an LTS means maintenance, but only once each 2 years!
+          - os: ubuntu-22.04  # Hard-coding an LTS means maintenance, but only once each 2 years!
             setup: sudo apt update -qq && sudo apt install -qq -y wixl msitools osslsigncode
 
           # MacOS is missing wixl, but could work with `brew install -q msitools osslsigncode`

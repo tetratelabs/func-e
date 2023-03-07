@@ -15,7 +15,7 @@ defaults:
 jobs:
   func-e:
     name: "Release `func-e` CLI"
-    runs-on: ubuntu-20.04  # Hard-coding an LTS means maintenance, but only once each 2 years!
+    runs-on: ubuntu-22.04  # Hard-coding an LTS means maintenance, but only once each 2 years!
 
     steps:
       - name: "Checkout"
@@ -76,7 +76,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-20.04  # Hard-coding an LTS means maintenance, but only once each 2 years!
+          - os: ubuntu-22.04  # Hard-coding an LTS means maintenance, but only once each 2 years!
             pattern: '*linux_amd64.tar.gz'
           - os: macos-12
             pattern: '*darwin_amd64.tar.gz'

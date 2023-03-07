@@ -92,7 +92,8 @@ func verifyEnvoy(installPath string) (string, error) {
 }
 
 func untarEnvoy(ctx context.Context, dst string, src version.TarballURL, // dst, src order like io.Copy
-	sha256Sum version.SHA256Sum, p version.Platform, v string) error {
+	sha256Sum version.SHA256Sum, p version.Platform, v string,
+) error {
 	res, err := httpGet(ctx, string(src), p, v)
 	if err != nil {
 		return err

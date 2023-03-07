@@ -230,7 +230,8 @@ func TestEnsurePatchVersion_FallbackSuccess(t *testing.T) {
 			func(context.Context) (*version.ReleaseVersions, error) {
 				return nil, errors.New("file not found")
 			},
-		}, {
+		},
+		{
 			"no versions",
 			func(context.Context) (*version.ReleaseVersions, error) {
 				return &version.ReleaseVersions{}, nil
@@ -251,7 +252,6 @@ func TestEnsurePatchVersion_FallbackSuccess(t *testing.T) {
 	for _, tt := range tests {
 		tc := tt // pin! see https://github.com/kyoh86/scopelint for why
 		t.Run(tc.name, func(t *testing.T) {
-
 			o := &globals.GlobalOpts{
 				GetEnvoyVersions: tc.getEnvoyVersions,
 				HomeDir:          t.TempDir(),

@@ -68,7 +68,7 @@ func RequireEnvoyVersionsTestServer(t *testing.T, v version.PatchVersion) *httpt
 
 // TarballURL gives the expected download URL for the given runtime.GOOS and Envoy version.
 func TarballURL(baseURL, goos, goarch string, v version.PatchVersion) version.TarballURL {
-	var arch = "x86_64"
+	arch := "x86_64"
 	if goarch != "arm64" {
 		arch = goarch
 	}

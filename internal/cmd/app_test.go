@@ -153,7 +153,6 @@ func TestPlatformArg(t *testing.T) {
 			require.Equal(t, tc.expected, o.Platform)
 		})
 	}
-
 }
 
 func TestEnvoyVersionsURL(t *testing.T) {
