@@ -23,23 +23,40 @@ jobs:
         with:  # fetch all history for all tags and branches (needed for changelog)
           fetch-depth: 0
 
-      - name: "Download Windows code signing certificate"
-        id: p12
-        uses: timheuer/base64-to-file@v1
-        with:
-          fileName: 'windows-certificate.p12'
-          encodedString: ${{ secrets.WINDOWS_CODESIGN_P12_BASE64 }}
-
       # ubuntu is missing wixl https://github.com/actions/virtual-environments/issues/3857
       # ubuntu is also missing osslsigncode (no issue, yet)
       - name: "Install GNOME msitools (wixl) and osslsigncode"
         run: sudo apt update -qq && sudo apt install -qq -y wixl osslsigncode
 
-      - name: "Make release assets"
-        run: VERSION=${GITHUB_REF#refs/tags/v} make dist
+      - name: Download Windows code signing certificate
         env:
-          WINDOWS_CODESIGN_P12: ${{ steps.p12.outputs.filePath }}
-          WINDOWS_CODESIGN_PASSWORD: ${{ secrets.WINDOWS_CODESIGN_PASSWORD }}
+          WINDOWS_CODESIGN_P12_BASE64: ${{ secrets.WINDOWS_CODESIGN_P12_BASE64 }}
+        run: | # On the fork PRs, our org secret is not visible.
+          if [ $WINDOWS_CODESIGN_P12_BASE64 ]; then
+            echo $WINDOWS_CODESIGN_P12_BASE64 | base64 --decode > windows-certificate.p12
+            echo "WINDOWS_CODESIGN_P12=windows-certificate.p12" >> $GITHUB_ENV
+          fi
+
+      - name: "Make release assets (test)"
+        if: github.event_name != 'push' || !contains(github.ref, 'refs/tags/')
+        run: | # On the fork PRs, our org secret is not visible. We unset the required env so that `make dist` uses default self-signed cert.
+          if [ $WINDOWS_CODESIGN_P12 ]; then
+            export WINDOWS_CODESIGN_PASSWORD=${{ secrets.WINDOWS_CODESIGN_PASSWORD }}
+          fi
+          VERSION=${GITHUB_REF#refs/tags/v}
+          make dist VERSION=$VERSION
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+
+      - name: "Make release assets"
+        # Triggers only on tag creation.
+        if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+        run: | # On the fork PRs, our org secret is not visible. We unset the required env so that `make dist` uses default self-signed cert.
+          if [ $WINDOWS_CODESIGN_P12 ]; then
+            export WINDOWS_CODESIGN_PASSWORD=${{ secrets.WINDOWS_CODESIGN_PASSWORD }}
+          fi
+          VERSION=${GITHUB_REF#refs/tags/v}
+          make dist VERSION=$VERSION
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
 
       - name: "Create draft release"
         run: |
