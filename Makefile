@@ -118,18 +118,14 @@ dist/func-e_$(VERSION)_%.tar.gz: build/func-e_%/func-e
 	@printf "$(ansi_format_bright)" tar.gz "ok"
 
 build/func-e_%/func-e.exe: $(main_sources)
+ifeq ($(OS),Windows_NT) 
 	$(call go-build,$@,$<)
+endif
 
 dist/func-e_$(VERSION)_%.zip: build/func-e_%/func-e.exe.signed
 	@printf "$(ansi_format_dark)" zip "zipping $@"
 	@mkdir -p $(@D)
-ifeq ($(goos),windows)  # Windows 10 etc use 7zip
-	@# '-bso0 -bsp0' makes it quiet, except errors
-	@# Wildcards in 7zip will skip the directory. We single-quote to ensure they aren't interpreted by the shell.
-	@7z -bso0 -bsp0 a $@ './$(dir $<)/*.exe'
-else  # Otherwise, assume zip is available
 	@zip -qj $@ $(<:.signed=)
-endif
 	@printf "$(ansi_format_bright)" zip "ok"
 
 # Default to a dummy version, which is always lower than a real release
@@ -167,33 +163,32 @@ msi_version := $(VERSION:dev=0.0.1)
 
 # This builds the Windows installer (MSI) using platform-dependent WIX commands.
 dist/func-e_$(VERSION)_%.msi: build/func-e_%/func-e.exe.signed
+ifeq ($(OS),Windows_NT)  # Windows 10 etc use https://wixtoolset.org
 	@printf "$(ansi_format_dark)" msi "building $@"
 	@mkdir -p $(@D)
-ifeq ($(goos),windows)  # Windows 10 etc use https://wixtoolset.org
 	@candle -nologo -arch $(call msi-arch,$@) -dVersion=$(msi_version) -dBin=$(<:.signed=) packaging/msi/func-e.wxs
 	@light -nologo func-e.wixobj -o $@ -spdb
 	@rm func-e.wixobj
-else  # use https://wiki.gnome.org/msitools
-	@wixl -a $(call msi-arch,$@) -D Version=$(msi_version) -D Bin=$(<:.signed=) -o $@ packaging/msi/func-e.wxs
-endif
 	$(call codesign,$@)
 	@printf "$(ansi_format_bright)" msi "ok"
+endif
 
 # Archives are tar.gz, except in the case of Windows, which uses zip.
+non_windows_archives  := $(non_windows_platforms:%=dist/func-e_$(VERSION)_%.tar.gz)
+windows_archives      := $(windows_platforms:%=dist/func-e_$(VERSION)_%.zip) $(windows_platforms:%=dist/func-e_$(VERSION)_%.msi)
 archives  := $(non_windows_platforms:%=dist/func-e_$(VERSION)_%.tar.gz) $(windows_platforms:%=dist/func-e_$(VERSION)_%.zip)
-packages  := $(windows_platforms:%=dist/func-e_$(VERSION)_%.msi) $(linux_platforms:%=dist/func-e_$(VERSION)_%.deb) $(rpms)
 checksums := dist/func-e_$(VERSION)_checksums.txt
 
 # Darwin doesn't have sha256sum. See https://github.com/actions/virtual-environments/issues/90
 sha256sum := $(if $(findstring darwin,$(goos)),shasum -a 256,sha256sum)
-$(checksums): $(archives) $(packages)
+$(checksums): $(non_windows_archives) $(if $(findstring Windows_NT,$(OS)),$(windows_archives),)
 	@printf "$(ansi_format_dark)" sha256sum "generating $@"
 	@$(sha256sum) $^ > $@
 	@printf "$(ansi_format_bright)" sha256sum "ok"
 
 # dist generates the assets that attach to a release
 # Ex. https://github.com/tetratelabs/func-e/releases/tag/v$(VERSION)
-dist: $(archives) $(packages) $(checksums) ## Generate release assets
+dist: $(non_windows_archives) $(if $(findstring Windows_NT,$(OS)),$(windows_archives),) $(checksums) ## Generate release assets
 
 clean: ## Ensure a clean build
 	@printf "$(ansi_format_dark)" clean "deleting temporary files"

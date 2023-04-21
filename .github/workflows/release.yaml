@@ -15,7 +15,7 @@ defaults:
 jobs:
   func-e:
     name: "Release `func-e` CLI"
-    runs-on: ubuntu-20.04  # Hard-coding an LTS means maintenance, but only once each 2 years!
+    runs-on: windows-2022
 
     steps:
       - name: "Checkout"
@@ -23,10 +23,12 @@ jobs:
         with:  # fetch all history for all tags and branches (needed for changelog)
           fetch-depth: 0
 
-      # ubuntu is missing wixl https://github.com/actions/virtual-environments/issues/3857
-      # ubuntu is also missing osslsigncode (no issue, yet)
-      - name: "Install GNOME msitools (wixl) and osslsigncode"
-        run: sudo apt update -qq && sudo apt install -qq -y wixl osslsigncode
+      # windows-2022 is missing osslsigncode (no issue, yet)
+      - name: "Install osslsigncode, infozip; setup wix"
+        run: |
+          choco install osslsigncode -y
+          choco install zip -y
+          echo "C:\Program Files (x86)\WiX Toolset v3.11\bin" >> $GITHUB_PATH
 
       - name: Download Windows code signing certificate
         env:
@@ -36,6 +38,7 @@ jobs:
             echo $WINDOWS_CODESIGN_P12_BASE64 | base64 --decode > windows-certificate.p12
             echo "WINDOWS_CODESIGN_P12=windows-certificate.p12" >> $GITHUB_ENV
           fi
+        shell: bash
 
       - name: "Make release assets (test)"
         if: github.event_name != 'push' || !contains(github.ref, 'refs/tags/')
@@ -46,6 +49,7 @@ jobs:
           VERSION=${GITHUB_REF#refs/tags/v}
           make dist VERSION=$VERSION
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
+        shell: bash
 
       - name: "Make release assets"
         # Triggers only on tag creation.
@@ -57,6 +61,7 @@ jobs:
           VERSION=${GITHUB_REF#refs/tags/v}
           make dist VERSION=$VERSION
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
+        shell: bash
 
       - name: "Create draft release"
         run: |
@@ -64,6 +69,7 @@ jobs:
           ./.github/workflows/release_notes.sh ${tag} > release-notes.txt
           gh release create ${tag} --draft \
             --title ${tag} --notes-file release-notes.txt ./dist/*
+        shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

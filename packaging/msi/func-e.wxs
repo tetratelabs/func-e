@@ -26,7 +26,7 @@
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
 
     <?ifndef var.Version?>
-    <?error Version must be defined. Ex. wixl -D Version=0.6.1?>
+    <?error Version must be defined. Ex. candle -dVersion=0.6.1?>
     <?endif?>
 
     <?ifndef var.Bin?>
@@ -47,14 +47,9 @@
          -->
     <Product Id="*" Name="func-e" Manufacturer="Tetrate"  Version="$(var.Version)" UpgradeCode="$(var.UpgradeCode)"
              Language="1033" Codepage="1252">
-        <!-- TODO: set <Property Id="ALLUSERS"... after https://gitlab.gnome.org/GNOME/msitools/-/issues/40 -->
 
-        <!-- InstallerVersion="310" (3.1) because it is unlikely Envoy will run before XP
-             https://docs.microsoft.com/en-us/windows/win32/msi/released-versions-of-windows-installer
-
-             InstallScope="perUser" is default (Id="ALLUSERS" doesn't work on msitools 0.101) -->
         <Package Id="*" Keywords="Installer" Description="func-e installer" Manufacturer="Tetrate"
-                 InstallerVersion="310" Languages="1033" Compressed="yes" SummaryCodepage="1252"/>
+                 InstallerVersion="310" Languages="1033" Compressed="yes" SummaryCodepage="1252" Platform="x64" />
 
         <!-- func-e.exe is embedded inside the installer: func-e.msi
              Cabinet="FuncE.cab" because light.exe fails on "func-e.cab" -->
@@ -76,6 +71,8 @@
         <Property Id="ARPNOREPAIR" Value="1"/>
         <Property Id="ARPNOMODIFY" Value="1"/>
 
+        <Property Id="ALLUSERS" Secure="yes"/>
+
         <!-- On Windows, when Id="TARGETDIR" Name="SourceDir": it will error otherwise -->
         <Directory Id="TARGETDIR" Name="SourceDir">
             <!-- ProgramFiles64Folder because Envoy is always 64-bit builds -->
@@ -88,6 +85,11 @@
                     </Component>
                 </Directory>
             </Directory>
+
+            <Component Id="Path" Guid="{8b34391e-e17b-46c0-8f7b-026ab2c7c33b}">
+                <Environment Id="PATH" Name="PATH" Value="[INSTALLDIR]" Permanent="no" Part="last" Action="set" System="no" />
+            </Component>
+
         </Directory>
 
         <!-- Use most common size 48x48 for the Add/Remove programs -->
@@ -96,17 +98,11 @@
 
         <Feature Id="Complete" Level="1">
             <ComponentRef Id="FuncEBin"/>
+            <ComponentRef Id="Path" />
         </Feature>
 
-        <!-- Add func-e to the default PATH once installation succeeds.
-             Replace with <Component><Environment> after https://gitlab.gnome.org/GNOME/msitools/-/merge_requests/42 -->
-        <Property Id="setx" Value="setx.exe"/>
-        <CustomAction Id="ChangePath" ExeCommand="PATH &quot;%PATH%;[INSTALLDIR]&quot;" Property="setx"
-                      Execute="deferred"/>
         <InstallExecuteSequence>
             <RemoveExistingProducts Before="InstallInitialize"/>
-            <!-- Add PATH remove after after https://gitlab.gnome.org/GNOME/msitools/-/merge_requests/42 -->
-            <Custom Action="ChangePath" After="InstallServices">NOT Installed</Custom>
         </InstallExecuteSequence>
     </Product>
 </Wix>

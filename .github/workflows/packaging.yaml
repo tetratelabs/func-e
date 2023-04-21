@@ -41,10 +41,10 @@ jobs:
       fail-fast: false  # don't fail fast as sometimes failures are operating system specific
       matrix:
         include:
-          # ubuntu is missing windows build tools: wixl, msiinfo and osslsigncode
-          # See https://github.com/actions/virtual-environments/issues/3857
-          - os: ubuntu-20.04  # Hard-coding an LTS means maintenance, but only once each 2 years!
-            setup: sudo apt update -qq && sudo apt install -qq -y wixl msitools osslsigncode
+          # # ubuntu is missing windows build tools: wixl, msiinfo and osslsigncode
+          # # See https://github.com/actions/virtual-environments/issues/3857
+          # - os: ubuntu-20.04  # Hard-coding an LTS means maintenance, but only once each 2 years!
+          #   setup: sudo apt update -qq && sudo apt install -qq -y wixl msitools osslsigncode
 
           # MacOS is missing wixl, but could work with `brew install -q msitools osslsigncode`
           # https://github.com/actions/virtual-environments/issues/3857
@@ -64,10 +64,9 @@ jobs:
           # wixtoolset isn't in the path https://github.com/wixtoolset/wix3/blob/develop/src/Setup/CoreMsi/Toolset.wxs#L87
           - os: windows-2022
             setup: |
+              choco install osslsigncode -y
+              choco install zip -y
               echo "$WIX\\bin" >> $GITHUB_PATH
-              osslsigncode_version=2.2
-              gh release download -R mtrojnar/osslsigncode ${osslsigncode_version} -p '*windows.zip'
-              unzip -qq *.zip -d ${HOME}/osslsigncode && rm *.zip
               echo "${HOME}\\osslsigncode" >> $GITHUB_PATH
 
     steps:
