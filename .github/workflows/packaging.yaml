@@ -36,42 +36,19 @@ defaults:
 jobs:
   packaging:
     name: "Test packaging build (${{ matrix.os }})"
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-2022
     strategy:
       fail-fast: false  # don't fail fast as sometimes failures are operating system specific
-      matrix:
-        include:
-          # # ubuntu is missing windows build tools: wixl, msiinfo and osslsigncode
-          # # See https://github.com/actions/virtual-environments/issues/3857
-          # - os: ubuntu-20.04  # Hard-coding an LTS means maintenance, but only once each 2 years!
-          #   setup: sudo apt update -qq && sudo apt install -qq -y wixl msitools osslsigncode
-
-          # MacOS is missing wixl, but could work with `brew install -q msitools osslsigncode`
-          # https://github.com/actions/virtual-environments/issues/3857
-          #
-          # However, osslsigncode is broken as of Jan 2023 like so:
-          #   codesign   signing build/func-e_windows_amd64/func-e.exe
-          #   make: *** [build/func-e_windows_amd64/func-e.exe.signed] Error 255
-          #   Failed to parse PKCS#12 file: packaging/msi/func-e.p12 (Wrong password?)
-          #   0096371801000000:error:0308010C:digital envelope routines:inner_evp_generic_fetch:unsupported:crypto/evp/evp_fetch.c:373:Global default library context, Algorithm (RC2-40-CBC : 0), Properties ()
-          #
-          # Also, homebrew removed the ability to install old versions, as well
-          # the ability to install from a raw URL. Until this works again,
-          # verification of packaging commands on MacOS is disabled. This is ok
-          # because they are verified on two other platforms, including Ubuntu,
-          # which is the platform used in the release workflow.
-
-          # wixtoolset isn't in the path https://github.com/wixtoolset/wix3/blob/develop/src/Setup/CoreMsi/Toolset.wxs#L87
-          - os: windows-2022
-            setup: |
-              choco install osslsigncode -y
-              choco install zip -y
-              echo "$WIX\\bin" >> $GITHUB_PATH
-              echo "${HOME}\\osslsigncode" >> $GITHUB_PATH
-
+    
     steps:
+      -name: "Setup "
       - name: "Setup msitools, wixtoolset, osslsigncode"
-        run: ${{ matrix.setup }}
+        run: |
+          choco install osslsigncode -y
+          choco install zip -y
+          echo "$WIX\\bin" >> $GITHUB_PATH
+          echo "${HOME}\\osslsigncode" >> $GITHUB_PATH
+          
         env:  # `gh` requires auth even on public releases
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -95,6 +72,45 @@ jobs:
         run: |
           ./packaging/msi/winget_manifest.sh > Tetrate.func-e.yaml
           yamllint -sd '{extends: default, rules: {line-length: disable}}' Tetrate.func-e.yaml
+
+
+      # In order to share the built artifacts in the subsequent tests, we use cache instead of actions/upload-artifacts.
+      # The reason is that upload-artifacts are not globally consistent and sometimes pre_release_test won't be able to
+      # find the artifacts uploaded here. See https://github.com/actions/upload-artifact/issues/21 for more context.
+      # Downside of this is that, we pressure the cache capacity set per repository. We delete all caches created
+      # on PRs on close. See .github/workflows/clear_cache.yaml. On main branch, in any way this cache will be deleted
+      # in 7 days, also this at most a few MB, so this won't be an issue.
+      - uses: actions/cache@v3
+        id: cache
+        with:
+          # Use share the cache containing archives across OSes.
+          enableCrossOsArchive: true
+          # Note: this creates a cache per run.
+          key: release-artifacts-${{ github.run_id }}
+          path:
+            dist/
+
+  # pre_release_test tests the artifacts built by pre_release in the OS dependent way.
+  pre_release_test:
+    needs: pre_release
+    name: Pre-release test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false # don't fail fast as sometimes failures are arch/OS specific
+      matrix:
+        os: [ubuntu-22.04, macos-12, windows-2022]
+
+      - uses: actions/checkout@v3
+
+      - uses: actions/cache@v3
+        id: cache
+        with:
+          # We need this cache to run tests.
+          fail-on-cache-miss: true
+          enableCrossOsArchive: true
+          key: release-artifacts-${{ github.run_id }}
+          path:
+            dist/
 
       # This only checks the installer when built on Windows as it is simpler than switching OS.
       # refreshenv is from choco, and lets you reload ENV variables (used here for PATH).
