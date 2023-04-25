@@ -39,7 +39,7 @@ jobs:
     runs-on: windows-2022
     strategy:
       fail-fast: false  # don't fail fast as sometimes failures are operating system specific
-    
+
     steps:
       - name: "Setup msitools, wixtoolset, osslsigncode"
         run: |
@@ -47,7 +47,7 @@ jobs:
           choco install zip -y
           echo "$WIX\\bin" >> $GITHUB_PATH
           echo "${HOME}\\osslsigncode" >> $GITHUB_PATH
-          
+
         env:  # `gh` requires auth even on public releases
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -99,31 +99,32 @@ jobs:
       matrix:
         os: [ubuntu-22.04, macos-12, windows-2022]
 
-      - uses: actions/checkout@v3
+    steps:
+    - uses: actions/checkout@v3
 
-      - uses: actions/cache@v3
-        id: cache
-        with:
-          # We need this cache to run tests.
-          fail-on-cache-miss: true
-          enableCrossOsArchive: true
-          key: release-artifacts-${{ github.run_id }}
-          path:
-            dist/
+    - uses: actions/cache@v3
+      id: cache
+      with:
+        # We need this cache to run tests.
+        fail-on-cache-miss: true
+        enableCrossOsArchive: true
+        key: release-artifacts-${{ github.run_id }}
+        path:
+          dist/
 
-      # This only checks the installer when built on Windows as it is simpler than switching OS.
-      # refreshenv is from choco, and lets you reload ENV variables (used here for PATH).
-      - name: "Test Windows Installer (Windows)"
-        if: runner.os == 'Windows'
-        run: call packaging\msi\verify_msi.cmd
-        shell: cmd
+    # This only checks the installer when built on Windows as it is simpler than switching OS.
+    # refreshenv is from choco, and lets you reload ENV variables (used here for PATH).
+    - name: "Test Windows Installer (Windows)"
+      if: runner.os == 'Windows'
+      run: call packaging\msi\verify_msi.cmd
+      shell: cmd
 
-      - name: "Test Debian package"
-        if: runner.os == 'Linux'
-        run: packaging/nfpm/verify_deb.sh
+    - name: "Test Debian package"
+      if: runner.os == 'Linux'
+      run: packaging/nfpm/verify_deb.sh
 
-      - name: "Test RPM package (CentOS)"
-        if: runner.os == 'Linux'
-        run: docker run --rm -v $PWD:/work --entrypoint packaging/nfpm/verify_rpm.sh ${CENTOS_IMAGE}
-        env:  # CENTOS_IMAGE was built by internal-images.yaml
-          CENTOS_IMAGE: ghcr.io/tetratelabs/func-e-internal:centos-9
+    - name: "Test RPM package (CentOS)"
+      if: runner.os == 'Linux'
+      run: docker run --rm -v $PWD:/work --entrypoint packaging/nfpm/verify_rpm.sh ${CENTOS_IMAGE}
+      env:  # CENTOS_IMAGE was built by internal-images.yaml
+        CENTOS_IMAGE: ghcr.io/tetratelabs/func-e-internal:centos-9
