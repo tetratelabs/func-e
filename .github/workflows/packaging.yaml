@@ -41,7 +41,6 @@ jobs:
       fail-fast: false  # don't fail fast as sometimes failures are operating system specific
     
     steps:
-      -name: "Setup "
       - name: "Setup msitools, wixtoolset, osslsigncode"
         run: |
           choco install osslsigncode -y
