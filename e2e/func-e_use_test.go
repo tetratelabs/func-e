@@ -83,7 +83,7 @@ func TestFuncEUse_UnknownMinorVersion(t *testing.T) {
 // That or don't update LastKnownEnvoy until it is consistent.
 func TestFuncEUse_MinorVersion(t *testing.T) {
 	// The intended minor version to be installed. This version is known to have darwin, linux, and windows binaries.
-	minorVersion := "1.18"
+	minorVersion := "1.26"
 
 	allVersions, _, err := funcEExec("versions", "-a")
 	require.NoError(t, err)
