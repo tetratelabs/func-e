@@ -130,7 +130,7 @@ func TestFuncEUse_MinorVersion(t *testing.T) {
 		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", minorVersion)
 
 		require.NoError(t, err)
-		require.Regexp(t, `^looking up the latest patch for Envoy version 1.18\r?\ndownloading https:.*tar.*z\r?\n$`, stdout)
+		require.Regexp(t, `^looking up the latest patch for Envoy version 1.26\r?\ndownloading https:.*tar.*z\r?\n$`, stdout)
 		require.Empty(t, stderr)
 
 		// The binary was installed.
@@ -146,7 +146,7 @@ func TestFuncEUse_MinorVersion(t *testing.T) {
 	t.Run("use upgraded version after downloaded", func(t *testing.T) {
 		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", minorVersion)
 		require.NoError(t, err)
-		require.Equal(t, moreos.Sprintf("looking up the latest patch for Envoy version 1.18\n%s is already downloaded\n", upgradedVersion), stdout)
+		require.Equal(t, moreos.Sprintf("looking up the latest patch for Envoy version 1.26\n%s is already downloaded\n", upgradedVersion), stdout)
 		require.Empty(t, stderr)
 	})
 
