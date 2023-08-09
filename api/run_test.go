@@ -32,7 +32,7 @@ var (
 	runArgs = []string{"--version"}
 )
 
-func TestRun(t *testing.T) {
+func TestRunWithCtxDone(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	envoyVersion := version.LastKnownEnvoy
@@ -44,7 +44,8 @@ func TestRun(t *testing.T) {
 	require.Equal(t, 0, b.Len())
 
 	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	// Use a very small ctx timeout
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 	err := Run(ctx, runArgs, Out(b), HomeDir(tmpDir), EnvoyVersionsURL(envoyVersionsURL))
 	require.NoError(t, err)
@@ -52,4 +53,29 @@ func TestRun(t *testing.T) {
 	require.NotEqual(t, 0, b.Len())
 	_, err = os.Stat(filepath.Join(tmpDir, "versions"))
 	require.NoError(t, err)
+}
+
+func TestRunToCompletion(t *testing.T) {
+
+	tmpDir := t.TempDir()
+	envoyVersion := version.LastKnownEnvoy
+	versionsServer := test.RequireEnvoyVersionsTestServer(t, envoyVersion)
+	defer versionsServer.Close()
+	envoyVersionsURL := versionsServer.URL + "/envoy-versions.json"
+	b := bytes.NewBufferString("")
+
+	require.Equal(t, 0, b.Len())
+
+	ctx := context.Background()
+	// Set a large ctx timeout value
+	ctx, cancel := context.WithTimeout(ctx, 1000*time.Minute)
+	defer cancel()
+
+	err := Run(ctx, runArgs, Out(b), HomeDir(tmpDir), EnvoyVersionsURL(envoyVersionsURL))
+	require.NoError(t, err)
+
+	require.NotEqual(t, 0, b.Len())
+	_, err = os.Stat(filepath.Join(tmpDir, "versions"))
+	require.NoError(t, err)
+
 }
