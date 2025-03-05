@@ -51,6 +51,11 @@ jobs:
       - name: "Checkout"
         uses: actions/checkout@v4
 
+      - uses: actions/setup-go@v5
+        with:
+          cache: false
+          go-version-file: go.mod
+
       - name: "Cache Go"
         uses: actions/cache@v4
         with:
@@ -84,13 +89,3 @@ jobs:
         env:  # CENTOS_IMAGE was built by internal-images.yaml; E2E_FUNC_E_PATH was built via `make build`
           CENTOS_IMAGE: ghcr.io/tetratelabs/func-e-internal:centos-9
           E2E_FUNC_E_PATH: build/func-e_linux_amd64
-
-      - name: "Generate coverage report"  # only once (not per OS)
-        if: runner.os == 'Linux'
-        run: make coverage
-
-      - name: "Upload coverage report"  # only on master push and only once (not per OS)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && runner.os == 'Linux'
-        uses: codecov/codecov-action@v2
-        with:
-          file: ./coverage.txt
