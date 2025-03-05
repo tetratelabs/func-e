@@ -2,8 +2,7 @@ NAME:
    func-e versions - List Envoy versions
 
 USAGE:
-   func-e versions [command options] [arguments...]
+   func-e versions [command options]
 
 OPTIONS:
    --all, -a  Show all versions including ones not yet installed (default: false)
-   

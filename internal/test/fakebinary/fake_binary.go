@@ -76,7 +76,7 @@ func RequireBuildFakeBinary(t *testing.T, workDir, name string, mainSrc []byte) 
 
 func requireGoBin(t *testing.T) string {
 	binName := "go" + exe
-	goBin := filepath.Join(runtime.GOROOT(), "bin", binName)
+	goBin := filepath.Join(os.Getenv("GOROOT"), "bin", binName)
 	if _, err := os.Stat(goBin); err == nil {
 		return goBin
 	}

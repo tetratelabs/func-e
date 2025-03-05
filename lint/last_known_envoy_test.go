@@ -58,9 +58,7 @@ var allPlatforms = []version.Platform{
 	"linux/amd64",
 	"linux/arm64",
 	"darwin/amd64",
-	// "darwin/arm64", TODO: https://github.com/envoyproxy/envoy/issues/1648
-	"windows/amd64",
-	// "windows/arm64", TODO: https://github.com/envoyproxy/envoy/issues/17572
+	"darwin/arm64",
 }
 
 func supportsAllPlatforms(r map[version.Platform]version.TarballURL) bool {

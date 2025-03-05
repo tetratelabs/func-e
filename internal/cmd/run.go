@@ -40,7 +40,7 @@ func NewRunCmd(o *globals.GlobalOpts) *cli.Command {
 		Usage:           "Run Envoy with the given [arguments...] until interrupted",
 		ArgsUsage:       "[arguments...]",
 		SkipFlagParsing: true,
-		Description: moreos.Sprintf(`To run Envoy, execute ` + "`func-e run -c your_envoy_config.yaml`" + `.
+		Description: `To run Envoy, execute ` + "`func-e run -c your_envoy_config.yaml`" + `.
 
 The first version in the below is run, controllable by the "use" command:
 ` + fmt.Sprintf("```\n%s\n```", envoy.VersionUsageList()) + `
@@ -52,7 +52,7 @@ directory (aka $PWD) until func-e is interrupted (ex Ctrl+C, Ctrl+Break).
 Envoy's process ID and console output write to "envoy.pid", stdout.log" and
 "stderr.log" in the run directory (` + fmt.Sprintf("`%s`", runDirectoryExpression) + `).
 When interrupted, shutdown hooks write files including network and process
-state. On exit, these archive into ` + fmt.Sprintf("`%s.tar.gz`", runDirectoryExpression)),
+state. On exit, these archive into ` + fmt.Sprintf("`%s.tar.gz`", runDirectoryExpression),
 		Before: func(c *cli.Context) error {
 			return ensureEnvoyVersion(c, o)
 		},
@@ -86,7 +86,7 @@ state. On exit, these archive into ` + fmt.Sprintf("`%s.tar.gz`", runDirectoryEx
 
 			return r.Run(c.Context, c.Args().Slice())
 		},
-		CustomHelpTemplate: moreos.Sprintf(cli.CommandHelpTemplate),
+		CustomHelpTemplate: cli.CommandHelpTemplate,
 	}
 	return cmd
 }
@@ -109,7 +109,7 @@ func initializeRunOpts(ctx context.Context, o *globals.GlobalOpts) error {
 
 		// Eagerly create the run dir, so that errors raise early
 		if err := os.MkdirAll(runDir, 0o750); err != nil {
-			return NewValidationError("unable to create working directory %q, so we cannot run envoy", runDir)
+			return NewValidationError(fmt.Sprintf("unable to create working directory %q, so we cannot run envoy", runDir))
 		}
 		runOpts.RunDir = runDir
 	}
@@ -177,7 +177,11 @@ func ensurePatchVersion(ctx context.Context, o *globals.GlobalOpts, v version.Ve
 		}
 		return "", err
 	} // version.Version is a union type, so the only other option is a patch!
-	return v.(version.PatchVersion), nil
+	vv, ok := v.(version.PatchVersion)
+	if !ok {
+		panic(fmt.Sprintf("unexpected version type %T", v))
+	}
+	return vv, nil
 }
 
 func versionsForPlatform(vs map[version.PatchVersion]version.Release, p version.Platform) []version.PatchVersion {

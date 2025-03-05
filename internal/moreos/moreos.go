@@ -91,7 +91,7 @@ func Sprintf(format string, a ...interface{}) string {
 	if runtime.GOOS != OSWindows || strings.Contains(format, "\r\n") {
 		return fmt.Sprintf(format, a...)
 	}
-	return fmt.Sprintf(strings.ReplaceAll(format, "\n", "\r\n"), a...)
+	return fmt.Sprintf(format, a...)
 }
 
 // Fprintf is like fmt.Fprintf, but handles EOL according runtime.GOOS. See Sprintf for notes.

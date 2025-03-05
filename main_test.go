@@ -21,8 +21,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/tetratelabs/func-e/internal/moreos"
 )
 
 func TestRunErrors(t *testing.T) {
@@ -86,8 +84,8 @@ show usage with: func-e help
 
 			status := run(stdout, stderr, test.args)
 			require.Equal(t, test.expectedStatus, status)
-			require.Equal(t, moreos.Sprintf(test.expectedStdout), stdout.String())
-			require.Equal(t, moreos.Sprintf(test.expectedStderr), stderr.String())
+			require.Equal(t, test.expectedStdout, stdout.String())
+			require.Equal(t, test.expectedStderr, stderr.String())
 		})
 	}
 }

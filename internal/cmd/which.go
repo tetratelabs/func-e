@@ -41,6 +41,6 @@ func NewWhichCmd(o *globals.GlobalOpts) *cli.Command {
 			moreos.Fprintf(o.Out, "%s\n", ev)
 			return nil
 		},
-		CustomHelpTemplate: moreos.Sprintf(cli.CommandHelpTemplate),
+		CustomHelpTemplate: cli.CommandHelpTemplate,
 	}
 }

@@ -2,39 +2,29 @@
 .TH func-e 8
 
 .SH NAME
-.PP
-func-e - Install and run Envoy
+func-e \- Install and run Envoy
 
 
 .SH SYNOPSIS
-.PP
 func-e
 
-.PP
-.RS
-
-.nf
+.EX
 [--envoy-versions-url]=[value]
 [--home-dir]=[value]
 [--platform]=[value]
-
-.fi
-.RE
+.EE
 
 .PP
 \fBUsage\fP:
 
-.PP
-.RS
-
-.nf
+.EX
 To run Envoy, execute `func-e run -c your_envoy_config.yaml`. This
 downloads and installs the latest version of Envoy for you.
 
 To list versions of Envoy you can use, execute `func-e versions -a`. To
-choose one, invoke `func-e use 1.26.3`. This installs into
-`$FUNC_E_HOME/versions/1.26.3`, if not already present. You may also use
-minor version, such as `func-e use 1.26`.
+choose one, invoke `func-e use 1.33.0`. This installs into
+`$FUNC_E_HOME/versions/1.33.0`, if not already present. You may also use
+minor version, such as `func-e use 1.33`.
 
 You may want to override `$ENVOY_VERSIONS_URL` to supply custom builds or
 otherwise control the source of Envoy binaries. When overriding, validate
@@ -45,42 +35,34 @@ Advanced:
 This is used when emulating another platform, e.g. x86 on Apple Silicon M1.
 Note: Changing the OS value can cause problems as Envoy has dependencies,
 such as glibc. This value must be constant within a `$FUNC_E_HOME`.
-
-.fi
-.RE
+.EE
 
 
 .SH GLOBAL OPTIONS
-.PP
-\fB--envoy-versions-url\fP="": URL of Envoy versions JSON
+\fB--envoy-versions-url\fP="": URL of Envoy versions JSON (default: https://archive.tetratelabs.io/envoy/envoy-versions.json)
 
 .PP
-\fB--home-dir\fP="": func-e home directory (location of installed versions and run archives)
+\fB--home-dir\fP="": func-e home directory (location of installed versions and run archives) (default: ${HOME}/.func-e)
 
 .PP
-\fB--platform\fP="": the host OS and architecture of Envoy binaries. Ex. darwin/arm64
+\fB--platform\fP="": the host OS and architecture of Envoy binaries. Ex. darwin/arm64 (default: $GOOS/$GOARCH)
 
 
 .SH COMMANDS
 .SH help
-.PP
 Shows how to use a [command]
 
 .SH run
-.PP
 Run Envoy with the given [arguments...] until interrupted
 
 .SH versions
-.PP
 List Envoy versions
 
 .PP
 \fB--all, -a\fP: Show all versions including ones not yet installed
 
 .SH use
-.PP
 Sets the current [version] used by the "run" command
 
 .SH which
-.PP
 Prints the path to the Envoy binary used by the "run" command

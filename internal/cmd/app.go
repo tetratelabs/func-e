@@ -41,7 +41,7 @@ func NewApp(o *globals.GlobalOpts) *cli.App {
 	app.HelpName = "func-e"
 	app.Usage = `Install and run Envoy`
 	// Keep lines at 77 to address leading indent of 3 in help statements
-	app.UsageText = moreos.Sprintf(`To run Envoy, execute ` + "`func-e run -c your_envoy_config.yaml`" + `. This
+	app.UsageText = `To run Envoy, execute ` + "`func-e run -c your_envoy_config.yaml`" + `. This
 downloads and installs the latest version of Envoy for you.
 
 To list versions of Envoy you can use, execute ` + "`func-e versions -a`" + `. To
@@ -57,7 +57,7 @@ Advanced:
 ` + "`FUNC_E_PLATFORM`" + ` overrides the host OS and architecture of Envoy binaries.
 This is used when emulating another platform, e.g. x86 on Apple Silicon M1.
 Note: Changing the OS value can cause problems as Envoy has dependencies,
-such as glibc. This value must be constant within a ` + "`$FUNC_E_HOME`" + `.`)
+such as glibc. This value must be constant within a ` + "`$FUNC_E_HOME`" + `.`
 	app.Version = o.Version
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
@@ -97,8 +97,7 @@ such as glibc. This value must be constant within a ` + "`$FUNC_E_HOME`" + `.`)
 		return nil
 	}
 
-	app.HideHelp = true
-	app.CustomAppHelpTemplate = moreos.Sprintf(cli.AppHelpTemplate)
+	app.CustomAppHelpTemplate = cli.AppHelpTemplate
 	if runtime.GOOS == moreos.OSWindows {
 		cli.FlagStringer = stringifyFlagWindows
 	}
@@ -121,7 +120,13 @@ var helpCommand = &cli.Command{
 	Action: func(c *cli.Context) error {
 		args := c.Args()
 		if args.Present() {
-			return cli.ShowCommandHelp(c, args.First())
+			for _, cmd := range c.App.Commands {
+				if cmd.Name == args.First() {
+					cli.HelpPrinter(c.App.Writer, cmd.CustomHelpTemplate, cmd)
+					return nil
+				}
+			}
+			return fmt.Errorf("unknown command: %q", args.First())
 		}
 		return cli.ShowAppHelp(c)
 	},
@@ -147,7 +152,7 @@ func setEnvoyVersionsURL(o *globals.GlobalOpts, versionsURL string) error {
 	} else {
 		otherURL, err := url.Parse(versionsURL)
 		if err != nil || otherURL.Host == "" || otherURL.Scheme == "" {
-			return NewValidationError("%q is not a valid Envoy versions URL", versionsURL)
+			return NewValidationError(fmt.Sprintf("%q is not a valid Envoy versions URL", versionsURL))
 		}
 		o.EnvoyVersionsURL = versionsURL
 	}
@@ -161,7 +166,7 @@ func setHomeDir(o *globals.GlobalOpts, homeDir string) error {
 	if homeDir == "" {
 		u, err := user.Current()
 		if err != nil || u.HomeDir == "" {
-			return NewValidationError("unable to determine home directory. Set FUNC_E_HOME instead: %v", err)
+			return NewValidationError(fmt.Sprintf("unable to determine home directory. Set FUNC_E_HOME instead: %v", err))
 		}
 		o.HomeDir = filepath.Join(u.HomeDir, ".func-e")
 	} else {
