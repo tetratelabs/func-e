@@ -97,7 +97,6 @@ such as glibc. This value must be constant within a ` + "`$FUNC_E_HOME`" + `.`
 		return nil
 	}
 
-	app.HideHelp = true
 	app.CustomAppHelpTemplate = cli.AppHelpTemplate
 	if runtime.GOOS == moreos.OSWindows {
 		cli.FlagStringer = stringifyFlagWindows
@@ -121,7 +120,13 @@ var helpCommand = &cli.Command{
 	Action: func(c *cli.Context) error {
 		args := c.Args()
 		if args.Present() {
-			return cli.ShowCommandHelp(c, args.First())
+			for _, cmd := range c.App.Commands {
+				if cmd.Name == args.First() {
+					cli.HelpPrinter(c.App.Writer, cmd.CustomHelpTemplate, cmd)
+					return nil
+				}
+			}
+			return fmt.Errorf("unknown command: %q", args.First())
 		}
 		return cli.ShowAppHelp(c)
 	},
