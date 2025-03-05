@@ -45,7 +45,7 @@ jobs:
     strategy:
       fail-fast: false  # don't fail fast as sometimes failures are operating system specific
       matrix:  # use latest available versions and be consistent on all workflows!
-        os: [ubuntu-20.04, macos-12, windows-2022]
+        os: [ubuntu-latest, macos-latest]
 
     steps:
       - name: "Checkout"
