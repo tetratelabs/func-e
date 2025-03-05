@@ -49,10 +49,10 @@ jobs:
 
     steps:
       - name: "Checkout"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: "Cache Go"
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/go/pkg/mod
           # go.mod for go release version, go.sum for modules used, and Tools.mk for 'go run' tools
@@ -60,7 +60,7 @@ jobs:
           restore-keys: test-${{ runner.os }}-go-
 
       - name: "Cache Envoy binaries"
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:  # ~/.func-e/versions is cached so that we only re-download once: for TestFuncEInstall
           path: ~/.func-e/versions
           key: test-${{ runner.os }}-envoy-${{ hashFiles('internal/version/last_known_envoy.txt') }}
