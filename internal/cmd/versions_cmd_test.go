@@ -157,11 +157,11 @@ func TestFuncEVersions_All_Mixed(t *testing.T) {
 	err := c.Run([]string{"func-e", "versions", "-a"})
 
 	require.NoError(t, err)
-	require.Equal(t, moreos.Sprintf(fmt.Sprintf(`  1.2.2 2021-01-31
+	require.Equal(t, fmt.Sprintf(`  1.2.2 2021-01-31
   1.1.2 2021-01-31
 * 1.2.1 2021-01-30 (set by $FUNC_E_HOME/version)
   %s 2020-12-31
-`, version.LastKnownEnvoy)), stdout.String())
+`, version.LastKnownEnvoy), stdout.String())
 	require.Empty(t, stderr)
 }
 

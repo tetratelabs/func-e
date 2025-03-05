@@ -81,7 +81,7 @@ func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 			}
 			return w.Flush()
 		},
-		CustomHelpTemplate: moreos.Sprintf(cli.CommandHelpTemplate),
+		CustomHelpTemplate: cli.CommandHelpTemplate,
 	}
 }
 

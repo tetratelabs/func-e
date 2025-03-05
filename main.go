@@ -15,6 +15,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"os"
 
@@ -44,7 +45,7 @@ func run(stdout, stderr io.Writer, args []string) int {
 		if command == "" { // Show help by default
 			return cli.ShowSubcommandHelp(c)
 		}
-		return cmdutil.NewValidationError("unknown command %q", command)
+		return cmdutil.NewValidationError(fmt.Sprintf("unknown command %q", command))
 	}
 	app.OnUsageError = func(c *cli.Context, err error, isSub bool) error {
 		return cmdutil.NewValidationError(err.Error())

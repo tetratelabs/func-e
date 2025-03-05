@@ -64,6 +64,6 @@ $ func-e use %s`, currentVersionWorkingDirFile, currentVersionHomeDirFile, versi
 			// Persist the input precision. This allows those specifying a MinorVersion to always get the latest patch.
 			return envoy.WriteCurrentVersion(v, o.HomeDir)
 		},
-		CustomHelpTemplate: moreos.Sprintf(cli.CommandHelpTemplate),
+		CustomHelpTemplate: cli.CommandHelpTemplate,
 	}
 }
