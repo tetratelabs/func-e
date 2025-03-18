@@ -61,6 +61,14 @@ func Out(out io.Writer) RunOption {
 	}
 }
 
+// ExitChannel is a channel that a goroutine running "envoy" will send an empty struct to when it exits.
+// This can be used to synchronize with the envoy process to perform additional cleanup.
+func ExitChannel(exitCh chan struct{}) RunOption {
+	return func(o *runOpts) {
+		o.exitCh = exitCh
+	}
+}
+
 // RunOption is configuration for Run.
 type RunOption func(*runOpts)
 
@@ -68,11 +76,16 @@ type runOpts struct {
 	homeDir          string
 	envoyVersion     string
 	envoyVersionsURL string
+	exitCh           chan struct{}
 	out              io.Writer
 }
 
 // Run downloads Envoy and runs it as a process with the arguments
 // passed to it. Use RunOption for configuration options.
+//
+// This will block until the process exits or the context is done. However,
+// the Envoy process itself is running in another goroutine, so to wait for the
+// process to exit, use ExitChannel to synchronize with the envoy process exit.
 func Run(ctx context.Context, args []string, options ...RunOption) error {
 	ro := &runOpts{
 		homeDir:          globals.DefaultHomeDir,
@@ -89,6 +102,7 @@ func Run(ctx context.Context, args []string, options ...RunOption) error {
 		EnvoyVersion:     version.PatchVersion(ro.envoyVersion),
 		EnvoyVersionsURL: ro.envoyVersion,
 		Out:              ro.out,
+		RunOpts:          globals.RunOpts{ExitCh: ro.exitCh},
 	}
 
 	funcECmd := cmd.NewApp(&o)
