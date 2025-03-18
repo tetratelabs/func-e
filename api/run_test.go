@@ -43,7 +43,7 @@ func TestRunWithCtxDone(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 			out := &bytes.Buffer{}
-			// This will return right after the context is done, but the Envoy process itself is running another goroutine,
+			// This will return right after the context is done, but the Envoy process itself is running in another goroutine,
 			// so without using the exit channel, we might end up existing the test (or main program) before the Envoy process receives
 			// the signal to exit, hence it might end up being a zombie process.
 			err := Run(ctx, []string{

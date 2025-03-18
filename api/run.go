@@ -84,7 +84,7 @@ type runOpts struct {
 // passed to it. Use RunOption for configuration options.
 //
 // This will block until the process exits or the context is done. However,
-// the Envoy process itself is running another goroutine, so to wait for the
+// the Envoy process itself is running in another goroutine, so to wait for the
 // process to exit, use ExitChannel to synchronize with the envoy process exit.
 func Run(ctx context.Context, args []string, options ...RunOption) error {
 	ro := &runOpts{
