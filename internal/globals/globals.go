@@ -34,6 +34,8 @@ type RunOpts struct {
 	RunDir string
 	// DontArchiveRunDir is used in testing and prevents archiving the RunDir
 	DontArchiveRunDir bool
+	// ExitCh is a channel that a goroutine running "envoy" will send an empty struct to when it exits.
+	ExitCh chan struct{}
 }
 
 // GlobalOpts represents options that affect more than one func-e commands.
