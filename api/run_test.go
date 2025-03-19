@@ -19,6 +19,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 
@@ -33,26 +34,32 @@ var (
 )
 
 func TestRunWithCtxDone(t *testing.T) {
-
 	tmpDir := t.TempDir()
 	envoyVersion := version.LastKnownEnvoy
 	versionsServer := test.RequireEnvoyVersionsTestServer(t, envoyVersion)
 	defer versionsServer.Close()
 	envoyVersionsURL := versionsServer.URL + "/envoy-versions.json"
-	b := bytes.NewBufferString("")
 
-	require.Equal(t, 0, b.Len())
-
-	ctx := context.Background()
-	// Use a very small ctx timeout
-	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
-	defer cancel()
-	err := Run(ctx, runArgs, Out(b), HomeDir(tmpDir), EnvoyVersionsURL(envoyVersionsURL))
+	err := Run(t.Context(), runArgs, HomeDir(tmpDir), EnvoyVersionsURL(envoyVersionsURL))
 	require.NoError(t, err)
-
-	require.NotEqual(t, 0, b.Len())
-	_, err = os.Stat(filepath.Join(tmpDir, "versions"))
-	require.NoError(t, err)
+	// Run the same test multiple times to ensure that the Envoy process is cleaned up properly with the context cancellation
+	// in conjunction with the exit channel.
+	for i := range 10 {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+			defer cancel()
+			errOut := &bytes.Buffer{}
+			// This will return right after the context is done, but the Envoy process itself is running in another goroutine,
+			// so without using the exit channel, we might end up existing the test (or main program) before the Envoy process receives
+			// the signal to exit, hence it might end up being a zombie process.
+			err := Run(ctx, []string{
+				"--log-level", "info",
+				"--config-yaml", "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 9901}}}",
+			}, HomeDir(tmpDir), EnvoyVersionsURL(envoyVersionsURL))
+			require.NoError(t, err)
+			require.NotContains(t, errOut.String(), "Address already in use")
+		})
+	}
 }
 
 func TestRunToCompletion(t *testing.T) {

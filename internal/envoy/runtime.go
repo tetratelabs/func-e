@@ -52,10 +52,6 @@ type Runtime struct {
 
 	adminAddress, adminAddressPath, pidPath string
 
-	// FakeInterrupt is exposed for unit tests to pretend "func-e run" received a Ctrl+C or Ctrl+Break.
-	// End-to-end tests should kill the func-e process to achieve the same.
-	FakeInterrupt context.CancelFunc
-
 	shutdownHooks []func(context.Context) error
 }
 

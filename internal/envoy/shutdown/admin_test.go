@@ -20,6 +20,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -56,10 +57,5 @@ func runWithShutdownHook(t *testing.T, runDir string, hook func(r *envoy.Runtime
 	r.Err = stderr
 	require.NoError(t, hook(r))
 
-	return test.RequireRun(t, func() {
-		fakeInterrupt := r.FakeInterrupt
-		if fakeInterrupt != nil {
-			fakeInterrupt()
-		}
-	}, r, stderr, "-c", "envoy.yaml")
+	return test.RequireRun(t, 10*time.Second, r, stderr, "-c", "envoy.yaml")
 }

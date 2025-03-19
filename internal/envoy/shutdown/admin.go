@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"golang.org/x/sync/errgroup"
 
@@ -65,6 +66,8 @@ func (e *envoyAdminDataCollection) retrieveAdminAPIData(ctx context.Context) err
 		file := filepath.Join(e.workingDir, f)
 
 		g.Go(func() error {
+			ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+			defer cancel()
 			return copyURLToFile(ctx, url, file)
 		})
 	}

@@ -36,7 +36,7 @@ func (r *Runtime) handleShutdown(ctx context.Context) {
 	defer r.interruptEnvoy() // Ensure the SIGINT forwards to Envoy even if a shutdown hook panics
 
 	deadline := time.Now().Add(shutdownTimeout)
-	timeout, cancel := context.WithDeadline(ctx, deadline)
+	timeout, cancel := context.WithDeadline(context.Background(), deadline)
 	defer cancel()
 
 	moreos.Fprintf(r.Out, "invoking shutdown hooks with deadline %s\n", deadline.Format(dateFormat))

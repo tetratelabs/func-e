@@ -33,13 +33,14 @@ type Runner interface {
 }
 
 // RequireRun executes Run on the given Runtime and calls shutdown after it started.
-func RequireRun(t *testing.T, shutdown func(), r Runner, stderr io.Reader, args ...string) error {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// If there's no shutdown function, shutdown via cancellation. This is similar to ctrl-c
-	if shutdown == nil {
-		shutdown = cancel
+func RequireRun(t *testing.T, timeout time.Duration, r Runner, stderr io.Reader, args ...string) error {
+	var ctx context.Context
+	if timeout == 0 {
+		ctx = context.Background()
+	} else {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(context.Background(), timeout)
+		defer cancel()
 	}
 
 	// Run in a goroutine, and signal when that completes
@@ -64,8 +65,6 @@ func RequireRun(t *testing.T, shutdown func(), r Runner, stderr io.Reader, args 
 		}
 	}
 
-	// Even if we had an error, we invoke the shutdown at this point to avoid leaking a process
-	shutdown()
 	<-ran // block until the runner finished
 	return err
 }

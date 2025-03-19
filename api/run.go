@@ -61,6 +61,13 @@ func Out(out io.Writer) RunOption {
 	}
 }
 
+// ErrOut is where error messages are written. Defaults to os.Stderr
+func ErrOut(err io.Writer) RunOption {
+	return func(o *runOpts) {
+		o.errOut = err
+	}
+}
+
 // RunOption is configuration for Run.
 type RunOption func(*runOpts)
 
@@ -68,7 +75,7 @@ type runOpts struct {
 	homeDir          string
 	envoyVersion     string
 	envoyVersionsURL string
-	out              io.Writer
+	out, errOut      io.Writer
 }
 
 // Run downloads Envoy and runs it as a process with the arguments
