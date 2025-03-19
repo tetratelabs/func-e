@@ -62,9 +62,6 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 	go func() {
 		defer waitCancel()
 		_ = r.cmd.Wait() // Envoy logs like "caught SIGINT" or "caught ENVOY_SIGTERM", so we don't repeat logging here.
-		if r.opts.ExitCh != nil {
-			r.opts.ExitCh <- struct{}{}
-		}
 	}()
 
 	awaitAdminAddress(sigCtx, r)
