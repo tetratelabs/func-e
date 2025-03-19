@@ -42,22 +42,19 @@ func TestRunWithCtxDone(t *testing.T) {
 
 	err := Run(t.Context(), runArgs, HomeDir(tmpDir), EnvoyVersionsURL(envoyVersionsURL))
 	require.NoError(t, err)
-	// Run the same test multiple times to ensure that the Envoy process is cleaned up properly with the context cancellation
-	// in conjunction with the exit channel.
+	// Run the same test multiple times to ensure that the Envoy process is cleaned up properly with the context cancellation.
 	for i := range 10 {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+			start := time.Now()
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 			defer cancel()
-			errOut := &bytes.Buffer{}
-			// This will return right after the context is done, but the Envoy process itself is running in another goroutine,
-			// so without using the exit channel, we might end up existing the test (or main program) before the Envoy process receives
-			// the signal to exit, hence it might end up being a zombie process.
+			// This will return right after the context is done.
 			err := Run(ctx, []string{
 				"--log-level", "info",
 				"--config-yaml", "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 9901}}}",
 			}, HomeDir(tmpDir), EnvoyVersionsURL(envoyVersionsURL))
-			require.NoError(t, err)
-			require.NotContains(t, errOut.String(), "Address already in use")
+			require.Greater(t, time.Since(start).Seconds(), 2.0)
+			require.NoError(t, err) // If the address is already in use, the exit code will be 1.
 		})
 	}
 }

@@ -28,7 +28,7 @@ import (
 
 // Run execs the binary at the path with the args passed. It is a blocking function that can be shutdown via ctx.
 //
-// This will exit either `ctx` is done, or the process exits. If the process exits, the exit code is checked. If the
+// This will exit either `ctx` is done, or the process exits.
 func (r *Runtime) Run(ctx context.Context, args []string) error {
 	// We can't use CommandContext even if that seems correct here. The reason is that we need to invoke shutdown hooks,
 	// and they expect the process to still be running. For example, this allows admin API hooks.
