@@ -66,7 +66,7 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 	case <-ctx.Done():
 		// When original context is done, we need to shutdown the process by ourselves.
 		// Run the shutdown hooks and wait for them to complete.
-		r.handleShutdown(ctx)
+		r.handleShutdown()
 		// Then wait for the process to exit.
 		<-cmdExitWait.Done()
 	case <-cmdExitWait.Done():

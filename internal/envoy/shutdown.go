@@ -32,7 +32,7 @@ func (r *Runtime) RegisterShutdownHook(f func(context.Context) error) {
 	r.shutdownHooks = append(r.shutdownHooks, f)
 }
 
-func (r *Runtime) handleShutdown(ctx context.Context) {
+func (r *Runtime) handleShutdown() {
 	defer r.interruptEnvoy() // Ensure the SIGINT forwards to Envoy even if a shutdown hook panics
 
 	deadline := time.Now().Add(shutdownTimeout)
