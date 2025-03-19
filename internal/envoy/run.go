@@ -52,6 +52,9 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 	r.maybeWarn(os.WriteFile(r.pidPath, []byte(strconv.Itoa(cmd.Process.Pid)), 0o600))
 
 	// Wait in a goroutine. We may need to kill the process if a signal occurs first.
+	//
+	// Note: do not wrap the original context, otherwise "<-cmdExitWait.Done()" won't block until the process exits
+	// if the original context is done.
 	cmdExitWait, cmdExit := context.WithCancel(context.Background())
 	defer cmdExit()
 	go func() {
