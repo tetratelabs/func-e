@@ -15,9 +15,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/urfave/cli/v2"
 
@@ -50,7 +53,9 @@ func run(stdout, stderr io.Writer, args []string) int {
 	app.OnUsageError = func(c *cli.Context, err error, isSub bool) error {
 		return cmdutil.NewValidationError(err.Error())
 	}
-	if err := app.Run(args); err != nil {
+	sigCtx, sigCancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer sigCancel()
+	if err := app.RunContext(sigCtx, args); err != nil {
 		if _, ok := err.(*cmdutil.ValidationError); ok {
 			moreos.Fprintf(stderr, "%s\n", err)
 			logUsageError(app.Name, stderr)

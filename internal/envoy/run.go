@@ -19,16 +19,16 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"os/signal"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/tetratelabs/func-e/internal/moreos"
 )
 
-// Run execs the binary at the path with the args passed. It is a blocking function that can be shutdown via SIGINT.
+// Run execs the binary at the path with the args passed. It is a blocking function that can be shutdown via ctx.
+//
+// This will exit either `ctx` is done, or the process exits.
 func (r *Runtime) Run(ctx context.Context, args []string) error {
 	// We can't use CommandContext even if that seems correct here. The reason is that we need to invoke shutdown hooks,
 	// and they expect the process to still be running. For example, this allows admin API hooks.
@@ -51,37 +51,28 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 	// Warn, but don't fail if we can't write the pid file for some reason
 	r.maybeWarn(os.WriteFile(r.pidPath, []byte(strconv.Itoa(cmd.Process.Pid)), 0o600))
 
-	waitCtx, waitCancel := context.WithCancel(ctx)
-	defer waitCancel()
-
-	sigCtx, sigCancel := signal.NotifyContext(waitCtx, syscall.SIGINT, syscall.SIGTERM)
-	defer sigCancel()
-	r.FakeInterrupt = sigCancel
-
 	// Wait in a goroutine. We may need to kill the process if a signal occurs first.
+	//
+	// Note: do not wrap the original context, otherwise "<-cmdExitWait.Done()" won't block until the process exits
+	// if the original context is done.
+	cmdExitWait, cmdExit := context.WithCancel(context.Background())
+	defer cmdExit()
 	go func() {
-		defer waitCancel()
-		_ = r.cmd.Wait() // Envoy logs like "caught SIGINT" or "caught ENVOY_SIGTERM", so we don't repeat logging here.
+		defer cmdExit()
+		_ = r.cmd.Wait()
 	}()
 
-	awaitAdminAddress(sigCtx, r)
+	awaitAdminAddress(ctx, r)
 
-	// Block until we receive SIGINT or are canceled because Envoy has died
-	<-sigCtx.Done()
-
-	// The process could have exited due to incorrect arguments or otherwise.
-	// If it is still running, run shutdown hooks and propagate the interrupt.
-	if cmd.ProcessState == nil {
-		r.handleShutdown(ctx)
-	}
-
-	// At this point, shutdown hooks have run and Envoy is interrupted.
-	// Block until it exits to ensure file descriptors are closed prior to archival.
-	// Allow up to 5 seconds for a clean stop, killing if it can't for any reason.
+	// Block until the process exits or the original context is done.
 	select {
-	case <-waitCtx.Done(): // cmd.Wait goroutine finished
-	case <-time.After(5 * time.Second):
-		_ = moreos.EnsureProcessDone(r.cmd.Process)
+	case <-ctx.Done():
+		// When original context is done, we need to shutdown the process by ourselves.
+		// Run the shutdown hooks and wait for them to complete.
+		r.handleShutdown()
+		// Then wait for the process to exit.
+		<-cmdExitWait.Done()
+	case <-cmdExitWait.Done():
 	}
 
 	// Warn, but don't fail on error archiving the run directory

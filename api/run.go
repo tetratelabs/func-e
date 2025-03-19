@@ -73,6 +73,9 @@ type runOpts struct {
 
 // Run downloads Envoy and runs it as a process with the arguments
 // passed to it. Use RunOption for configuration options.
+//
+// This blocks until the context is done or the process exits. The error might be
+// context.Canceled if the context is done or an error from the process.
 func Run(ctx context.Context, args []string, options ...RunOption) error {
 	ro := &runOpts{
 		homeDir:          globals.DefaultHomeDir,
@@ -92,20 +95,7 @@ func Run(ctx context.Context, args []string, options ...RunOption) error {
 	}
 
 	funcECmd := cmd.NewApp(&o)
-
 	funcERunArgs := []string{"func-e", "--platform", runtime.GOOS + "/" + runtime.GOARCH, "run"}
 	funcERunArgs = append(funcERunArgs, args...)
-
-	errChan := make(chan error)
-	go func() {
-		errChan <- funcECmd.RunContext(ctx, funcERunArgs)
-	}()
-
-	// Wait for run to exit or an explicit stop.
-	select {
-	case <-ctx.Done():
-		return nil
-	case err := <-errChan:
-		return err
-	}
+	return funcECmd.RunContext(ctx, funcERunArgs) // This will block until the context is done or the process exits.
 }

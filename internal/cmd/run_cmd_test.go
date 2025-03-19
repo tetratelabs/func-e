@@ -22,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
@@ -60,7 +61,7 @@ func TestFuncERun(t *testing.T) {
 	// tee the error stream so we can look for the "starting main dispatch loop" line without consuming it.
 	errCopy := new(bytes.Buffer)
 	c.ErrWriter = io.MultiWriter(stderr, errCopy)
-	err := test.RequireRun(t, nil, &runner{c, stdout, stderr}, errCopy, args...)
+	err := test.RequireRun(t, 3*time.Second, &runner{c, stdout, stderr}, errCopy, args...)
 
 	require.NoError(t, err)
 	require.Empty(t, stdout)

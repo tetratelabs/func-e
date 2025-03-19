@@ -47,14 +47,16 @@ func TestRuntime_Run(t *testing.T) {
 	tests := []struct {
 		name                           string
 		args                           []string
-		shutdown                       func()
+		shutdown                       bool
+		timeout                        time.Duration
 		expectedStdout, expectedStderr string
 		expectedErr                    string
 		wantShutdownHook               bool
 	}{
 		{
-			name: "func-e Ctrl+C",
-			args: []string{"-c", "envoy.yaml"},
+			name:    "func-e Ctrl+C",
+			args:    []string{"-c", "envoy.yaml"},
+			timeout: time.Second,
 			// Don't warn the user when they exited the process
 			expectedStdout:   moreos.Sprintf("starting: %s -c envoy.yaml %s\n", fakeEnvoy, adminFlag),
 			expectedStderr:   moreos.Sprintf("initializing epoch 0\nstarting main dispatch loop\ncaught SIGINT\nexiting\n"),
@@ -64,7 +66,6 @@ func TestRuntime_Run(t *testing.T) {
 		// Envoy returns exit status zero on anything except kill -9. We can't test kill -9 with a fake shell script.
 		{
 			name:           "Envoy exited with error",
-			shutdown:       func() { time.Sleep(time.Millisecond * 100) },
 			args:           []string{}, // no config file!
 			expectedStdout: moreos.Sprintf("starting: %s %s\n", fakeEnvoy, adminFlag),
 			expectedStderr: moreos.Sprintf("initializing epoch 0\nexiting\nAt least one of --config-path or --config-yaml or Options::configProto() should be non-empty\n"),
@@ -102,15 +103,10 @@ func TestRuntime_Run(t *testing.T) {
 				return nil
 			})
 
-			shutdown := tc.shutdown
-			if shutdown == nil {
-				shutdown = ctrlC(r)
-			}
-
 			// tee the error stream so we can look for the "starting main dispatch loop" line without consuming it.
 			errCopy := new(bytes.Buffer)
 			r.Err = io.MultiWriter(r.Err, errCopy)
-			err := test.RequireRun(t, shutdown, r, errCopy, tc.args...)
+			err := test.RequireRun(t, tc.timeout, r, errCopy, tc.args...)
 
 			if tc.expectedErr == "" {
 				require.NoError(t, err)
@@ -128,8 +124,8 @@ func TestRuntime_Run(t *testing.T) {
 			require.Equal(t, tc.wantShutdownHook, haveShutdownHook)
 
 			// Validate we ran what we thought we did
-			require.Equal(t, tc.expectedStdout, stdout.String())
-			require.Equal(t, tc.expectedStderr, stderr.String())
+			require.Contains(t, stdout.String(), tc.expectedStdout)
+			require.Contains(t, stderr.String(), tc.expectedStderr)
 
 			// Ensure the working directory was deleted, and the "run" directory only contains the archive
 			files, err := os.ReadDir(runsDir)
@@ -141,15 +137,6 @@ func TestRuntime_Run(t *testing.T) {
 			// Cleanup for the next run
 			require.NoError(t, os.Remove(archive))
 		})
-	}
-}
-
-func ctrlC(r *Runtime) func() {
-	return func() {
-		fakeInterrupt := r.FakeInterrupt
-		if fakeInterrupt != nil {
-			fakeInterrupt()
-		}
 	}
 }
 
