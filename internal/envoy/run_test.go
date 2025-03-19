@@ -18,14 +18,15 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/shirou/gopsutil/v3/process"
-	"github.com/stretchr/testify/require"
 	"io"
 	"os"
 	"path/filepath"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/shirou/gopsutil/v3/process"
+	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/moreos"
