@@ -42,7 +42,7 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 	}
 
 	// Print the binary path to the user for debugging purposes.
-	moreos.Fprintf(r.Out, "starting: %s\n", r.opts.EnvoyPath) //nolint
+	moreos.Fprintf(r.Out, "starting: %s with --admin-address-path %s\n", r.opts.EnvoyPath, r.adminAddressPath) //nolint
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("unable to start Envoy process: %w", err)
 	}

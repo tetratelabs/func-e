@@ -113,7 +113,7 @@ func Test_CallSignals(t *testing.T) {
 
 			// Block until we reach an expected line or timeout.
 			requireScannedWaitFor(t, stderrScanner, "starting main dispatch loop")
-			require.Equal(t, Sprintf("starting: %s\n", fakeEnvoy), stdout.String())
+			require.Equal(t, Sprintf("starting: %s %s -c\n", fakeEnvoy, arg), stdout.String())
 
 			fakeFuncEProcess, err := process.NewProcess(int32(cmd.Process.Pid))
 			require.NoError(t, err)
