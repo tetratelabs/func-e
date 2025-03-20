@@ -120,7 +120,7 @@ func TestRuntime_Run(t *testing.T) {
 			require.Equal(t, tc.wantShutdownHook, haveShutdownHook)
 
 			// Validate we ran what we thought we did
-			require.Contains(t, stdout.String(), moreos.Sprintf("starting: %s\n", fakeEnvoy))
+			require.Contains(t, stdout.String(), moreos.Sprintf("starting: %s", fakeEnvoy))
 			require.Contains(t, stderr.String(), tc.expectedStderr)
 
 			// Ensure the working directory was deleted, and the "run" directory only contains the archive
