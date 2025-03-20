@@ -20,7 +20,6 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/tetratelabs/func-e/internal/moreos"
@@ -42,8 +41,6 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 		return err
 	}
 
-	// Print the process line to the console for user knowledge and parsing convenience
-	moreos.Fprintf(r.Out, "starting: %s\n", strings.Join(r.cmd.Args, " ")) //nolint
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("unable to start Envoy process: %w", err)
 	}
