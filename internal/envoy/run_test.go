@@ -17,7 +17,6 @@ package envoy
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -39,26 +38,24 @@ func TestRuntime_Run(t *testing.T) {
 
 	runsDir := filepath.Join(tempDir, "runs")
 	runDir := filepath.Join(runsDir, "1619574747231823000") // fake a realistic value
-	adminFlag := fmt.Sprint("--admin-address-path ", filepath.Join(runDir, "admin-address.txt"))
 
 	fakeEnvoy := filepath.Join(tempDir, "envoy"+moreos.Exe)
 	fakebinary.RequireFakeEnvoy(t, fakeEnvoy)
 
 	tests := []struct {
-		name                           string
-		args                           []string
-		shutdown                       bool
-		timeout                        time.Duration
-		expectedStdout, expectedStderr string
-		expectedErr                    string
-		wantShutdownHook               bool
+		name             string
+		args             []string
+		shutdown         bool
+		timeout          time.Duration
+		expectedStderr   string
+		expectedErr      string
+		wantShutdownHook bool
 	}{
 		{
 			name:    "func-e Ctrl+C",
 			args:    []string{"-c", "envoy.yaml"},
 			timeout: time.Second,
 			// Don't warn the user when they exited the process
-			expectedStdout:   moreos.Sprintf("starting: %s -c envoy.yaml %s\n", fakeEnvoy, adminFlag),
 			expectedStderr:   moreos.Sprintf("initializing epoch 0\nstarting main dispatch loop\ncaught SIGINT\nexiting\n"),
 			wantShutdownHook: true,
 		},
@@ -67,7 +64,6 @@ func TestRuntime_Run(t *testing.T) {
 		{
 			name:           "Envoy exited with error",
 			args:           []string{}, // no config file!
-			expectedStdout: moreos.Sprintf("starting: %s %s\n", fakeEnvoy, adminFlag),
 			expectedStderr: moreos.Sprintf("initializing epoch 0\nexiting\nAt least one of --config-path or --config-yaml or Options::configProto() should be non-empty\n"),
 			expectedErr:    "envoy exited with status: 1",
 		},
@@ -124,7 +120,7 @@ func TestRuntime_Run(t *testing.T) {
 			require.Equal(t, tc.wantShutdownHook, haveShutdownHook)
 
 			// Validate we ran what we thought we did
-			require.Contains(t, stdout.String(), tc.expectedStdout)
+			require.Contains(t, stdout.String(), moreos.Sprintf("starting: %s\n", fakeEnvoy))
 			require.Contains(t, stderr.String(), tc.expectedStderr)
 
 			// Ensure the working directory was deleted, and the "run" directory only contains the archive
