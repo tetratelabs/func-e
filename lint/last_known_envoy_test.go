@@ -57,7 +57,10 @@ func TestLastKnownEnvoyAvailableOnAllPlatforms(t *testing.T) {
 var allPlatforms = []version.Platform{
 	"linux/amd64",
 	"linux/arm64",
-	"darwin/amd64",
+	// We don't support darwin/amd64 anymore as the brew is no longer a reliable source for Envoy binaries.
+	// For example, the latest Envoy version there was 1.33.x, and we switched to self-building for macOS
+	// at the archive-envoy repo where we only build for darwin/arm64 due to technical difficulties. That
+	// doesn't necessarily mean that we will never support darwin/amd64, but it is not a priority at the moment.
 	"darwin/arm64",
 }
 
