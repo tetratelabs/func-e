@@ -57,7 +57,7 @@ func TestLastKnownEnvoyAvailableOnAllPlatforms(t *testing.T) {
 var allPlatforms = []version.Platform{
 	"linux/amd64",
 	"linux/arm64",
-	"darwin/amd64",
+	// We no longer cannot reliably distribute macOS binaries on amd64.
 	"darwin/arm64",
 }
 
