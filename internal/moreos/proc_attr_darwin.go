@@ -19,5 +19,8 @@ import (
 )
 
 func processGroupAttr() *syscall.SysProcAttr {
-	return &syscall.SysProcAttr{Setpgid: true}
+	// Don't spawn in separate process groups on darwin because there is no
+	// way to ensure they get killed when func-e gets killed and will leave
+	// zombies.
+	return nil
 }
