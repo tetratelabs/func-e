@@ -163,7 +163,7 @@ $(checksums): $(all_archives)
 
 # dist generates the assets that attach to a release
 # Ex. https://github.com/tetratelabs/func-e/releases/tag/v$(VERSION)
-dist: $(all_archives) $(checksums) ## Generate release assets
+dist: $(all_archives) $(linux_platforms:%=dist/func-e_$(VERSION)_%.deb) $(rpms) $(checksums) ## Generate release assets
 
 clean: ## Ensure a clean build
 	@printf "$(ansi_format_dark)" clean "deleting temporary files"
