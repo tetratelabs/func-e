@@ -62,7 +62,7 @@ jobs:
           - os: ubuntu-latest
             pattern: '*linux_amd64.tar.gz'
           - os: macos-latest
-            pattern: '*darwin_amd64.tar.gz'
+            pattern: '*darwin_arm64.tar.gz'
 
     steps:
       - name: "Checkout"
