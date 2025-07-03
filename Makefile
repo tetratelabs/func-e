@@ -218,7 +218,7 @@ site: ## Serve website content
 
 # define macros for multi-platform builds. these parse the filename being built
 go-arch = $(if $(findstring amd64,$1),amd64,arm64)
-go-os   = $(if $(findstring linux,$1),linux,darwin))
+go-os   = $(if $(findstring linux,$1),linux,darwin)
 define go-build
 	@printf "$(ansi_format_dark)" build "building $1"
 	@# $(go:go=) removes the trailing 'go', so we can insert cross-build variables
