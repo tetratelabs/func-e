@@ -12,16 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !windows
-
 package moreos
 
 import (
 	"os"
 	"syscall"
 )
-
-const exe = ""
 
 func interrupt(p *os.Process) error {
 	if err := p.Signal(syscall.SIGINT); err != nil && err != os.ErrProcessDone {

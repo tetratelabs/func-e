@@ -7,19 +7,13 @@ import (
 	"net/http/httptest"
 	"os"
 	"os/signal"
-	"runtime"
 	"syscall"
 )
 
 const errorConfig = "At least one of --config-path or --config-yaml or Options::configProto() should be non-empty"
 
 // lf ensures line feeds are realistic
-var lf = func() string {
-	if runtime.GOOS == "windows" {
-		return "\r\n"
-	}
-	return "\n"
-}()
+const lf = "\n"
 
 // main was originally ported from a shell script. Compiling allows a more realistic test.
 func main() {

@@ -49,6 +49,3 @@ make dist
 The contents will be in the 'dist/' folder and include the same files as a
 [release](https://github.com/tetratelabs/func-e/releases) would, except
 signatures would not be the same as production.
-
-Note: this step requires prerequisites for Windows packaging to work. Look at
-[msi.yaml](.github/workflows/msi.yaml) for what's needed per-platform.

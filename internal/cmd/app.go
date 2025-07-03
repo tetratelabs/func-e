@@ -19,8 +19,6 @@ import (
 	"net/url"
 	"os/user"
 	"path/filepath"
-	"runtime"
-	"strings"
 
 	"github.com/urfave/cli/v2"
 
@@ -98,9 +96,6 @@ such as glibc. This value must be constant within a ` + "`$FUNC_E_HOME`" + `.`
 	}
 
 	app.CustomAppHelpTemplate = cli.AppHelpTemplate
-	if runtime.GOOS == moreos.OSWindows {
-		cli.FlagStringer = stringifyFlagWindows
-	}
 	cli.VersionPrinter = printVersion
 	app.Commands = []*cli.Command{
 		helpCommand,
@@ -181,18 +176,4 @@ func setHomeDir(o *globals.GlobalOpts, homeDir string) error {
 
 func printVersion(c *cli.Context) {
 	moreos.Fprintf(c.App.Writer, "%v version %v\n", c.App.Name, c.App.Version)
-}
-
-var defaultFlagStringer = cli.FlagStringer
-
-// stringifyFlagWindows is tested by help_test.go. This undoes the default old-school variable format urlfave bakes in
-// in favor of powershell/sh style variable names. See https://github.com/urfave/cli/issues/1288
-func stringifyFlagWindows(f cli.Flag) string {
-	r := defaultFlagStringer(f)
-	if sf, ok := f.(*cli.StringFlag); ok {
-		for _, env := range sf.EnvVars {
-			r = strings.ReplaceAll(r, "%"+env+"%", "$"+env)
-		}
-	}
-	return r
 }

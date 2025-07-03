@@ -3,13 +3,8 @@
 /build/
 /dist/
 
-# intermediate files used to create Windows Installer (func-e.msi)
-func-e.wixobj
-
 # possible when testing
 /func-e
-/func-e.exe
-/func-e.msi
 /Tetrate.func-e.yaml
 /manifests/
 

@@ -23,7 +23,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"syscall"
 	"testing"
 	"time"
 
@@ -40,7 +39,7 @@ var (
 
 	// Include the source imported by fakeFuncESrc directly and indirectly
 	// We can't use wildcards because golang/go#48348 declined adding support for {{goos}} variables
-	//go:embed moreos.go proc.go proc_attr_darwin.go proc_attr_linux.go proc_windows.go
+	//go:embed moreos.go proc.go proc_attr_darwin.go proc_attr_linux.go
 	moreosSrcDir embed.FS
 )
 
@@ -58,14 +57,6 @@ func Test_CallSignals(t *testing.T) {
 			name:           "Interrupt",
 			signal:         Interrupt,
 			waitForExiting: true,
-		},
-		{
-			name:           "SIGTERM",
-			signal:         func(proc *os.Process) error { return proc.Signal(syscall.SIGTERM) },
-			waitForExiting: true,
-			// On Windows, os.Process.Signal is not implemented; it will return an error instead of sending
-			// a signal.
-			skip: runtime.GOOS == OSWindows,
 		},
 		{
 			name: "Kill",

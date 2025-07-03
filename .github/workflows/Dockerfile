@@ -5,7 +5,7 @@
 # this allows passwordless `sudo` for RPM and Debian testing.
 #
 # `make e2e` requires make and go, but `CGO=0` means gcc isn't needed. Ubuntu
-# installs more packages, notably windows, for the `check` and `dist` targets.
+# installs more packages for the `check` and `dist` targets.
 # To run RPM tests on CentOS, you must build them first on Ubuntu.
 #
 # This build is intended for use in a matrix, testing all major Linux platforms
@@ -57,12 +57,11 @@ ARG arch_lc=arm64
 
 FROM base-${TARGETARCH}
 
-# CentOS runs e2e, but can't run dist as Windows packages are not available.
 # While it is possible to build osslsigncode on CentOS, msitools can't due to
 # missing libgcab1-devel package. The workaround is to `make dist` with Ubuntu.
 ARG centos_packages="make sudo"
 # Ubuntu runs check, dist, and e2e, so needs more packages.
-ARG ubuntu_packages="make sudo curl git zip wixl msitools osslsigncode"
+ARG ubuntu_packages="make sudo curl git zip osslsigncode"
 RUN if [ -f /etc/centos-release ]; then \
     # Use Dandified YUM on CentOS >=8.
     dnf="dnf -qy" && ${dnf} install ${centos_packages} && ${dnf} clean all; \

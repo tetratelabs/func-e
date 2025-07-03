@@ -52,9 +52,8 @@ func RequireEnvoyVersionsTestServer(t *testing.T, v version.PatchVersion) *httpt
 	s.versions = version.ReleaseVersions{
 		Versions: map[version.PatchVersion]version.Release{ // hard-code date so that tests don't drift
 			v: {ReleaseDate: FakeReleaseDate, Tarballs: map[version.Platform]version.TarballURL{
-				version.Platform(moreos.OSLinux + "/" + runtime.GOARCH):   TarballURL(h.URL, moreos.OSLinux, runtime.GOARCH, v),
-				version.Platform(moreos.OSDarwin + "/" + runtime.GOARCH):  TarballURL(h.URL, moreos.OSDarwin, runtime.GOARCH, v),
-				version.Platform(moreos.OSWindows + "/" + runtime.GOARCH): TarballURL(h.URL, moreos.OSWindows, runtime.GOARCH, v),
+				version.Platform(moreos.OSLinux + "/" + runtime.GOARCH):  TarballURL(h.URL, moreos.OSLinux, runtime.GOARCH, v),
+				version.Platform(moreos.OSDarwin + "/" + runtime.GOARCH): TarballURL(h.URL, moreos.OSDarwin, runtime.GOARCH, v),
 			}}},
 		SHA256Sums: map[version.Tarball]version.SHA256Sum{},
 	}

@@ -82,7 +82,7 @@ func TestFuncEUse_UnknownMinorVersion(t *testing.T) {
 // Parse the envoy-versions.json to dynamically select the version before LastKnownEnvoyMinor if it isn't consistent.
 // That or don't update LastKnownEnvoy until it is consistent.
 func TestFuncEUse_MinorVersion(t *testing.T) {
-	// The intended minor version to be installed. This version is known to have darwin, linux, and windows binaries.
+	// The intended minor version to be installed. This version is known to have darwin and linux binaries.
 	minorVersion := "1.24"
 
 	allVersions, _, err := funcEExec("versions", "-a")

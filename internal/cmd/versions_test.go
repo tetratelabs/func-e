@@ -17,21 +17,15 @@ package cmd
 import (
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/test/morerequire"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
 func TestGetInstalledVersions_ErrorsWhenFileIsInVersionsDir(t *testing.T) {
-	if runtime.GOOS == moreos.OSWindows {
-		t.SkipNow() // golang/go#46734 wrong error on file where directory should be
-	}
-
 	homeDir := t.TempDir()
 
 	versionsDir := filepath.Join(homeDir, "versions")
@@ -143,7 +137,7 @@ func TestAddAvailableVersions(t *testing.T) {
 			name:     "unsupported OS",
 			existing: []versionReleaseDate{},
 			update:   goodVersions,
-			platform: "windows/amd64",
+			platform: "solaris/amd64",
 			expected: []versionReleaseDate{},
 		},
 		{
