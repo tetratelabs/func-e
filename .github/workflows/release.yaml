@@ -15,7 +15,7 @@ defaults:
 jobs:
   func-e:
     name: "Release `func-e` CLI"
-    runs-on: windows-2022
+    runs-on: ubuntu-latest
 
     steps:
       - name: "Checkout"
@@ -23,29 +23,9 @@ jobs:
         with:  # fetch all history for all tags and branches (needed for changelog)
           fetch-depth: 0
 
-      # windows-2022 is missing osslsigncode (no issue, yet)
-      - name: "Install osslsigncode, infozip; setup wix"
-        run: |
-          choco install osslsigncode -y
-          choco install zip -y
-          echo "C:\Program Files (x86)\WiX Toolset v3.11\bin" >> $GITHUB_PATH
-
-      - name: Download Windows code signing certificate
-        env:
-          WINDOWS_CODESIGN_P12_BASE64: ${{ secrets.WINDOWS_CODESIGN_P12_BASE64 }}
-        run: | # On the fork PRs, our org secret is not visible.
-          if [ $WINDOWS_CODESIGN_P12_BASE64 ]; then
-            echo $WINDOWS_CODESIGN_P12_BASE64 | base64 --decode > windows-certificate.p12
-            echo "WINDOWS_CODESIGN_P12=windows-certificate.p12" >> $GITHUB_ENV
-          fi
-        shell: bash
-
       - name: "Make release assets (test)"
         if: github.event_name != 'push' || !contains(github.ref, 'refs/tags/')
-        run: | # On the fork PRs, our org secret is not visible. We unset the required env so that `make dist` uses default self-signed cert.
-          if [ $WINDOWS_CODESIGN_P12 ]; then
-            export WINDOWS_CODESIGN_PASSWORD=${{ secrets.WINDOWS_CODESIGN_PASSWORD }}
-          fi
+        run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           make dist VERSION=$VERSION
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
@@ -54,10 +34,7 @@ jobs:
       - name: "Make release assets"
         # Triggers only on tag creation.
         if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
-        run: | # On the fork PRs, our org secret is not visible. We unset the required env so that `make dist` uses default self-signed cert.
-          if [ $WINDOWS_CODESIGN_P12 ]; then
-            export WINDOWS_CODESIGN_PASSWORD=${{ secrets.WINDOWS_CODESIGN_PASSWORD }}
-          fi
+        run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           make dist VERSION=$VERSION
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
@@ -82,15 +59,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-20.04  # Hard-coding an LTS means maintenance, but only once each 2 years!
+          - os: ubuntu-latest
             pattern: '*linux_amd64.tar.gz'
-          - os: macos-12
+          - os: macos-latest
             pattern: '*darwin_amd64.tar.gz'
-          - os: windows-2022
-            pattern: '*windows_amd64.*'
-            unzip: | # the above downloads both the zip and msi, stash the msi name
-              printf "::set-output name=msi::%s\n" *.msi
-              unzip -o *.zip && rm *.zip
 
     steps:
       - name: "Checkout"
@@ -106,17 +78,6 @@ jobs:
 
       - name: "Run e2e tests using draft `func-e` binary"
         run: E2E_FUNC_E_PATH=. make e2e
-
-      # This only checks the installer when built on Windows as it is simpler than switching OS.
-      # refreshenv is from choco, and lets you reload ENV variables (used here for PATH).
-      - name: "Test Windows Installer (Windows)"
-        if: runner.os == 'Windows'
-        run: |  # delete func-e.exe which was just tested, so it doesn't taint the tests
-          del func-e.exe
-          call packaging\msi\verify_msi.cmd
-        shell: cmd
-        env:  # use the stashed msi name instead of parsing it
-          MSI_FILE: ${{ steps.download.outputs.msi }}
 
       - name: "Test Debian package"
         if: runner.os == 'Linux'

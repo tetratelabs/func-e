@@ -25,7 +25,7 @@ import (
 )
 
 // TestFuncEWhich ensures the command can show the current version in use. This can't use version.LastKnownEnvoy without
-// explicitly downloading it first, because the latest version on Linux and Windows can be ahead of that due to routine
+// explicitly downloading it first, because the latest version on Linux and macOS can be ahead of that due to routine
 // lagging on Homebrew maintenance (OS/x), or lag in someone re-releasing on archive-envoy after Homebrew is updated.
 func TestFuncEWhich(t *testing.T) { // not parallel as it can end up downloading concurrently
 	// Explicitly issue "use" for the last known version to ensure when latest is ahead of this, the test doesn't fail.

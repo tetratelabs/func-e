@@ -16,39 +16,14 @@ package moreos
 
 import (
 	"bytes"
-	"errors"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"testing"
 
 	"github.com/shirou/gopsutil/v3/process"
 	"github.com/stretchr/testify/require"
 )
-
-func TestErrorf_ConvertsPathWhenWindows(t *testing.T) {
-	err := Errorf("/foo/bar is bad")
-	if runtime.GOOS == OSWindows {
-		require.EqualError(t, err, `\foo\bar is bad`)
-	} else {
-		require.EqualError(t, err, `/foo/bar is bad`)
-	}
-}
-
-// TestErrorWithWindowsPathSeparator makes sure errors don't accidentally escape the windows path separator.
-// this is extracted so that maintainers can make sure it works without using windows.
-func TestErrorWithWindowsPathSeparator(t *testing.T) {
-	err := errors.New("/foo/bar is bad")
-	require.EqualError(t, errorWithWindowsPathSeparator(err), `\foo\bar is bad`)
-
-	wrapped := errors.New("bad day")
-	err = fmt.Errorf("/foo/bar is unhappy: %w", wrapped)
-	wErr := errorWithWindowsPathSeparator(err)
-	require.EqualError(t, wErr, `\foo\bar is unhappy: bad day`)
-	require.Same(t, wrapped, errors.Unwrap(wErr))
-}
 
 func TestIsExecutable(t *testing.T) {
 	tempDir := t.TempDir()
@@ -78,10 +53,6 @@ func TestReplacePathSeparator(t *testing.T) {
 	path := "/foo/bar"
 
 	expected := path
-	if runtime.GOOS == OSWindows {
-		expected = "\\foo\\bar"
-	}
-
 	require.Equal(t, expected, ReplacePathSeparator(path))
 }
 
@@ -89,10 +60,6 @@ func TestSprintf(t *testing.T) {
 	template := "%s\n\n%s\n"
 
 	expected := "foo\n\nbar\n"
-	if runtime.GOOS == OSWindows {
-		expected = "foo\r\n\r\nbar\r\n"
-	}
-
 	require.Equal(t, expected, Sprintf(template, "foo", "bar"))
 
 	// ensure idempotent
@@ -105,21 +72,13 @@ func TestFprintf(t *testing.T) {
 	Fprintf(stdout, template, "foo", "bar")
 
 	expected := "foo\n\nbar\n"
-	if runtime.GOOS == OSWindows {
-		expected = "foo\r\n\r\nbar\r\n"
-	}
-
 	require.Equal(t, expected, stdout.String())
 }
 
-// TestSprintf_IdiomaticPerOS is here to ensure that the EOL translation makes sense. For example, in UNIX, we expect
-// \n and windows \r\n. This uses a real command to prove the point.
+// TestSprintf_IdiomaticPerOS is here to ensure that the EOL translation makes sense.
 func TestSprintf_IdiomaticPerOS(t *testing.T) {
 	stdout := new(bytes.Buffer)
 	cmd := exec.Command("echo", "cats")
-	if runtime.GOOS == OSWindows {
-		cmd = exec.Command("cmd", "/c", "echo", "cats")
-	}
 	cmd.Stdout = stdout
 	require.NoError(t, cmd.Run())
 	require.Equal(t, Sprintf("cats\n"), stdout.String())

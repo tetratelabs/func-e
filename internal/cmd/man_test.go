@@ -16,22 +16,16 @@ package cmd
 
 import (
 	"os"
-	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/func-e/internal/globals"
-	"github.com/tetratelabs/func-e/internal/moreos"
 )
 
 const siteManpageFile = "../../packaging/nfpm/func-e.8"
 
 func TestManPageMatchesCommands(t *testing.T) {
-	if runtime.GOOS == moreos.OSWindows {
-		t.SkipNow()
-	}
-
 	app := NewApp(&globals.GlobalOpts{})
 
 	expected, err := app.ToMan()

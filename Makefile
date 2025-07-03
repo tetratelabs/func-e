@@ -29,11 +29,6 @@ ifndef goroot
 $(error could not determine GOROOT)
 endif
 
-# Ensure POSIX-style GOROOT even in Windows, to support PATH updates in bash.
-ifdef COMSPEC
-goroot := $(shell cygpath $(goroot))
-endif
-
 # We must ensure `go` executes with GOROOT and PATH variables exported:
 # * GOROOT ensures versions don't conflict with /usr/local/go or c:\Go
 # * PATH ensures tools like golint can fork and execute the correct go binary.
@@ -94,9 +89,7 @@ e2e: $(E2E_FUNC_E_PATH)/func-e$(goexe) ## Run all end-to-end tests
 	@printf "$(ansi_format_bright)" e2e "ok"
 
 linux_platforms       := linux_amd64 linux_arm64
-non_windows_platforms := darwin_amd64 darwin_arm64 $(linux_platforms)
-# TODO: arm64 on Windows https://github.com/envoyproxy/envoy/issues/17572
-windows_platforms     := windows_amd64
+all_platforms         := darwin_amd64 darwin_arm64 $(linux_platforms)
 
 # Make 3.81 doesn't support '**' globbing: Set explicitly instead of recursion.
 all_sources   := $(wildcard *.go */*.go */*/*.go */*/*/*.go */*/*/*.go */*/*/*/*.go)
@@ -116,11 +109,6 @@ dist/func-e_$(VERSION)_%.tar.gz: build/func-e_%/func-e
 	@mkdir -p $(@D)
 	@tar -C $(<D) -cpzf $@ $(<F)
 	@printf "$(ansi_format_bright)" tar.gz "ok"
-
-build/func-e_%/func-e.exe: $(main_sources)
-ifeq ($(OS),Windows_NT) 
-	$(call go-build,$@,$<)
-endif
 
 dist/func-e_$(VERSION)_%.zip: build/func-e_%/func-e.exe.signed
 	@printf "$(ansi_format_dark)" zip "zipping $@"
@@ -161,34 +149,21 @@ msi-arch     = $(if $(findstring amd64,$1),x64,arm64)
 # Default to a dummy version, which is always lower than a real release
 msi_version := $(VERSION:dev=0.0.1)
 
-# This builds the Windows installer (MSI) using platform-dependent WIX commands.
-dist/func-e_$(VERSION)_%.msi: build/func-e_%/func-e.exe.signed
-ifeq ($(OS),Windows_NT)  # Windows 10 etc use https://wixtoolset.org
-	@printf "$(ansi_format_dark)" msi "building $@"
-	@mkdir -p $(@D)
-	@candle -nologo -arch $(call msi-arch,$@) -dVersion=$(msi_version) -dBin=$(<:.signed=) packaging/msi/func-e.wxs
-	@light -nologo func-e.wixobj -o $@ -spdb
-	@rm func-e.wixobj
-	$(call codesign,$@)
-	@printf "$(ansi_format_bright)" msi "ok"
-endif
-
-# Archives are tar.gz, except in the case of Windows, which uses zip.
-non_windows_archives  := $(non_windows_platforms:%=dist/func-e_$(VERSION)_%.tar.gz)
-windows_archives      := $(windows_platforms:%=dist/func-e_$(VERSION)_%.zip) $(windows_platforms:%=dist/func-e_$(VERSION)_%.msi)
-archives  := $(non_windows_platforms:%=dist/func-e_$(VERSION)_%.tar.gz) $(windows_platforms:%=dist/func-e_$(VERSION)_%.zip)
+# Archives are tar.gz,
+all_archives  := $(all_platforms:%=dist/func-e_$(VERSION)_%.tar.gz)
+archives  := $(all_platforms:%=dist/func-e_$(VERSION)_%.tar.gz)
 checksums := dist/func-e_$(VERSION)_checksums.txt
 
 # Darwin doesn't have sha256sum. See https://github.com/actions/virtual-environments/issues/90
 sha256sum := $(if $(findstring darwin,$(goos)),shasum -a 256,sha256sum)
-$(checksums): $(non_windows_archives) $(if $(findstring Windows_NT,$(OS)),$(windows_archives),)
+$(checksums): $(all_archives)
 	@printf "$(ansi_format_dark)" sha256sum "generating $@"
 	@$(sha256sum) $^ > $@
 	@printf "$(ansi_format_bright)" sha256sum "ok"
 
 # dist generates the assets that attach to a release
 # Ex. https://github.com/tetratelabs/func-e/releases/tag/v$(VERSION)
-dist: $(non_windows_archives) $(if $(findstring Windows_NT,$(OS)),$(windows_archives),) $(checksums) ## Generate release assets
+dist: $(all_archives) $(checksums) ## Generate release assets
 
 clean: ## Ensure a clean build
 	@printf "$(ansi_format_dark)" clean "deleting temporary files"
@@ -241,14 +216,9 @@ site: ## Serve website content
 	@git submodule update
 	@cd site && $(go) run $(hugo) server --minify --disableFastRender --baseURL localhost:1313 --cleanDestinationDir -D
 
-# this makes a marker file ending in .signed to avoid repeatedly calling codesign
-%.signed: %
-	$(call codesign,$<)
-	@touch $@
-
 # define macros for multi-platform builds. these parse the filename being built
 go-arch = $(if $(findstring amd64,$1),amd64,arm64)
-go-os   = $(if $(findstring .exe,$1),windows,$(if $(findstring linux,$1),linux,darwin))
+go-os   = $(if $(findstring linux,$1),linux,darwin)
 define go-build
 	@printf "$(ansi_format_dark)" build "building $1"
 	@# $(go:go=) removes the trailing 'go', so we can insert cross-build variables
@@ -263,24 +233,4 @@ define nfpm-pkg
 	@mkdir -p $(dir $3)
 	@$(go) run $(nfpm) pkg -f $1 --packager $2 --target $3
 	@printf "$(ansi_format_bright)" nfpm "ok"
-endef
-
-# This requires osslsigncode package (apt or brew) or latest windows release from mtrojnar/osslsigncode
-#
-# Default is self-signed while production should be a Digicert signing key
-#
-# Ex.
-# ```bash
-# keytool -genkey -alias func-e -storetype PKCS12 -keyalg RSA -keysize 2048 -storepass func-e-bunch \
-# -keystore func-e.p12 -dname "O=func-e,CN=func-e.io" -validity 3650
-# ```
-WINDOWS_CODESIGN_P12      ?= packaging/msi/func-e.p12
-WINDOWS_CODESIGN_PASSWORD ?= func-e-bunch
-define codesign
-	@printf "$(ansi_format_dark)" codesign "signing $1"
-	@osslsigncode sign -h sha256 -pkcs12 ${WINDOWS_CODESIGN_P12} -pass "${WINDOWS_CODESIGN_PASSWORD}" \
-	-n "func-e makes running Envoy® easy" -i https://func-e.io -t http://timestamp.digicert.com \
-	$(if $(findstring msi,$(1)),-add-msi-dse) -in $1 -out $1-signed
-	@mv $1-signed $1
-	@printf "$(ansi_format_bright)" codesign "ok"
 endef

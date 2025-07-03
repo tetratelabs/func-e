@@ -1,4 +1,3 @@
-# prevents windows runners from failing on lint
 * text eol=lf
 
 *.ico binary

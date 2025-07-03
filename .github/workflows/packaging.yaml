@@ -36,21 +36,8 @@ defaults:
 jobs:
   packaging:
     name: "Test packaging build (${{ matrix.os }})"
-    runs-on: windows-2022
-    strategy:
-      fail-fast: false  # don't fail fast as sometimes failures are operating system specific
-
+    runs-on: ubuntu-latest
     steps:
-      - name: "Setup msitools, wixtoolset, osslsigncode"
-        run: |
-          choco install osslsigncode -y
-          choco install zip -y
-          echo "$WIX\\bin" >> $GITHUB_PATH
-          echo "${HOME}\\osslsigncode" >> $GITHUB_PATH
-
-        env:  # `gh` requires auth even on public releases
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: "Checkout"
         uses: actions/checkout@v4
 
@@ -62,16 +49,8 @@ jobs:
           key: test-${{ runner.os }}-go-${{ hashFiles('go.mod', 'go.sum', 'Tools.mk') }}
           restore-keys: test-${{ runner.os }}-go-
 
-      - name: "Build packages (Windows Installer, Debian, RPM)"
+      - name: "Build packages (Installer, Debian, RPM)"
         run: make dist
-
-      # This tests the manifest via yamllint because validation via winget requires too much setup.
-      # See https://github.com/microsoft/winget-cli/issues/754#issuecomment-896475895
-      - name: "Test winget manifest generation"
-        run: |
-          ./packaging/msi/winget_manifest.sh > Tetrate.func-e.yaml
-          yamllint -sd '{extends: default, rules: {line-length: disable}}' Tetrate.func-e.yaml
-
 
       # In order to share the built artifacts in the subsequent tests, we use cache instead of actions/upload-artifacts.
       # The reason is that upload-artifacts are not globally consistent and sometimes pre_release_test won't be able to
@@ -97,7 +76,7 @@ jobs:
     strategy:
       fail-fast: false # don't fail fast as sometimes failures are arch/OS specific
       matrix:
-        os: [ubuntu-22.04, macos-12, windows-2022]
+        os: [ubuntu-latest, macos-latest]
 
     steps:
     - uses: actions/checkout@v4
@@ -111,13 +90,6 @@ jobs:
         key: release-artifacts-${{ github.run_id }}
         path:
           dist/
-
-    # This only checks the installer when built on Windows as it is simpler than switching OS.
-    # refreshenv is from choco, and lets you reload ENV variables (used here for PATH).
-    - name: "Test Windows Installer (Windows)"
-      if: runner.os == 'Windows'
-      run: call packaging\msi\verify_msi.cmd
-      shell: cmd
 
     - name: "Test Debian package"
       if: runner.os == 'Linux'

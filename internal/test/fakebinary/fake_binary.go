@@ -20,7 +20,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"sync"
 	"testing"
 
@@ -28,12 +27,7 @@ import (
 )
 
 // exe is like moreos.Exe, except if we used that it would make a build cycle.
-var exe = func() string {
-	if runtime.GOOS == "windows" {
-		return ".exe"
-	}
-	return ""
-}()
+var exe = ""
 
 var (
 	// fakeEnvoySrc is a test source file used to simulate Envoy console output and signal processing.

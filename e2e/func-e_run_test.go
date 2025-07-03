@@ -42,7 +42,7 @@ var (
 	staticFilesystemConfig  []byte
 	adminAddressPathPattern = regexp.MustCompile(`--admin-address-path ([^ ]+)`)
 	envoyStartedLine        = "starting main dispatch loop"
-	// minRunArgs is the minimal config needed to run Envoy 1.18+, non-windows <1.18 need access_log_path: '/dev/stdout'
+	// minRunArgs is the minimal config needed to run Envoy 1.18+.
 	minRunArgs = []string{"run", "--config-yaml", "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 0}}}"}
 )
 

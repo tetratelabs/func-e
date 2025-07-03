@@ -9,15 +9,11 @@ on:
     tags: ''
     branches: master
     # ignore docs as they are built with Netlify. Ignore travis-related changes, too.
-    # func-e.wxs is used for the Windows Installer, so tested with msi.yaml
     paths-ignore:
       - '**/*.md'
       - 'site/**'
       - 'netlify.toml'
       - '.travis.yml'
-      - 'packaging/msi/*'
-      - 'packaging/icon@48w.ico'
-      - '.github/workflows/msi.yaml'
   pull_request:  # We also run tests on pull requests targeted at the master branch.
     branches: master
     paths-ignore:

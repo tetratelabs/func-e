@@ -18,14 +18,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/func-e/internal/globals"
-	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
@@ -49,19 +47,6 @@ func TestFuncEHelp(t *testing.T) {
 			expectedStdout := string(bytes)
 			expectedStdout = strings.ReplaceAll(expectedStdout, "1.99.0", version.LastKnownEnvoy.String())
 			expectedStdout = strings.ReplaceAll(expectedStdout, "1.99", version.LastKnownEnvoyMinor.String())
-			if runtime.GOOS == moreos.OSWindows {
-				expectedStdout = strings.ReplaceAll(expectedStdout, "/", "\\")
-				// As most maintainers don't use Windows, it is easier to revert piece-wise
-				for _, original := range []string{
-					globals.DefaultEnvoyVersionsURL,
-					globals.DefaultEnvoyVersionsSchemaURL,
-					"darwin/arm64",
-					"$GOOS/$GOARCH",
-				} {
-					toRevert := strings.ReplaceAll(original, "/", "\\")
-					expectedStdout = strings.ReplaceAll(expectedStdout, toRevert, original)
-				}
-			}
 			require.Equal(t, expectedStdout, stdout.String())
 		})
 	}
