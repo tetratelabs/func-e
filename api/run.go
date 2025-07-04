@@ -77,12 +77,7 @@ type runOpts struct {
 // This blocks until the context is done or the process exits. The error might be
 // context.Canceled if the context is done or an error from the process.
 func Run(ctx context.Context, args []string, options ...RunOption) error {
-	ro := &runOpts{
-		homeDir:          globals.DefaultHomeDir,
-		envoyVersion:     "", // default to lookup
-		envoyVersionsURL: globals.DefaultEnvoyVersionsURL,
-		out:              os.Stdout,
-	}
+	ro := &runOpts{out: os.Stdout}
 	for _, option := range options {
 		option(ro)
 	}
