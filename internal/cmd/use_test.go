@@ -46,8 +46,6 @@ func TestFuncEUse_VersionValidates(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tc := tc // pin! see https://github.com/kyoh86/scopelint for why
-
 		t.Run(tc.name, func(t *testing.T) {
 			c, stdout, stderr := newApp(o)
 			err := c.Run([]string{"func-e", "use", tc.version})
@@ -116,7 +114,6 @@ func TestFuncEUse_InstallMinorVersion(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			var err error
 			o.GetEnvoyVersions, err = newFuncEVersionsTester(o, tc.firstVersions)

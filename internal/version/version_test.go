@@ -199,10 +199,9 @@ func TestPatchVersion_Patch(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tc := tt // pin! see https://github.com/kyoh86/scopelint for why
-		t.Run(tc.input.String(), func(t *testing.T) {
-			actual := tc.input.Patch()
-			require.Equal(t, tc.expected, actual)
+		t.Run(tt.input.String(), func(t *testing.T) {
+			actual := tt.input.Patch()
+			require.Equal(t, tt.expected, actual)
 		})
 	}
 }
@@ -231,7 +230,6 @@ func TestVersion_String(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tc := tc // pin! see https://github.com/kyoh86/scopelint for why
 		t.Run(tc.input.String(), func(t *testing.T) {
 			actual := tc.input.String()
 			require.Equal(t, tc.expected, actual)
@@ -263,10 +261,9 @@ func TestVersion_ToMinor(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tc := tt // pin! see https://github.com/kyoh86/scopelint for why
-		t.Run(tc.input.String(), func(t *testing.T) {
-			actual := tc.input.ToMinor()
-			require.Equal(t, tc.expected, actual)
+		t.Run(tt.input.String(), func(t *testing.T) {
+			actual := tt.input.ToMinor()
+			require.Equal(t, tt.expected, actual)
 		})
 	}
 }
@@ -321,10 +318,9 @@ func TestFindLatestPatch(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tc := tt // pin! see https://github.com/kyoh86/scopelint for why
-		t.Run(tc.name, func(t *testing.T) {
-			actual := FindLatestPatchVersion(tc.patchVersions, tc.minorVersion)
-			require.Equal(t, tc.expected, actual)
+		t.Run(tt.name, func(t *testing.T) {
+			actual := FindLatestPatchVersion(tt.patchVersions, tt.minorVersion)
+			require.Equal(t, tt.expected, actual)
 		})
 	}
 }
@@ -376,10 +372,9 @@ func TestFindLatestVersion(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tc := tt // pin! see https://github.com/kyoh86/scopelint for why
-		t.Run(tc.name, func(t *testing.T) {
-			actual := FindLatestVersion(tc.patchVersions)
-			require.Equal(t, tc.expected, actual)
+		t.Run(tt.name, func(t *testing.T) {
+			actual := FindLatestVersion(tt.patchVersions)
+			require.Equal(t, tt.expected, actual)
 		})
 	}
 }

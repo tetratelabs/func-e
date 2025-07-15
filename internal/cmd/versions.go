@@ -40,7 +40,8 @@ func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 				Name:    "all",
 				Aliases: []string{"a"},
 				Usage:   "Show all versions including ones not yet installed",
-			}},
+			},
+		},
 		Action: func(c *cli.Context) error {
 			rows, err := getInstalledVersions(o.HomeDir)
 			if err != nil {

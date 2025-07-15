@@ -15,7 +15,6 @@
 package cmd_test
 
 import (
-	"context"
 	"path/filepath"
 	"testing"
 
@@ -24,10 +23,7 @@ import (
 	"github.com/tetratelabs/func-e/internal/moreos"
 )
 
-func (r *runner) Which(ctx context.Context, args []string) error {
-	return r.c.RunContext(ctx, args)
-}
-
+// TestFuncEWhich shows the path to the Envoy binary
 func TestFuncEWhich(t *testing.T) {
 	o := setupTest(t)
 

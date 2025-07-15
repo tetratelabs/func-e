@@ -24,8 +24,11 @@ import (
 	"github.com/tetratelabs/func-e/internal/envoy"
 )
 
-// EnableHooks is a list of functions that enable shutdown hooks
-var EnableHooks = []func(*envoy.Runtime) error{enableEnvoyAdminDataCollection, enableNodeCollection}
+// EnableHook is an interface for enabling shutdown hooks, with an indicator if admin is required.
+type EnableHook func(*envoy.Runtime) error
+
+// DefaultShutdownHooks is a list of shutdown hooks. All hooks, including admin, are registered here.
+var DefaultShutdownHooks = []EnableHook{enableNodeCollection, enableAdminDataCollection}
 
 // wrapError wraps an error from using "gopsutil" or returns nil on "not implemented yet".
 // We don't err on unimplemented because we don't want to disturb users for unresolvable reasons.

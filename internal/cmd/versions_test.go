@@ -29,7 +29,7 @@ func TestGetInstalledVersions_ErrorsWhenFileIsInVersionsDir(t *testing.T) {
 	homeDir := t.TempDir()
 
 	versionsDir := filepath.Join(homeDir, "versions")
-	require.NoError(t, os.WriteFile(versionsDir, []byte{}, 0o700))
+	require.NoError(t, os.WriteFile(versionsDir, []byte{}, 0o600))
 
 	_, err := getInstalledVersions(homeDir)
 	require.Error(t, err)
@@ -60,7 +60,7 @@ func TestGetInstalledVersions_ReleaseDateFromMtime(t *testing.T) {
 
 	rows, err := getInstalledVersions(homeDir)
 	require.NoError(t, err)
-	require.EqualValues(t, rows, []versionReleaseDate{{"1.1.2", "2020-12-31"}})
+	require.Equal(t, []versionReleaseDate{{"1.1.2", "2020-12-31"}}, rows)
 }
 
 func TestGetInstalledVersions_SkipsFileInVersionsDir(t *testing.T) {
@@ -72,7 +72,7 @@ func TestGetInstalledVersions_SkipsFileInVersionsDir(t *testing.T) {
 
 	// create a file which looks like a version
 	oneOneTwo := filepath.Join(versionsDir, "1.1.2")
-	require.NoError(t, os.WriteFile(oneOneTwo, []byte{}, 0o700))
+	require.NoError(t, os.WriteFile(oneOneTwo, []byte{}, 0o600))
 	morerequire.RequireSetMtime(t, oneOneTwo, "2020-12-31")
 
 	// ensure there are no versions in the output

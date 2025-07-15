@@ -58,7 +58,7 @@ func TestUntarEnvoyError(t *testing.T) {
 	})
 
 	realHandler = func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(200)
+		w.WriteHeader(http.StatusOK)
 	}
 	t.Run("error on empty", func(t *testing.T) {
 		err := untarEnvoy(ctx, dst, url, tarballSHA256sum, globals.DefaultPlatform, "dev")
@@ -66,7 +66,7 @@ func TestUntarEnvoyError(t *testing.T) {
 	})
 
 	realHandler = func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(200)
+		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("mary had a little lamb")) //nolint
 	}
 	t.Run("error on not a tar", func(t *testing.T) {
@@ -75,7 +75,7 @@ func TestUntarEnvoyError(t *testing.T) {
 	})
 
 	realHandler = func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(200)
+		w.WriteHeader(http.StatusOK)
 		w.Write(tarball) //nolint
 	}
 	t.Run("error on wrong sha256sum a tar", func(t *testing.T) {
@@ -90,7 +90,7 @@ func TestUntarEnvoy(t *testing.T) {
 
 	tarball, tarballSHA256sum := test.RequireFakeEnvoyTarGz(t, version.LastKnownEnvoy)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(200)
+		w.WriteHeader(http.StatusOK)
 		l, err := w.Write(tarball)
 		require.NoError(t, err)
 		require.Equal(t, len(tarball), l)
@@ -223,7 +223,7 @@ func TestVerifyEnvoy(t *testing.T) {
 	t.Run("envoy binary ok", func(t *testing.T) {
 		EnvoyPath, e := verifyEnvoy(envoyPath)
 		require.Equal(t, expectedEnvoyPath, EnvoyPath)
-		require.Nil(t, e)
+		require.NoError(t, e)
 	})
 
 	require.NoError(t, os.Chmod(expectedEnvoyPath, 0o600))

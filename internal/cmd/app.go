@@ -16,13 +16,10 @@ package cmd
 
 import (
 	"fmt"
-	"net/url"
-	"os/user"
-	"path/filepath"
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/tetratelabs/func-e/internal/envoy"
+	"github.com/tetratelabs/func-e/internal/api"
 	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/version"
@@ -81,16 +78,8 @@ such as glibc. This value must be constant within a ` + "`$FUNC_E_HOME`" + `.`
 		},
 	}
 	app.Before = func(c *cli.Context) error {
-		setPlatform(o, platform)
-		if err := setHomeDir(o, homeDir); err != nil {
-			return err
-		}
-		if err := setEnvoyVersionsURL(o, envoyVersionsURL); err != nil {
-			return err
-		}
-		// The o.GetEnvoyVersions may be initialized before this, and that can only happen in tests.
-		if o.GetEnvoyVersions == nil { // not overridden for tests
-			o.GetEnvoyVersions = envoy.NewGetVersions(o.EnvoyVersionsURL, o.Platform, o.Version)
+		if err := api.InitializeGlobalOpts(o, envoyVersionsURL, homeDir, platform); err != nil {
+			return NewValidationError(err.Error())
 		}
 		return nil
 	}
@@ -125,53 +114,6 @@ var helpCommand = &cli.Command{
 		}
 		return cli.ShowAppHelp(c)
 	},
-}
-
-func setPlatform(o *globals.GlobalOpts, platform string) {
-	if o.Platform != "" { // overridden for tests
-		return
-	}
-	if platform != "" { // set by user
-		o.Platform = version.Platform(platform)
-	} else {
-		o.Platform = globals.DefaultPlatform
-	}
-}
-
-func setEnvoyVersionsURL(o *globals.GlobalOpts, versionsURL string) error {
-	if o.EnvoyVersionsURL != "" { // overridden for tests
-		return nil
-	}
-	if versionsURL == "" {
-		o.EnvoyVersionsURL = globals.DefaultEnvoyVersionsURL
-	} else {
-		otherURL, err := url.Parse(versionsURL)
-		if err != nil || otherURL.Host == "" || otherURL.Scheme == "" {
-			return NewValidationError(fmt.Sprintf("%q is not a valid Envoy versions URL", versionsURL))
-		}
-		o.EnvoyVersionsURL = versionsURL
-	}
-	return nil
-}
-
-func setHomeDir(o *globals.GlobalOpts, homeDir string) error {
-	if o.HomeDir != "" { // overridden for tests
-		return nil
-	}
-	if homeDir == "" {
-		u, err := user.Current()
-		if err != nil || u.HomeDir == "" {
-			return NewValidationError(fmt.Sprintf("unable to determine home directory. Set FUNC_E_HOME instead: %v", err))
-		}
-		o.HomeDir = filepath.Join(u.HomeDir, ".func-e")
-	} else {
-		abs, err := filepath.Abs(homeDir)
-		if err != nil {
-			return NewValidationError(err.Error())
-		}
-		o.HomeDir = abs
-	}
-	return nil
 }
 
 func printVersion(c *cli.Context) {

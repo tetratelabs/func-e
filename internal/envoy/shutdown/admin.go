@@ -40,19 +40,19 @@ var adminAPIPaths = map[string]string{
 	"runtime":           "runtime.json",
 }
 
-// enableEnvoyAdminDataCollection is a preset option that registers collection of Envoy Admin API information
-func enableEnvoyAdminDataCollection(r *envoy.Runtime) error {
-	e := envoyAdminDataCollection{r.GetAdminAddress, r.GetRunDir()}
+// enableAdminDataCollection is a preset option that registers collection of Envoy Admin API information
+func enableAdminDataCollection(r *envoy.Runtime) error {
+	e := adminDataCollection{r.GetAdminAddress, r.GetRunDir()}
 	r.RegisterShutdownHook(e.retrieveAdminAPIData)
 	return nil
 }
 
-type envoyAdminDataCollection struct {
+type adminDataCollection struct {
 	getAdminAddress func() (string, error)
 	workingDir      string
 }
 
-func (e *envoyAdminDataCollection) retrieveAdminAPIData(ctx context.Context) error {
+func (e *adminDataCollection) retrieveAdminAPIData(ctx context.Context) error {
 	adminAddress, err := e.getAdminAddress()
 	if err != nil {
 		return fmt.Errorf("unable to capture Envoy configuration and metrics: %w", err)
@@ -80,7 +80,7 @@ func copyURLToFile(ctx context.Context, url, fullPath string) error {
 	if err != nil {
 		return fmt.Errorf("could not open %q: %w", fullPath, err)
 	}
-	defer f.Close() //nolint
+	defer f.Close() //nolint:errcheck
 
 	// #nosec -> adminAddress is written by Envoy and the paths are hard-coded
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -91,7 +91,7 @@ func copyURLToFile(ctx context.Context, url, fullPath string) error {
 	if err != nil {
 		return fmt.Errorf("could not read %v: %w", url, err)
 	}
-	defer res.Body.Close() //nolint
+	defer res.Body.Close() //nolint:errcheck
 
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("received %v from %v", res.StatusCode, url)
