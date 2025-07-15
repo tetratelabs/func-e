@@ -1,0 +1,20 @@
+static_resources:
+  listeners:
+    - name: udp_listener
+      address:
+        socket_address:
+          address: '127.0.0.1'
+          port_value: 10000
+          protocol: UDP
+      listener_filters:
+        - name: envoy.filters.udp_listener.udp_proxy
+          typed_config:
+            '@type': type.googleapis.com/envoy.extensions.filters.udp.udp_proxy.v3.UdpProxyConfig
+            stat_prefix: foo
+            matcher:
+              on_no_match:
+                action:
+                  name: route
+                  typed_config:
+                    '@type': type.googleapis.com/envoy.extensions.filters.udp.udp_proxy.v3.Route
+                    cluster: cluster_0 

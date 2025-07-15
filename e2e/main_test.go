@@ -15,43 +15,31 @@
 package e2e
 
 import (
-	"bytes"
-	"context"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"os/exec"
-	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/tetratelabs/func-e/internal/moreos"
 )
 
-//nolint:golint
 const (
-	// funcEPathEnvKey holds the path to funcEBin. Defaults to the project root (`$PWD/..`).
-	funcEPathEnvKey        = "E2E_FUNC_E_PATH"
 	envoyVersionsURLEnvKey = "ENVOY_VERSIONS_URL"
 	envoyVersionsJSON      = "envoy-versions.json"
-	runTimeout             = 2 * time.Minute
 )
 
-var (
-	funcEBin            string // funcEBin holds a path to a 'func-e' binary under test.
-	expectedMockHeaders = map[string]string{"User-Agent": "func-e/dev"}
-)
+var expectedMockHeaders = map[string]string{"User-Agent": "func-e/dev"}
 
 // TestMain ensures the "func-e" binary is valid.
 func TestMain(m *testing.M) {
 	// As this is an e2e test, we execute all tests with a binary compiled earlier.
-	if err := readFuncEBin(); err != nil {
+	if err := readOrBuildFuncEBin(); err != nil {
 		exitOnInvalidBinary(err)
 	}
 
+	// pre-flight check the binary is usable
 	versionLine, _, err := funcEExec("--version")
 	if err != nil {
 		exitOnInvalidBinary(err)
@@ -64,7 +52,7 @@ func TestMain(m *testing.M) {
 			moreos.Fprintf(os.Stderr, "failed to serve %s: %v\n", envoyVersionsJSON, err)
 			os.Exit(1)
 		}
-		os.Setenv(envoyVersionsURLEnvKey, s.URL)
+		os.Setenv(envoyVersionsURLEnvKey, s.URL) //nolint:errcheck
 	}
 	os.Exit(m.Run())
 }
@@ -82,7 +70,7 @@ func mockEnvoyVersionsServer() (*httptest.Server, error) {
 		return nil, err
 	}
 
-	defer f.Close()
+	defer f.Close() //nolint:errcheck
 	b, err := io.ReadAll(f)
 	if err != nil {
 		return nil, err
@@ -93,94 +81,14 @@ func mockEnvoyVersionsServer() (*httptest.Server, error) {
 		for k, v := range expectedMockHeaders {
 			h := r.Header.Get(k)
 			if h != v {
-				w.WriteHeader(500)
+				w.WriteHeader(http.StatusInternalServerError)
 				w.Write([]byte(moreos.Sprintf("invalid %q: %s != %s\n", k, h, v))) //nolint
 				return
 			}
 		}
 		w.Header().Add("Content-Type", "application/json")
-		w.WriteHeader(200)
+		w.WriteHeader(http.StatusOK)
 		w.Write(b) //nolint
 	}))
 	return ts, nil
-}
-
-// readFuncEBin reads E2E_FUNC_E_PATH or defaults to the project root (`$PWD/..`) to find func-e.
-// An error is returned if the value isn't an executable file.
-func readFuncEBin() error {
-	path := os.Getenv(funcEPathEnvKey)
-	if path != "" {
-		p, err := abs(path)
-		if err != nil {
-			return err
-		}
-		path = filepath.Clean(p)
-		stat, err := os.Stat(path)
-		if err != nil && os.IsNotExist(err) {
-			return fmt.Errorf("%s doesn't exist. Correct environment variable %s", path, funcEPathEnvKey)
-		}
-		if !stat.IsDir() {
-			return fmt.Errorf("%s is not a directory. Correct environment variable %s", path, funcEPathEnvKey)
-		}
-	} else {
-		// We need to make the path relative to the project root because "e2e" tests run in the "e2e" directory.
-		abs, err := filepath.Abs("..")
-		if err != nil {
-			return err
-		}
-		path = abs
-	}
-
-	// Now, check the binary at the path
-	funcEBin = filepath.Join(path, "func-e"+moreos.Exe)
-	stat, err := os.Stat(funcEBin)
-	if err != nil && os.IsNotExist(err) {
-		return fmt.Errorf("%s doesn't exist.  Run `go build .` or `make bin`", funcEBin)
-	}
-
-	// While "make bin" should result in correct permissions, double-check as some tools lose them, such as
-	// https://github.com/actions/upload-artifact#maintaining-file-permissions-and-case-sensitive-files
-	if !moreos.IsExecutable(stat) {
-		return fmt.Errorf("%s is not executable. Run `go build .` or `make bin`", funcEBin)
-	}
-	fmt.Fprintln(os.Stderr, "using", funcEBin)
-	return nil
-}
-
-// abs is like filepath.Abs except the correct relative dir is '..'
-func abs(path string) (string, error) {
-	if !filepath.IsAbs(path) {
-		wd, err := os.Getwd()
-		if err != nil {
-			return "", fmt.Errorf("could not get current directory")
-		}
-		path = filepath.Join(wd, "..", path)
-	}
-	return path, nil
-}
-
-type funcE struct {
-	cmd      *exec.Cmd
-	runDir   string
-	envoyPid int32
-}
-
-func newFuncE(ctx context.Context, args ...string) *funcE {
-	cmd := exec.CommandContext(ctx, funcEBin, args...)
-	cmd.SysProcAttr = moreos.ProcessGroupAttr()
-	return &funcE{cmd: cmd}
-}
-
-func (b *funcE) String() string {
-	return strings.Join(b.cmd.Args, " ")
-}
-
-func funcEExec(args ...string) (string, string, error) {
-	g := newFuncE(context.Background(), args...)
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
-	g.cmd.Stdout = io.MultiWriter(os.Stdout, stdout) // we want to see full `func-e` output in the test log
-	g.cmd.Stderr = io.MultiWriter(os.Stderr, stderr)
-	err := g.cmd.Run()
-	return stdout.String(), stderr.String(), err
 }

@@ -25,7 +25,7 @@ import (
 
 func TestRunErrors(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(200)
+		w.WriteHeader(http.StatusOK)
 	}))
 	t.Cleanup(server.Close)
 
@@ -76,8 +76,6 @@ show usage with: func-e help
 	}
 
 	for _, test := range tests {
-		test := test // pin! see https://github.com/kyoh86/scopelint for why
-
 		t.Run(test.name, func(t *testing.T) {
 			stdout := new(bytes.Buffer)
 			stderr := new(bytes.Buffer)

@@ -46,8 +46,6 @@ func TestFuncEValidateArgs(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tc := tc // pin! see https://github.com/kyoh86/scopelint for why
-
 		t.Run(tc.name, func(t *testing.T) {
 			err := runTestCommand(t, &globals.GlobalOpts{}, tc.args)
 			require.EqualError(t, err, tc.expectedErr)
@@ -99,8 +97,6 @@ func TestHomeDir(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tc := tc // pin! see https://github.com/kyoh86/scopelint for why
-
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.setup != nil {
 				tc.setup()
@@ -140,8 +136,6 @@ func TestPlatformArg(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tc := tc // pin! see https://github.com/kyoh86/scopelint for why
-
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.setup != nil {
 				tc.setup()
@@ -153,7 +147,6 @@ func TestPlatformArg(t *testing.T) {
 			require.Equal(t, tc.expected, o.Platform)
 		})
 	}
-
 }
 
 func TestEnvoyVersionsURL(t *testing.T) {
@@ -194,8 +187,6 @@ func TestEnvoyVersionsURL(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tc := tc // pin! see https://github.com/kyoh86/scopelint for why
-
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.setup != nil {
 				tc.setup()
@@ -242,6 +233,8 @@ func setupTest(t *testing.T) *globals.GlobalOpts {
 	result := globals.GlobalOpts{}
 	result.EnvoyVersion = version.LastKnownEnvoy
 	result.Out = io.Discard // ignore logging by default
+	result.EnvoyOut = io.Discard
+	result.EnvoyErr = io.Discard
 
 	tempDir := t.TempDir()
 

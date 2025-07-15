@@ -15,6 +15,8 @@
 package envoy
 
 import (
+	"bytes"
+	"fmt"
 	"os/exec"
 	"path/filepath"
 	"testing"
@@ -25,51 +27,64 @@ import (
 	"github.com/tetratelabs/func-e/internal/moreos"
 )
 
-func TestEnsureAdminAddressPath(t *testing.T) {
+func TestEnsureAdminAddress(t *testing.T) {
 	runDir := t.TempDir()
 
 	runAdminAddressPath := filepath.Join(runDir, "admin-address.txt")
 	tests := []struct {
-		name                 string
-		args                 []string
-		wantAdminAddressPath string
-		wantArgs             []string
+		name                   string
+		args                   []string
+		expectAdminAddressPath string
+		expectArgs             []string
+		expectLogs             string
 	}{
 		{
-			name:                 "no args",
-			args:                 []string{"envoy"},
-			wantAdminAddressPath: runAdminAddressPath,
-			wantArgs:             []string{"envoy", "--admin-address-path", runAdminAddressPath},
+			name:       "no args", // allows envoy to fail properly if no args are provided
+			args:       []string{"envoy"},
+			expectArgs: []string{"envoy"},
+			expectLogs: "",
 		},
 		{
-			name:                 "args",
-			args:                 []string{"envoy", "-c", "/tmp/google_com_proxy.v2.yaml"},
-			wantAdminAddressPath: runAdminAddressPath,
-			wantArgs:             []string{"envoy", "-c", "/tmp/google_com_proxy.v2.yaml", "--admin-address-path", runAdminAddressPath},
+			name:       "empty config arg", // allows envoy to fail properly if no args are provided
+			args:       []string{"-c", ""},
+			expectArgs: []string{"-c", ""},
+			expectLogs: "",
 		},
 		{
-			name:                 "already",
-			args:                 []string{"envoy", "--admin-address-path", "/tmp/admin.txt", "-c", "/tmp/google_com_proxy.v2.yaml"},
-			wantAdminAddressPath: "/tmp/admin.txt",
-			wantArgs:             []string{"envoy", "--admin-address-path", "/tmp/admin.txt", "-c", "/tmp/google_com_proxy.v2.yaml"},
+			name:                   "args",
+			args:                   []string{"-c", "/tmp/google_com_proxy.v2.yaml"},
+			expectAdminAddressPath: runAdminAddressPath,
+			expectArgs:             []string{"-c", "/tmp/google_com_proxy.v2.yaml", "--admin-address-path", runAdminAddressPath},
+			expectLogs:             "failed to find admin address: failed to read config file /tmp/google_com_proxy.v2.yaml: open /tmp/google_com_proxy.v2.yaml: no such file or directory\n",
+		},
+		{
+			name:                   "already",
+			args:                   []string{"--admin-address-path", "/tmp/admin.txt", "-c", "/tmp/google_com_proxy.v2.yaml"},
+			expectAdminAddressPath: "/tmp/admin.txt",
+			expectArgs:             []string{"--admin-address-path", "/tmp/admin.txt", "-c", "/tmp/google_com_proxy.v2.yaml"},
+			expectLogs:             "failed to find admin address: failed to read config file /tmp/google_com_proxy.v2.yaml: open /tmp/google_com_proxy.v2.yaml: no such file or directory\n",
 		},
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			r := NewRuntime(&globals.RunOpts{RunDir: runDir})
-			r.cmd = exec.Command(tt.args[0], tt.args[1:]...)
+			var logBuf bytes.Buffer
+			logf := func(format string, args ...any) {
+				fmt.Fprintf(&logBuf, format+"\n", args...)
+			}
 
-			err := r.ensureAdminAddressPath()
+			adminAddressPath, args, err := ensureAdminAddress(logf, runDir, tt.args)
 			require.NoError(t, err)
-			require.Equal(t, tt.wantAdminAddressPath, r.adminAddressPath)
-			require.Equal(t, tt.wantArgs, r.cmd.Args)
+
+			require.Equal(t, tt.expectAdminAddressPath, adminAddressPath)
+			require.Equal(t, tt.expectArgs, args)
+			require.Equal(t, tt.expectLogs, logBuf.String())
 		})
 	}
 }
 
-func TestEnsureAdminAddressPath_ValidateExisting(t *testing.T) {
+func TestEnsureAdminAddress_ValidateExisting(t *testing.T) {
+	runDir := t.TempDir()
 	tests := []struct {
 		name        string
 		args        []string
@@ -77,50 +92,45 @@ func TestEnsureAdminAddressPath_ValidateExisting(t *testing.T) {
 	}{
 		{
 			name:        "value empty",
-			args:        []string{"envoy", "--admin-address-path", "", "-c", "/tmp/google_com_proxy.v2.yaml"},
+			args:        []string{"--admin-address-path", "", "-c", "/tmp/google_com_proxy.v2.yaml"},
 			expectedErr: `missing value to argument "--admin-address-path"`,
 		},
 		{
 			name:        "value missing",
-			args:        []string{"envoy", "-c", "/tmp/google_com_proxy.v2.yaml", "--admin-address-path"},
+			args:        []string{"-c", "/tmp/google_com_proxy.v2.yaml", "--admin-address-path"},
 			expectedErr: `missing value to argument "--admin-address-path"`,
 		},
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			r := NewRuntime(&globals.RunOpts{})
-			r.cmd = exec.Command(tt.args[0], tt.args[1:]...)
-
-			err := r.ensureAdminAddressPath()
-			require.Equal(t, tt.args, r.cmd.Args)
-			require.Empty(t, r.adminAddressPath)
+			adminAddressPath, args, err := ensureAdminAddress(t.Logf, runDir, tt.args)
+			require.Equal(t, tt.args, args)
+			require.Empty(t, adminAddressPath)
 			require.EqualError(t, err, tt.expectedErr)
 		})
 	}
 }
 
-func TestPidFilePath(t *testing.T) {
-	r := NewRuntime(&globals.RunOpts{RunDir: "run"})
-	require.Equal(t, filepath.Join("run", "envoy.pid"), r.pidPath)
-}
-
 func TestString(t *testing.T) {
-	cmdExited := NewRuntime(&globals.RunOpts{})
+	cmdExited := NewRuntime(&globals.RunOpts{}, t.Logf)
 	cmdExited.cmd = exec.Command("echo")
 	require.NoError(t, cmdExited.cmd.Run())
 
-	cmdFailed := NewRuntime(&globals.RunOpts{})
+	cmdFailed := NewRuntime(&globals.RunOpts{}, t.Logf)
 	cmdFailed.cmd = exec.Command("cat"+moreos.Exe, "icecream")
 	require.Error(t, cmdFailed.cmd.Run())
 
 	// Fork a process that hangs
-	cmdRunning := NewRuntime(&globals.RunOpts{})
+	cmdRunning := NewRuntime(&globals.RunOpts{}, t.Logf)
 	cmdRunning.cmd = exec.Command("cat" + moreos.Exe)
 	cmdRunning.cmd.SysProcAttr = moreos.ProcessGroupAttr()
 	require.NoError(t, cmdRunning.cmd.Start())
-	defer cmdRunning.cmd.Process.Kill()
+	defer func() {
+		if cmdRunning.cmd.Process != nil {
+			_ = cmdRunning.cmd.Process.Kill()
+		}
+	}()
 
 	tests := []struct {
 		name     string
@@ -145,7 +155,6 @@ func TestString(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			require.Equal(t, tt.expected, tt.runtime.String())
 		})

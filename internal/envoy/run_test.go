@@ -17,128 +17,63 @@ package envoy
 import (
 	"bytes"
 	"context"
-	"io"
 	"os"
 	"path/filepath"
-	"strconv"
 	"testing"
-	"time"
 
-	"github.com/shirou/gopsutil/v3/process"
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/moreos"
-	"github.com/tetratelabs/func-e/internal/test"
-	"github.com/tetratelabs/func-e/internal/test/fakebinary"
 )
 
-func TestRuntime_Run(t *testing.T) {
+// TestRuntime_Run_EnvoyError takes care to not duplicate test/e2e/testrun.go, but still give some coverage.
+func TestRuntime_Run_EnvoyError(t *testing.T) {
 	tempDir := t.TempDir()
+	runDir := filepath.Join(tempDir, "runs", "1619574747231823000")
+	require.NoError(t, os.MkdirAll(runDir, 0o750))
 
-	runsDir := filepath.Join(tempDir, "runs")
-	runDir := filepath.Join(runsDir, "1619574747231823000") // fake a realistic value
-
-	fakeEnvoy := filepath.Join(tempDir, "envoy"+moreos.Exe)
-	fakebinary.RequireFakeEnvoy(t, fakeEnvoy)
-
-	tests := []struct {
-		name             string
-		args             []string
-		shutdown         bool
-		timeout          time.Duration
-		expectedStderr   string
-		expectedErr      string
-		wantShutdownHook bool
-	}{
-		{
-			name:    "func-e Ctrl+C",
-			args:    []string{"-c", "envoy.yaml"},
-			timeout: time.Second,
-			// Don't warn the user when they exited the process
-			expectedStderr:   moreos.Sprintf("initializing epoch 0\nstarting main dispatch loop\ncaught SIGINT\nexiting\n"),
-			wantShutdownHook: true,
-		},
-		// We don't test envoy dying from an external signal as it isn't reported back to the func-e process and
-		// Envoy returns exit status zero on anything except kill -9. We can't test kill -9 with a fake shell script.
-		{
-			name:           "Envoy exited with error",
-			args:           []string{}, // no config file!
-			expectedStderr: moreos.Sprintf("initializing epoch 0\nexiting\nAt least one of --config-path or --config-yaml or Options::configProto() should be non-empty\n"),
-			expectedErr:    "envoy exited with status: 1",
-		},
+	// Initialize runtime
+	stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
+	logToOutput := func(format string, args ...interface{}) {
+		stdout.WriteString(moreos.Sprintf(format, args...) + "\n")
 	}
+	r := NewRuntime(&globals.RunOpts{
+		EnvoyPath: fakeEnvoyBin,
+		RunDir:    runDir,
+	}, logToOutput)
+	r.Out, r.Err = stdout, stderr
 
-	for _, tt := range tests {
-		tc := tt
-		t.Run(tc.name, func(t *testing.T) {
-			o := &globals.RunOpts{EnvoyPath: fakeEnvoy, RunDir: runDir}
-			require.NoError(t, os.MkdirAll(runDir, 0o750))
+	// Envoy with invalid config is expected to fail
+	err := r.Run(context.Background(), []string{"--config-yaml", "invalid.yaml"})
+	require.EqualError(t, err, "envoy exited with status: 1")
 
-			stdout := new(bytes.Buffer)
-			stderr := new(bytes.Buffer)
+	t.Run("shutdown hooks not invoked", func(t *testing.T) {
+		// Check that the shutdown hooks log message is NOT present
+		require.NotContains(t, stdout.String(), "invoking shutdown hooks with deadline")
+	})
 
-			r := NewRuntime(o)
-			r.Out = stdout
-			r.Err = stderr
-			var haveShutdownHook bool
-			r.RegisterShutdownHook(func(_ context.Context) error {
-				pid := requireEnvoyPid(t, r)
+	t.Run("command arguments", func(t *testing.T) {
+		require.Equal(t, []string{
+			fakeEnvoyBin,
+			"--config-yaml", "invalid.yaml",
+			// test we added additional arguments
+			"--admin-address-path", filepath.Join(runDir, "admin-address.txt"),
+			"--",
+			"--func-e-run-dir", runDir,
+		}, r.cmd.Args, "command arguments mismatch")
+		require.Empty(t, r.cmd.Dir, "working directory should be empty")
+	})
 
-				// Validate envoy.pid was written
-				pidText, err := os.ReadFile(r.pidPath)
-				require.NoError(t, err)
-				require.Equal(t, strconv.Itoa(pid), string(pidText))
-				require.Greater(t, pid, 1)
+	t.Run("output messages", func(t *testing.T) {
+		require.Contains(t, stdout.String(), moreos.Sprintf("starting: %s", fakeEnvoyBin))
+		require.Contains(t, stderr.String(), "cannot unmarshal !!str")
+	})
 
-				// Ensure the process can still be looked up (ex it didn't die from accidental signal propagation)
-				_, err = process.NewProcess(int32(pid)) // because os.FindProcess is no-op in Linux!
-				require.NoError(t, err, "shutdownHook called after process shutdown")
-
-				haveShutdownHook = true
-				return nil
-			})
-
-			// tee the error stream so we can look for the "starting main dispatch loop" line without consuming it.
-			errCopy := new(bytes.Buffer)
-			r.Err = io.MultiWriter(r.Err, errCopy)
-			err := test.RequireRun(t, tc.timeout, r, errCopy, tc.args...)
-
-			if tc.expectedErr == "" {
-				require.NoError(t, err)
-			} else {
-				require.EqualError(t, err, tc.expectedErr)
-			}
-
-			// Ensure envoy was run with the expected environment
-			require.Empty(t, r.cmd.Dir) // envoy runs in the same directory as func-e
-			expectedArgs := append([]string{fakeEnvoy}, tc.args...)
-			expectedArgs = append(expectedArgs, "--admin-address-path", filepath.Join(runDir, "admin-address.txt"))
-			require.Equal(t, expectedArgs, r.cmd.Args)
-
-			// Assert appropriate hooks are called
-			require.Equal(t, tc.wantShutdownHook, haveShutdownHook)
-
-			// Validate we ran what we thought we did
-			require.Contains(t, stdout.String(), moreos.Sprintf("starting: %s", fakeEnvoy))
-			require.Contains(t, stderr.String(), tc.expectedStderr)
-
-			// Ensure the working directory was deleted, and the "run" directory only contains the archive
-			files, err := os.ReadDir(runsDir)
-			require.NoError(t, err)
-			require.Equal(t, 1, len(files))
-			archive := filepath.Join(runsDir, files[0].Name())
-			require.Equal(t, runDir+".tar.gz", archive)
-
-			// Cleanup for the next run
-			require.NoError(t, os.Remove(archive))
-		})
-	}
-}
-
-func requireEnvoyPid(t *testing.T, r *Runtime) int {
-	if r.cmd == nil || r.cmd.Process == nil {
-		t.Fatal("envoy process not yet started")
-	}
-	return r.cmd.Process.Pid
+	t.Run("archive created", func(t *testing.T) {
+		files, err := os.ReadDir(filepath.Dir(runDir))
+		require.NoError(t, err, "failed to read runs directory")
+		require.Len(t, files, 1, "expected one archive file")
+		require.Equal(t, runDir+".tar.gz", filepath.Join(filepath.Dir(runDir), files[0].Name()))
+	})
 }

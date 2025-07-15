@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -29,26 +30,33 @@ import (
 //
 // This will exit either `ctx` is done, or the process exits.
 func (r *Runtime) Run(ctx context.Context, args []string) error {
+	// We require the admin server, so ensure it exists, and we can read its listener via a file path.
+	var err error
+	r.adminAddressPath, args, err = ensureAdminAddress(r.logf, r.o.RunDir, args)
+	if err != nil {
+		return err
+	}
+
+	// Append the run directory to args for an easy lookup of where pid files etc are stored.
+	// Why? MacOS SIP restricts cross-process env var access: we need a solution that works with both Linux and MacOS.
+	args = append(args, "--", "--func-e-run-dir", r.o.RunDir)
+
 	// We can't use CommandContext even if that seems correct here. The reason is that we need to invoke shutdown hooks,
 	// and they expect the process to still be running. For example, this allows admin API hooks.
-	cmd := exec.Command(r.opts.EnvoyPath, args...) // #nosec -> users can run whatever binary they like!
+	cmd := exec.Command(r.o.EnvoyPath, args...) // #nosec -> users can run whatever binary they like!
 	cmd.Stdout = r.Out
 	cmd.Stderr = r.Err
 	cmd.SysProcAttr = moreos.ProcessGroupAttr()
 	r.cmd = cmd
 
-	if err := r.ensureAdminAddressPath(); err != nil {
-		return err
-	}
-
 	// Print the binary path to the user for debugging purposes.
-	moreos.Fprintf(r.Out, "starting: %s with --admin-address-path %s\n", r.opts.EnvoyPath, r.adminAddressPath) //nolint
+	r.logf("starting: %s with --admin-address-path %s\n", r.o.EnvoyPath, r.adminAddressPath)
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("unable to start Envoy process: %w", err)
 	}
 
 	// Warn, but don't fail if we can't write the pid file for some reason
-	r.maybeWarn(os.WriteFile(r.pidPath, []byte(strconv.Itoa(cmd.Process.Pid)), 0o600))
+	r.maybeWarn(os.WriteFile(filepath.Join(r.o.RunDir, "envoy.pid"), []byte(strconv.Itoa(cmd.Process.Pid)), 0o600))
 
 	// Wait in a goroutine. We may need to kill the process if a signal occurs first.
 	//
@@ -66,16 +74,17 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 	// Block until the process exits or the original context is done.
 	select {
 	case <-ctx.Done():
-		// When original context is done, we need to shutdown the process by ourselves.
+		// When original context is done, we need to shut down the process by ourselves.
 		// Run the shutdown hooks and wait for them to complete.
 		r.handleShutdown()
 		// Then wait for the process to exit.
 		<-cmdExitWait.Done()
 	case <-cmdExitWait.Done():
+		// Process exited naturally
 	}
 
 	// Warn, but don't fail on error archiving the run directory
-	if !r.opts.DontArchiveRunDir {
+	if !r.o.DontArchiveRunDir {
 		r.maybeWarn(r.archiveRunDir())
 	}
 

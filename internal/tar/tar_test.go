@@ -54,10 +54,9 @@ func TestNewDecompressor_Validates(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tc := tt
-		t.Run(tc.name, func(t *testing.T) {
-			_, err := newDecompressor(bytes.NewReader(tc.junk))
-			require.EqualError(t, err, tc.expectedErr)
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := newDecompressor(bytes.NewReader(tt.junk))
+			require.EqualError(t, err, tt.expectedErr)
 		})
 	}
 }
@@ -74,18 +73,17 @@ func TestNewDecompressor(t *testing.T) {
 		"testdata/test.tar.xz",
 		"testdata/test.tar.gz",
 	} {
-		p := p
 		t.Run(p, func(t *testing.T) {
 			f, err := os.Open(p)
 			require.NoError(t, err)
-			defer f.Close()
+			defer f.Close() //nolint:errcheck
 
 			expected, err := os.ReadFile(strings.TrimSuffix(p, path.Ext(p)))
 			require.NoError(t, err)
 
 			d, err := newDecompressor(f)
 			require.NoError(t, err)
-			defer d.Close()
+			defer d.Close() //nolint:errcheck
 
 			actual, err := io.ReadAll(d)
 			require.NoError(t, err)
@@ -101,7 +99,6 @@ func TestUntar(t *testing.T) {
 		dstExists bool
 		emptyTar  bool
 	}{{true, true}, {true, false}, {false, true}, {false, false}} {
-		tt := tt
 		t.Run(fmt.Sprintf("%+v", tt), func(t *testing.T) {
 			tempDir := t.TempDir()
 
@@ -116,7 +113,7 @@ func TestUntar(t *testing.T) {
 			}
 			f, err := os.Open(srcFile)
 			require.NoError(t, err)
-			defer f.Close()
+			defer f.Close() //nolint:errcheck
 
 			err = Untar(dst, f)
 			require.NoError(t, err)
@@ -145,7 +142,7 @@ func TestUntarAndVerify(t *testing.T) {
 
 			f, err := os.Open(file)
 			require.NoError(t, err)
-			defer f.Close()
+			defer f.Close() //nolint:errcheck
 
 			err = UntarAndVerify(tempDir, f, sha256)
 			require.NoError(t, err)
@@ -166,7 +163,7 @@ func TestUntarAndVerify_ErrorReading(t *testing.T) {
 
 	expectedErr := errors.New("ice cream")
 	err := UntarAndVerify(tempDir, &errorReader{expectedErr}, "1234")
-	require.Same(t, err, expectedErr)
+	require.Same(t, expectedErr, err)
 }
 
 func TestUntarAndVerify_InvalidSignature(t *testing.T) {
@@ -174,7 +171,7 @@ func TestUntarAndVerify_InvalidSignature(t *testing.T) {
 
 	f, err := os.Open("testdata/empty.tar.xz")
 	require.NoError(t, err)
-	defer f.Close()
+	defer f.Close() //nolint:errcheck
 
 	err = UntarAndVerify(tempDir, f, "cafebabe")
 	require.EqualError(t, err, `expected SHA-256 sum "cafebabe", but have "0ff74a47ceef95ffaf6e629aac7e54d262300e5ee318830b41da1f809fc71afd"`)
@@ -219,7 +216,7 @@ func TestTarGZ(t *testing.T) {
 
 	f, e := os.Open(dst)
 	require.NoError(t, e)
-	defer f.Close()
+	defer f.Close() //nolint:errcheck
 
 	e = Untar(tempDir, f)
 	require.NoError(t, e)

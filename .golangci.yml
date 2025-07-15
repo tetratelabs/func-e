@@ -12,125 +12,70 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This is built using - https://github.com/golangci/golangci-lint/blob/master/.golangci.example.yml
-# To fix false positives see - https://github.com/golangci/golangci-lint#false-positives
+# This is built using - https://github.com/golangci/golangci-lint/blob/main/.golangci.reference.yml
+# To fix false positives see -https://github.com/golangci/golangci-lint/blob/f6b5aa31704fbfe1845f0453de142fc8f0e303db/docs/src/docs/usage/false-positives.mdx#L4
+version: 2
+
 run:
-  # timeout for analysis, e.g. 30s, 5m, default is 1m
+  # Increase timeout for large codebase analysis
   deadline: 5m
 
-  # If invoked with -mod=readonly, the go command is disallowed from the implicit
-  # automatic updating of go.mod described above. Instead, it fails when any changes
-  # to go.mod are needed. This setting is most useful to check that go.mod does
-  # not need updates, such as in a continuous integration and testing system.
+  # Prevent go.mod changes during linting in CI
   modules-download-mode: readonly
 
 linters:
+  # Enable additional linters beyond defaults for better code quality
   enable:
-    - "bodyclose"
-    - "dupl"
-    - "goconst"
-    - "gocritic"
-    - "gofmt"
-    - "gocyclo"
-    - "goimports"
-    - "gosec"
-    - "gosimple"
-    - "lll"
-    - "misspell"
-    - "nakedret"
-    - "prealloc"
-    - "unconvert"
-    - "unparam"
-    - "gomoddirectives"
+    - bodyclose        # Ensures response bodies are closed
+    - dupl             # Reports code clones
+    - goconst          # Finds repeated strings that could be constants
+    - gocritic         # The most opinionated Go source code linter
+    - gocyclo          # Checks cyclomatic complexity
+    - misspell         # Finds commonly misspelled English words
+    - nakedret         # Finds naked returns in functions greater than a specified function length
+    - prealloc         # Suggests preallocating slices when their capacity is known
+    - unconvert        # Removes unnecessary type conversions
+    - unparam          # Reports unused function parameters
+    - gomoddirectives  # Manages the use of 'replace', 'retract', and 'exclude' directives in go.mod
+    - copyloopvar      # Detects places where loop variables are copied (new in v2.x)
+    - durationcheck    # Check for two durations multiplied together (new in v2.x)
+    - errorlint        # Finds code that will cause problems with Go 1.13+ error wrapping (new in v2.x)
+    - grouper          # Analyze expression groups (new in v2.x)
+    - maintidx         # Measures the maintainability index of each function (new in v2.x)
+    - makezero         # Finds slice declarations with non-zero initial length (new in v2.x)
+    - predeclared      # Find code that shadows Go's predeclared identifiers (new in v2.x)
+    - usestdlibvars    # Detect possibility to use variables/constants from Go standard library (new in v2.x)
+    - whitespace       # Checks for unnecessary newlines (new in v2.x)
 
+  # Disable linters that are too strict or cause false positives
   disable:
-    - "gochecknoglobals"
-    - "gochecknoinits"
-    - "revive"  # pedantic about package docs
+    - godot            # Disabled because trailing periods in comments are not our style
+    - exhaustruct      # Requires setting all struct fields explicitly, which is very invasive
+    - paralleltest     # Can cause race conditions and test interference in complex test suites
+    - nlreturn         # Requires adding newlines before all returns, which is very invasive
 
-# all available settings of specific linters
 linters-settings:
-  errcheck:
-    check-type-assertions: true
-    check-blank: false
-  gofmt:
-    simplify: true
-  gocyclo:
-    min-complexity: 10
   dupl:
-    # tokens count to trigger issue, 150 by default
-    threshold: 100
-  goconst:
-    min-occurrences: 3
+    threshold: 100 # < 150 for better clone detection
   misspell:
     locale: US
   lll:
-    line-length: 150
-  unused:
-    check-exported: false
-  unparam:
-    check-exported: false
+    line-length: 120  # > 80
   gocritic:
-    enabled-checks:  # non-default checks we decided to also add
-      - boolExprSimplify
-      - builtinShadow
-      - commentedOutCode
-      - commentedOutImport
-      - docStub
-      - emptyFallthrough
-      - hexLiteral
-      - initClause
-      - methodExprCall
-      - nilValReturn
-      - octalLiteral
-      - typeAssertChain
-      - typeUnparen
-      - unnecessaryBlock
-      - weakCond
-      - yodaStyleExpr
-      - emptyStringTest
-      - importShadow
-      - nestingReduce
-      - paramTypeCombine
-      - ptrToRefParam
-      - sloppyReassign
-      - unlabelStmt
-
-    # Enable multiple checks by tags, run `GL_DEBUG=gocritic golangci-lint` run to see all tags and checks.
-    # Empty list by default. See https://github.com/go-critic/go-critic#usage -> section "Tags".
-    enabled-tags: [ "performance" ]
-
-    settings:  # settings passed to gocritic
-      captLocal:  # must be valid enabled check name
-        paramsOnly: true
-      rangeValCopy:
-        sizeThreshold: 32
+    enabled-tags: # more tags than default
+      - diagnostic
+      - style
+      - performance
+  funlen:
+    lines: 100  # > 60
+    statements: 50  # > 40
 
 issues:
-  # List of regexps of issue texts to exclude, empty list by default.
-  # But independently from this option we use default exclude patterns,
-  # it can be disabled by `exclude-use-default: false`. To list all
-  # excluded by default patterns execute `golangci-lint run --help`
-  exclude: [ ]
-
-  # Excluding configuration per-path, per-linter, per-text and per-source
-  exclude-rules:
-    # Exclude some linters from running on tests files.
-    - path: _test\.go
-      linters:
-        - errcheck
-        - dupl
-        - gosec
-        - lll
-
-  # Independently from option `exclude` we use default exclude patterns,
-  # it can be disabled by this option. To list all
-  # excluded by default patterns execute `golangci-lint run --help`.
-  # Default value for this option is true.
-  exclude-use-default: false
-
-  # Maximum issues count per one linter. Set to 0 to disable. Default is 50.
-  max-issues-per-linter: 0
-
-  # Maximum count of issues with the same text. Set to 0 to disable. Default is 3.
-  max-same-issues: 0
+  exclusions:
+    rules:
+      # Exclude some linters from running on test files to reduce noise
+      - path: _test\.go
+        linters:
+          - gocyclo     # Test functions often have higher complexity
+          - dupl        # Test code often has similar patterns
+          - gosec       # Security issues in test files are less critical

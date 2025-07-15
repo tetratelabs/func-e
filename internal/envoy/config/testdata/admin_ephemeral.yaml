@@ -1,0 +1,12 @@
+admin:
+  address:
+    socket_address:
+      address: 127.0.0.1
+      port_value: 0
+static_resources:
+  listeners:
+    - name: test_listener
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 10000 

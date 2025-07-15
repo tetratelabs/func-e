@@ -25,32 +25,39 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/tetratelabs/func-e/internal/envoy/config"
 	"github.com/tetratelabs/func-e/internal/globals"
-	"github.com/tetratelabs/func-e/internal/moreos"
 )
+
+type LogFunc func(format string, a ...any)
 
 const (
 	// Don't wait forever. This has hung on macOS before
 	shutdownTimeout = 5 * time.Second
 	// Match envoy's log format field
-	dateFormat = "[2006-01-02 15:04:05.999]"
+	dateFormat           = "[2006-01-02 15:04:05.999]"
+	configYamlFlag       = `--config-yaml`
+	adminEphemeralConfig = "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 0}}}"
+	adminAddressPathFlag = `--admin-address-path`
 )
 
 // NewRuntime creates a new Runtime that runs envoy in globals.RunOpts RunDir
 // opts allows a user running envoy to control the working directory by ID or path, allowing explicit cleanup.
-func NewRuntime(opts *globals.RunOpts) *Runtime {
-	return &Runtime{opts: opts, pidPath: filepath.Join(opts.RunDir, "envoy.pid")}
+func NewRuntime(opts *globals.RunOpts, logf LogFunc) *Runtime {
+	return &Runtime{o: opts, logf: logf}
 }
 
 // Runtime manages an Envoy lifecycle
 type Runtime struct {
-	opts *globals.RunOpts
+	o *globals.RunOpts
 
 	cmd              *exec.Cmd
 	Out, Err         io.Writer
 	OutFile, ErrFile *os.File
 
-	adminAddress, adminAddressPath, pidPath string
+	logf LogFunc
+
+	adminAddress, adminAddressPath string
 
 	shutdownHooks []func(context.Context) error
 }
@@ -69,41 +76,69 @@ func (r *Runtime) String() string {
 
 // GetRunDir returns the run-specific directory files can be written to.
 func (r *Runtime) GetRunDir() string {
-	return r.opts.RunDir
+	return r.o.RunDir
 }
 
 // maybeWarn writes a warning message to Runtime.Out when the error isn't nil
 func (r *Runtime) maybeWarn(err error) {
 	if err != nil {
-		moreos.Fprintf(r.Out, "warning: %s\n", err) //nolint
+		r.logf("warning: %s", err)
 	}
 }
 
-// ensureAdminAddressPath sets the "--admin-address-path" flag so that it can be used in /ready checks. If a value
-// already exists, it will be returned. Otherwise, the flag will be set to the file "admin-address.txt" in the
-// run directory. We don't use the working directory as sometimes that is a source directory.
+// ensureAdminAddress ensures there is an admin server in the args adds configYamlFlag of adminEphemeralConfig if there
+// is none. Next, we add adminAddressPathFlag if not already set. This allows reading back the admin address later
+// regardless of whether the admin server is ephemeral or not.
 //
-// Notably, this allows ephemeral admin ports via bootstrap configuration admin/port_value=0 (minimum Envoy 1.12 for macOS support)
-func (r *Runtime) ensureAdminAddressPath() error {
-	args := r.cmd.Args
-	flag := `--admin-address-path`
-	for i, a := range args {
-		if a == flag {
-			if i+1 == len(args) || args[i+1] == "" {
-				return fmt.Errorf(`missing value to argument %q`, flag)
+// Note: If adminAddressPathFlag is backfilled, it will be to the globals.RunOpts RunDir, which is mutable.
+func ensureAdminAddress(logf LogFunc, runDir string, argsIn []string) (string, []string, error) {
+	args := argsIn
+	var hasConfig bool
+	var adminAddressPath string
+ARGS:
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "-c", "--config-path", configYamlFlag:
+			i++
+			if i < len(args) {
+				if args[i] != "" {
+					hasConfig = true
+					continue
+				}
 			}
-			r.adminAddressPath = args[i+1]
-			return nil
+			break ARGS
+		case adminAddressPathFlag:
+			i++
+			if i >= len(args) || args[i] == "" {
+				return "", args, fmt.Errorf("missing value to argument %q", adminAddressPathFlag)
+			}
+			adminAddressPath = args[i]
+			continue
 		}
 	}
-	// Envoy's run directory is mutable, so it is fine to write the admin address there.
-	r.adminAddressPath = filepath.Join(r.opts.RunDir, "admin-address.txt")
-	r.cmd.Args = append(r.cmd.Args, flag, r.adminAddressPath)
-	return nil
+	if !hasConfig {
+		return "", args, nil // allow envoy to fail
+	}
+
+	// We backfill an ephemeral admin server only when we can verify for sure there is none.
+	if adminAddress, err := config.FindAdminAddress(args); err != nil {
+		logf("failed to find admin address: %s", err)
+	} else if adminAddress == "" {
+		logf("configuring ephemeral admin server")
+		args = append(args, configYamlFlag, adminEphemeralConfig)
+	}
+
+	// TODO: remove admin address path requirement for non-ephemeral configs
+	if adminAddressPath == "" {
+		// Envoy's run directory is mutable, so it is fine to write the admin address there.
+		adminAddressPath = filepath.Join(runDir, "admin-address.txt")
+		args = append(args, adminAddressPathFlag, adminAddressPath)
+	}
+	return adminAddressPath, args, nil
 }
 
 // GetAdminAddress returns the current admin address in host:port format, or empty if not yet available.
-// Exported for shutdown.enableEnvoyAdminDataCollection, which is always on due to shutdown.EnableHooks.
+// Exported for shutdown.enableAdminDataCollection, which is in shutdown.DefaultShutdownHooks.
 func (r *Runtime) GetAdminAddress() (string, error) {
 	if r.adminAddress != "" { // We don't expect the admin address to change once written, so cache it.
 		return r.adminAddress, nil

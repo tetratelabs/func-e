@@ -21,7 +21,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/shirou/gopsutil/v3/process"
+	"github.com/shirou/gopsutil/v4/process"
 	"github.com/stretchr/testify/require"
 )
 
@@ -63,7 +63,7 @@ func TestSprintf(t *testing.T) {
 	require.Equal(t, expected, Sprintf(template, "foo", "bar"))
 
 	// ensure idempotent
-	require.Equal(t, expected, expected)
+	require.Equal(t, expected, Sprintf(template, "foo", "bar"))
 }
 
 func TestFprintf(t *testing.T) {

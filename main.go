@@ -16,6 +16,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -24,7 +25,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	cmdutil "github.com/tetratelabs/func-e/internal/cmd"
+	"github.com/tetratelabs/func-e/internal/cmd"
 	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/moreos"
 )
@@ -40,7 +41,7 @@ var version = "dev"
 
 // run handles all error logging and coding so that no other place needs to.
 func run(stdout, stderr io.Writer, args []string) int {
-	app := cmdutil.NewApp(&globals.GlobalOpts{Version: version, Out: stdout})
+	app := cmd.NewApp(&globals.GlobalOpts{Version: version, Out: stdout})
 	app.Writer = stdout
 	app.ErrWriter = stderr
 	app.Action = func(c *cli.Context) error {
@@ -48,15 +49,16 @@ func run(stdout, stderr io.Writer, args []string) int {
 		if command == "" { // Show help by default
 			return cli.ShowSubcommandHelp(c)
 		}
-		return cmdutil.NewValidationError(fmt.Sprintf("unknown command %q", command))
+		return cmd.NewValidationError(fmt.Sprintf("unknown command %q", command))
 	}
 	app.OnUsageError = func(c *cli.Context, err error, isSub bool) error {
-		return cmdutil.NewValidationError(err.Error())
+		return cmd.NewValidationError(err.Error())
 	}
 	sigCtx, sigCancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer sigCancel()
 	if err := app.RunContext(sigCtx, args); err != nil {
-		if _, ok := err.(*cmdutil.ValidationError); ok {
+		var validationErr *cmd.ValidationError
+		if errors.As(err, &validationErr) {
 			moreos.Fprintf(stderr, "%s\n", err)
 			logUsageError(app.Name, stderr)
 		} else {

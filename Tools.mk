@@ -1,8 +1,9 @@
 # Copyright 2021 Tetrate
 # Licensed under the Apache License, Version 2.0 (the "License")
 
-golangci_lint := github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.6
-goimports     := golang.org/x/tools/cmd/goimports@v0.5.0
+golangci_lint := github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.2.1
+gofumpt       := mvdan.cc/gofumpt@v0.8.0
+gosimports    := github.com/rinchsan/gosimports/cmd/gosimports@v0.3.8
 # sync this with netlify.toml!
 hugo          := github.com/gohugoio/hugo@v0.109.0
 licenser      := github.com/liamawhite/licenser@v0.6.0

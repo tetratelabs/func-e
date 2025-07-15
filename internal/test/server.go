@@ -30,9 +30,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/tetratelabs/func-e/internal"
 	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/tar"
-	"github.com/tetratelabs/func-e/internal/test/fakebinary"
+	"github.com/tetratelabs/func-e/internal/test/build"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
@@ -67,7 +68,7 @@ func RequireEnvoyVersionsTestServer(t *testing.T, v version.PatchVersion) *httpt
 
 // TarballURL gives the expected download URL for the given runtime.GOOS and Envoy version.
 func TarballURL(baseURL, goos, goarch string, v version.PatchVersion) version.TarballURL {
-	var arch = "x86_64"
+	arch := "x86_64"
 	if goarch != "arm64" {
 		arch = goarch
 	}
@@ -109,19 +110,21 @@ func (s *server) funcEVersions() []byte {
 }
 
 // RequireFakeEnvoyTarGz makes a fake envoy.tar.gz
-//
-//nolint:gosec
 func RequireFakeEnvoyTarGz(t *testing.T, v version.PatchVersion) ([]byte, version.SHA256Sum) {
 	tempDir := t.TempDir()
 
 	// construct the platform directory based on the input version
 	installDir := filepath.Join(tempDir, v.String())
-	require.NoError(t, os.MkdirAll(filepath.Join(installDir, "bin"), 0o700)) //nolint:gosec
-	fakebinary.RequireFakeEnvoy(t, filepath.Join(installDir, "bin", "envoy"+moreos.Exe))
+	require.NoError(t, os.MkdirAll(filepath.Join(installDir, "bin"), 0o700))
+	fakeEnvoyBin, err := build.GoBuild(internal.FakeEnvoySrcPath, tempDir)
+	require.NoError(t, err)
+	// Move the binary to the installDir/bin
+	err = os.Rename(fakeEnvoyBin, filepath.Join(installDir, "bin", "envoy"+moreos.Exe))
+	require.NoError(t, err)
 
 	// tar.gz the platform dir
 	tempGz := filepath.Join(tempDir, "envoy.tar.gz")
-	err := tar.TarGz(tempGz, installDir)
+	err = tar.TarGz(tempGz, installDir)
 	require.NoError(t, err)
 
 	// Read the tar.gz into a byte array. This allows the mock server to set content length correctly

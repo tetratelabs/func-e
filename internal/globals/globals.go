@@ -26,6 +26,10 @@ import (
 type RunOpts struct {
 	// EnvoyPath is the exec.Cmd path to "envoy". Defaults to "$HomeDir/versions/$version/bin/envoy"
 	EnvoyPath string
+	// EnvoyOut is where to write Envoy's stdout.
+	EnvoyOut io.Writer
+	// EnvoyErr is where to write Envoy's stdout.
+	EnvoyErr io.Writer
 	// RunDir is the location any generated files are written.
 	// This is not Envoy's working directory, which remains the same as the $PWD of func-e.
 	//
