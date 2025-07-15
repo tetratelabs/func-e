@@ -1,6 +1,3 @@
-# Copyright 2021 Tetrate
-# Licensed under the Apache License, Version 2.0 (the "License")
-#
 # This script uses automatic variables (ex $<, $(@D)) and substitution references $(<:.signed=)
 # Please see GNU make's documentation if unfamiliar: https://www.gnu.org/software/make/manual/html_node/
 .PHONY: test build e2e dist clean format lint check site
@@ -174,7 +171,7 @@ clean: ## Ensure a clean build
 # format is a PHONY target, so always runs. This allows skipping when sources didn't change.
 build/format: go.mod $(all_sources)
 	@$(go) mod tidy
-	@$(go) run $(licenser) apply -r "Tetrate"
+	@$(go) run $(nwa) add --mute -t .licenseheader -T raw "**/*.go"
 	@$(go) run $(gofumpt) -l -w .
 	@$(go) run $(gosimports) -local github.com/tetratelabs/ -w $(shell find . -name '*.go' -type f)
 	@mkdir -p $(@D) && touch $@

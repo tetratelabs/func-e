@@ -1,3 +1,6 @@
+// Copyright 2025 Tetrate
+// SPDX-License-Identifier: Apache-2.0
+
 // Package main provides a fake Envoy binary for unit testing func-e without downloading real Envoy.
 package main
 
