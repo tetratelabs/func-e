@@ -13,14 +13,12 @@ on:
       - '**/*.md'
       - 'site/**'
       - 'netlify.toml'
-      - '.travis.yml'
   pull_request:  # We also run tests on pull requests targeted at the master branch.
     branches: master
     paths-ignore:
       - '**/*.md'
       - 'site/**'
       - 'netlify.toml'
-      - '.travis.yml'
       - 'packaging/msi/*'
       - 'packaging/icon@48w.ico'
       - '.github/workflows/msi.yaml'
