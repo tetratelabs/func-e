@@ -54,8 +54,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/go/pkg/mod
-          # go.mod for go release version, go.sum for modules used, and Tools.mk for 'go run' tools
-          key: test-${{ runner.os }}-go-${{ hashFiles('go.mod', 'go.sum', 'Tools.mk') }}
+          # go.mod for go release version and tools, go.sum for modules used
+          key: test-${{ runner.os }}-go-${{ hashFiles('go.mod', 'go.sum') }}
           restore-keys: test-${{ runner.os }}-go-
 
       - name: "Cache Envoy binaries"

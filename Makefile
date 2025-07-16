@@ -2,9 +2,6 @@
 # Please see GNU make's documentation if unfamiliar: https://www.gnu.org/software/make/manual/html_node/
 .PHONY: test build e2e dist clean format lint check site
 
-# Include versions of tools we build on-demand
-include Tools.mk
-
 # This should be driven by automation and result in N.N.N, not vN.N.N
 VERSION ?= dev
 
@@ -171,9 +168,9 @@ clean: ## Ensure a clean build
 # format is a PHONY target, so always runs. This allows skipping when sources didn't change.
 build/format: go.mod $(all_sources)
 	@$(go) mod tidy
-	@$(go) run $(nwa) add --mute -t .licenseheader -T raw "**/*.go"
-	@$(go) run $(gofumpt) -l -w .
-	@$(go) run $(gosimports) -local github.com/tetratelabs/ -w $(shell find . -name '*.go' -type f)
+	@$(go) tool nwa add --mute -t .licenseheader -T raw "**/*.go"
+	@$(go) tool gofumpt -l -w .
+	@$(go) tool gosimports -local github.com/tetratelabs/ -w $(shell find . -name '*.go' -type f)
 	@mkdir -p $(@D) && touch $@
 
 format:
@@ -183,7 +180,7 @@ format:
 
 # lint is a PHONY target, so always runs. This allows skipping when sources didn't change.
 build/lint: .golangci.yml $(all_sources)
-	@$(go) run $(golangci_lint) run --timeout 5m --config $< ./...
+	@$(go) tool golangci-lint run --timeout 5m --config $< ./...
 	@$(go) test ./lint/...
 	@mkdir -p $(@D) && touch $@
 
@@ -205,7 +202,7 @@ check: ## Verify contents of last commit
 
 site: ## Serve website content
 	@git submodule update
-	@cd site && $(go) run $(hugo) server --minify --disableFastRender --baseURL localhost:1313 --cleanDestinationDir -D
+	@cd site && $(go) tool hugo server --minify --disableFastRender --baseURL localhost:1313 --cleanDestinationDir -D
 
 # define macros for multi-platform builds. these parse the filename being built
 go-arch = $(if $(findstring amd64,$1),amd64,arm64)
