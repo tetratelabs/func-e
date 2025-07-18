@@ -48,8 +48,10 @@ type fakeFuncE struct {
 
 // Interrupt cancels the context created in Run as we don't want to actually interrupt the calling test!
 func (f *fakeFuncE) Interrupt(context.Context) error {
-	f.cancelFunc()
-	f.cancelFunc = nil
+	if f.cancelFunc != nil {
+		f.cancelFunc()
+		// Don't set to nil in case interrupt is called multiple times (ctrl+c twice)
+	}
 	return nil
 }
 

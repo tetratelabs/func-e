@@ -25,3 +25,11 @@ func TestRun_InvalidConfig(t *testing.T) {
 func TestRun_StaticFile(t *testing.T) {
 	e2e.TestRun_StaticFile(context.Background(), t, funcEFactory{})
 }
+
+func TestRun_CtrlCs(t *testing.T) {
+	e2e.TestRun_CtrlCs(context.Background(), t, funcEFactory{})
+}
+
+func TestRun_Kill9(t *testing.T) {
+	e2e.TestRun_Kill9(context.Background(), t, funcEFactory{})
+}

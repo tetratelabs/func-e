@@ -25,3 +25,8 @@ func TestRun_InvalidConfig(t *testing.T) {
 func TestRun_StaticFile(t *testing.T) {
 	e2e.TestRun_StaticFile(context.Background(), t, fakeFuncEFactory{})
 }
+
+func TestRun_CtrlCs(t *testing.T) {
+	// This doesn't call ctrl-c, rather cancels the context multiple times
+	e2e.TestRun_CtrlCs(context.Background(), t, fakeFuncEFactory{})
+}

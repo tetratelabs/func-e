@@ -11,9 +11,12 @@ import (
 
 // interrupt attempts to interrupt the process. It doesn't necessarily kill it.
 func interrupt(p *os.Process) error {
-	// Send SIGINT to the child PID directly
-	if err := p.Signal(syscall.SIGINT); err != nil && !errors.Is(err, os.ErrProcessDone) {
-		return err
+	// Send SIGINT to the process group (negative PID) to ensure all child processes receive it
+	if err := syscall.Kill(-p.Pid, syscall.SIGINT); err != nil && !errors.Is(err, os.ErrProcessDone) {
+		// Fallback to sending to the process directly if group signal fails
+		if err := p.Signal(syscall.SIGINT); err != nil && !errors.Is(err, os.ErrProcessDone) {
+			return err
+		}
 	}
 	return nil
 }

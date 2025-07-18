@@ -7,11 +7,15 @@ import (
 	"bufio"
 	"context"
 	_ "embed"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"syscall"
 	"testing"
+	"time"
 
 	"github.com/shirou/gopsutil/v4/process"
 	"github.com/stretchr/testify/require"
@@ -30,6 +34,8 @@ type RunTestOptions struct {
 	ExpectFail bool
 	TestFunc   RunTestFunc
 	Args       []string
+	// ExpectKilled indicates the test will kill func-e (e.g., with SIGKILL)
+	ExpectKilled bool
 }
 
 // Tests are implemented individually rather than as table-driven tests to facilitate
@@ -114,6 +120,66 @@ func TestRun_InvalidConfig(ctx context.Context, t *testing.T, factory FuncEFacto
 	executeRunTest(ctx, t, factory, RunTestOptions{
 		ExpectFail: true,
 		Args:       []string{"-c", "invalid.yaml"},
+	})
+}
+
+// TestRun_CtrlCs tests the "Ctrl+C twice" behavior where the first interrupt
+// starts shutdown hooks and the second interrupt forces immediate exit.
+func TestRun_CtrlCs(ctx context.Context, t *testing.T, factory FuncEFactory) {
+	executeRunTest(ctx, t, factory, RunTestOptions{
+		ExpectFail: false,
+		Args:       []string{"--config-yaml", "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 0}}}"},
+		TestFunc: func(ctx context.Context, runDir string, envoyPid int32, interruptFuncE func(context.Context) error, adminClient *AdminClient) {
+			// First interrupt should start shutdown hooks
+			require.NoError(t, interruptFuncE(ctx))
+
+			// Send 5 more interrupts to ensure no special casing
+			for i := 0; i < 5; i++ {
+				require.NoError(t, interruptFuncE(ctx))
+			}
+		},
+	})
+}
+
+// TestRun_Kill9 tests that when func-e is killed with SIGKILL, envoy behavior differs by OS.
+// On Darwin: envoy becomes orphaned (limitation without Pdeathsig)
+// On Linux: envoy should die with func-e due to process group signaling
+func TestRun_Kill9(ctx context.Context, t *testing.T, factory FuncEFactory) {
+	executeRunTest(ctx, t, factory, RunTestOptions{
+		ExpectKilled: true,
+		Args:         []string{"--config-yaml", "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 0}}}"},
+		TestFunc: func(ctx context.Context, runDir string, envoyPid int32, interruptFuncE func(context.Context) error, adminClient *AdminClient) {
+			envoyProcess, err := process.NewProcess(envoyPid)
+			require.NoError(t, err)
+
+			funcE, err := envoyProcess.Parent()
+			require.NoError(t, err)
+
+			funcEPid := funcE.Pid
+			funcEProcess, err := os.FindProcess(int(funcEPid))
+			require.NoError(t, err)
+
+			// kill -9 func-e process
+			err = funcEProcess.Signal(syscall.SIGKILL)
+			require.NoError(t, err)
+
+			// Wait a moment for processes to react
+			time.Sleep(200 * time.Millisecond)
+
+			// Check if envoy is still running
+			isRunning, _ := envoyProcess.IsRunning()
+
+			// Until we have a technically challenging, race safe bidirectional
+			// pipe implementation, we can't guarantee kill -9 of func-e will
+			// propagate to envoy on Darwin, even if normal kill will.
+			if runtime.GOOS == "darwin" {
+				require.True(t, isRunning)
+				// Clean up the orphaned process
+				_ = envoyProcess.Kill()
+			} else {
+				require.False(t, isRunning)
+			}
+		},
 	})
 }
 
@@ -217,7 +283,9 @@ func executeRunTest(ctx context.Context, t *testing.T, factory FuncEFactory, opt
 
 	if !opts.ExpectFail {
 		require.True(t, envoyPid != 0, "expected Envoy to start")
-		require.NoError(t, runErr)
+		if !opts.ExpectKilled {
+			require.NoError(t, runErr)
+		}
 	} else {
 		require.True(t, envoyPid == 0, "expected Envoy not to start")
 		require.Error(t, runErr)
@@ -225,7 +293,7 @@ func executeRunTest(ctx context.Context, t *testing.T, factory FuncEFactory, opt
 	}
 
 	// After shutdown, the Envoy process should not exist. Otherwise, there's a leak issue.
-	if envoyPid != 0 {
+	if envoyPid != 0 && !opts.ExpectKilled {
 		_, err = process.NewProcessWithContext(ctx, envoyPid)
 		require.Error(t, err, "expected Envoy process to be gone after shutdown")
 	}
@@ -234,7 +302,12 @@ func executeRunTest(ctx context.Context, t *testing.T, factory FuncEFactory, opt
 // runTestAndInterruptFuncE runs the test function and ensures func-e is interrupted afterward.
 func runTestAndInterruptFuncE(ctx context.Context, t *testing.T, funcE FuncE, runDir string, envoyPid int32, callback func(context.Context, string, int32, func(context.Context) error, *AdminClient)) {
 	defer func() {
-		require.NoError(t, funcE.Interrupt(ctx))
+		if err := funcE.Interrupt(ctx); err != nil {
+			// Only fail if it's not an expected error from killing the process
+			if !errors.Is(err, os.ErrProcessDone) && !errors.Is(err, syscall.ESRCH) {
+				require.NoError(t, err)
+			}
+		}
 		if ctx.Err() != nil {
 			t.Logf("context canceled during interrupt: %v", ctx.Err())
 		}
