@@ -4,16 +4,18 @@
 package cmd_test
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
@@ -24,53 +26,50 @@ import (
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
+func init() {
+	// Don't let urfave quit the current test process on cancel!
+	cli.OsExiter = func(code int) { log.Printf("urfave called exit: %d", code) }
+}
+
 // TestFuncERun takes care to not duplicate test/e2e/testrun.go, but still give some coverage.
 func TestFuncERun(t *testing.T) {
 	o := setupTest(t)
 
-	// Override the Envoy path to use fake Envoy
+	// Use a fake Envoy binary
 	o.EnvoyPath = fakeEnvoyBin
 
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
 	c := rootcmd.NewApp(o)
-	c.Writer = stdout
-	c.ErrWriter = stderr
+	c.Name = "func-e"
+	// Create a pipe to capture stderr
+	stderrReader, stderrWriter := io.Pipe()
+	c.ErrWriter = stderrWriter
 
-	args := []string{"func-e", "run", "--config-yaml", "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 0}}}"}
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
 
-	// Create a context that can be canceled
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel() // Ensure context is canceled when test completes
-
-	// Create a buffer-based reader that implements io.ReadSeeker
-	stderrBuf := new(bytes.Buffer)
-	c.ErrWriter = io.MultiWriter(stderr, stderrBuf)
-
-	// Run Envoy in a goroutine
-	errCh := make(chan error, 1)
+	// Start a goroutine to scan stderr until it reaches "starting main dispatch loop" written by envoy
 	go func() {
-		errCh <- c.RunContext(ctx, args)
+		scanner := bufio.NewScanner(stderrReader)
+		for scanner.Scan() {
+			if strings.Contains(scanner.Text(), "starting main dispatch loop") {
+				cancel() // interrupts the child func-e process
+				return
+			}
+		}
 	}()
 
-	// Wait for Envoy to output that it's started
-	require.Eventually(t, func() bool {
-		return strings.Contains(stderr.String(), "starting main dispatch loop")
-	}, 5*time.Second, 100*time.Millisecond, "Envoy didn't start within the expected time")
+	// When interrupted, func-e should return nil to match Envoy's behavior of exit code 0
+	args := []string{"func-e", "run", "--config-yaml", "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 0}}}"}
+	require.NoError(t, c.RunContext(ctx, args))
 
-	// Cancel the context to stop Envoy
-	cancel()
-
-	// Wait for the command to complete
-	err := <-errCh
+	// TestFuncERun_TeesConsoleToLogs proves we can read Envoy logs
+	stderrBytes, err := os.ReadFile(filepath.Join(o.RunDir, "stderr.log"))
+	stderr := string(stderrBytes)
 	require.NoError(t, err)
-
-	// Verify all key messages from fake Envoy appear in the correct order using regex
-	stderrOutput := stderr.String()
 	pattern := `(?s).*initializing epoch 0.*admin address:.*starting main dispatch loop.*`
-	matched, err := regexp.MatchString(pattern, stderrOutput)
+	matched, err := regexp.MatchString(pattern, stderr)
 	require.NoError(t, err)
-	require.True(t, matched, "Expected fake Envoy output sequence not found in stderr")
+	require.True(t, matched, "Didn't find %s in Envoy stderr: %s", pattern, stderr)
 }
 
 func TestFuncERun_TeesConsoleToLogs(t *testing.T) {
@@ -79,7 +78,6 @@ func TestFuncERun_TeesConsoleToLogs(t *testing.T) {
 	c, stdout, stderr := newApp(o)
 	// ignore messages from func-e we only care about envoy
 	o.Out = io.Discard
-	o.DontArchiveRunDir = true // we need to read-back the log files
 	runWithInvalidConfig(t, c)
 
 	actual, err := os.ReadFile(filepath.Join(o.RunDir, "stdout.log"))
@@ -134,7 +132,10 @@ func TestFuncERun_CreatesHomeVersionFile(t *testing.T) {
 
 // runWithInvalidConfig intentionally has envoy quit. This allows tests to not have to interrupt envoy to proceed
 func runWithInvalidConfig(t *testing.T, c *cli.App) {
-	require.EqualError(t, c.Run([]string{"func-e", "run"}), "envoy exited with status: 1")
+	err := c.Run([]string{"func-e", "run"})
+	var exitErr *exec.ExitError
+	require.ErrorAs(t, err, &exitErr)
+	require.Equal(t, 1, exitErr.ExitCode())
 }
 
 func TestFuncERun_ValidatesHomeVersion(t *testing.T) {

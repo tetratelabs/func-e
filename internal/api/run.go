@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/tetratelabs/func-e/internal/envoy"
-	"github.com/tetratelabs/func-e/internal/envoy/shutdown"
 	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/version"
 )
@@ -53,7 +52,9 @@ func EnsurePatchVersion(ctx context.Context, o *globals.GlobalOpts, v version.Ve
 	return vv, nil
 }
 
-// Run runs Envoy with the given arguments
+// Run runs Envoy with the given arguments.
+// Returns nil when Envoy exits cleanly, including when interrupted by signals (SIGINT/SIGTERM).
+// This matches Envoy's behavior of returning exit code 0 on graceful shutdown.
 func Run(ctx context.Context, o *globals.GlobalOpts, args []string) error {
 	if err := initializeRunOpts(ctx, o); err != nil {
 		return err
@@ -77,11 +78,6 @@ func Run(ctx context.Context, o *globals.GlobalOpts, args []string) error {
 	r.ErrFile = stderrLog
 	r.Err = io.MultiWriter(o.EnvoyErr, stderrLog)
 
-	for _, hook := range shutdown.DefaultShutdownHooks {
-		if err := hook(r); err != nil {
-			fmt.Fprintf(r.Out, "failed to enable shutdown hook: %s\n", err) //nolint:errcheck
-		}
-	}
 	return r.Run(ctx, args)
 }
 

@@ -5,9 +5,9 @@ package envoy
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
@@ -34,13 +34,10 @@ func TestRuntime_Run_EnvoyError(t *testing.T) {
 	r.Out, r.Err = stdout, stderr
 
 	// Envoy with invalid config is expected to fail
-	err := r.Run(context.Background(), []string{"--config-yaml", "invalid.yaml"})
-	require.EqualError(t, err, "envoy exited with status: 1")
-
-	t.Run("shutdown hooks not invoked", func(t *testing.T) {
-		// Check that the shutdown hooks log message is NOT present
-		require.NotContains(t, stdout.String(), "invoking shutdown hooks with deadline")
-	})
+	err := r.Run(t.Context(), []string{"--config-yaml", "invalid.yaml"})
+	var exitErr *exec.ExitError
+	require.ErrorAs(t, err, &exitErr)
+	require.Equal(t, 1, exitErr.ExitCode())
 
 	t.Run("command arguments", func(t *testing.T) {
 		require.Equal(t, []string{
@@ -59,10 +56,9 @@ func TestRuntime_Run_EnvoyError(t *testing.T) {
 		require.Contains(t, stderr.String(), "cannot unmarshal !!str")
 	})
 
-	t.Run("archive created", func(t *testing.T) {
-		files, err := os.ReadDir(filepath.Dir(runDir))
-		require.NoError(t, err, "failed to read runs directory")
-		require.Len(t, files, 1, "expected one archive file")
-		require.Equal(t, runDir+".tar.gz", filepath.Join(filepath.Dir(runDir), files[0].Name()))
+	t.Run("run directory exists", func(t *testing.T) {
+		info, err := os.Stat(runDir)
+		require.NoError(t, err, "run directory should exist")
+		require.True(t, info.IsDir(), "run directory should be a directory")
 	})
 }

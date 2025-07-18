@@ -173,7 +173,7 @@ build/format: go.mod $(all_sources)
 	@$(go) mod tidy
 	@$(go) run $(nwa) add --mute -t .licenseheader -T raw "**/*.go"
 	@$(go) run $(gofumpt) -l -w .
-	# gofumpt organizes imports, but does not handle local grouping.
+	@# gofumpt organizes imports, but does not handle local grouping.
 	@$(go) run $(gosimports) -local github.com/tetratelabs/ -w $(shell find . -name '*.go' -type f)
 	@mkdir -p $(@D) && touch $@
 

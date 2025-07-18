@@ -1,21 +1,26 @@
-// Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package envoy
 
 import (
+	"bufio"
 	"context"
+	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 )
 
-// Run execs the binary at the path with the args passed. It is a blocking function that can be shutdown via ctx.
+// Run execs the Envoy binary at the path with the args passed.
 //
-// This will exit either `ctx` is done, or the process exits.
+// On success, this blocks and returns nil when either `ctx` is done, or the
+// process exits with status zero.
 func (r *Runtime) Run(ctx context.Context, args []string) error {
 	// We require the admin server, so ensure it exists, and we can read its listener via a file path.
 	var err error
@@ -28,16 +33,20 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 	// Why? MacOS SIP restricts cross-process env var access: we need a solution that works with both Linux and MacOS.
 	args = append(args, "--", "--func-e-run-dir", r.o.RunDir)
 
-	// We can't use CommandContext even if that seems correct here. The reason is that we need to invoke shutdown hooks,
-	// and they expect the process to still be running. For example, this allows admin API hooks.
-	cmd := exec.Command(r.o.EnvoyPath, args...) // #nosec -> users can run whatever binary they like!
+	cmd := exec.CommandContext(ctx, r.o.EnvoyPath, args...) // #nosec -> users can run whatever binary they like!
 	cmd.Stdout = r.Out
-	cmd.Stderr = r.Err
 	cmd.SysProcAttr = processGroupAttr()
+
+	// Create a pipe to capture stderr and forward to r.Err
+	stderrPipe, err := cmd.StderrPipe()
+	if err != nil {
+		return fmt.Errorf("unable to create stderr pipe: %w", err)
+	}
+
 	r.cmd = cmd
 
-	// Print the binary path to the user for debugging purposes.
-	r.logf("starting: %s with --admin-address-path %s\n", r.o.EnvoyPath, r.adminAddressPath)
+	// Print the binary and run directory to the user for debugging purposes.
+	r.logf("starting: %s in run directory %s", r.o.EnvoyPath, r.o.RunDir)
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("unable to start Envoy process: %w", err)
 	}
@@ -45,51 +54,91 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 	// Warn, but don't fail if we can't write the pid file for some reason
 	r.maybeWarn(os.WriteFile(filepath.Join(r.o.RunDir, "envoy.pid"), []byte(strconv.Itoa(cmd.Process.Pid)), 0o600))
 
-	// Wait in a goroutine. We may need to kill the process if a signal occurs first.
-	//
-	// Note: do not wrap the original context, otherwise "<-cmdExitWait.Done()" won't block until the process exits
-	// if the original context is done.
-	cmdExitWait, cmdExit := context.WithCancel(context.Background())
-	defer cmdExit()
-	go func() {
-		defer cmdExit()
-		_ = r.cmd.Wait()
-	}()
+	// Start a goroutine to scan stderr for "starting main dispatch loop"
+	go r.collectAdminDataOnceRunning(ctx, stderrPipe)
 
-	awaitAdminAddress(ctx, r)
-
-	// Block until the process exits or the original context is done.
-	select {
-	case <-ctx.Done():
-		// When original context is done, we need to shut down the process by ourselves.
-		// Run the shutdown hooks and wait for them to complete.
-		r.handleShutdown()
-		// Then wait for the process to exit.
-		<-cmdExitWait.Done()
-	case <-cmdExitWait.Done():
-		// Process exited naturally
+	// Wait for the process to exit.
+	err = cmd.Wait()
+	if err == nil {
+		return nil
 	}
-
-	// Warn, but don't fail on error archiving the run directory
-	if !r.o.DontArchiveRunDir {
-		r.maybeWarn(r.archiveRunDir())
+	if errors.Is(ctx.Err(), context.Canceled) {
+		return nil // e.g. graceful shutdown via API
 	}
-
-	if cmd.ProcessState.ExitCode() > 0 {
-		return fmt.Errorf("envoy exited with status: %d", cmd.ProcessState.ExitCode())
-	}
-	return nil
+	return err
 }
 
-// awaitAdminAddress waits up to 2 seconds for the admin address to be available and logs it.
-// See https://github.com/envoyproxy/envoy/issues/16050 for moving this logging upstream.
-func awaitAdminAddress(sigCtx context.Context, r *Runtime) {
-	for i := 0; i < 10 && sigCtx.Err() == nil; i++ {
-		adminAddress, adminErr := r.GetAdminAddress()
-		if adminErr == nil {
-			fmt.Fprintf(r.Out, "discovered admin address: %s\n", adminAddress) //nolint:errcheck
-			return
+// collectAdminDataOnceRunning scans stderr for the admin address and waits for Envoy to be fully started
+// before collecting config_dump to the run directory.
+func (r *Runtime) collectAdminDataOnceRunning(ctx context.Context, cmdStderrPipe io.Reader) {
+	scanner := bufio.NewScanner(cmdStderrPipe)
+	adminCollected := false
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		// copy stderr to the output writer
+		fmt.Fprintln(r.Err, line) //nolint:errcheck
+
+		// Collect config dump when ready
+		if !adminCollected && strings.Contains(line, "starting main dispatch loop") {
+			adminCollected = true
+			adminAddrBytes, err := os.ReadFile(r.adminAddressPath)
+			if err != nil {
+				r.logf("failed to read admin address from %s: %v", r.adminAddressPath, err)
+				continue
+			}
+			adminAddress := strings.TrimSpace(string(adminAddrBytes))
+			r.adminAddress = adminAddress
+			// Use a separate goroutine to avoid blocking stderr scanning
+			go func(addr string) {
+				if err := collectConfigDump(ctx, addr, r.GetRunDir()); err != nil {
+					r.logf("failed to collect config_dump from %s: %v", addr, err)
+				} else {
+					r.logf("collected config_dump from: %s", addr)
+				}
+			}(adminAddress)
 		}
-		time.Sleep(200 * time.Millisecond)
 	}
+
+	if err := scanner.Err(); err != nil {
+		r.logf("error scanning stderr: %v", err)
+	}
+}
+
+// collectConfigDump fetches config_dump from Envoy admin API
+func collectConfigDump(ctx context.Context, adminAddress, runDir string) error {
+	url := fmt.Sprintf("http://%s/config_dump", adminAddress)
+	file := filepath.Join(runDir, "config_dump.json")
+
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	return copyURLToFile(ctx, url, file)
+}
+
+func copyURLToFile(ctx context.Context, url, fullPath string) error {
+	// #nosec -> runDir is allowed to be anywhere
+	f, err := os.OpenFile(fullPath, os.O_CREATE|os.O_WRONLY, 0o600)
+	if err != nil {
+		return fmt.Errorf("could not open %q: %w", fullPath, err)
+	}
+	defer f.Close() //nolint:errcheck
+
+	// #nosec -> adminAddress is written by Envoy and the paths are hard-coded
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return fmt.Errorf("could not create request %v: %w", url, err)
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("could not read %v: %w", url, err)
+	}
+	defer res.Body.Close() //nolint:errcheck
+
+	if res.StatusCode != http.StatusOK {
+		return fmt.Errorf("received %v from %v", res.StatusCode, url)
+	}
+	if _, err := io.Copy(f, res.Body); err != nil {
+		return fmt.Errorf("could not write response body of %v: %w", url, err)
+	}
+	return nil
 }

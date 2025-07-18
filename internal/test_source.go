@@ -23,15 +23,15 @@ var StaticFileYaml []byte
 //go:embed envoy/config/testdata/static_file_typed_config.yaml
 var StaticFileTypedConfigYaml string
 
-// MinimalYaml shows the smallest possible listener without admin server
+// AccessLogYaml shows a listener with access logging to stdout
 //
-//go:embed envoy/config/testdata/minimal.yaml
-var MinimalYaml []byte
+//go:embed envoy/config/testdata/access_log.yaml
+var AccessLogYaml []byte
 
-// MinimalTypedConfigYaml is the critical configuration in MinimalYaml
+// AccessLogTypedConfigYaml is the critical configuration in AccessLogYaml
 //
-//go:embed envoy/config/testdata/minimal_typed_config.yaml
-var MinimalTypedConfigYaml string
+//go:embed envoy/config/testdata/access_log_typed_config.yaml
+var AccessLogTypedConfigYaml string
 
 // FakeEnvoySrcPath is the absolute path to the fake Envoy source file used in tests.
 var FakeEnvoySrcPath = absolutePath("testdata", "fake_envoy", "main.go")

@@ -1,4 +1,4 @@
-// Copyright 2025 Tetrate
+// Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package e2e
@@ -14,8 +14,8 @@ func TestRun(t *testing.T) {
 	e2e.TestRun(context.Background(), t, funcEFactory{})
 }
 
-func TestRun_MinimalListener(t *testing.T) {
-	e2e.TestRun_MinimalListener(context.Background(), t, funcEFactory{})
+func TestRun_RunDirectory(t *testing.T) {
+	e2e.TestRun_RunDirectory(context.Background(), t, funcEFactory{})
 }
 
 func TestRun_InvalidConfig(t *testing.T) {
@@ -24,4 +24,8 @@ func TestRun_InvalidConfig(t *testing.T) {
 
 func TestRun_StaticFile(t *testing.T) {
 	e2e.TestRun_StaticFile(context.Background(), t, funcEFactory{})
+}
+
+func TestRun_CtrlCs(t *testing.T) {
+	e2e.TestRun_CtrlCs(context.Background(), t, funcEFactory{})
 }

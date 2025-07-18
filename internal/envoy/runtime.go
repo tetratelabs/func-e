@@ -4,7 +4,6 @@
 package envoy
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"net"
@@ -12,7 +11,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"syscall"
-	"time"
 
 	"github.com/tetratelabs/func-e/internal/envoy/config"
 	"github.com/tetratelabs/func-e/internal/globals"
@@ -21,8 +19,6 @@ import (
 type LogFunc func(format string, a ...any)
 
 const (
-	// Don't wait forever. This has hung on macOS before
-	shutdownTimeout = 5 * time.Second
 	// Match envoy's log format field
 	dateFormat           = "[2006-01-02 15:04:05.999]"
 	configYamlFlag       = `--config-yaml`
@@ -47,8 +43,6 @@ type Runtime struct {
 	logf LogFunc
 
 	adminAddress, adminAddressPath string
-
-	shutdownHooks []func(context.Context) error
 }
 
 // String is only used in tests. It is slow, but helps when debugging CI failures
@@ -127,7 +121,7 @@ ARGS:
 }
 
 // GetAdminAddress returns the current admin address in host:port format, or empty if not yet available.
-// Exported for shutdown.enableAdminDataCollection, which is in shutdown.DefaultShutdownHooks.
+// Exported for admin data collection functionality.
 func (r *Runtime) GetAdminAddress() (string, error) {
 	if r.adminAddress != "" { // We don't expect the admin address to change once written, so cache it.
 		return r.adminAddress, nil

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"runtime"
+	"strings"
 
 	"github.com/tetratelabs/func-e/internal/version"
 )
@@ -21,12 +22,8 @@ type RunOpts struct {
 	EnvoyErr io.Writer
 	// RunDir is the location any generated files are written.
 	// This is not Envoy's working directory, which remains the same as the $PWD of func-e.
-	//
-	// Upon shutdown, this directory is archived as "../$(basename $RunDir).tar.gz"
 	// Defaults to "$HomeDir/runs/$epochtime"
 	RunDir string
-	// DontArchiveRunDir is used in testing and prevents archiving the RunDir
-	DontArchiveRunDir bool
 }
 
 // GlobalOpts represents options that affect more than one func-e commands.
@@ -65,6 +62,10 @@ type GlobalOpts struct {
 func (o *GlobalOpts) Logf(format string, a ...interface{}) {
 	if o.Quiet { // TODO: we may want to do scoped logging via a Context property, if this becomes common.
 		return
+	}
+	// Always add a newline to ensure consistent formatting
+	if !strings.HasSuffix(format, "\n") {
+		format += "\n"
 	}
 	fmt.Fprintf(o.Out, format, a...) //nolint:errcheck
 }

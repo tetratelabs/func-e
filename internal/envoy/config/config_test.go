@@ -31,7 +31,7 @@ func TestParseListeners(t *testing.T) {
 	adminLocalhostPath := filepath.Join(sourceDir, "testdata", "admin_localhost.yaml")
 	adminEphemeralPath := filepath.Join(sourceDir, "testdata", "admin_ephemeral.yaml")
 	noAdminPath := filepath.Join(sourceDir, "testdata", "no_admin.yaml")
-	minimalPath := filepath.Join(sourceDir, "testdata", "minimal.yaml")
+	accessLogPath := filepath.Join(sourceDir, "testdata", "access_log.yaml")
 	staticFilePath := filepath.Join(sourceDir, "testdata", "static_file.yaml")
 	udpProxyPath := filepath.Join(sourceDir, "testdata", "udp_proxy.yaml")
 
@@ -75,17 +75,39 @@ func TestParseListeners(t *testing.T) {
 			},
 		},
 		{
-			name: "minimal",
-			args: []string{"-c", minimalPath},
+			name: "access_log",
+			args: []string{"-c", accessLogPath},
 			expect: &Config{
-				Admin: "",
+				Admin: "127.0.0.1:0",
 				StaticListeners: []Listener{{
 					Name:    "main",
 					Address: "127.0.0.1:0",
 					Filters: []filterInfo{{
-						Name:   "envoy.filters.network.http_connection_manager",
-						Type:   "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
-						Config: internal.MinimalTypedConfigYaml,
+						Name: "envoy.filters.network.http_connection_manager",
+						Type: "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+						Config: `"@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+stat_prefix: ingress_http
+access_log:
+    - name: envoy.access_loggers.stdout
+      typed_config:
+        "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
+route_config:
+    name: local_route
+    virtual_hosts:
+        - name: direct_response_service
+          domains: ["*"]
+          routes:
+            - match:
+                prefix: "/"
+              direct_response:
+                status: 200
+                body:
+                    inline_string: "Hello, World!"
+http_filters:
+    - name: envoy.filters.http.router
+      typed_config:
+        "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+`,
 					}},
 				}},
 			},

@@ -31,9 +31,7 @@ Envoy interprets the '[arguments...]' and runs in the current working
 directory (aka $PWD) until func-e is interrupted (ex Ctrl+C, Ctrl+Break).
 
 Envoy's process ID and console output write to "envoy.pid", stdout.log" and
-"stderr.log" in the run directory (` + fmt.Sprintf("`%s`", runDirectoryExpression) + `).
-When interrupted, shutdown hooks write files including network and process
-state. On exit, these archive into ` + fmt.Sprintf("`%s.tar.gz`", runDirectoryExpression),
+"stderr.log" in the run directory (` + fmt.Sprintf("`%s`", runDirectoryExpression) + `).`,
 		Before: func(c *cli.Context) error {
 			if err := api.EnsureEnvoyVersion(c.Context, o); err != nil {
 				return NewValidationError(err.Error())
