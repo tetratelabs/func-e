@@ -1,4 +1,4 @@
-// Copyright 2025 Tetrate
+// Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package main
@@ -16,7 +16,6 @@ import (
 
 	"github.com/tetratelabs/func-e/internal/cmd"
 	"github.com/tetratelabs/func-e/internal/globals"
-	"github.com/tetratelabs/func-e/internal/moreos"
 )
 
 func main() {
@@ -48,10 +47,10 @@ func run(stdout, stderr io.Writer, args []string) int {
 	if err := app.RunContext(sigCtx, args); err != nil {
 		var validationErr *cmd.ValidationError
 		if errors.As(err, &validationErr) {
-			moreos.Fprintf(stderr, "%s\n", err)
+			fmt.Fprintf(stderr, "%s\n", err) //nolint:errcheck
 			logUsageError(app.Name, stderr)
 		} else {
-			moreos.Fprintf(stderr, "error: %s\n", err)
+			fmt.Fprintf(stderr, "error: %s\n", err) //nolint:errcheck
 		}
 		return 1
 	}
@@ -59,5 +58,5 @@ func run(stdout, stderr io.Writer, args []string) int {
 }
 
 func logUsageError(name string, stderr io.Writer) {
-	moreos.Fprintf(stderr, "show usage with: %s help\n", name)
+	fmt.Fprintf(stderr, "show usage with: %s help\n", name) //nolint:errcheck
 }

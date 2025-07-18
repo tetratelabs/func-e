@@ -1,13 +1,13 @@
-// Copyright 2025 Tetrate
+// Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package globals
 
 import (
+	"fmt"
 	"io"
 	"runtime"
 
-	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
@@ -66,7 +66,7 @@ func (o *GlobalOpts) Logf(format string, a ...interface{}) {
 	if o.Quiet { // TODO: we may want to do scoped logging via a Context property, if this becomes common.
 		return
 	}
-	moreos.Fprintf(o.Out, format, a...)
+	fmt.Fprintf(o.Out, format, a...) //nolint:errcheck
 }
 
 const (
@@ -79,4 +79,4 @@ const (
 )
 
 // DefaultHomeDir is the default value for GlobalOpts.HomeDir
-var DefaultHomeDir = moreos.ReplacePathSeparator("${HOME}/.func-e")
+var DefaultHomeDir = "${HOME}/.func-e"

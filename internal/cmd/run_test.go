@@ -1,4 +1,4 @@
-// Copyright 2025 Tetrate
+// Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package cmd_test
@@ -20,7 +20,6 @@ import (
 
 	rootcmd "github.com/tetratelabs/func-e/internal/cmd"
 	"github.com/tetratelabs/func-e/internal/globals"
-	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/test/morerequire"
 	"github.com/tetratelabs/func-e/internal/version"
 )
@@ -104,7 +103,7 @@ func TestFuncERun_ReadsHomeVersionFile(t *testing.T) {
 	runWithInvalidConfig(t, c)
 
 	// No implicit lookup
-	require.NotContains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up latest version"))
+	require.NotContains(t, o.Out.(*bytes.Buffer).String(), "looking up latest version")
 	require.Equal(t, version.LastKnownEnvoy, o.EnvoyVersion)
 
 	writtenVersion, err := os.ReadFile(filepath.Join(o.HomeDir, "version"))
@@ -124,7 +123,7 @@ func TestFuncERun_CreatesHomeVersionFile(t *testing.T) {
 	runWithInvalidConfig(t, c)
 
 	// We logged the implicit lookup
-	require.Contains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up the latest Envoy version"))
+	require.Contains(t, o.Out.(*bytes.Buffer).String(), "looking up the latest Envoy version")
 	require.FileExists(t, filepath.Join(o.HomeDir, "version"))
 	require.Equal(t, version.LastKnownEnvoy, o.EnvoyVersion)
 
@@ -150,7 +149,7 @@ func TestFuncERun_ValidatesHomeVersion(t *testing.T) {
 
 	// Verify the command failed with the expected error
 	expectedErr := fmt.Sprintf(`invalid version in "$FUNC_E_HOME/version": "a.a.a" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
-	require.EqualError(t, err, moreos.ReplacePathSeparator(expectedErr))
+	require.EqualError(t, err, expectedErr)
 }
 
 // TestFuncERun_ValidatesWorkingVersion duplicates logic in version_test.go to ensure a non-home version validates.
@@ -168,7 +167,7 @@ func TestFuncERun_ValidatesWorkingVersion(t *testing.T) {
 
 	// Verify the command failed with the expected error
 	expectedErr := fmt.Sprintf(`invalid version in "$PWD/.envoy-version": "b.b.b" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
-	require.EqualError(t, err, moreos.ReplacePathSeparator(expectedErr))
+	require.EqualError(t, err, expectedErr)
 }
 
 func TestFuncERun_ErrsWhenVersionsServerDown(t *testing.T) {
@@ -182,6 +181,6 @@ func TestFuncERun_ErrsWhenVersionsServerDown(t *testing.T) {
 	c, _, _ := newApp(o)
 	err := c.Run([]string{"func-e", "run"})
 
-	require.Contains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up the latest Envoy version"))
+	require.Contains(t, o.Out.(*bytes.Buffer).String(), "looking up the latest Envoy version")
 	require.Contains(t, err.Error(), fmt.Sprintf(`couldn't lookup the latest Envoy version from %s`, o.EnvoyVersionsURL))
 }

@@ -1,4 +1,4 @@
-// Copyright 2025 Tetrate
+// Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package envoy
@@ -11,8 +11,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"time"
-
-	"github.com/tetratelabs/func-e/internal/moreos"
 )
 
 // Run execs the binary at the path with the args passed. It is a blocking function that can be shutdown via ctx.
@@ -35,7 +33,7 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 	cmd := exec.Command(r.o.EnvoyPath, args...) // #nosec -> users can run whatever binary they like!
 	cmd.Stdout = r.Out
 	cmd.Stderr = r.Err
-	cmd.SysProcAttr = moreos.ProcessGroupAttr()
+	cmd.SysProcAttr = processGroupAttr()
 	r.cmd = cmd
 
 	// Print the binary path to the user for debugging purposes.
@@ -89,7 +87,7 @@ func awaitAdminAddress(sigCtx context.Context, r *Runtime) {
 	for i := 0; i < 10 && sigCtx.Err() == nil; i++ {
 		adminAddress, adminErr := r.GetAdminAddress()
 		if adminErr == nil {
-			moreos.Fprintf(r.Out, "discovered admin address: %s\n", adminAddress)
+			fmt.Fprintf(r.Out, "discovered admin address: %s\n", adminAddress) //nolint:errcheck
 			return
 		}
 		time.Sleep(200 * time.Millisecond)

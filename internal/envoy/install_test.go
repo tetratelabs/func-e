@@ -1,4 +1,4 @@
-// Copyright 2025 Tetrate
+// Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package envoy
@@ -18,7 +18,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/func-e/internal/globals"
-	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/test"
 	"github.com/tetratelabs/func-e/internal/version"
 )
@@ -154,7 +153,7 @@ func TestInstallIfNeeded(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, f.ModTime().UTC().Format("2006-01-02"), string(test.FakeReleaseDate))
 
-	require.Equal(t, moreos.Sprintf("downloading %s\n", o.tarballURL), out.String())
+	require.Equal(t, fmt.Sprintf("downloading %s\n", o.tarballURL), out.String())
 }
 
 func TestInstallIfNeeded_NotFound(t *testing.T) {
@@ -187,7 +186,7 @@ func TestInstallIfNeeded_AlreadyExists(t *testing.T) {
 	o.EnvoyVersion = version.LastKnownEnvoy
 	envoyPath, e := InstallIfNeeded(o.ctx, &o.GlobalOpts)
 	require.NoError(t, e)
-	require.Equal(t, moreos.Sprintf("%s is already downloaded\n", version.LastKnownEnvoy), out.String())
+	require.Equal(t, fmt.Sprintf("%s is already downloaded\n", version.LastKnownEnvoy), out.String())
 
 	newStat, e := os.Stat(envoyPath)
 	require.NoError(t, e)

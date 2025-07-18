@@ -1,4 +1,4 @@
-// Copyright 2025 Tetrate
+// Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package api
@@ -15,7 +15,6 @@ import (
 	"github.com/tetratelabs/func-e/internal/envoy"
 	"github.com/tetratelabs/func-e/internal/envoy/shutdown"
 	"github.com/tetratelabs/func-e/internal/globals"
-	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
@@ -80,7 +79,7 @@ func Run(ctx context.Context, o *globals.GlobalOpts, args []string) error {
 
 	for _, hook := range shutdown.DefaultShutdownHooks {
 		if err := hook(r); err != nil {
-			moreos.Fprintf(r.Out, "failed to enable shutdown hook: %s\n", err)
+			fmt.Fprintf(r.Out, "failed to enable shutdown hook: %s\n", err) //nolint:errcheck
 		}
 	}
 	return r.Run(ctx, args)

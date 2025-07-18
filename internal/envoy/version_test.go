@@ -1,4 +1,4 @@
-// Copyright 2025 Tetrate
+// Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package envoy
@@ -11,13 +11,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/test/morerequire"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
 func TestVersionUsageList(t *testing.T) {
-	expected := moreos.ReplacePathSeparator("$ENVOY_VERSION, $PWD/.envoy-version, $FUNC_E_HOME/version")
+	expected := "$ENVOY_VERSION, $PWD/.envoy-version, $FUNC_E_HOME/version"
 	require.Equal(t, expected, VersionUsageList())
 }
 
@@ -111,7 +110,7 @@ func TestCurrentVersion_Validates(t *testing.T) {
 	t.Run("validates home version", func(t *testing.T) {
 		_, _, err := CurrentVersion(homeDir)
 		expectedErr := fmt.Sprintf(`invalid version in "$FUNC_E_HOME/version": "a.a.a" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
-		require.EqualError(t, err, moreos.ReplacePathSeparator(expectedErr))
+		require.EqualError(t, err, expectedErr)
 	})
 
 	revertWd := morerequire.RequireChdir(t, t.TempDir())
@@ -121,7 +120,7 @@ func TestCurrentVersion_Validates(t *testing.T) {
 	t.Run("validates $PWD/.envoy-version", func(t *testing.T) {
 		_, _, err := CurrentVersion(homeDir)
 		expectedErr := fmt.Sprintf(`invalid version in "$PWD/.envoy-version": "b.b.b" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
-		require.EqualError(t, err, moreos.ReplacePathSeparator(expectedErr))
+		require.EqualError(t, err, expectedErr)
 	})
 
 	require.NoError(t, os.Remove(".envoy-version"))
@@ -129,7 +128,7 @@ func TestCurrentVersion_Validates(t *testing.T) {
 
 	t.Run("shows error reading $PWD/.envoy-version", func(t *testing.T) {
 		_, _, err := CurrentVersion(homeDir)
-		expectedErr := moreos.ReplacePathSeparator("couldn't read version from $PWD/.envoy-version")
+		expectedErr := "couldn't read version from $PWD/.envoy-version"
 		require.Contains(t, err.Error(), expectedErr)
 	})
 

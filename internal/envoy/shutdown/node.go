@@ -1,4 +1,4 @@
-// Copyright 2025 Tetrate
+// Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package shutdown
@@ -16,7 +16,6 @@ import (
 	"github.com/shirou/gopsutil/v4/process"
 
 	"github.com/tetratelabs/func-e/internal/envoy"
-	"github.com/tetratelabs/func-e/internal/moreos"
 )
 
 // enableNodeCollection is a preset option that registers collection of node level information for debugging
@@ -149,14 +148,14 @@ func parseProc(ctx context.Context, p *process.Process) (*proc, error) {
 func printProcessTable(out io.Writer, parsed []*proc) error {
 	// Now, start writing the process table
 	w := tabwriter.NewWriter(out, 0, 8, 5, ' ', 0)
-	moreos.Fprintf(w, "PID\tUSERNAME\tSTATUS\tRSS\tVSZ\tMINFLT\tMAJFLT\tPCPU\tPMEM\tARGS\n")
+	fmt.Fprintf(w, "PID\tUSERNAME\tSTATUS\tRSS\tVSZ\tMINFLT\tMAJFLT\tPCPU\tPMEM\tARGS\n") //nolint:errcheck
 
 	for _, p := range parsed {
 		status := ""
 		if len(p.status) > 0 {
 			status = p.status[0]
 		}
-		moreos.Fprintf(w, "%v\t%v\t%v\t%v\t%v\t%v\t%v\t%.2f\t%.2f\t%v\n",
+		fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\t%v\t%v\t%.2f\t%.2f\t%v\n", //nolint:errcheck
 			p.pid, p.username, status, p.rss, p.vms, p.minflt, p.majflt, p.pCPU, p.pMem, p.cmd)
 	}
 	return w.Flush()

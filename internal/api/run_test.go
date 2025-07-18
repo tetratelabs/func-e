@@ -1,4 +1,4 @@
-// Copyright 2025 Tetrate
+// Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package api
@@ -15,7 +15,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/func-e/internal/globals"
-	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
@@ -34,7 +33,7 @@ func TestEnsureEnvoyVersion_ErrorIsAValidationError(t *testing.T) {
 
 	expectedErr := fmt.Sprintf(`invalid version in "$FUNC_E_HOME/version": "a.b.c" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
 	err := EnsureEnvoyVersion(context.Background(), o)
-	require.EqualError(t, err, moreos.ReplacePathSeparator(expectedErr))
+	require.EqualError(t, err, expectedErr)
 }
 
 func TestSetEnvoyVersion_ReadsExistingPatchVersion(t *testing.T) {
@@ -67,7 +66,7 @@ func TestSetEnvoyVersion_LooksUpLatestPatchForExistingMinorVersion(t *testing.T)
 	require.Equal(t, version.PatchVersion("1.18.13"), o.EnvoyVersion)
 
 	// We notified the user about the remote lookup
-	require.Contains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up the latest patch for Envoy version 1.18\n"))
+	require.Contains(t, o.Out.(*bytes.Buffer).String(), "looking up the latest patch for Envoy version 1.18\n")
 }
 
 func TestSetEnvoyVersion_ErrorReadingExistingVersion(t *testing.T) {
@@ -76,7 +75,7 @@ func TestSetEnvoyVersion_ErrorReadingExistingVersion(t *testing.T) {
 
 	expectedErr := fmt.Sprintf(`invalid version in "$FUNC_E_HOME/version": "a.b.c" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
 	err := setEnvoyVersion(context.Background(), o)
-	require.EqualError(t, err, moreos.ReplacePathSeparator(expectedErr))
+	require.EqualError(t, err, expectedErr)
 }
 
 func TestSetEnvoyVersion_UsesLatestVersionOnInitialRun(t *testing.T) {
@@ -100,7 +99,7 @@ func TestSetEnvoyVersion_UsesLatestVersionOnInitialRun(t *testing.T) {
 	require.Equal(t, version.PatchVersion("1.19.2"), o.EnvoyVersion)
 
 	// We notified the user about the remote lookup
-	require.Contains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up the latest Envoy version\n"))
+	require.Contains(t, o.Out.(*bytes.Buffer).String(), "looking up the latest Envoy version\n")
 
 	// We persisted the minor component for next run!
 	writtenVersion, err := os.ReadFile(filepath.Join(o.HomeDir, "version"))
@@ -126,7 +125,7 @@ func TestSetEnvoyVersion_NotFound(t *testing.T) {
 	require.EqualError(t, err, expectedErr)
 
 	// We notified the user about the remote lookup
-	require.Contains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up the latest Envoy version\n"))
+	require.Contains(t, o.Out.(*bytes.Buffer).String(), "looking up the latest Envoy version\n")
 }
 
 func TestSetEnvoyVersion_ErrorLookingUpLatestVersionOnInitialRun(t *testing.T) {
@@ -143,7 +142,7 @@ func TestSetEnvoyVersion_ErrorLookingUpLatestVersionOnInitialRun(t *testing.T) {
 	require.EqualError(t, err, "couldn't lookup the latest Envoy version from fake URL: file not found")
 
 	// We notified the user about the remote lookup
-	require.Contains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up the latest Envoy version\n"))
+	require.Contains(t, o.Out.(*bytes.Buffer).String(), "looking up the latest Envoy version\n")
 
 	// No version file was written
 	require.NoFileExists(t, filepath.Join(o.HomeDir, "version"))
@@ -172,7 +171,7 @@ func TestEnsurePatchVersion(t *testing.T) {
 	require.Equal(t, version.PatchVersion("1.18.13"), actual)
 
 	// We notified the user about the remote lookup
-	require.Contains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up the latest patch for Envoy version 1.18\n"))
+	require.Contains(t, o.Out.(*bytes.Buffer).String(), "looking up the latest patch for Envoy version 1.18\n")
 }
 
 func TestEnsurePatchVersion_NotFound(t *testing.T) {
@@ -197,7 +196,7 @@ func TestEnsurePatchVersion_NotFound(t *testing.T) {
 	require.EqualError(t, err, expectedErr)
 
 	// We notified the user about the remote lookup
-	require.Contains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up the latest patch for Envoy version 1.18\n"))
+	require.Contains(t, o.Out.(*bytes.Buffer).String(), "looking up the latest patch for Envoy version 1.18\n")
 }
 
 func TestEnsurePatchVersion_NoOpWhenAlreadyAPatchVersion(t *testing.T) {
@@ -254,7 +253,7 @@ func TestEnsurePatchVersion_FallbackSuccess(t *testing.T) {
 			require.Equal(t, version.PatchVersion("1.18.14"), actual)
 
 			// We notified the user about the remote lookup
-			require.Contains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up the latest patch for Envoy version 1.18\n"))
+			require.Contains(t, o.Out.(*bytes.Buffer).String(), "looking up the latest patch for Envoy version 1.18\n")
 		})
 	}
 }
@@ -273,7 +272,7 @@ func TestEnsurePatchVersion_FallbackFailure(t *testing.T) {
 	require.EqualError(t, err, "file not found")
 
 	// We notified the user about the remote lookup
-	require.Contains(t, o.Out.(*bytes.Buffer).String(), moreos.Sprintf("looking up the latest patch for Envoy version 1.18\n"))
+	require.Contains(t, o.Out.(*bytes.Buffer).String(), "looking up the latest patch for Envoy version 1.18\n")
 }
 
 func TestVersionsForPlatform(t *testing.T) {

@@ -1,4 +1,4 @@
-// Copyright 2025 Tetrate
+// Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package cmd
@@ -11,12 +11,11 @@ import (
 	"github.com/tetratelabs/func-e/internal/api"
 	"github.com/tetratelabs/func-e/internal/envoy"
 	"github.com/tetratelabs/func-e/internal/globals"
-	"github.com/tetratelabs/func-e/internal/moreos"
 )
 
 // NewRunCmd create a command responsible for starting an Envoy process
 func NewRunCmd(o *globals.GlobalOpts) *cli.Command {
-	runDirectoryExpression := moreos.ReplacePathSeparator("$FUNC_E_HOME/runs/$epochtime")
+	runDirectoryExpression := "$FUNC_E_HOME/runs/$epochtime"
 	cmd := &cli.Command{
 		Name:            "run",
 		Usage:           "Run Envoy with the given [arguments...] until interrupted",

@@ -1,30 +1,31 @@
-// Copyright 2025 Tetrate
+// Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/urfave/cli/v2"
 
 	"github.com/tetratelabs/func-e/internal/api"
 	"github.com/tetratelabs/func-e/internal/envoy"
 	"github.com/tetratelabs/func-e/internal/globals"
-	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
 // NewUseCmd create a command responsible for downloading and extracting Envoy
 func NewUseCmd(o *globals.GlobalOpts) *cli.Command {
-	versionsDir := moreos.ReplacePathSeparator("$FUNC_E_HOME/versions/")
-	currentVersionWorkingDirFile := moreos.ReplacePathSeparator(envoy.CurrentVersionWorkingDirFile)
-	currentVersionHomeDirFile := moreos.ReplacePathSeparator(envoy.CurrentVersionHomeDirFile)
+	versionsDir := "$FUNC_E_HOME/versions/"
+	currentVersionWorkingDirFile := envoy.CurrentVersionWorkingDirFile
+	currentVersionHomeDirFile := envoy.CurrentVersionHomeDirFile
 
 	var v version.Version
 	return &cli.Command{
 		Name:      "use",
 		Usage:     `Sets the current [version] used by the "run" command`,
 		ArgsUsage: "[version]",
-		Description: moreos.Sprintf(`The '[version]' is from the "versions -a" command.
+		Description: fmt.Sprintf(`The '[version]' is from the "versions -a" command.
 The Envoy [version] installs on-demand into `+versionsDir+`[version]
 if needed. You may also exclude the patch component of the [version]
 to use the latest patch version or to download the binary if it is

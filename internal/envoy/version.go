@@ -1,4 +1,4 @@
-// Copyright 2025 Tetrate
+// Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package envoy
@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
@@ -46,7 +45,7 @@ func CurrentVersion(homeDir string) (v version.Version, source string, err error
 
 func verifyVersion(v, source string, err error) (version.Version, error) {
 	if err != nil {
-		return nil, moreos.Errorf(`couldn't read version from %s: %w`, source, err)
+		return nil, fmt.Errorf(`couldn't read version from %s: %w`, source, err)
 	} else if v == "" && source == CurrentVersionHomeDirFile { // don't error on initial state
 		return nil, nil
 	}
@@ -90,7 +89,5 @@ func getHomeVersion(homeDir string) (v string, err error) {
 // VersionUsageList is the priority order of Envoy version sources.
 // This includes unresolved variables as it is both used statically for markdown generation, and also at runtime.
 func VersionUsageList() string {
-	return moreos.ReplacePathSeparator(
-		strings.Join([]string{currentVersionVar, CurrentVersionWorkingDirFile, CurrentVersionHomeDirFile}, ", "),
-	)
+	return strings.Join([]string{currentVersionVar, CurrentVersionWorkingDirFile, CurrentVersionHomeDirFile}, ", ")
 }

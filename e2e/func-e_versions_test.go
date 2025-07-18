@@ -1,16 +1,16 @@
-// Copyright 2025 Tetrate
+// Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package e2e
 
 import (
 	"bufio"
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
@@ -30,7 +30,7 @@ func TestFuncEVersions(t *testing.T) {
 	stdout, stderr, err := funcEExec("versions")
 
 	// Depending on ~/func-e/version, what's selected may not be the latest version or even installed at all.
-	require.Regexp(t, moreos.Sprintf("[ *] [1-9][0-9]*\\.[0-9]+\\.[0-9]+(_debug)? 202[1-9]-[01][0-9]-[0-3][0-9].*\n"), stdout)
+	require.Regexp(t, "[ *] [1-9][0-9]*\\.[0-9]+\\.[0-9]+(_debug)? 202[1-9]-[01][0-9]-[0-3][0-9].*\n", stdout)
 	require.Empty(t, stderr)
 	require.NoError(t, err)
 }
@@ -40,7 +40,7 @@ func TestFuncEVersions_All(t *testing.T) {
 
 	stdout, stderr, err := funcEExec("versions", "-a")
 
-	require.Regexp(t, moreos.Sprintf("[ *] %s 202[1-9]-[01][0-9]-[0-3][0-9].*\n", version.LastKnownEnvoy), stdout)
+	require.Regexp(t, fmt.Sprintf("[ *] %s 202[1-9]-[01][0-9]-[0-3][0-9].*\n", version.LastKnownEnvoy), stdout)
 	require.Empty(t, stderr)
 	require.NoError(t, err)
 }

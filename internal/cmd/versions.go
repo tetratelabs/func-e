@@ -1,4 +1,4 @@
-// Copyright 2025 Tetrate
+// Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package cmd
@@ -15,7 +15,6 @@ import (
 
 	"github.com/tetratelabs/func-e/internal/envoy"
 	"github.com/tetratelabs/func-e/internal/globals"
-	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
@@ -64,9 +63,9 @@ func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 				// TODO: handle when currentVersion is a MinorVersion
 				pv, ok := currentVersion.(version.PatchVersion)
 				if ok && vr.version == pv {
-					moreos.Fprintf(w, "* %s %s (set by %s)\n", vr.version, vr.releaseDate, currentVersionSource)
+					fmt.Fprintf(w, "* %s %s (set by %s)\n", vr.version, vr.releaseDate, currentVersionSource) //nolint:errcheck
 				} else {
-					moreos.Fprintf(w, "  %s %s\n", vr.version, vr.releaseDate)
+					fmt.Fprintf(w, "  %s %s\n", vr.version, vr.releaseDate) //nolint:errcheck
 				}
 			}
 			return w.Flush()

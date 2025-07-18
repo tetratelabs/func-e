@@ -1,4 +1,4 @@
-// Copyright 2025 Tetrate
+// Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package envoy
@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/tar"
 )
 
@@ -26,7 +25,7 @@ func (r *Runtime) handleShutdown() {
 	defer func() {
 		r.interruptEnvoy()
 		if r.cmd != nil && r.cmd.Process != nil {
-			_ = moreos.EnsureProcessDone(r.cmd.Process)
+			_ = ensureProcessDone(r.cmd.Process)
 		}
 	}()
 
@@ -34,7 +33,7 @@ func (r *Runtime) handleShutdown() {
 	timeout, cancel := context.WithDeadline(context.Background(), deadline)
 	defer cancel()
 
-	moreos.Fprintf(r.Out, "invoking shutdown hooks with deadline %s\n", deadline.Format(dateFormat))
+	fmt.Fprintf(r.Out, "invoking shutdown hooks with deadline %s\n", deadline.Format(dateFormat)) //nolint:errcheck
 
 	// Run each hook in parallel, logging each error
 	var wg sync.WaitGroup
@@ -43,7 +42,7 @@ func (r *Runtime) handleShutdown() {
 		go func(f func(context.Context) error) {
 			defer wg.Done()
 			if err := f(timeout); err != nil {
-				moreos.Fprintf(r.Out, "failed shutdown hook: %s\n", err)
+				fmt.Fprintf(r.Out, "failed shutdown hook: %s\n", err) //nolint:errcheck
 			}
 		}(f)
 	}
@@ -53,7 +52,7 @@ func (r *Runtime) handleShutdown() {
 func (r *Runtime) interruptEnvoy() {
 	p := r.cmd.Process
 	r.logf("sending interrupt to envoy (pid=%d)", p.Pid)
-	r.maybeWarn(moreos.Interrupt(p))
+	r.maybeWarn(interrupt(p))
 }
 
 func (r *Runtime) archiveRunDir() error {

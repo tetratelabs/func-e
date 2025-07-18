@@ -1,17 +1,16 @@
-// Copyright 2025 Tetrate
+// Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package e2e
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
-
-	"github.com/tetratelabs/func-e/internal/moreos"
 )
 
 const (
@@ -38,7 +37,7 @@ func TestMain(m *testing.M) {
 	if _, err := os.Stat(envoyVersionsJSON); err == nil && strings.Contains(versionLine, "SNAPSHOT") {
 		s, err := mockEnvoyVersionsServer() // no defer s.Close() because os.Exit() subverts it
 		if err != nil {
-			moreos.Fprintf(os.Stderr, "failed to serve %s: %v\n", envoyVersionsJSON, err)
+			fmt.Fprintf(os.Stderr, "failed to serve %s: %v\n", envoyVersionsJSON, err)
 			os.Exit(1)
 		}
 		os.Setenv(envoyVersionsURLEnvKey, s.URL) //nolint:errcheck
@@ -47,7 +46,7 @@ func TestMain(m *testing.M) {
 }
 
 func exitOnInvalidBinary(err error) {
-	moreos.Fprintf(os.Stderr, `failed to start e2e tests due to an invalid "func-e" binary: %v\n`, err)
+	fmt.Fprintf(os.Stderr, `failed to start e2e tests due to an invalid "func-e" binary: %v\n`, err)
 	os.Exit(1)
 }
 
@@ -71,7 +70,7 @@ func mockEnvoyVersionsServer() (*httptest.Server, error) {
 			h := r.Header.Get(k)
 			if h != v {
 				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte(moreos.Sprintf("invalid %q: %s != %s\n", k, h, v))) //nolint
+				w.Write([]byte(fmt.Sprintf("invalid %q: %s != %s\n", k, h, v))) //nolint
 				return
 			}
 		}
