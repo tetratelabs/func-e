@@ -1,4 +1,4 @@
-// Copyright 2025 Tetrate
+// Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package envoy
@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/func-e/internal/globals"
-	"github.com/tetratelabs/func-e/internal/moreos"
 )
 
 func TestEnsureAdminAddress(t *testing.T) {
@@ -107,13 +106,12 @@ func TestString(t *testing.T) {
 	require.NoError(t, cmdExited.cmd.Run())
 
 	cmdFailed := NewRuntime(&globals.RunOpts{}, t.Logf)
-	cmdFailed.cmd = exec.Command("cat"+moreos.Exe, "icecream")
+	cmdFailed.cmd = exec.Command("cat", "icecream")
 	require.Error(t, cmdFailed.cmd.Run())
 
 	// Fork a process that hangs
 	cmdRunning := NewRuntime(&globals.RunOpts{}, t.Logf)
-	cmdRunning.cmd = exec.Command("cat" + moreos.Exe)
-	cmdRunning.cmd.SysProcAttr = moreos.ProcessGroupAttr()
+	cmdRunning.cmd = exec.Command("cat")
 	require.NoError(t, cmdRunning.cmd.Start())
 	defer func() {
 		if cmdRunning.cmd.Process != nil {

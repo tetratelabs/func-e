@@ -1,4 +1,4 @@
-// Copyright 2025 Tetrate
+// Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package cmd_test
@@ -15,7 +15,6 @@ import (
 
 	"github.com/tetratelabs/func-e/internal/envoy"
 	"github.com/tetratelabs/func-e/internal/globals"
-	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
@@ -56,7 +55,7 @@ func TestFuncEUse_InstallsAndWritesHomeVersion(t *testing.T) {
 	require.NoError(t, c.Run([]string{"func-e", "use", evs}))
 
 	// The binary was installed
-	require.FileExists(t, filepath.Join(o.HomeDir, "versions", evs, "bin", "envoy"+moreos.Exe))
+	require.FileExists(t, filepath.Join(o.HomeDir, "versions", evs, "bin", "envoy"+""))
 
 	// The current version was written
 	f, err := os.ReadFile(filepath.Join(o.HomeDir, "version"))
@@ -118,8 +117,8 @@ func TestFuncEUse_InstallMinorVersion(t *testing.T) {
 			o.EnvoyVersion = ""
 			c, stdout, stderr := newApp(o)
 			require.NoError(t, c.Run([]string{"func-e", "which"}))
-			envoyPath := filepath.Join(o.HomeDir, "versions", tc.minorVersion+"."+tc.firstVersions.latestPatch, "bin", "envoy"+moreos.Exe)
-			require.Equal(t, moreos.Sprintf("%s\n", envoyPath), stdout.String())
+			envoyPath := filepath.Join(o.HomeDir, "versions", tc.minorVersion+"."+tc.firstVersions.latestPatch, "bin", "envoy"+"")
+			require.Equal(t, fmt.Sprintf("%s\n", envoyPath), stdout.String())
 			require.Empty(t, stderr)
 
 			// Update the map returned by Get.
@@ -135,8 +134,8 @@ func TestFuncEUse_InstallMinorVersion(t *testing.T) {
 			o.EnvoyVersion = ""
 			c, stdout, stderr = newApp(o)
 			require.NoError(t, c.Run([]string{"func-e", "which"}))
-			envoyPath = filepath.Join(o.HomeDir, "versions", tc.minorVersion+"."+tc.secondVersions.latestPatch, "bin", "envoy"+moreos.Exe)
-			require.Equal(t, moreos.Sprintf("%s\n", envoyPath), stdout.String())
+			envoyPath = filepath.Join(o.HomeDir, "versions", tc.minorVersion+"."+tc.secondVersions.latestPatch, "bin", "envoy"+"")
+			require.Equal(t, fmt.Sprintf("%s\n", envoyPath), stdout.String())
 			require.Empty(t, stderr)
 		})
 	}
@@ -166,8 +165,8 @@ func TestFuncEUse_InstallMinorVersionCheckLatestPatchFailed(t *testing.T) {
 	o.EnvoyVersion = ""
 	c, stdout, stderr := newApp(o)
 	require.NoError(t, c.Run([]string{"func-e", "which"}))
-	envoyPath := filepath.Join(o.HomeDir, "versions", minorVersion+"."+latestPatch, "bin", "envoy"+moreos.Exe)
-	require.Equal(t, moreos.Sprintf("%s\n", envoyPath), stdout.String())
+	envoyPath := filepath.Join(o.HomeDir, "versions", minorVersion+"."+latestPatch, "bin", "envoy"+"")
+	require.Equal(t, fmt.Sprintf("%s\n", envoyPath), stdout.String())
 	require.Empty(t, stderr)
 
 	o.GetEnvoyVersions = func(_ context.Context) (*version.ReleaseVersions, error) {
@@ -183,9 +182,9 @@ func TestFuncEUse_InstallMinorVersionCheckLatestPatchFailed(t *testing.T) {
 	c, stdout, stderr = newApp(o)
 	require.NoError(t, c.Run([]string{"func-e", "which"}))
 	// The path points to the latest installed version.
-	envoyPath = filepath.Join(o.HomeDir, "versions", minorVersion+"."+latestPatch, "bin", "envoy"+moreos.Exe)
+	envoyPath = filepath.Join(o.HomeDir, "versions", minorVersion+"."+latestPatch, "bin", "envoy"+"")
 	t.Log(stdout.String())
-	require.Equal(t, moreos.Sprintf("%s\n", envoyPath), stdout.String())
+	require.Equal(t, fmt.Sprintf("%s\n", envoyPath), stdout.String())
 	require.Empty(t, stderr)
 }
 

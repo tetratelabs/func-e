@@ -1,4 +1,4 @@
-// Copyright 2025 Tetrate
+// Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package cmd_test
@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/func-e/internal/globals"
-	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/test/morerequire"
 	"github.com/tetratelabs/func-e/internal/version"
 )
@@ -36,10 +35,10 @@ func TestFuncEVersions_NoCurrentVersion(t *testing.T) {
 	err := c.Run([]string{"func-e", "versions"})
 
 	require.NoError(t, err)
-	require.Equal(t, moreos.Sprintf(`  1.2.2 2021-01-31
+	require.Equal(t, `  1.2.2 2021-01-31
   1.1.2 2021-01-31
   1.2.1 2021-01-30
-`), stdout.String())
+`, stdout.String())
 	require.Empty(t, stderr)
 }
 
@@ -53,10 +52,10 @@ func TestFuncEVersions_CurrentVersion(t *testing.T) {
 
 		c, stdout, _ := newApp(o)
 		require.NoError(t, c.Run([]string{"func-e", "versions"}))
-		require.Equal(t, moreos.Sprintf(`  1.2.2 2021-01-31
+		require.Equal(t, `  1.2.2 2021-01-31
   1.1.2 2021-01-31
   1.2.1 2021-01-30
-`), stdout.String())
+`, stdout.String())
 	})
 
 	t.Run("set by $FUNC_E_HOME/version", func(t *testing.T) {
@@ -64,10 +63,10 @@ func TestFuncEVersions_CurrentVersion(t *testing.T) {
 
 		c, stdout, _ := newApp(o)
 		require.NoError(t, c.Run([]string{"func-e", "versions"}))
-		require.Equal(t, moreos.Sprintf(`  1.2.2 2021-01-31
+		require.Equal(t, `  1.2.2 2021-01-31
 * 1.1.2 2021-01-31 (set by $FUNC_E_HOME/version)
   1.2.1 2021-01-30
-`), stdout.String())
+`, stdout.String())
 	})
 
 	t.Run("set by $PWD/.envoy-version", func(t *testing.T) {
@@ -77,10 +76,10 @@ func TestFuncEVersions_CurrentVersion(t *testing.T) {
 
 		c, stdout, _ := newApp(o)
 		require.NoError(t, c.Run([]string{"func-e", "versions"}))
-		require.Equal(t, moreos.Sprintf(`* 1.2.2 2021-01-31 (set by $PWD/.envoy-version)
+		require.Equal(t, `* 1.2.2 2021-01-31 (set by $PWD/.envoy-version)
   1.1.2 2021-01-31
   1.2.1 2021-01-30
-`), stdout.String())
+`, stdout.String())
 	})
 
 	t.Run("set by $ENVOY_VERSION", func(t *testing.T) {
@@ -88,10 +87,10 @@ func TestFuncEVersions_CurrentVersion(t *testing.T) {
 
 		c, stdout, _ := newApp(o)
 		require.NoError(t, c.Run([]string{"func-e", "versions"}))
-		require.Equal(t, moreos.Sprintf(`  1.2.2 2021-01-31
+		require.Equal(t, `  1.2.2 2021-01-31
   1.1.2 2021-01-31
 * 1.2.1 2021-01-30 (set by $ENVOY_VERSION)
-`), stdout.String())
+`, stdout.String())
 	})
 }
 
@@ -102,10 +101,10 @@ func TestFuncEVersions_Sorted(t *testing.T) {
 	err := c.Run([]string{"func-e", "versions"})
 
 	require.NoError(t, err)
-	require.Equal(t, moreos.Sprintf(`  1.2.2 2021-01-31
+	require.Equal(t, `  1.2.2 2021-01-31
   1.1.2 2021-01-31
 * 1.2.1 2021-01-30 (set by $FUNC_E_HOME/version)
-`), stdout.String())
+`, stdout.String())
 	require.Empty(t, stderr)
 }
 
@@ -116,7 +115,7 @@ func TestFuncEVersions_All_OnlyRemote(t *testing.T) {
 	err := c.Run([]string{"func-e", "versions", "-a"})
 
 	require.NoError(t, err)
-	require.Equal(t, moreos.Sprintf("  %s 2020-12-31\n", version.LastKnownEnvoy), stdout.String())
+	require.Equal(t, fmt.Sprintf("  %s 2020-12-31\n", version.LastKnownEnvoy), stdout.String())
 	require.Empty(t, stderr)
 }
 
@@ -129,7 +128,7 @@ func TestFuncEVersions_All_RemoteIsCurrent(t *testing.T) {
 	morerequire.RequireSetMtime(t, versionDir, "2020-12-31")
 	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte(v), 0o600))
 
-	expected := moreos.Sprintf("* %s 2020-12-31 (set by $FUNC_E_HOME/version)\n", v)
+	expected := fmt.Sprintf("* %s 2020-12-31 (set by $FUNC_E_HOME/version)\n", v)
 
 	c, stdout, stderr := newApp(o)
 	err := c.Run([]string{"func-e", "versions", "-a"})

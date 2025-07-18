@@ -1,4 +1,4 @@
-// Copyright 2025 Tetrate
+// Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package e2e
@@ -14,7 +14,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
@@ -29,7 +28,7 @@ func TestFuncEUse(t *testing.T) {
 		require.Empty(t, stderr)
 
 		// The binary was installed
-		envoyBin := filepath.Join(homeDir, "versions", version.LastKnownEnvoy.String(), "bin", "envoy"+moreos.Exe)
+		envoyBin := filepath.Join(homeDir, "versions", version.LastKnownEnvoy.String(), "bin", "envoy"+"")
 		require.FileExists(t, envoyBin)
 
 		// The current version was written
@@ -42,7 +41,7 @@ func TestFuncEUse(t *testing.T) {
 		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", version.LastKnownEnvoy.String())
 
 		require.NoError(t, err)
-		require.Equal(t, moreos.Sprintf("%s is already downloaded\n", version.LastKnownEnvoy.String()), stdout)
+		require.Equal(t, fmt.Sprintf("%s is already downloaded\n", version.LastKnownEnvoy.String()), stdout)
 		require.Empty(t, stderr)
 	})
 }
@@ -53,7 +52,7 @@ func TestFuncEUse_UnknownVersion(t *testing.T) {
 
 	require.EqualError(t, err, "exit status 1")
 	require.Empty(t, stdout)
-	require.Equal(t, moreos.Sprintf(`error: couldn't find version "%s" for platform "%s/%s"
+	require.Equal(t, fmt.Sprintf(`error: couldn't find version "%s" for platform "%s/%s"
 `, v, runtime.GOOS, runtime.GOARCH), stderr)
 }
 
@@ -89,7 +88,7 @@ func TestFuncEUse_MinorVersion(t *testing.T) {
 		require.Empty(t, stderr)
 
 		// The binary was installed.
-		envoyBin := filepath.Join(homeDir, "versions", version.LastKnownEnvoy.String(), "bin", "envoy"+moreos.Exe)
+		envoyBin := filepath.Join(homeDir, "versions", version.LastKnownEnvoy.String(), "bin", "envoy"+"")
 		require.FileExists(t, envoyBin)
 
 		// The current version was written.
@@ -106,7 +105,7 @@ func TestFuncEUse_MinorVersion(t *testing.T) {
 		require.Empty(t, stderr)
 
 		// The binary was installed.
-		envoyBin := filepath.Join(homeDir, "versions", baseVersion, "bin", "envoy"+moreos.Exe)
+		envoyBin := filepath.Join(homeDir, "versions", baseVersion, "bin", "envoy"+"")
 		require.FileExists(t, envoyBin)
 
 		// The base version was written.
@@ -123,7 +122,7 @@ func TestFuncEUse_MinorVersion(t *testing.T) {
 		require.Empty(t, stderr)
 
 		// The binary was installed.
-		envoyBin := filepath.Join(homeDir, "versions", upgradedVersion, "bin", "envoy"+moreos.Exe)
+		envoyBin := filepath.Join(homeDir, "versions", upgradedVersion, "bin", "envoy"+"")
 		require.FileExists(t, envoyBin)
 
 		// The upgraded version was written.
@@ -135,14 +134,14 @@ func TestFuncEUse_MinorVersion(t *testing.T) {
 	t.Run("use upgraded version after downloaded", func(t *testing.T) {
 		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", minorVersion)
 		require.NoError(t, err)
-		require.Equal(t, moreos.Sprintf("looking up the latest patch for Envoy version 1.24\n%s is already downloaded\n", upgradedVersion), stdout)
+		require.Equal(t, fmt.Sprintf("looking up the latest patch for Envoy version 1.24\n%s is already downloaded\n", upgradedVersion), stdout)
 		require.Empty(t, stderr)
 	})
 
 	t.Run("which upgraded version", func(t *testing.T) {
 		stdout, stderr, err := funcEExec("--home-dir", homeDir, "which")
-		relativeEnvoyBin := filepath.Join("versions", upgradedVersion, "bin", "envoy"+moreos.Exe)
-		require.Contains(t, stdout, moreos.Sprintf("%s\n", relativeEnvoyBin))
+		relativeEnvoyBin := filepath.Join("versions", upgradedVersion, "bin", "envoy"+"")
+		require.Contains(t, stdout, fmt.Sprintf("%s\n", relativeEnvoyBin))
 		require.Empty(t, stderr)
 		require.NoError(t, err)
 	})

@@ -1,4 +1,4 @@
-// Copyright 2025 Tetrate
+// Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package e2e
@@ -12,11 +12,11 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"syscall"
 	"testing"
 
 	"github.com/shirou/gopsutil/v4/process"
 
-	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/test/build"
 	"github.com/tetratelabs/func-e/internal/test/e2e"
 )
@@ -36,7 +36,7 @@ func readOrBuildFuncEBin() error {
 	projectRoot := filepath.Dir(e2eDir) // parent of e2e directory
 	if funcEBin = os.Getenv(funcEPathEnvKey); funcEBin != "" {
 		if !filepath.IsAbs(funcEBin) {
-			funcEBin = filepath.Join(projectRoot, funcEBin, "func-e"+moreos.Exe)
+			funcEBin = filepath.Join(projectRoot, funcEBin, "func-e"+"")
 		}
 	} else {
 		fmt.Fprintf(os.Stderr, "%s was not set. Building %s...\n", funcEPathEnvKey, funcEBin)
@@ -64,7 +64,6 @@ func readOrBuildFuncEBin() error {
 // funcEExec is a temporary adapter for e2e tests except run.
 func funcEExec(args ...string) (string, string, error) {
 	cmd := exec.CommandContext(context.Background(), funcEBin, args...)
-	cmd.SysProcAttr = moreos.ProcessGroupAttr()
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
 	cmd.Stdout = io.MultiWriter(os.Stdout, stdout) // we want to see full `func-e` output in the test log
@@ -128,7 +127,6 @@ func (a *funcE) OnStart(ctx context.Context) (runDir string, envoyPid int32, err
 func (a *funcE) Run(ctx context.Context, args []string) error {
 	cmdArgs := append([]string{"run"}, args...)
 	a.cmd = exec.CommandContext(ctx, funcEBin, cmdArgs...)
-	a.cmd.SysProcAttr = moreos.ProcessGroupAttr()
 	a.cmd.Stdout = a.stdout
 	a.cmd.Stderr = a.stderr
 	if err := a.cmd.Start(); err != nil {
@@ -142,5 +140,5 @@ func (a *funcE) Interrupt(_ context.Context) error {
 	if a.cmd == nil || a.cmd.Process == nil {
 		return fmt.Errorf("no active process to interrupt")
 	}
-	return moreos.Interrupt(a.cmd.Process) // Only signal, do not wait
+	return a.cmd.Process.Signal(syscall.SIGINT)
 }

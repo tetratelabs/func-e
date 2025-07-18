@@ -1,15 +1,15 @@
-// Copyright 2025 Tetrate
+// Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package e2e
 
 import (
+	"fmt"
 	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
@@ -22,8 +22,8 @@ func TestFuncEWhich(t *testing.T) { // not parallel as it can end up downloading
 	require.NoError(t, err)
 
 	stdout, stderr, err := funcEExec("which")
-	relativeEnvoyBin := filepath.Join("versions", version.LastKnownEnvoy.String(), "bin", "envoy"+moreos.Exe)
-	require.Contains(t, stdout, moreos.Sprintf("%s\n", relativeEnvoyBin))
+	relativeEnvoyBin := filepath.Join("versions", version.LastKnownEnvoy.String(), "bin", "envoy")
+	require.Contains(t, stdout, fmt.Sprintf("%s\n", relativeEnvoyBin))
 	require.Empty(t, stderr)
 	require.NoError(t, err)
 }

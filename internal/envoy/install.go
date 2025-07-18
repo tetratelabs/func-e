@@ -1,4 +1,4 @@
-// Copyright 2025 Tetrate
+// Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package envoy
@@ -13,12 +13,11 @@ import (
 	"time"
 
 	"github.com/tetratelabs/func-e/internal/globals"
-	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/tar"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
-var binEnvoy = filepath.Join("bin", "envoy"+moreos.Exe)
+var binEnvoy = filepath.Join("bin", "envoy")
 
 // InstallIfNeeded downloads an Envoy binary corresponding to globals.GlobalOpts and returns a path to it or an error.
 func InstallIfNeeded(ctx context.Context, o *globals.GlobalOpts) (string, error) {
@@ -74,7 +73,7 @@ func verifyEnvoy(installPath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if !moreos.IsExecutable(stat) {
+	if stat.Mode()&0o111 == 0 { // isExecutable
 		return "", fmt.Errorf("envoy binary not executable at %q", envoyPath)
 	}
 	return envoyPath, nil

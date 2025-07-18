@@ -1,4 +1,4 @@
-// Copyright 2025 Tetrate
+// Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package envoy
@@ -6,6 +6,7 @@ package envoy
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -13,7 +14,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/func-e/internal/globals"
-	"github.com/tetratelabs/func-e/internal/moreos"
 )
 
 // TestRuntime_Run_EnvoyError takes care to not duplicate test/e2e/testrun.go, but still give some coverage.
@@ -25,7 +25,7 @@ func TestRuntime_Run_EnvoyError(t *testing.T) {
 	// Initialize runtime
 	stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
 	logToOutput := func(format string, args ...interface{}) {
-		stdout.WriteString(moreos.Sprintf(format, args...) + "\n")
+		stdout.WriteString(fmt.Sprintf(format, args...) + "\n")
 	}
 	r := NewRuntime(&globals.RunOpts{
 		EnvoyPath: fakeEnvoyBin,
@@ -55,7 +55,7 @@ func TestRuntime_Run_EnvoyError(t *testing.T) {
 	})
 
 	t.Run("output messages", func(t *testing.T) {
-		require.Contains(t, stdout.String(), moreos.Sprintf("starting: %s", fakeEnvoyBin))
+		require.Contains(t, stdout.String(), fmt.Sprintf("starting: %s", fakeEnvoyBin))
 		require.Contains(t, stderr.String(), "cannot unmarshal !!str")
 	})
 

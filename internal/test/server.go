@@ -1,4 +1,4 @@
-// Copyright 2025 Tetrate
+// Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package test
@@ -20,7 +20,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/func-e/internal"
-	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/tar"
 	"github.com/tetratelabs/func-e/internal/test/build"
 	"github.com/tetratelabs/func-e/internal/version"
@@ -42,8 +41,8 @@ func RequireEnvoyVersionsTestServer(t *testing.T, v version.PatchVersion) *httpt
 	s.versions = version.ReleaseVersions{
 		Versions: map[version.PatchVersion]version.Release{ // hard-code date so that tests don't drift
 			v: {ReleaseDate: FakeReleaseDate, Tarballs: map[version.Platform]version.TarballURL{
-				version.Platform(moreos.OSLinux + "/" + runtime.GOARCH):  TarballURL(h.URL, moreos.OSLinux, runtime.GOARCH, v),
-				version.Platform(moreos.OSDarwin + "/" + runtime.GOARCH): TarballURL(h.URL, moreos.OSDarwin, runtime.GOARCH, v),
+				version.Platform("linux" + "/" + runtime.GOARCH):  TarballURL(h.URL, "linux", runtime.GOARCH, v),
+				version.Platform("darwin" + "/" + runtime.GOARCH): TarballURL(h.URL, "darwin", runtime.GOARCH, v),
 			}}},
 		SHA256Sums: map[version.Tarball]version.SHA256Sum{},
 	}
@@ -108,7 +107,7 @@ func RequireFakeEnvoyTarGz(t *testing.T, v version.PatchVersion) ([]byte, versio
 	fakeEnvoyBin, err := build.GoBuild(internal.FakeEnvoySrcPath, tempDir)
 	require.NoError(t, err)
 	// Move the binary to the installDir/bin
-	err = os.Rename(fakeEnvoyBin, filepath.Join(installDir, "bin", "envoy"+moreos.Exe))
+	err = os.Rename(fakeEnvoyBin, filepath.Join(installDir, "bin", "envoy"))
 	require.NoError(t, err)
 
 	// tar.gz the platform dir

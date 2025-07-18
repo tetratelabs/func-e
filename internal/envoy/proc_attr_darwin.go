@@ -1,7 +1,7 @@
-// Copyright 2025 Tetrate
+// Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package moreos
+package envoy
 
 import "syscall"
 

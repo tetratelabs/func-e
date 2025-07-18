@@ -1,4 +1,4 @@
-// Copyright 2025 Tetrate
+// Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package cmd
@@ -10,7 +10,6 @@ import (
 
 	"github.com/tetratelabs/func-e/internal/api"
 	"github.com/tetratelabs/func-e/internal/globals"
-	"github.com/tetratelabs/func-e/internal/moreos"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
@@ -18,7 +17,7 @@ import (
 // having to define a flag for everything needed in tests.
 func NewApp(o *globals.GlobalOpts) *cli.App {
 	var envoyVersionsURL, homeDir, platform string
-	lastKnownEnvoyPath := moreos.ReplacePathSeparator(fmt.Sprintf("`$FUNC_E_HOME/versions/%s`", version.LastKnownEnvoy))
+	lastKnownEnvoyPath := fmt.Sprintf("`$FUNC_E_HOME/versions/%s`", version.LastKnownEnvoy)
 
 	app := cli.NewApp()
 	app.Name = "func-e"
@@ -106,5 +105,5 @@ var helpCommand = &cli.Command{
 }
 
 func printVersion(c *cli.Context) {
-	moreos.Fprintf(c.App.Writer, "%v version %v\n", c.App.Name, c.App.Version)
+	fmt.Fprintf(c.App.Writer, "%v version %v\n", c.App.Name, c.App.Version) //nolint:errcheck
 }

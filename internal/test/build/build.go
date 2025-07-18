@@ -1,4 +1,4 @@
-// Copyright 2025 Tetrate
+// Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package build
@@ -11,8 +11,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-
-	"github.com/tetratelabs/func-e/internal/moreos"
 )
 
 // GoBuild builds a go binary from the given source file and outputs it to the specified path.
@@ -36,8 +34,8 @@ func GoBuild(src, outDir string) (string, error) {
 
 	// Use the same naming convention for the out file as its source directory
 	baseName := filepath.Base(filepath.Dir(src))
-	out := filepath.Join(outDir, baseName+moreos.Exe)
-	moreos.Fprintf(os.Stderr, "Building %s...\n", out)
+	out := filepath.Join(outDir, baseName)
+	fmt.Fprintf(os.Stderr, "Building %s...\n", out) //nolint:errcheck
 	// Build from the project root directory
 	buildCmd := exec.Command(goBin, "build",
 		"-ldflags", "-s -w -X main.version=dev",
