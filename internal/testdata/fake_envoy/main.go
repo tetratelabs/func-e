@@ -245,7 +245,12 @@ func adminEndpoints(w http.ResponseWriter, r *http.Request) {
 	case "/config_dump":
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"configs": []}`))
+		// Support query parameters like ?include_eds
+		if r.URL.Query().Get("include_eds") != "" {
+			_, _ = w.Write([]byte(`{"configs": [{"@type": "type.googleapis.com/envoy.admin.v3.EndpointsConfigDump"}]}`))
+		} else {
+			_, _ = w.Write([]byte(`{"configs": []}`))
+		}
 	case "/ready":
 		w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
 		w.WriteHeader(http.StatusOK)

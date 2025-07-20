@@ -4,6 +4,7 @@
 package envoy
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
@@ -11,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	"github.com/tetratelabs/func-e/internal/envoy/config"
 	"github.com/tetratelabs/func-e/internal/globals"
@@ -18,9 +20,25 @@ import (
 
 type LogFunc func(format string, a ...any)
 
+// StartupHook runs just after Envoy logs "starting main dispatch loop".
+//
+// This is useful for callers who need access to two non-deterministic values:
+//
+// 1. The run directory (where stdout, stderr and the pid file are written)
+// 2. The admin address (which is possibly ephemeral)
+//
+// ## Implementation Notes
+//
+// Startup hooks are considered mandatory and will stop the run with error if
+// failed. If your hook is optional, rescue panics and log your own errors.
+//
+// Startup hooks run on the goroutine that consumes Envoy's STDERR. Envoy
+// doesn't write a lot to stderr, so short tasks won't fill up the pipe and
+// cause Envoy to block. However, if your hook is long-running, it must be
+// run in a goroutine.
+type StartupHook func(ctx context.Context, runDir, adminAddress string) error
+
 const (
-	// Match envoy's log format field
-	dateFormat           = "[2006-01-02 15:04:05.999]"
 	configYamlFlag       = `--config-yaml`
 	adminEphemeralConfig = "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 0}}}"
 	adminAddressPathFlag = `--admin-address-path`
@@ -29,7 +47,12 @@ const (
 // NewRuntime creates a new Runtime that runs envoy in globals.RunOpts RunDir
 // opts allows a user running envoy to control the working directory by ID or path, allowing explicit cleanup.
 func NewRuntime(opts *globals.RunOpts, logf LogFunc) *Runtime {
-	return &Runtime{o: opts, logf: logf}
+	safeHook := &safeStartupHook{
+		delegate: collectConfigDump,
+		logf:     logf,
+		timeout:  3 * time.Second,
+	}
+	return &Runtime{o: opts, logf: logf, startupHook: safeHook.Hook}
 }
 
 // Runtime manages an Envoy lifecycle
@@ -43,6 +66,7 @@ type Runtime struct {
 	logf LogFunc
 
 	adminAddress, adminAddressPath string
+	startupHook                    StartupHook
 }
 
 // String is only used in tests. It is slow, but helps when debugging CI failures

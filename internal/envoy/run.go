@@ -1,3 +1,4 @@
+// Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package envoy
@@ -8,13 +9,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 )
 
 // Run execs the Envoy binary at the path with the args passed.
@@ -54,91 +53,76 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 	// Warn, but don't fail if we can't write the pid file for some reason
 	r.maybeWarn(os.WriteFile(filepath.Join(r.o.RunDir, "envoy.pid"), []byte(strconv.Itoa(cmd.Process.Pid)), 0o600))
 
-	// Start a goroutine to scan stderr for "starting main dispatch loop"
-	go r.collectAdminDataOnceRunning(ctx, stderrPipe)
+	errCh := make(chan error, 1)
 
-	// Wait for the process to exit.
-	err = cmd.Wait()
-	if err == nil {
-		return nil
+	// Process stderr in a goroutine
+	go r.processStderr(ctx, stderrPipe, errCh)
+
+	// Wait for the process to exit
+	waitErr := cmd.Wait()
+
+	// After process exit, check for any stderr processing error
+	stderrErr := <-errCh
+	if stderrErr != nil {
+		return stderrErr
 	}
-	if errors.Is(ctx.Err(), context.Canceled) {
-		return nil // e.g. graceful shutdown via API
+
+	if waitErr == nil || errors.Is(ctx.Err(), context.Canceled) {
+		return nil // don't treat context cancel (graceful shutdown) as an error
 	}
-	return err
+	return waitErr
 }
 
-// collectAdminDataOnceRunning scans stderr for the admin address and waits for Envoy to be fully started
-// before collecting config_dump to the run directory.
-func (r *Runtime) collectAdminDataOnceRunning(ctx context.Context, cmdStderrPipe io.Reader) {
-	scanner := bufio.NewScanner(cmdStderrPipe)
-	adminCollected := false
+// processStderr scans stderr output and triggers the startup hook when Envoy is ready.
+func (r *Runtime) processStderr(ctx context.Context, stderrPipe io.Reader, errCh chan<- error) {
+	var procErr error
+	defer func() {
+		if p := recover(); p != nil {
+			if procErr == nil {
+				procErr = fmt.Errorf("processStderr panicked: %v", p)
+			}
+			r.logf("processStderr panicked: %v", p)
+		}
+		errCh <- procErr
+	}()
+
+	scanner := bufio.NewScanner(stderrPipe)
+	hookTriggered := false
 
 	for scanner.Scan() {
 		line := scanner.Text()
-		// copy stderr to the output writer
+		// Copy stderr line to the output writer
 		fmt.Fprintln(r.Err, line) //nolint:errcheck
 
-		// Collect config dump when ready
-		if !adminCollected && strings.Contains(line, "starting main dispatch loop") {
-			adminCollected = true
+		// Trigger startup hook when admin is ready
+		if !hookTriggered && strings.Contains(line, "starting main dispatch loop") {
+			hookTriggered = true
 			adminAddrBytes, err := os.ReadFile(r.adminAddressPath)
 			if err != nil {
-				r.logf("failed to read admin address from %s: %v", r.adminAddressPath, err)
-				continue
+				procErr = fmt.Errorf("failed to read admin address from %s: %w", r.adminAddressPath, err)
+				r.logf(procErr.Error())
+				break
 			}
 			adminAddress := strings.TrimSpace(string(adminAddrBytes))
 			r.adminAddress = adminAddress
-			// Use a separate goroutine to avoid blocking stderr scanning
-			go func(addr string) {
-				if err := collectConfigDump(ctx, addr, r.GetRunDir()); err != nil {
-					r.logf("failed to collect config_dump from %s: %v", addr, err)
-				} else {
-					r.logf("collected config_dump from: %s", addr)
-				}
-			}(adminAddress)
+
+			// Call startup hook
+			if err := r.startupHook(ctx, r.o.RunDir, adminAddress); err != nil {
+				procErr = err
+				r.logf(err.Error())
+				break
+			}
 		}
 	}
 
-	if err := scanner.Err(); err != nil {
-		r.logf("error scanning stderr: %v", err)
+	// Log and propagate unexpected scanner errors, ignoring EOF, closed pipe, or context cancellation.
+	if err := scanner.Err(); err != nil && ctx.Err() == nil {
+		// Skip expected errors that indicate normal stream closure
+		if !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrClosedPipe) {
+			r.logf("error scanning stderr: %v", err)
+			if procErr == nil {
+				procErr = fmt.Errorf("error scanning stderr: %w", err)
+			}
+		}
 	}
-}
-
-// collectConfigDump fetches config_dump from Envoy admin API
-func collectConfigDump(ctx context.Context, adminAddress, runDir string) error {
-	url := fmt.Sprintf("http://%s/config_dump", adminAddress)
-	file := filepath.Join(runDir, "config_dump.json")
-
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-	return copyURLToFile(ctx, url, file)
-}
-
-func copyURLToFile(ctx context.Context, url, fullPath string) error {
-	// #nosec -> runDir is allowed to be anywhere
-	f, err := os.OpenFile(fullPath, os.O_CREATE|os.O_WRONLY, 0o600)
-	if err != nil {
-		return fmt.Errorf("could not open %q: %w", fullPath, err)
-	}
-	defer f.Close() //nolint:errcheck
-
-	// #nosec -> adminAddress is written by Envoy and the paths are hard-coded
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return fmt.Errorf("could not create request %v: %w", url, err)
-	}
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("could not read %v: %w", url, err)
-	}
-	defer res.Body.Close() //nolint:errcheck
-
-	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("received %v from %v", res.StatusCode, url)
-	}
-	if _, err := io.Copy(f, res.Body); err != nil {
-		return fmt.Errorf("could not write response body of %v: %w", url, err)
-	}
-	return nil
 }

@@ -80,14 +80,17 @@ func TestFuncERun_TeesConsoleToLogs(t *testing.T) {
 	o.Out = io.Discard
 	runWithInvalidConfig(t, c)
 
-	actual, err := os.ReadFile(filepath.Join(o.RunDir, "stdout.log"))
+	stdoutStream := stdout.String()
+	require.Empty(t, stdoutStream, "envoy doesn't write to stdout by default")
+	stdoutLogBytes, err := os.ReadFile(filepath.Join(o.RunDir, "stdout.log"))
 	require.NoError(t, err)
-	require.Contains(t, stdout.String(), string(actual))
+	require.Empty(t, stdoutLogBytes)
 
-	actual, err = os.ReadFile(filepath.Join(o.RunDir, "stderr.log"))
+	stderrStream := stderr.String()
+	require.Contains(t, stderrStream, "At least one of --config-path or --config-yaml or Options::configProto() should be non-empty")
+	stderrLogBytes, err := os.ReadFile(filepath.Join(o.RunDir, "stderr.log"))
 	require.NoError(t, err)
-	require.NotEmpty(t, stderr.String()) // sanity check
-	require.Equal(t, stderr.String(), string(actual))
+	require.Equal(t, stderrStream, string(stderrLogBytes))
 }
 
 func TestFuncERun_ReadsHomeVersionFile(t *testing.T) {
