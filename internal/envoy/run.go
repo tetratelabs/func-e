@@ -58,19 +58,25 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 	// Process stderr in a goroutine
 	go r.processStderr(ctx, stderrPipe, errCh)
 
-	// Wait for the process to exit
-	waitErr := cmd.Wait()
-
-	// After process exit, check for any stderr processing error
+	// Wait for the process, and any stderr processing, to complete
+	exitErr := cmd.Wait()
 	stderrErr := <-errCh
+
+	// First, check for stderr errors (e.g. from startup hook)
 	if stderrErr != nil {
 		return stderrErr
 	}
 
-	if waitErr == nil || errors.Is(ctx.Err(), context.Canceled) {
-		return nil // don't treat context cancel (graceful shutdown) as an error
+	// Next, handle process exit errors
+	if exitErr != nil {
+		// Only ignore exit errors on cancellation if there was no stderr error
+		if errors.Is(ctx.Err(), context.Canceled) {
+			return nil
+		}
+		return exitErr
 	}
-	return waitErr
+
+	return nil // Clean exit
 }
 
 // processStderr scans stderr output and triggers the startup hook when Envoy is ready.

@@ -1,7 +1,7 @@
 // Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package api
+package run
 
 import (
 	"context"
@@ -12,28 +12,21 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/tetratelabs/func-e/internal/api"
+	"github.com/tetratelabs/func-e/api"
+	internalapi "github.com/tetratelabs/func-e/internal/api"
 	"github.com/tetratelabs/func-e/internal/globals"
-	"github.com/tetratelabs/func-e/internal/test"
 	"github.com/tetratelabs/func-e/internal/test/e2e"
-	"github.com/tetratelabs/func-e/internal/version"
 )
 
 // fakeFuncEFactory implements runtest.FuncEFactory for API tests using fake envoy
 type fakeFuncEFactory struct{}
 
 func (fakeFuncEFactory) New(ctx context.Context, t *testing.T, stdout, stderr io.Writer) (e2e.FuncE, error) {
-	// Start and scope a fake version server to the test calling New
-	versionsServer := test.RequireEnvoyVersionsTestServer(t, version.LastKnownEnvoy)
-	t.Cleanup(func() { versionsServer.Close() })
-
-	o, err := initOpts(ctx, HomeDir(t.TempDir()),
-		envoyPath(fakeEnvoyBin),
-		EnvoyVersionsURL(versionsServer.URL+"/envoy-versions.json"),
-		EnvoyVersion(string(version.LastKnownEnvoy)),
-		Out(stdout),
-		EnvoyOut(stdout),
-		EnvoyErr(stderr))
+	o, err := initOpts(ctx, api.HomeDir(t.TempDir()),
+		EnvoyPath(fakeEnvoyBin),
+		api.Out(stdout),
+		api.EnvoyOut(stdout),
+		api.EnvoyErr(stderr))
 	if err != nil {
 		return nil, err
 	}
@@ -76,5 +69,5 @@ func (f *fakeFuncE) Run(ctx context.Context, args []string) error {
 	// Since we aren't launching a real process, we proxy interrupt with context cancellation.
 	ctx, cancel := context.WithCancel(ctx)
 	f.cancelFunc = cancel
-	return api.Run(ctx, f.o, args)
+	return internalapi.Run(ctx, f.o, args)
 }

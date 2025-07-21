@@ -2,7 +2,7 @@
 
 This directory holds the end-to-end tests for `func-e`.
 
-By default, end-to-end (e2e) tests verify a `func-e` binary built from [main.go](../main.go).
+By default, end-to-end (e2e) tests verify a `func-e` binary built from [main.go](../cmd/func-e/main.go).
 
 ## Using native go commands:
 End-to-end tests default to look for `func-e`, in the project root (current directory).
