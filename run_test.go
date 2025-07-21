@@ -12,6 +12,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	func_e "github.com/tetratelabs/func-e"
 	"github.com/tetratelabs/func-e/api"
 	"github.com/tetratelabs/func-e/internal"
 	"github.com/tetratelabs/func-e/internal/run"
@@ -22,7 +23,7 @@ import (
 // but still give some coverage.
 func TestFuncERun_InvalidConfig(t *testing.T) {
 	var stdout, stderr bytes.Buffer
-	err := run.Run(t.Context(), []string{}, api.HomeDir(t.TempDir()), run.EnvoyPath(fakeEnvoyBin),
+	err := func_e.Run(t.Context(), []string{}, api.HomeDir(t.TempDir()), run.EnvoyPath(fakeEnvoyBin),
 		api.Out(&stdout),
 		api.EnvoyOut(&stdout),
 		api.EnvoyErr(&stderr))

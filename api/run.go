@@ -72,4 +72,6 @@ type RunOption func(*opts.RunOpts)
 //
 // On success, this blocks and returns nil when either `ctx` is done, or the
 // process exits with status zero.
+//
+// The default implementation of RunFunc is func_e.Run.
 type RunFunc func(ctx context.Context, args []string, options ...RunOption) error
