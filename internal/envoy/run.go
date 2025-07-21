@@ -53,18 +53,18 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 	// Warn, but don't fail if we can't write the pid file for some reason
 	r.maybeWarn(os.WriteFile(filepath.Join(r.o.RunDir, "envoy.pid"), []byte(strconv.Itoa(cmd.Process.Pid)), 0o600))
 
-	errCh := make(chan error, 1)
+	hookErrCh := make(chan error, 1)
 
 	// Process stderr in a goroutine
-	go r.processStderr(ctx, stderrPipe, errCh)
+	go r.processStderr(ctx, stderrPipe, hookErrCh)
 
 	// Wait for the process, and any stderr processing, to complete
 	exitErr := cmd.Wait()
-	stderrErr := <-errCh
+	hookErr := <-hookErrCh
 
-	// First, check for stderr errors (e.g. from startup hook)
-	if stderrErr != nil {
-		return stderrErr
+	// First, check for startup hook errors
+	if hookErr != nil {
+		return hookErr
 	}
 
 	// Next, handle process exit errors
@@ -80,16 +80,16 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 }
 
 // processStderr scans stderr output and triggers the startup hook when Envoy is ready.
-func (r *Runtime) processStderr(ctx context.Context, stderrPipe io.Reader, errCh chan<- error) {
-	var procErr error
+func (r *Runtime) processStderr(ctx context.Context, stderrPipe io.Reader, hookErrCh chan<- error) {
+	var hookErr error
 	defer func() {
 		if p := recover(); p != nil {
-			if procErr == nil {
-				procErr = fmt.Errorf("processStderr panicked: %v", p)
+			if hookErr == nil {
+				hookErr = fmt.Errorf("processStderr panicked: %v", p)
 			}
 			r.logf("processStderr panicked: %v", p)
 		}
-		errCh <- procErr
+		hookErrCh <- hookErr
 	}()
 
 	scanner := bufio.NewScanner(stderrPipe)
@@ -105,8 +105,8 @@ func (r *Runtime) processStderr(ctx context.Context, stderrPipe io.Reader, errCh
 			hookTriggered = true
 			adminAddrBytes, err := os.ReadFile(r.adminAddressPath)
 			if err != nil {
-				procErr = fmt.Errorf("failed to read admin address from %s: %w", r.adminAddressPath, err)
-				r.logf(procErr.Error())
+				hookErr = fmt.Errorf("failed to read admin address from %s: %w", r.adminAddressPath, err)
+				r.logf(hookErr.Error())
 				break
 			}
 			adminAddress := strings.TrimSpace(string(adminAddrBytes))
@@ -114,21 +114,11 @@ func (r *Runtime) processStderr(ctx context.Context, stderrPipe io.Reader, errCh
 
 			// Call startup hook
 			if err := r.startupHook(ctx, r.o.RunDir, adminAddress); err != nil {
-				procErr = err
+				hookErr = err
 				r.logf(err.Error())
 				break
 			}
 		}
 	}
-
-	// Log and propagate unexpected scanner errors, ignoring EOF, closed pipe, or context cancellation.
-	if err := scanner.Err(); err != nil && ctx.Err() == nil {
-		// Skip expected errors that indicate normal stream closure
-		if !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrClosedPipe) {
-			r.logf("error scanning stderr: %v", err)
-			if procErr == nil {
-				procErr = fmt.Errorf("error scanning stderr: %w", err)
-			}
-		}
-	}
+	// ignore scanner errors as we are only concerned in hook errors
 }
