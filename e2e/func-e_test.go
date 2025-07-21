@@ -47,7 +47,7 @@ func readOrBuildFuncEBin() error {
 			return fmt.Errorf("failed to create build directory %s: %w", buildDir, err)
 		}
 		var err error
-		if funcEBin, err = build.GoBuild(filepath.Join(projectRoot, "main.go"), buildDir); err != nil {
+		if funcEBin, err = build.GoBuild(filepath.Join(projectRoot, "cmd/func-e/main.go"), buildDir); err != nil {
 			return err
 		}
 	}

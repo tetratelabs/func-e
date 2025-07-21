@@ -99,7 +99,7 @@ main_sources  := $(wildcard $(filter-out %_test.go $(all_testdata) $(all_testuti
 main_packages := $(sort $(foreach f,$(dir $(main_sources)),$(if $(findstring ./,$(f)),./,./$(f))))
 
 build/func-e_%/func-e: $(main_sources)
-	$(call go-build,$@,$<)
+	$(call go-build,$@)
 
 dist/func-e_$(VERSION)_%.tar.gz: build/func-e_%/func-e
 	@printf "$(ansi_format_dark)" tar.gz "tarring $@"
@@ -216,7 +216,7 @@ define go-build
 	@# $(go:go=) removes the trailing 'go', so we can insert cross-build variables
 	@$(go:go=) CGO_ENABLED=0 GOOS=$(call go-os,$1) GOARCH=$(call go-arch,$1) go build \
 		-ldflags "-s -w -X main.version=$(VERSION)" \
-		-o $1 $2
+		-o $1 ./cmd/func-e
 	@printf "$(ansi_format_bright)" build "ok"
 endef
 

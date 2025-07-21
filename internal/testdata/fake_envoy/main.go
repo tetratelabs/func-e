@@ -246,7 +246,8 @@ func adminEndpoints(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusOK)
 		// Support query parameters like ?include_eds
-		if r.URL.Query().Get("include_eds") != "" {
+		// Check if include_eds is present as a query parameter (with or without value)
+		if _, ok := r.URL.Query()["include_eds"]; ok {
 			_, _ = w.Write([]byte(`{"configs": [{"@type": "type.googleapis.com/envoy.admin.v3.EndpointsConfigDump"}]}`))
 		} else {
 			_, _ = w.Write([]byte(`{"configs": []}`))
