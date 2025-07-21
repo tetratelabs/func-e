@@ -5,10 +5,9 @@ package envoy
 
 import "syscall"
 
-// processGroupAttr ensures graceful shutdown (shutdown hooks) is attempted:
-//   - Setpgid: Creates a new process group to isolate Envoy from parent signals, so that shutdown hooks can be applied
-//     before propagating the signal to Envoy.
-//   - Pdeathsig: Ensures Envoy terminates when func-e exits, preventing orphaned processes and resource leaks.
+// processGroupAttr sets SysProcAttr.Pdeathsig to syscall.SIGKILL, to avoid
+// orphaning envoy, if func-e is kill -9'd. We don't test this because it isn't
+// deterministic, and outside our control.
 func processGroupAttr() *syscall.SysProcAttr {
-	return &syscall.SysProcAttr{Setpgid: true, Pdeathsig: syscall.SIGKILL}
+	return &syscall.SysProcAttr{Pdeathsig: syscall.SIGKILL}
 }

@@ -20,11 +20,25 @@ import (
 
 type LogFunc func(format string, a ...any)
 
+// StartupHook runs just after Envoy logs "starting main dispatch loop".
+//
+// This is useful for callers who need access to two non-deterministic values:
+//
+// 1. The run directory (where stdout, stderr and the pid file are written)
+// 2. The admin address (which is possibly ephemeral)
+//
+// ## Implementation Notes
+//
+// Startup hooks are considered mandatory and will stop the run with error if
+// failed. If your hook is optional, rescue panics and log your own errors.
+//
+// Startup hooks run on the goroutine that consumes Envoy's STDERR. Envoy
+// doesn't write a lot to stderr, so short tasks won't fill up the pipe and
+// cause Envoy to block. However, if your hook is long-running, it must be
+// run in a goroutine.
+type StartupHook func(ctx context.Context, runDir, adminAddress string) error
+
 const (
-	// Don't wait forever. This has hung on macOS before
-	shutdownTimeout = 5 * time.Second
-	// Match envoy's log format field
-	dateFormat           = "[2006-01-02 15:04:05.999]"
 	configYamlFlag       = `--config-yaml`
 	adminEphemeralConfig = "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 0}}}"
 	adminAddressPathFlag = `--admin-address-path`
@@ -33,7 +47,12 @@ const (
 // NewRuntime creates a new Runtime that runs envoy in globals.RunOpts RunDir
 // opts allows a user running envoy to control the working directory by ID or path, allowing explicit cleanup.
 func NewRuntime(opts *globals.RunOpts, logf LogFunc) *Runtime {
-	return &Runtime{o: opts, logf: logf}
+	safeHook := &safeStartupHook{
+		delegate: collectConfigDump,
+		logf:     logf,
+		timeout:  3 * time.Second,
+	}
+	return &Runtime{o: opts, logf: logf, startupHook: safeHook.Hook}
 }
 
 // Runtime manages an Envoy lifecycle
@@ -47,8 +66,7 @@ type Runtime struct {
 	logf LogFunc
 
 	adminAddress, adminAddressPath string
-
-	shutdownHooks []func(context.Context) error
+	startupHook                    StartupHook
 }
 
 // String is only used in tests. It is slow, but helps when debugging CI failures
@@ -127,7 +145,7 @@ ARGS:
 }
 
 // GetAdminAddress returns the current admin address in host:port format, or empty if not yet available.
-// Exported for shutdown.enableAdminDataCollection, which is in shutdown.DefaultShutdownHooks.
+// Exported for admin data collection functionality.
 func (r *Runtime) GetAdminAddress() (string, error) {
 	if r.adminAddress != "" { // We don't expect the admin address to change once written, so cache it.
 		return r.adminAddress, nil

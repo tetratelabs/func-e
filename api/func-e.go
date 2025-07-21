@@ -90,8 +90,8 @@ type runOpts struct {
 // Run downloads Envoy and runs it as a process with the arguments
 // passed to it. Use RunOption for configuration options.
 //
-// This blocks until the context is done or the process exits. The error might be
-// context.Canceled if the context is done or an error from the process.
+// On success, this blocks and returns nil when either `ctx` is done, or the
+// process exits with status zero.
 func Run(ctx context.Context, args []string, options ...RunOption) error {
 	// TODO: we need a real API and it being an interface in this package, initialized in the root
 	// directory like wazero does. That this stitches the impl makes it not an API package and causes

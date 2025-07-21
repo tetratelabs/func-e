@@ -4,18 +4,22 @@
 package envoy
 
 import (
+	"bufio"
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
-	"time"
+	"strings"
 )
 
-// Run execs the binary at the path with the args passed. It is a blocking function that can be shutdown via ctx.
+// Run execs the Envoy binary at the path with the args passed.
 //
-// This will exit either `ctx` is done, or the process exits.
+// On success, this blocks and returns nil when either `ctx` is done, or the
+// process exits with status zero.
 func (r *Runtime) Run(ctx context.Context, args []string) error {
 	// We require the admin server, so ensure it exists, and we can read its listener via a file path.
 	var err error
@@ -28,16 +32,20 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 	// Why? MacOS SIP restricts cross-process env var access: we need a solution that works with both Linux and MacOS.
 	args = append(args, "--", "--func-e-run-dir", r.o.RunDir)
 
-	// We can't use CommandContext even if that seems correct here. The reason is that we need to invoke shutdown hooks,
-	// and they expect the process to still be running. For example, this allows admin API hooks.
-	cmd := exec.Command(r.o.EnvoyPath, args...) // #nosec -> users can run whatever binary they like!
+	cmd := exec.CommandContext(ctx, r.o.EnvoyPath, args...) // #nosec -> users can run whatever binary they like!
 	cmd.Stdout = r.Out
-	cmd.Stderr = r.Err
 	cmd.SysProcAttr = processGroupAttr()
+
+	// Create a pipe to capture stderr and forward to r.Err
+	stderrPipe, err := cmd.StderrPipe()
+	if err != nil {
+		return fmt.Errorf("unable to create stderr pipe: %w", err)
+	}
+
 	r.cmd = cmd
 
-	// Print the binary path to the user for debugging purposes.
-	r.logf("starting: %s with --admin-address-path %s\n", r.o.EnvoyPath, r.adminAddressPath)
+	// Print the binary and run directory to the user for debugging purposes.
+	r.logf("starting: %s in run directory %s", r.o.EnvoyPath, r.o.RunDir)
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("unable to start Envoy process: %w", err)
 	}
@@ -45,51 +53,76 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 	// Warn, but don't fail if we can't write the pid file for some reason
 	r.maybeWarn(os.WriteFile(filepath.Join(r.o.RunDir, "envoy.pid"), []byte(strconv.Itoa(cmd.Process.Pid)), 0o600))
 
-	// Wait in a goroutine. We may need to kill the process if a signal occurs first.
-	//
-	// Note: do not wrap the original context, otherwise "<-cmdExitWait.Done()" won't block until the process exits
-	// if the original context is done.
-	cmdExitWait, cmdExit := context.WithCancel(context.Background())
-	defer cmdExit()
-	go func() {
-		defer cmdExit()
-		_ = r.cmd.Wait()
-	}()
+	errCh := make(chan error, 1)
 
-	awaitAdminAddress(ctx, r)
+	// Process stderr in a goroutine
+	go r.processStderr(ctx, stderrPipe, errCh)
 
-	// Block until the process exits or the original context is done.
-	select {
-	case <-ctx.Done():
-		// When original context is done, we need to shut down the process by ourselves.
-		// Run the shutdown hooks and wait for them to complete.
-		r.handleShutdown()
-		// Then wait for the process to exit.
-		<-cmdExitWait.Done()
-	case <-cmdExitWait.Done():
-		// Process exited naturally
+	// Wait for the process to exit
+	waitErr := cmd.Wait()
+
+	// After process exit, check for any stderr processing error
+	stderrErr := <-errCh
+	if stderrErr != nil {
+		return stderrErr
 	}
 
-	// Warn, but don't fail on error archiving the run directory
-	if !r.o.DontArchiveRunDir {
-		r.maybeWarn(r.archiveRunDir())
+	if waitErr == nil || errors.Is(ctx.Err(), context.Canceled) {
+		return nil // don't treat context cancel (graceful shutdown) as an error
 	}
-
-	if cmd.ProcessState.ExitCode() > 0 {
-		return fmt.Errorf("envoy exited with status: %d", cmd.ProcessState.ExitCode())
-	}
-	return nil
+	return waitErr
 }
 
-// awaitAdminAddress waits up to 2 seconds for the admin address to be available and logs it.
-// See https://github.com/envoyproxy/envoy/issues/16050 for moving this logging upstream.
-func awaitAdminAddress(sigCtx context.Context, r *Runtime) {
-	for i := 0; i < 10 && sigCtx.Err() == nil; i++ {
-		adminAddress, adminErr := r.GetAdminAddress()
-		if adminErr == nil {
-			fmt.Fprintf(r.Out, "discovered admin address: %s\n", adminAddress) //nolint:errcheck
-			return
+// processStderr scans stderr output and triggers the startup hook when Envoy is ready.
+func (r *Runtime) processStderr(ctx context.Context, stderrPipe io.Reader, errCh chan<- error) {
+	var procErr error
+	defer func() {
+		if p := recover(); p != nil {
+			if procErr == nil {
+				procErr = fmt.Errorf("processStderr panicked: %v", p)
+			}
+			r.logf("processStderr panicked: %v", p)
 		}
-		time.Sleep(200 * time.Millisecond)
+		errCh <- procErr
+	}()
+
+	scanner := bufio.NewScanner(stderrPipe)
+	hookTriggered := false
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		// Copy stderr line to the output writer
+		fmt.Fprintln(r.Err, line) //nolint:errcheck
+
+		// Trigger startup hook when admin is ready
+		if !hookTriggered && strings.Contains(line, "starting main dispatch loop") {
+			hookTriggered = true
+			adminAddrBytes, err := os.ReadFile(r.adminAddressPath)
+			if err != nil {
+				procErr = fmt.Errorf("failed to read admin address from %s: %w", r.adminAddressPath, err)
+				r.logf(procErr.Error())
+				break
+			}
+			adminAddress := strings.TrimSpace(string(adminAddrBytes))
+			r.adminAddress = adminAddress
+
+			// Call startup hook
+			if err := r.startupHook(ctx, r.o.RunDir, adminAddress); err != nil {
+				procErr = err
+				r.logf(err.Error())
+				break
+			}
+		}
+	}
+
+	// Log and propagate unexpected scanner errors, ignoring EOF, closed pipe, or context cancellation.
+	if err := scanner.Err(); err != nil && ctx.Err() == nil {
+		// Skip expected errors that indicate normal stream closure
+		if !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrClosedPipe) {
+			r.logf("error scanning stderr: %v", err)
+			if procErr == nil {
+				procErr = fmt.Errorf("error scanning stderr: %w", err)
+			}
+		}
 	}
 }
