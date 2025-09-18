@@ -41,7 +41,7 @@ $ func-e use %s`, currentVersionWorkingDirFile, currentVersionHomeDirFile, versi
 			if v, err = version.NewVersion("[version] argument", c.Args().First()); err != nil {
 				err = NewValidationError(err.Error())
 			}
-			return
+			return err
 		},
 		Action: func(c *cli.Context) (err error) {
 			// The argument could be a MinorVersion (ex. 1.19) or a PatchVersion (ex. 1.19.3)

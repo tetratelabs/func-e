@@ -199,7 +199,7 @@ func newApp(o *globals.GlobalOpts) (c *cli.App, stdout, stderr *bytes.Buffer) {
 	c.Writer = stdout
 	c.ErrWriter = stderr
 	o.Out = stdout
-	return
+	return c, stdout, stderr
 }
 
 func runTestCommand(t *testing.T, o *globals.GlobalOpts, args []string) error {
