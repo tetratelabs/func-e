@@ -4,7 +4,6 @@
 package envoy
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -22,7 +21,7 @@ func TestHttpGet_AddsDefaultHeaders(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	res, err := httpGet(context.Background(), ts.URL, globals.DefaultPlatform, "dev")
+	res, err := httpGet(t.Context(), ts.Client(), ts.URL, globals.DefaultPlatform, "dev")
 	require.NoError(t, err)
 
 	defer res.Body.Close() //nolint:errcheck

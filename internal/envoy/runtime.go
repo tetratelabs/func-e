@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -48,9 +49,11 @@ const (
 // opts allows a user running envoy to control the working directory by ID or path, allowing explicit cleanup.
 func NewRuntime(opts *globals.RunOpts, logf LogFunc) *Runtime {
 	safeHook := &safeStartupHook{
-		delegate: collectConfigDump,
-		logf:     logf,
-		timeout:  3 * time.Second,
+		delegate: func(ctx context.Context, runDir, adminAddress string) error {
+			return collectConfigDump(ctx, http.DefaultClient, runDir, adminAddress)
+		},
+		logf:    logf,
+		timeout: 3 * time.Second,
 	}
 	return &Runtime{o: opts, logf: logf, startupHook: safeHook.Hook}
 }

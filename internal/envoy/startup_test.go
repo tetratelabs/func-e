@@ -133,7 +133,7 @@ func TestCollectConfigDump(t *testing.T) {
 				ctx, cancel = context.WithTimeout(ctx, 3*time.Second)
 				defer cancel()
 			}
-			err := collectConfigDump(ctx, tempDir, adminAddress)
+			err := collectConfigDump(ctx, ts.Client(), tempDir, adminAddress)
 
 			if tt.wantErr != "" {
 				require.Error(t, err)
@@ -211,7 +211,7 @@ func TestCopyURLToFile(t *testing.T) {
 				filePath = "/invalid\x00path/test.txt"
 			}
 
-			err := copyURLToFile(ctx, ts.URL, filePath)
+			err := copyURLToFile(ctx, ts.Client(), ts.URL, filePath)
 
 			if tt.wantErr != "" {
 				require.Error(t, err)
@@ -236,7 +236,7 @@ func TestCopyURLToFile_InvalidURL(t *testing.T) {
 	filePath := filepath.Join(tempDir, "test.txt")
 
 	// Test with invalid URL
-	err := copyURLToFile(t.Context(), "://invalid-url", filePath)
+	err := copyURLToFile(t.Context(), http.DefaultClient, "://invalid-url", filePath)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "could not create request")
 }

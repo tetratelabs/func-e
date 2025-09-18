@@ -52,13 +52,13 @@ func (s *safeStartupHook) Hook(ctx context.Context, runDir, adminAddress string)
 // - Endpoints (EDS)
 // - Secrets (SDS)
 // This provides a comprehensive snapshot of Envoy's dynamic configuration state.
-func collectConfigDump(ctx context.Context, runDir, adminAddress string) error {
+func collectConfigDump(ctx context.Context, client *http.Client, runDir, adminAddress string) error {
 	url := fmt.Sprintf("http://%s/config_dump?include_eds", adminAddress)
 	file := filepath.Join(runDir, "config_dump.json")
-	return copyURLToFile(ctx, url, file)
+	return copyURLToFile(ctx, client, url, file)
 }
 
-func copyURLToFile(ctx context.Context, url, fullPath string) error {
+func copyURLToFile(ctx context.Context, client *http.Client, url, fullPath string) error {
 	// #nosec -> runDir is allowed to be anywhere
 	f, err := os.OpenFile(fullPath, os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {
@@ -71,7 +71,7 @@ func copyURLToFile(ctx context.Context, url, fullPath string) error {
 	if err != nil {
 		return fmt.Errorf("could not create request %v: %w", url, err)
 	}
-	res, err := http.DefaultClient.Do(req)
+	res, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("could not read %v: %w", url, err)
 	}
