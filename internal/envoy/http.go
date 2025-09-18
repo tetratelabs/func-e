@@ -13,14 +13,14 @@ import (
 )
 
 // httpGet adds the userAgent header to the request, so that we can tell what is a dev build vs release.
-func httpGet(ctx context.Context, url string, p version.Platform, v string) (*http.Response, error) {
+func httpGet(ctx context.Context, client *http.Client, url string, p version.Platform, v string) (*http.Response, error) {
 	// #nosec -> url can be anywhere by design
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Add("User-Agent", userAgent(p, v))
-	return http.DefaultClient.Do(req)
+	return client.Do(req)
 }
 
 // userAgent returns the 'User-Agent' header value used in HTTP requests. This is useful in log, metrics, analytics, or

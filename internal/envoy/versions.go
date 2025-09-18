@@ -18,7 +18,7 @@ import (
 func NewGetVersions(envoyVersionsURL string, p version.Platform, v string) version.GetReleaseVersions {
 	return func(ctx context.Context) (*version.ReleaseVersions, error) {
 		// #nosec => This is by design, users can call out to wherever they like!
-		resp, err := httpGet(ctx, envoyVersionsURL, p, v)
+		resp, err := httpGet(ctx, http.DefaultClient, envoyVersionsURL, p, v)
 		if err != nil {
 			return nil, err
 		}
