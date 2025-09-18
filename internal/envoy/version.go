@@ -40,7 +40,7 @@ func WriteCurrentVersion(v version.Version, homeDir string) error {
 func CurrentVersion(homeDir string) (v version.Version, source string, err error) {
 	s, source, err := getCurrentVersion(homeDir)
 	v, err = verifyVersion(s, source, err)
-	return
+	return v, source, err
 }
 
 func verifyVersion(v, source string, err error) (version.Version, error) {
@@ -57,7 +57,7 @@ func getCurrentVersion(homeDir string) (v, source string, err error) {
 	if ev, ok := os.LookupEnv("ENVOY_VERSION"); ok {
 		v = ev
 		source = currentVersionVar
-		return
+		return v, source, err
 	}
 
 	// Priority 2: $PWD/.envoy-version
@@ -65,7 +65,7 @@ func getCurrentVersion(homeDir string) (v, source string, err error) {
 	if err == nil {
 		v = strings.TrimSpace(string(data))
 		source = CurrentVersionWorkingDirFile
-		return
+		return v, source, err
 	} else if !os.IsNotExist(err) {
 		return "", CurrentVersionWorkingDirFile, err
 	}
@@ -73,7 +73,7 @@ func getCurrentVersion(homeDir string) (v, source string, err error) {
 	// Priority 3: $FUNC_E_HOME/version
 	source = CurrentVersionHomeDirFile
 	v, err = getHomeVersion(homeDir)
-	return
+	return v, source, err
 }
 
 func getHomeVersion(homeDir string) (v string, err error) {
@@ -83,7 +83,7 @@ func getHomeVersion(homeDir string) (v string, err error) {
 	} else if os.IsNotExist(err) {
 		err = nil // ok on file-not-found
 	}
-	return
+	return v, err
 }
 
 // VersionUsageList is the priority order of Envoy version sources.

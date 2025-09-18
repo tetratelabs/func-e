@@ -35,7 +35,7 @@ func (d *digester) Read(p []byte) (n int, err error) {
 	if n > 0 { // per docs on hash.Hash, an error is impossible on Write
 		d.h.Write(p[:n])
 	}
-	return
+	return n, err
 }
 
 // UntarAndVerify is like Untar, except it errors if the stream has a different signature than the given SHA-256.

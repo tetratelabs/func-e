@@ -169,5 +169,5 @@ func setupTestVersions(t *testing.T) (o *globals.GlobalOpts) {
 	oneTwoTwo := filepath.Join(o.HomeDir, "versions", "1.2.2")
 	require.NoError(t, os.MkdirAll(oneTwoTwo, 0o700))
 	morerequire.RequireSetMtime(t, oneTwoTwo, "2021-01-31")
-	return
+	return o
 }

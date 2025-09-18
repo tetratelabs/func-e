@@ -63,5 +63,5 @@ func countLines(stdout string) (count int) {
 	for s.Scan() {
 		count++
 	}
-	return
+	return count
 }

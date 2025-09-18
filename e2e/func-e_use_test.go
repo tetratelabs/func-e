@@ -162,5 +162,5 @@ func getVersionsRange(stdout, minor string) (first, latest string) {
 			}
 		}
 	}
-	return
+	return first, latest
 }
