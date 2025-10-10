@@ -17,6 +17,7 @@ import (
 
 	"github.com/tetratelabs/func-e/internal/envoy/config"
 	"github.com/tetratelabs/func-e/internal/globals"
+	internalmiddleware "github.com/tetratelabs/func-e/internal/middleware"
 )
 
 type LogFunc func(format string, a ...any)
@@ -37,7 +38,7 @@ type LogFunc func(format string, a ...any)
 // doesn't write a lot to stderr, so short tasks won't fill up the pipe and
 // cause Envoy to block. However, if your hook is long-running, it must be
 // run in a goroutine.
-type StartupHook func(ctx context.Context, runDir, adminAddress string) error
+type StartupHook = internalmiddleware.StartupHook
 
 const (
 	configYamlFlag       = `--config-yaml`
@@ -48,14 +49,21 @@ const (
 // NewRuntime creates a new Runtime that runs envoy in globals.RunOpts RunDir
 // opts allows a user running envoy to control the working directory by ID or path, allowing explicit cleanup.
 func NewRuntime(opts *globals.RunOpts, logf LogFunc) *Runtime {
-	safeHook := &safeStartupHook{
-		delegate: func(ctx context.Context, runDir, adminAddress string) error {
-			return collectConfigDump(ctx, http.DefaultClient, runDir, adminAddress)
-		},
-		logf:    logf,
-		timeout: 3 * time.Second,
+	// Use user-provided hook if set, otherwise use default
+	var hook StartupHook
+	if opts.StartupHook != nil {
+		hook = opts.StartupHook
+	} else {
+		safeHook := &safeStartupHook{
+			delegate: func(ctx context.Context, runDir, adminAddress string) error {
+				return collectConfigDump(ctx, http.DefaultClient, runDir, adminAddress)
+			},
+			logf:    logf,
+			timeout: 3 * time.Second,
+		}
+		hook = safeHook.Hook
 	}
-	return &Runtime{o: opts, logf: logf, startupHook: safeHook.Hook}
+	return &Runtime{o: opts, logf: logf, startupHook: hook}
 }
 
 // Runtime manages an Envoy lifecycle

@@ -5,7 +5,11 @@
 // This is internal and not intended for direct use by external packages.
 package opts
 
-import "io"
+import (
+	"io"
+
+	internalmiddleware "github.com/tetratelabs/func-e/internal/middleware"
+)
 
 // RunOpts holds the configuration set by RunOptions.
 type RunOpts struct {
@@ -15,5 +19,6 @@ type RunOpts struct {
 	Out              io.Writer
 	EnvoyOut         io.Writer
 	EnvoyErr         io.Writer
-	EnvoyPath        string // Internal: path to the Envoy binary (for tests).
+	EnvoyPath        string                         // Internal: path to the Envoy binary (for tests).
+	StartupHook      internalmiddleware.StartupHook // Experimental: custom startup hook
 }
