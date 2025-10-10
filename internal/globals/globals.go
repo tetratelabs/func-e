@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"strings"
 
+	internalmiddleware "github.com/tetratelabs/func-e/internal/middleware"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
@@ -24,6 +25,8 @@ type RunOpts struct {
 	// This is not Envoy's working directory, which remains the same as the $PWD of func-e.
 	// Defaults to "$HomeDir/runs/$epochtime"
 	RunDir string
+	// StartupHook is an experimental hook that runs after Envoy starts.
+	StartupHook internalmiddleware.StartupHook
 }
 
 // GlobalOpts represents options that affect more than one func-e commands.
