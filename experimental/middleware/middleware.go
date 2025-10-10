@@ -50,7 +50,7 @@ func WithRunMiddleware(ctx context.Context, middleware RunMiddleware) context.Co
 	}
 	// Store as unnamed function type to enable type assertion in internal/run
 	var mw func(api.RunFunc) api.RunFunc = middleware
-	return context.WithValue(ctx, internalhook.MiddlewareKey{}, mw)
+	return context.WithValue(ctx, internalhook.Key{}, mw)
 }
 
 // WithStartupHook returns a RunOption that sets a startup hook.

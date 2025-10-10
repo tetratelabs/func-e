@@ -26,7 +26,7 @@ func EnvoyPath(envoyPath string) api.RunOption {
 func Run(ctx context.Context, args []string, options ...api.RunOption) error {
 	// Check if middleware is set in context
 	baseRun := api.RunFunc(runImpl)
-	if middlewareVal := ctx.Value(internalmiddleware.MiddlewareKey{}); middlewareVal != nil {
+	if middlewareVal := ctx.Value(internalmiddleware.Key{}); middlewareVal != nil {
 		// Type assert to function that matches our middleware signature
 		if middleware, ok := middlewareVal.(func(api.RunFunc) api.RunFunc); ok {
 			baseRun = middleware(baseRun)

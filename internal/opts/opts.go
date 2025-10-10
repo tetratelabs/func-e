@@ -19,6 +19,6 @@ type RunOpts struct {
 	Out              io.Writer
 	EnvoyOut         io.Writer
 	EnvoyErr         io.Writer
-	EnvoyPath        string              // Internal: path to the Envoy binary (for tests).
+	EnvoyPath        string                         // Internal: path to the Envoy binary (for tests).
 	StartupHook      internalmiddleware.StartupHook // Experimental: custom startup hook
 }

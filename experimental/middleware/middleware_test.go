@@ -5,8 +5,6 @@ package middleware_test
 
 import (
 	"context"
-	func_e "github.com/tetratelabs/func-e"
-	"github.com/tetratelabs/func-e/internal/version"
 	"io"
 	"path/filepath"
 	"strings"
@@ -14,9 +12,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	func_e "github.com/tetratelabs/func-e"
 	"github.com/tetratelabs/func-e/api"
 	"github.com/tetratelabs/func-e/experimental/middleware"
 	internalmiddleware "github.com/tetratelabs/func-e/internal/middleware"
+	"github.com/tetratelabs/func-e/internal/version"
 )
 
 type arbitrary struct{}
@@ -48,7 +48,7 @@ func TestWithRunMiddleware(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			actual := middleware.WithRunMiddleware(testCtx, tt.input)
 			if tt.expected {
-				val := actual.Value(internalmiddleware.MiddlewareKey{})
+				val := actual.Value(internalmiddleware.Key{})
 				mw, ok := val.(func(api.RunFunc) api.RunFunc)
 				require.NotNil(t, mw)
 				require.True(t, ok)

@@ -7,8 +7,8 @@ import (
 	"context"
 )
 
-// MiddlewareKey is a context.Context Value key. Its associated value should be a RunMiddleware.
-type MiddlewareKey struct{}
+// Key is a context.Context Value key. Its associated value should be a RunMiddleware.
+type Key struct{}
 
 // StartupHook runs just after Envoy logs "starting main dispatch loop".
 //
