@@ -1,7 +1,7 @@
 // Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package api
+package runtime
 
 import (
 	"bytes"

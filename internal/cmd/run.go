@@ -8,9 +8,9 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/tetratelabs/func-e/internal/api"
 	"github.com/tetratelabs/func-e/internal/envoy"
 	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/runtime"
 )
 
 // NewRunCmd create a command responsible for starting an Envoy process
@@ -33,7 +33,7 @@ directory (aka $PWD) until func-e is interrupted (ex Ctrl+C, Ctrl+Break).
 Envoy's process ID and console output write to "envoy.pid", stdout.log" and
 "stderr.log" in the run directory (` + fmt.Sprintf("`%s`", runDirectoryExpression) + `).`,
 		Before: func(c *cli.Context) error {
-			if err := api.EnsureEnvoyVersion(c.Context, o); err != nil {
+			if err := runtime.EnsureEnvoyVersion(c.Context, o); err != nil {
 				return NewValidationError(err.Error())
 			}
 			return nil
@@ -41,7 +41,7 @@ Envoy's process ID and console output write to "envoy.pid", stdout.log" and
 		Action: func(c *cli.Context) error {
 			o.EnvoyOut = c.App.Writer
 			o.EnvoyErr = c.App.ErrWriter
-			return api.Run(c.Context, o, c.Args().Slice())
+			return runtime.Run(c.Context, o, c.Args().Slice())
 		},
 		CustomHelpTemplate: cli.CommandHelpTemplate,
 	}

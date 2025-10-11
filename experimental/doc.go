@@ -1,7 +1,8 @@
 // Copyright 2025 Tetrate
 // SPDX-License-Identifier: Apache-2.0
 
-// Package middleware provides experimental APIs for intercepting func-e's Run lifecycle.
+// Package experimental provides experimental APIs for intercepting func-e's
+// Run lifecycle.
 //
 // # Experimental
 //
@@ -41,4 +42,4 @@
 //	        log.Fatal(err)
 //	    }
 //	}
-package middleware
+package experimental

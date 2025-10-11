@@ -17,6 +17,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	internalapi "github.com/tetratelabs/func-e/internal/api"
 	"github.com/tetratelabs/func-e/internal/globals"
 )
 
@@ -26,7 +27,7 @@ func TestRuntime_Run_EnvoyError(t *testing.T) {
 	runDir := filepath.Join(tempDir, "runs", "1619574747231823000")
 	require.NoError(t, os.MkdirAll(runDir, 0o750))
 
-	// Initialize runtime
+	// Initialize client
 	stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
 	logToOutput := func(format string, args ...interface{}) {
 		stdout.WriteString(fmt.Sprintf(format, args...) + "\n")
@@ -75,14 +76,14 @@ func TestRuntime_Run_StartupHook(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		startupHook StartupHook
+		startupHook internalapi.StartupHook
 		expectError string
 		expectLog   string
 		envoyArgs   []string
 	}{
 		{
 			name: "startup hook returns error",
-			startupHook: func(ctx context.Context, runDir, adminAddress string) error {
+			startupHook: func(ctx context.Context, adminClient internalapi.AdminClient) error {
 				return errors.New("database connection failed")
 			},
 			expectError: "database connection failed",
@@ -93,18 +94,18 @@ func TestRuntime_Run_StartupHook(t *testing.T) {
 		},
 		{
 			name: "startup hook panics",
-			startupHook: func(ctx context.Context, runDir, adminAddress string) error {
+			startupHook: func(ctx context.Context, adminClient internalapi.AdminClient) error {
 				panic("nil pointer dereference")
 			},
-			expectError: "processStderr panicked: nil pointer dereference",
-			expectLog:   "processStderr panicked: nil pointer dereference",
+			expectError: "startup hook panicked: nil pointer dereference",
+			expectLog:   "startup hook panicked: nil pointer dereference",
 			envoyArgs: []string{
 				"--config-yaml", "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 0}}}",
 			},
 		},
 		{
 			name: "startup hook succeeds",
-			startupHook: func(ctx context.Context, runDir, adminAddress string) error {
+			startupHook: func(ctx context.Context, adminClient internalapi.AdminClient) error {
 				logToOutput("startup hook executed successfully")
 				return nil
 			},
@@ -124,7 +125,7 @@ func TestRuntime_Run_StartupHook(t *testing.T) {
 			runDir := filepath.Join(tempDir, "runs", "test")
 			require.NoError(t, os.MkdirAll(runDir, 0o750))
 
-			// Create runtime with custom startup hook
+			// Create client with custom startup hook
 			r := NewRuntime(&globals.RunOpts{
 				EnvoyPath: fakeEnvoyBin,
 				RunDir:    runDir,
@@ -137,9 +138,9 @@ func TestRuntime_Run_StartupHook(t *testing.T) {
 			defer cancel()
 
 			// Wrap the hook to cancel context after execution
-			r.startupHook = func(ctx context.Context, runDir, adminAddress string) error {
+			r.startupHook = func(ctx context.Context, adminClient internalapi.AdminClient) error {
 				defer cancel() // Always cancel, even if hook panics
-				return tt.startupHook(ctx, runDir, adminAddress)
+				return tt.startupHook(ctx, adminClient)
 			}
 
 			err := r.Run(ctx, tt.envoyArgs)
@@ -166,123 +167,6 @@ func TestRuntime_Run_StartupHook(t *testing.T) {
 				err := r.cmd.Process.Signal(syscall.Signal(0))
 				require.Error(t, err, "process should be dead")
 				require.Contains(t, err.Error(), "process already finished")
-			}
-		})
-	}
-}
-
-func TestRuntime_processStderr(t *testing.T) {
-	tests := []struct {
-		name        string
-		stderrLines []string
-		startupHook func(context.CancelFunc) StartupHook
-		expectError string
-	}{
-		{
-			name: "normal operation",
-			stderrLines: []string{
-				"[info] initializing epoch 0",
-				"[info] admin address: 127.0.0.1:9901",
-				"[info] starting main dispatch loop",
-				"[info] all clusters initialized",
-			},
-			startupHook: func(cancelFunc context.CancelFunc) StartupHook {
-				return func(ctx context.Context, runDir, adminAddress string) error {
-					return nil
-				}
-			},
-		},
-		{
-			name: "startup hook error stops processing",
-			stderrLines: []string{
-				"[info] starting main dispatch loop",
-			},
-			startupHook: func(cancelFunc context.CancelFunc) StartupHook {
-				return func(ctx context.Context, runDir, adminAddress string) error {
-					return errors.New("hook failed")
-				}
-			},
-			expectError: "hook failed",
-		},
-		{
-			name: "panic in startup hook",
-			stderrLines: []string{
-				"[info] starting main dispatch loop",
-			},
-			startupHook: func(cancelFunc context.CancelFunc) StartupHook {
-				return func(ctx context.Context, runDir, adminAddress string) error {
-					panic("test panic")
-				}
-			},
-			expectError: "processStderr panicked: test panic",
-		},
-		{
-			name: "context cancelled during processing",
-			stderrLines: []string{
-				"[info] some log",
-				"[info] another log",
-			},
-			startupHook: func(cancelFunc context.CancelFunc) StartupHook {
-				return func(ctx context.Context, runDir, adminAddress string) error {
-					cancelFunc()
-					return nil
-				}
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Create test environment
-			tempDir := t.TempDir()
-			adminAddressPath := filepath.Join(tempDir, "admin-address.txt")
-			require.NoError(t, os.WriteFile(adminAddressPath, []byte("127.0.0.1:9901"), 0o600))
-
-			// Setup runtime
-			var logBuf bytes.Buffer
-			logf := func(format string, args ...interface{}) {
-				logBuf.WriteString(fmt.Sprintf(format, args...) + "\n")
-			}
-
-			ctx, cancel := context.WithCancel(t.Context())
-			defer cancel()
-
-			r := &Runtime{
-				o: &globals.RunOpts{
-					RunDir: tempDir,
-				},
-				logf:             logf,
-				Err:              new(bytes.Buffer),
-				adminAddressPath: adminAddressPath,
-				startupHook:      tt.startupHook(cancel),
-			}
-
-			// Create a buffer with test data
-			var stderrData bytes.Buffer
-			for _, line := range tt.stderrLines {
-				stderrData.WriteString(line + "\n")
-			}
-
-			errCh := make(chan error, 1)
-
-			// Process stderr directly - no goroutine needed
-			r.processStderr(ctx, &stderrData, errCh)
-
-			// Get the error
-			err := <-errCh
-
-			// Check error
-			if tt.expectError != "" {
-				require.Error(t, err)
-				require.EqualError(t, err, tt.expectError)
-			} else {
-				require.NoError(t, err)
-			}
-
-			// Verify stderr was copied
-			stderrOutput := r.Err.(*bytes.Buffer).String()
-			for _, line := range tt.stderrLines {
-				require.Contains(t, stderrOutput, line)
 			}
 		})
 	}

@@ -67,43 +67,39 @@ type Config struct {
 	StaticListeners []Listener
 }
 
-// ParseListeners parses the admin address (if any) and all static listeners from command-line args.
+// ParseListeners parses the admin address (if any) and all static listeners from config sources.
 //
-// This mimics Envoy's config merging behavior:
-// - Each config file or YAML string is parsed in order.
-// - For each listener, the last occurrence with a given name wins (mechanical merge, like Envoy's protobuf merge).
-// - The admin address is also replaced by the last occurrence.
-func ParseListeners(args []string) (*Config, error) {
+// This mimics Envoy's config merging behavior from source/server/server.cc:
+//   - configPath is loaded first (if non-empty)
+//   - configYaml is merged on top via protobuf MergeFrom (if non-empty)
+//   - configYaml always wins for conflicting fields, regardless of which was specified first on CLI
+//
+// For listeners with the same name, the later config wins (protobuf MergeFrom behavior).
+func ParseListeners(configPath, configYaml string) (*Config, error) {
 	listenerMap := make(map[string]Listener)
 	var adminAddr string
-	for i := 0; i < len(args); {
-		var yamlContent string
-		var err error
 
-		switch args[i] {
-		case "--config-yaml":
-			if i+1 >= len(args) {
-				return nil, fmt.Errorf("missing value for %s", args[i])
-			}
-			yamlContent = args[i+1]
-			i += 2
-		case "-c", "--config-path":
-			if i+1 >= len(args) {
-				return nil, fmt.Errorf("missing value for %s", args[i])
-			}
-			configPath := args[i+1]
-			yamlBytes, err := os.ReadFile(configPath)
-			if err != nil {
-				return nil, fmt.Errorf("failed to read config file %s: %w", configPath, err)
-			}
-			yamlContent = string(yamlBytes)
-			i += 2
-		default:
-			i++
-			continue
+	// Load config-path first
+	if configPath != "" {
+		yamlBytes, err := os.ReadFile(configPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read config file %s: %w", configPath, err)
 		}
+		admin, listeners, err := parseListenersFromYAML(string(yamlBytes))
+		if err != nil {
+			return nil, err
+		}
+		if admin != "" {
+			adminAddr = admin
+		}
+		for _, l := range listeners {
+			listenerMap[l.Name] = l
+		}
+	}
 
-		admin, listeners, err := parseListenersFromYAML(yamlContent)
+	// Merge config-yaml on top (always wins)
+	if configYaml != "" {
+		admin, listeners, err := parseListenersFromYAML(configYaml)
 		if err != nil {
 			return nil, err
 		}
@@ -126,13 +122,33 @@ func ParseListeners(args []string) (*Config, error) {
 	}, nil
 }
 
-// FindAdminAddress parses the admin address from command-line args.
-func FindAdminAddress(args []string) (string, error) {
-	result, err := ParseListeners(args)
+// FindAdminAddress parses the admin address from config sources.
+func FindAdminAddress(configPath, configYaml string) (string, error) {
+	result, err := ParseListeners(configPath, configYaml)
 	if err != nil {
 		return "", err
 	}
 	return result.Admin, nil
+}
+
+// FindAdminAddressFromArgs extracts config sources from args and returns the admin address.
+func FindAdminAddressFromArgs(args []string) (string, error) {
+	var configPath, configYaml string
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "-c", "--config-path":
+			if i+1 < len(args) {
+				configPath = args[i+1]
+				i++
+			}
+		case "--config-yaml":
+			if i+1 < len(args) {
+				configYaml = args[i+1]
+				i++
+			}
+		}
+	}
+	return FindAdminAddress(configPath, configYaml)
 }
 
 func parseListenersFromYAML(yamlString string) (admin string, listeners []Listener, err error) {

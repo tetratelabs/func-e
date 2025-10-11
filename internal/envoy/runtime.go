@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -15,30 +14,12 @@ import (
 	"syscall"
 	"time"
 
+	internalapi "github.com/tetratelabs/func-e/internal/api"
 	"github.com/tetratelabs/func-e/internal/envoy/config"
 	"github.com/tetratelabs/func-e/internal/globals"
-	internalmiddleware "github.com/tetratelabs/func-e/internal/middleware"
 )
 
 type LogFunc func(format string, a ...any)
-
-// StartupHook runs just after Envoy logs "starting main dispatch loop".
-//
-// This is useful for callers who need access to two non-deterministic values:
-//
-// 1. The run directory (where stdout, stderr and the pid file are written)
-// 2. The admin address (which is possibly ephemeral)
-//
-// ## Implementation Notes
-//
-// Startup hooks are considered mandatory and will stop the run with error if
-// failed. If your hook is optional, rescue panics and log your own errors.
-//
-// Startup hooks run on the goroutine that consumes Envoy's STDERR. Envoy
-// doesn't write a lot to stderr, so short tasks won't fill up the pipe and
-// cause Envoy to block. However, if your hook is long-running, it must be
-// run in a goroutine.
-type StartupHook = internalmiddleware.StartupHook
 
 const (
 	configYamlFlag       = `--config-yaml`
@@ -50,13 +31,13 @@ const (
 // opts allows a user running envoy to control the working directory by ID or path, allowing explicit cleanup.
 func NewRuntime(opts *globals.RunOpts, logf LogFunc) *Runtime {
 	// Use user-provided hook if set, otherwise use default
-	var hook StartupHook
+	var hook internalapi.StartupHook
 	if opts.StartupHook != nil {
 		hook = opts.StartupHook
 	} else {
 		safeHook := &safeStartupHook{
-			delegate: func(ctx context.Context, runDir, adminAddress string) error {
-				return collectConfigDump(ctx, http.DefaultClient, runDir, adminAddress)
+			delegate: func(ctx context.Context, adminClient internalapi.AdminClient) error {
+				return collectConfigDump(ctx, http.DefaultClient, adminClient)
 			},
 			logf:    logf,
 			timeout: 3 * time.Second,
@@ -76,8 +57,7 @@ type Runtime struct {
 
 	logf LogFunc
 
-	adminAddress, adminAddressPath string
-	startupHook                    StartupHook
+	startupHook internalapi.StartupHook
 }
 
 // String is only used in tests. It is slow, but helps when debugging CI failures
@@ -139,7 +119,7 @@ ARGS:
 	}
 
 	// We backfill an ephemeral admin server only when we can verify for sure there is none.
-	if adminAddress, err := config.FindAdminAddress(args); err != nil {
+	if adminAddress, err := config.FindAdminAddressFromArgs(args); err != nil {
 		logf("failed to find admin address: %s", err)
 	} else if adminAddress == "" {
 		logf("configuring ephemeral admin server")
@@ -153,21 +133,4 @@ ARGS:
 		args = append(args, adminAddressPathFlag, adminAddressPath)
 	}
 	return adminAddressPath, args, nil
-}
-
-// GetAdminAddress returns the current admin address in host:port format, or empty if not yet available.
-// Exported for admin data collection functionality.
-func (r *Runtime) GetAdminAddress() (string, error) {
-	if r.adminAddress != "" { // We don't expect the admin address to change once written, so cache it.
-		return r.adminAddress, nil
-	}
-	adminAddress, err := os.ReadFile(r.adminAddressPath)
-	if err != nil {
-		return "", fmt.Errorf("unable to read %s: %w", r.adminAddressPath, err)
-	}
-	if _, _, err := net.SplitHostPort(string(adminAddress)); err != nil {
-		return "", fmt.Errorf("invalid admin address in %s: %w", r.adminAddressPath, err)
-	}
-	r.adminAddress = string(adminAddress)
-	return r.adminAddress, nil
 }

@@ -8,9 +8,9 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/tetratelabs/func-e/internal/api"
 	"github.com/tetratelabs/func-e/internal/envoy"
 	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/runtime"
 )
 
 // NewWhichCmd create a command responsible for downloading printing the path to the Envoy binary
@@ -22,7 +22,7 @@ func NewWhichCmd(o *globals.GlobalOpts) *cli.Command {
 		Before: func(c *cli.Context) error {
 			// no logging on version query/download. This is deferred until we know we are executing "which"
 			o.Quiet = true
-			return api.EnsureEnvoyVersion(c.Context, o)
+			return runtime.EnsureEnvoyVersion(c.Context, o)
 		},
 		Action: func(c *cli.Context) error {
 			ev, err := envoy.InstallIfNeeded(c.Context, o)

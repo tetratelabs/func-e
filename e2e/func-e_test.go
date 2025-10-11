@@ -14,9 +14,9 @@ import (
 	"runtime"
 	"syscall"
 	"testing"
+	"time"
 
-	"github.com/shirou/gopsutil/v4/process"
-
+	"github.com/tetratelabs/func-e/experimental/admin"
 	"github.com/tetratelabs/func-e/internal/test/build"
 	"github.com/tetratelabs/func-e/internal/test/e2e"
 )
@@ -62,8 +62,8 @@ func readOrBuildFuncEBin() error {
 }
 
 // funcEExec is a temporary adapter for e2e tests except run.
-func funcEExec(args ...string) (string, string, error) {
-	cmd := exec.CommandContext(context.Background(), funcEBin, args...)
+func funcEExec(ctx context.Context, args ...string) (string, string, error) {
+	cmd := exec.CommandContext(ctx, funcEBin, args...)
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
 	cmd.Stdout = io.MultiWriter(os.Stdout, stdout) // we want to see full `func-e` output in the test log
@@ -85,42 +85,19 @@ type funcE struct {
 	stdout, stderr io.Writer
 }
 
-// OnStart inspects the running func-e process tree to find the Envoy process and its run directory.
-func (a *funcE) OnStart(ctx context.Context) (runDir string, envoyPid int32, err error) {
+// OnStart inspects the running func-e process tree to find the Envoy process and its run directory,
+// then waits for Envoy's admin API to be ready.
+func (a *funcE) OnStart(ctx context.Context) (admin.AdminClient, error) {
 	if a.cmd == nil || a.cmd.Process == nil {
-		return "", 0, fmt.Errorf("no active process")
+		return nil, fmt.Errorf("no active process")
 	}
-	funcEPid := int32(a.cmd.Process.Pid)
-	funcEProc, err := process.NewProcessWithContext(ctx, funcEPid)
-	if err != nil {
-		return "", 0, fmt.Errorf("failed to get func-e process: %w", err)
-	}
+	funcEPid := a.cmd.Process.Pid
 
-	children, err := funcEProc.Children()
-	if err != nil {
-		return "", 0, fmt.Errorf("failed to get child processes: %w", err)
+	adminClient, err := admin.NewAdminClient(ctx, funcEPid)
+	if err == nil {
+		err = adminClient.AwaitReady(ctx, 100*time.Millisecond)
 	}
-
-	if len(children) == 0 {
-		return "", 0, fmt.Errorf("no child processes found")
-	}
-
-	envoyProc := children[0]
-	envoyPidValue := envoyProc.Pid
-
-	// Get command line args to find run directory
-	cmdline, err := envoyProc.CmdlineSlice()
-	if err != nil {
-		return "", 0, fmt.Errorf("failed to get command line of envoy: %w", err)
-	}
-
-	// Look for the run directory in the command line
-	for i, arg := range cmdline {
-		if arg == "--func-e-run-dir" && i+1 < len(cmdline) {
-			return cmdline[i+1], envoyPidValue, nil
-		}
-	}
-	return "", 0, fmt.Errorf("failed to find run dir in envoy args: %v", cmdline)
+	return adminClient, err
 }
 
 // Run invokes `func-e run args...` and blocks until the process exits.

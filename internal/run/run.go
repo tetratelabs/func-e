@@ -8,16 +8,15 @@ import (
 	"os"
 
 	"github.com/tetratelabs/func-e/api"
-	internalapi "github.com/tetratelabs/func-e/internal/api"
+	api2 "github.com/tetratelabs/func-e/internal/api"
 	"github.com/tetratelabs/func-e/internal/globals"
-	internalmiddleware "github.com/tetratelabs/func-e/internal/middleware"
-	"github.com/tetratelabs/func-e/internal/opts"
+	internalapi "github.com/tetratelabs/func-e/internal/runtime"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
 // EnvoyPath overrides the path to the Envoy binary. Used for testing with a fake binary.
 func EnvoyPath(envoyPath string) api.RunOption {
-	return func(o *opts.RunOpts) {
+	return func(o *api2.RunOpts) {
 		o.EnvoyPath = envoyPath
 	}
 }
@@ -26,7 +25,7 @@ func EnvoyPath(envoyPath string) api.RunOption {
 func Run(ctx context.Context, args []string, options ...api.RunOption) error {
 	// Check if middleware is set in context
 	baseRun := api.RunFunc(runImpl)
-	if middlewareVal := ctx.Value(internalmiddleware.Key{}); middlewareVal != nil {
+	if middlewareVal := ctx.Value(api2.RunMiddlewareKey{}); middlewareVal != nil {
 		// Type assert to function that matches our middleware signature
 		if middleware, ok := middlewareVal.(func(api.RunFunc) api.RunFunc); ok {
 			baseRun = middleware(baseRun)
@@ -46,7 +45,7 @@ func runImpl(ctx context.Context, args []string, options ...api.RunOption) error
 }
 
 func initOpts(ctx context.Context, options ...api.RunOption) (*globals.GlobalOpts, error) {
-	ro := &opts.RunOpts{
+	ro := &api2.RunOpts{
 		Out:      os.Stdout,
 		EnvoyOut: os.Stdout,
 		EnvoyErr: os.Stderr,

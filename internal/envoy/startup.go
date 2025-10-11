@@ -11,20 +11,22 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	internalapi "github.com/tetratelabs/func-e/internal/api"
 )
 
 // safeStartupHook wraps a StartupHook to provide panic recovery and timeout handling.
 type safeStartupHook struct {
-	delegate StartupHook
+	delegate internalapi.StartupHook
 	logf     LogFunc
 	timeout  time.Duration
 }
 
 // Ensure safeStartupHook implements StartupHook interface
-var _ StartupHook = (*safeStartupHook)(nil).Hook
+var _ internalapi.StartupHook = (*safeStartupHook)(nil).Hook
 
 // Hook implements the StartupHook interface with panic recovery and timeout.
-func (s *safeStartupHook) Hook(ctx context.Context, runDir, adminAddress string) error {
+func (s *safeStartupHook) Hook(ctx context.Context, adminClient internalapi.AdminClient) error {
 	defer func() {
 		if p := recover(); p != nil {
 			s.logf("startup hook panicked: %v", p)
@@ -37,7 +39,7 @@ func (s *safeStartupHook) Hook(ctx context.Context, runDir, adminAddress string)
 		defer cancel()
 	}
 
-	if err := s.delegate(ctx, runDir, adminAddress); err != nil {
+	if err := s.delegate(ctx, adminClient); err != nil {
 		s.logf(err.Error())
 	}
 	return nil
@@ -52,9 +54,9 @@ func (s *safeStartupHook) Hook(ctx context.Context, runDir, adminAddress string)
 // - Endpoints (EDS)
 // - Secrets (SDS)
 // This provides a comprehensive snapshot of Envoy's dynamic configuration state.
-func collectConfigDump(ctx context.Context, client *http.Client, runDir, adminAddress string) error {
-	url := fmt.Sprintf("http://%s/config_dump?include_eds", adminAddress)
-	file := filepath.Join(runDir, "config_dump.json")
+func collectConfigDump(ctx context.Context, client *http.Client, adminClient internalapi.AdminClient) error {
+	url := fmt.Sprintf("http://127.0.0.1:%d/config_dump?include_eds", adminClient.Port())
+	file := filepath.Join(adminClient.RunDir(), "config_dump.json")
 	return copyURLToFile(ctx, client, url, file)
 }
 

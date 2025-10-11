@@ -18,10 +18,10 @@ import (
 // lagging on Homebrew maintenance (OS/x), or lag in someone re-releasing on archive-envoy after Homebrew is updated.
 func TestFuncEWhich(t *testing.T) { // not parallel as it can end up downloading concurrently
 	// Explicitly issue "use" for the last known version to ensure when latest is ahead of this, the test doesn't fail.
-	_, _, err := funcEExec("use", version.LastKnownEnvoy.String())
+	_, _, err := funcEExec(t.Context(), "use", version.LastKnownEnvoy.String())
 	require.NoError(t, err)
 
-	stdout, stderr, err := funcEExec("which")
+	stdout, stderr, err := funcEExec(t.Context(), "which")
 	relativeEnvoyBin := filepath.Join("versions", version.LastKnownEnvoy.String(), "bin", "envoy")
 	require.Contains(t, stdout, fmt.Sprintf("%s\n", relativeEnvoyBin))
 	require.Empty(t, stderr)

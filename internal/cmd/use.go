@@ -8,9 +8,9 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/tetratelabs/func-e/internal/api"
 	"github.com/tetratelabs/func-e/internal/envoy"
 	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/runtime"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
@@ -46,7 +46,7 @@ $ func-e use %s`, currentVersionWorkingDirFile, currentVersionHomeDirFile, versi
 		Action: func(c *cli.Context) (err error) {
 			// The argument could be a MinorVersion (ex. 1.19) or a PatchVersion (ex. 1.19.3)
 			// We need to download and install a patch version
-			if o.EnvoyVersion, err = api.EnsurePatchVersion(c.Context, o, v); err != nil {
+			if o.EnvoyVersion, err = runtime.EnsurePatchVersion(c.Context, o, v); err != nil {
 				return err
 			}
 			if _, err = envoy.InstallIfNeeded(c.Context, o); err != nil {

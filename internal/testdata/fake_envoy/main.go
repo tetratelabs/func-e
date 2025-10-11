@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -25,6 +26,21 @@ const (
 	errorConfig = "At least one of --config-path or --config-yaml or Options::configProto() should be non-empty"
 	lf          = "\n" // lf ensures line feeds are realistic
 )
+
+// logLevel represents Envoy's logging level
+type logLevel int
+
+const (
+	logLevelTrace logLevel = iota
+	logLevelDebug
+	logLevelInfo
+	logLevelWarning
+	logLevelError
+	logLevelCritical
+	logLevelOff
+)
+
+var currentLogLevel = logLevelInfo // default
 
 type listenerStatus struct {
 	Name         string `json:"name"`
@@ -50,20 +66,18 @@ var listenerStatuses []listenerStatus
 // is for unit tests to run without actually downloading Envoy. Do not add artificial
 // timeouts or other behaviors that don't match real Envoy.
 func main() {
-	// Log arguments like Envoy
-	fmt.Fprintln(os.Stderr, strings.Join(os.Args, ", "))
+	// Parse and validate arguments
+	adminAddressPath, configPath, configYaml := parseArgs()
 
 	// Initialize epoch
-	fmt.Fprintln(os.Stderr, "initializing epoch 0")
+	fprintf(os.Stderr, "initializing epoch 0\n")
 
-	// Parse and validate arguments
-	haveConfig, adminAddressPath, configArgs := parseArgs()
-	if !haveConfig {
+	if configPath == "" && configYaml == "" {
 		exit(1, "exiting", errorConfig)
 	}
 
 	// Parse listener configs
-	cfg, err := config.ParseListeners(configArgs)
+	cfg, err := config.ParseListeners(configPath, configYaml)
 	if err != nil {
 		exit(1, err.Error())
 	}
@@ -80,7 +94,7 @@ func main() {
 	startStaticListeners(cfg, &wg, &servers, &listeners)
 
 	// Start admin server if configured
-	adminAddress, err := config.FindAdminAddress(configArgs)
+	adminAddress, err := config.FindAdminAddress(configPath, configYaml)
 	if err != nil {
 		exit(1, err.Error())
 	}
@@ -89,32 +103,82 @@ func main() {
 	}
 
 	// Indicate readiness
-	fmt.Fprintln(os.Stderr, "starting main dispatch loop")
+	fprintf(os.Stderr, "starting main dispatch loop\n")
 
 	// Wait for shutdown signal
 	handleShutdown(sigChan, &wg, servers, listeners)
 }
 
+// fprintf logs a formatted message only if the log level is trace, debug, or info
+func fprintf(w io.Writer, format string, args ...interface{}) {
+	if currentLogLevel <= logLevelInfo {
+		fmt.Fprintf(w, format, args...)
+	}
+}
+
 // parseArgs processes command-line arguments, collecting config-related flags and detecting admin path.
-func parseArgs() (haveConfig bool, adminAddressPath string, configArgs []string) {
+func parseArgs() (adminAddressPath, configPath, configYaml string) {
 	for i := 1; i < len(os.Args); i++ {
 		switch os.Args[i] {
 		case "run": // Prevent uber bug
 			exit(1, "run -- Couldn't find match for argument")
-		case "-c", "--config-path", "--config-yaml":
-			haveConfig = true
+		case "-c", "--config-path":
+			if configPath != "" {
+				exit(1, "-c (--config-path) -- Argument already set!")
+			}
 			if i+1 < len(os.Args) {
-				configArgs = append(configArgs, os.Args[i], os.Args[i+1])
 				i++
+				configPath = os.Args[i]
+			}
+		case "--config-yaml":
+			if configYaml != "" {
+				exit(1, "(--config-yaml) -- Argument already set!")
+			}
+			if i+1 < len(os.Args) {
+				i++
+				configYaml = os.Args[i]
 			}
 		case "--admin-address-path":
+			if adminAddressPath != "" {
+				exit(1, "(--admin-address-path) -- Argument already set!")
+			}
 			if i+1 < len(os.Args) {
 				i++
 				adminAddressPath = os.Args[i]
 			}
+		case "-l", "--log-level":
+			if currentLogLevel != logLevelInfo {
+				exit(1, "-l (--log-level) -- Argument already set!")
+			}
+			if i+1 < len(os.Args) {
+				i++
+				currentLogLevel = parseLogLevel(os.Args[i])
+			}
 		}
 	}
-	return haveConfig, adminAddressPath, configArgs
+	return adminAddressPath, configPath, configYaml
+}
+
+// parseLogLevel converts a log level string to logLevel enum
+func parseLogLevel(level string) logLevel {
+	switch strings.ToLower(level) {
+	case "trace":
+		return logLevelTrace
+	case "debug":
+		return logLevelDebug
+	case "info":
+		return logLevelInfo
+	case "warning", "warn":
+		return logLevelWarning
+	case "error":
+		return logLevelError
+	case "critical":
+		return logLevelCritical
+	case "off":
+		return logLevelOff
+	default:
+		return logLevelInfo // default to info if unrecognized
+	}
 }
 
 // startStaticListeners initializes HTTP servers for static listener configurations.
@@ -142,7 +206,7 @@ func startStaticListeners(cfg *config.Config, wg *sync.WaitGroup, servers *[]*ht
 		}
 
 		addr := ln.Addr().String()
-		fmt.Fprintf(os.Stderr, "listener '%s' started on address %s\n", l.Name, addr)
+		fprintf(os.Stderr, "listener '%s' started on address %s\n", l.Name, addr)
 
 		_, portStr, _ := net.SplitHostPort(addr)
 		port := 0
@@ -199,7 +263,7 @@ func startAdminServer(adminAddress, adminAddressPath string, wg *sync.WaitGroup,
 	}()
 
 	<-serverReady
-	fmt.Fprintf(os.Stderr, "admin address: %s\n", addr)
+	fprintf(os.Stderr, "admin address: %s\n", addr)
 }
 
 // handleShutdown waits for a signal and gracefully shuts down all servers and listeners.
@@ -280,7 +344,7 @@ func accessLogHandler(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(response)
 
 	duration := time.Since(startTime).Milliseconds()
-	fmt.Fprintf(os.Stdout, "[%s] \"%s %s %s\" %d - 0 %d %dms - \"-\" \"%s\" \"-\" \"%s\" \"-\"%s",
+	fprintf(os.Stdout, "[%s] \"%s %s %s\" %d - 0 %d %dms - \"-\" \"%s\" \"-\" \"%s\" \"-\"%s",
 		startTime.Format("2006-01-02T15:04:05.000-07:00"),
 		r.Method,
 		r.URL.Path,

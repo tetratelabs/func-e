@@ -61,7 +61,7 @@ func InstallIfNeeded(ctx context.Context, o *globals.GlobalOpts) (string, error)
 	case err == nil:
 		o.Logf("%s is already downloaded\n", v)
 	default:
-		// TODO: figure out how to get a stat error that isn't file not exist so we can test this
+		// TODO: figure out how to Get a stat error that isn't file not exist so we can test this
 		return "", err
 	}
 	return verifyEnvoy(installPath)

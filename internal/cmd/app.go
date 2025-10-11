@@ -8,8 +8,8 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/tetratelabs/func-e/internal/api"
 	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/runtime"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
@@ -66,7 +66,7 @@ such as glibc. This value must be constant within a ` + "`$FUNC_E_HOME`" + `.`
 		},
 	}
 	app.Before = func(c *cli.Context) error {
-		if err := api.InitializeGlobalOpts(o, envoyVersionsURL, homeDir, platform); err != nil {
+		if err := runtime.InitializeGlobalOpts(o, envoyVersionsURL, homeDir, platform); err != nil {
 			return NewValidationError(err.Error())
 		}
 		return nil

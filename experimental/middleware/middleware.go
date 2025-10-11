@@ -7,24 +7,8 @@ import (
 	"context"
 
 	"github.com/tetratelabs/func-e/api"
-	internalhook "github.com/tetratelabs/func-e/internal/middleware"
-	"github.com/tetratelabs/func-e/internal/opts"
+	internalapi "github.com/tetratelabs/func-e/internal/api"
 )
-
-// StartupHook runs just after Envoy logs "starting main dispatch loop".
-//
-// This provides access to two non-deterministic runtime values:
-//  1. The run directory (where stdout, stderr, and pid file are written)
-//  2. The admin address (which may be ephemeral)
-//
-// Startup hooks are considered mandatory and will stop the run with error if
-// they fail. If your hook is optional, handle errors internally.
-//
-// Startup hooks run on the goroutine that consumes Envoy's STDERR. Keep them
-// short or run long operations in a separate goroutine.
-//
-// To use a StartupHook, pass it via hook.WithStartupHook as a RunOption.
-type StartupHook = internalhook.StartupHook
 
 // RunMiddleware wraps an api.RunFunc to intercept and modify its behavior.
 //
@@ -50,18 +34,5 @@ func WithRunMiddleware(ctx context.Context, middleware RunMiddleware) context.Co
 	}
 	// Store as unnamed function type to enable type assertion in internal/run
 	var mw func(api.RunFunc) api.RunFunc = middleware
-	return context.WithValue(ctx, internalhook.Key{}, mw)
-}
-
-// WithStartupHook returns a RunOption that sets a startup hook.
-//
-// This is an experimental API that should only be used by CLI entrypoints.
-// See package documentation for usage constraints.
-//
-// If provided, this hook will REPLACE the default config dump hook.
-// If you want to preserve default behavior, do not use this option.
-func WithStartupHook(hook StartupHook) api.RunOption {
-	return func(o *opts.RunOpts) {
-		o.StartupHook = hook
-	}
+	return context.WithValue(ctx, internalapi.RunMiddlewareKey{}, mw)
 }

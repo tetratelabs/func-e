@@ -4,16 +4,16 @@
 package envoy
 
 import (
-	"bufio"
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
-	"strings"
+	"time"
+
+	"github.com/tetratelabs/func-e/internal/admin"
 )
 
 // Run execs the Envoy binary at the path with the args passed.
@@ -23,7 +23,7 @@ import (
 func (r *Runtime) Run(ctx context.Context, args []string) error {
 	// We require the admin server, so ensure it exists, and we can read its listener via a file path.
 	var err error
-	r.adminAddressPath, args, err = ensureAdminAddress(r.logf, r.o.RunDir, args)
+	adminAddressPath, args, err := ensureAdminAddress(r.logf, r.o.RunDir, args)
 	if err != nil {
 		return err
 	}
@@ -34,13 +34,8 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 
 	cmd := exec.CommandContext(ctx, r.o.EnvoyPath, args...) // #nosec -> users can run whatever binary they like!
 	cmd.Stdout = r.Out
+	cmd.Stderr = r.Err
 	cmd.SysProcAttr = processGroupAttr()
-
-	// Create a pipe to capture stderr and forward to r.Err
-	stderrPipe, err := cmd.StderrPipe()
-	if err != nil {
-		return fmt.Errorf("unable to create stderr pipe: %w", err)
-	}
 
 	r.cmd = cmd
 
@@ -55,70 +50,55 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 
 	hookErrCh := make(chan error, 1)
 
-	// Process stderr in a goroutine
-	go r.processStderr(ctx, stderrPipe, hookErrCh)
+	// Create a context that's cancelled when Envoy process exits
+	monitorCtx, cancelMonitor := context.WithCancel(ctx)
+	defer cancelMonitor()
 
-	// Wait for the process, and any stderr processing, to complete
+	// Monitor admin readiness and trigger startup hook in a goroutine
+	go func() {
+		defer func() {
+			if p := recover(); p != nil {
+				hookErrCh <- fmt.Errorf("startup hook panicked: %v", p)
+				r.logf("startup hook panicked: %v", p)
+			}
+		}()
+
+		var err error
+		adminClient, err := admin.NewAdminClient(monitorCtx, r.o.RunDir, adminAddressPath)
+		if err != nil {
+			// If we can't create the admin client, it likely means Envoy failed to start
+			// Don't log or return error here - let cmd.Wait() handle the exit error
+			hookErrCh <- nil
+			return
+		}
+
+		// StartupHook's precondition is the admin server being ready.
+		if err = adminClient.AwaitReady(monitorCtx, 100*time.Millisecond); err == nil {
+			err = r.startupHook(monitorCtx, adminClient)
+		}
+
+		// Report real errors; ignore context cancellation (clean shutdown)
+		if err != nil && !errors.Is(err, context.Canceled) {
+			r.logf(err.Error())
+			hookErrCh <- err
+		} else {
+			hookErrCh <- nil
+		}
+	}()
+
+	// Wait for the process, and any admin monitoring, to complete
 	exitErr := cmd.Wait()
+	cancelMonitor() // Stop monitoring immediately when process exits
 	hookErr := <-hookErrCh
 
-	// First, check for startup hook errors
+	// Prioritize hook errors - if the hook ran and failed, that's the most relevant error
 	if hookErr != nil {
 		return hookErr
 	}
 
-	// Next, handle process exit errors
-	if exitErr != nil {
-		// Only ignore exit errors on cancellation if there was no stderr error
-		if errors.Is(ctx.Err(), context.Canceled) {
-			return nil
-		}
-		return exitErr
+	// Ignore exit errors on clean cancellation (user Ctrl-C, etc.)
+	if exitErr == nil || errors.Is(ctx.Err(), context.Canceled) {
+		return nil
 	}
-
-	return nil // Clean exit
-}
-
-// processStderr scans stderr output and triggers the startup hook when Envoy is ready.
-func (r *Runtime) processStderr(ctx context.Context, stderrPipe io.Reader, hookErrCh chan<- error) {
-	var hookErr error
-	defer func() {
-		if p := recover(); p != nil {
-			if hookErr == nil {
-				hookErr = fmt.Errorf("processStderr panicked: %v", p)
-			}
-			r.logf("processStderr panicked: %v", p)
-		}
-		hookErrCh <- hookErr
-	}()
-
-	scanner := bufio.NewScanner(stderrPipe)
-	hookTriggered := false
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		// Copy stderr line to the output writer
-		fmt.Fprintln(r.Err, line) //nolint:errcheck
-
-		// Trigger startup hook when admin is ready
-		if !hookTriggered && strings.Contains(line, "starting main dispatch loop") {
-			hookTriggered = true
-			adminAddrBytes, err := os.ReadFile(r.adminAddressPath)
-			if err != nil {
-				hookErr = fmt.Errorf("failed to read admin address from %s: %w", r.adminAddressPath, err)
-				r.logf(hookErr.Error())
-				break
-			}
-			adminAddress := strings.TrimSpace(string(adminAddrBytes))
-			r.adminAddress = adminAddress
-
-			// Call startup hook
-			if err := r.startupHook(ctx, r.o.RunDir, adminAddress); err != nil {
-				hookErr = err
-				r.logf(err.Error())
-				break
-			}
-		}
-	}
-	// ignore scanner errors as we are only concerned in hook errors
+	return exitErr
 }
