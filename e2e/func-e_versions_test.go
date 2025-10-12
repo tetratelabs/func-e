@@ -15,9 +15,9 @@ import (
 )
 
 func TestFuncEVersions_NothingYet(t *testing.T) {
-	homeDir := t.TempDir()
+	dataHome := t.TempDir()
 
-	stdout, stderr, err := funcEExec(t.Context(), "--home-dir", homeDir, "versions")
+	stdout, stderr, err := funcEExec(t.Context(), "--data-home", dataHome, "versions")
 
 	require.NoError(t, err)
 	require.Empty(t, stdout)

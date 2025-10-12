@@ -18,12 +18,6 @@ type AdminClient interface {
 	// Port returns the Envoy admin API port.
 	Port() int
 
-	// Pid returns the Envoy process ID.
-	Pid() int32
-
-	// RunDir returns the directory where files like stdout.log are written to.
-	RunDir() string
-
 	// Get returns the content at the given path or an error if != 200
 	Get(ctx context.Context, path string) ([]byte, error)
 
@@ -45,7 +39,10 @@ type AdminClient interface {
 
 // StartupHook runs once the Envoy admin server is ready.
 //
+// The hook receives the AdminClient and runID. The runID is unique to this run
+// and can be used to construct file paths as needed.
+//
 // Note: Startup hooks are considered mandatory and will stop the run with
 // error if failed. If your hook is optional, rescue panics and log your own
 // errors.
-type StartupHook func(ctx context.Context, adminClient AdminClient) error
+type StartupHook func(ctx context.Context, adminClient AdminClient, runID string) error

@@ -19,8 +19,21 @@ import (
 )
 
 func TestEnsureEnvoyVersion(t *testing.T) {
-	o := &globals.GlobalOpts{HomeDir: t.TempDir()}
-	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte(version.LastKnownEnvoy.String()), 0o600))
+	homeDir := t.TempDir()
+	o := &globals.GlobalOpts{
+		ConfigHome: homeDir,
+		DataHome:   homeDir,
+		StateHome:  homeDir,
+		RuntimeDir: homeDir,
+		Out:        new(bytes.Buffer),
+		GetEnvoyVersions: func(context.Context) (*version.ReleaseVersions, error) {
+			return &version.ReleaseVersions{Versions: map[version.PatchVersion]version.Release{
+				version.LastKnownEnvoy: {Tarballs: map[version.Platform]version.TarballURL{globals.DefaultPlatform: ""}},
+			}}, nil
+		},
+		Platform: globals.DefaultPlatform,
+	}
+	require.NoError(t, os.WriteFile(filepath.Join(o.ConfigHome, "envoy-version"), []byte(version.LastKnownEnvoy.String()), 0o600))
 
 	err := EnsureEnvoyVersion(context.Background(), o)
 	require.NoError(t, err)
@@ -28,18 +41,46 @@ func TestEnsureEnvoyVersion(t *testing.T) {
 }
 
 func TestEnsureEnvoyVersion_ErrorIsAValidationError(t *testing.T) {
-	o := &globals.GlobalOpts{HomeDir: t.TempDir()}
-	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte("a.b.c"), 0o600))
+	configHome := t.TempDir()
+	dataHome := t.TempDir()
+	stateHome := t.TempDir()
+	runtimeDir := t.TempDir()
+	o := &globals.GlobalOpts{
+		ConfigHome: configHome,
+		DataHome:   dataHome,
+		StateHome:  stateHome,
+		RuntimeDir: runtimeDir,
+		Out:        new(bytes.Buffer),
+		GetEnvoyVersions: func(context.Context) (*version.ReleaseVersions, error) {
+			return &version.ReleaseVersions{}, nil
+		},
+		Platform: globals.DefaultPlatform,
+	}
+	require.NoError(t, os.WriteFile(filepath.Join(o.ConfigHome, "envoy-version"), []byte("a.b.c"), 0o600))
 
-	expectedErr := fmt.Sprintf(`invalid version in "$FUNC_E_HOME/version": "a.b.c" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
+	// Using XDG conventions, error message shows new path
+	expectedErr := fmt.Sprintf(`invalid version in "$FUNC_E_CONFIG_HOME/envoy-version": "a.b.c" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
 	err := EnsureEnvoyVersion(context.Background(), o)
 	require.EqualError(t, err, expectedErr)
 }
 
 func TestSetEnvoyVersion_ReadsExistingPatchVersion(t *testing.T) {
-	o := &globals.GlobalOpts{HomeDir: t.TempDir()}
+	homeDir := t.TempDir()
+	o := &globals.GlobalOpts{
+		ConfigHome: homeDir,
+		DataHome:   homeDir,
+		StateHome:  homeDir,
+		RuntimeDir: homeDir,
+		Out:        new(bytes.Buffer),
+		GetEnvoyVersions: func(context.Context) (*version.ReleaseVersions, error) {
+			return &version.ReleaseVersions{Versions: map[version.PatchVersion]version.Release{
+				"1.18.13": {Tarballs: map[version.Platform]version.TarballURL{globals.DefaultPlatform: ""}},
+			}}, nil
+		},
+		Platform: globals.DefaultPlatform,
+	}
 
-	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte("1.18.13"), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(o.ConfigHome, "envoy-version"), []byte("1.18.13"), 0o600))
 
 	err := setEnvoyVersion(context.Background(), o)
 	require.NoError(t, err)
@@ -47,6 +88,7 @@ func TestSetEnvoyVersion_ReadsExistingPatchVersion(t *testing.T) {
 }
 
 func TestSetEnvoyVersion_LooksUpLatestPatchForExistingMinorVersion(t *testing.T) {
+	homeDir := t.TempDir()
 	o := &globals.GlobalOpts{
 		GetEnvoyVersions: func(context.Context) (*version.ReleaseVersions, error) {
 			return &version.ReleaseVersions{Versions: map[version.PatchVersion]version.Release{
@@ -54,12 +96,15 @@ func TestSetEnvoyVersion_LooksUpLatestPatchForExistingMinorVersion(t *testing.T)
 				"1.18.13": {Tarballs: map[version.Platform]version.TarballURL{globals.DefaultPlatform: ""}},
 			}}, nil
 		},
-		HomeDir:  t.TempDir(),
-		Out:      new(bytes.Buffer), // we expect logging
-		Platform: globals.DefaultPlatform,
+		ConfigHome: homeDir,
+		DataHome:   homeDir,
+		StateHome:  homeDir,
+		RuntimeDir: homeDir,
+		Out:        new(bytes.Buffer), // we expect logging
+		Platform:   globals.DefaultPlatform,
 	}
 
-	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte("1.18"), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(o.ConfigHome, "envoy-version"), []byte("1.18"), 0o600))
 
 	err := setEnvoyVersion(context.Background(), o)
 	require.NoError(t, err)
@@ -70,15 +115,31 @@ func TestSetEnvoyVersion_LooksUpLatestPatchForExistingMinorVersion(t *testing.T)
 }
 
 func TestSetEnvoyVersion_ErrorReadingExistingVersion(t *testing.T) {
-	o := &globals.GlobalOpts{HomeDir: t.TempDir()}
-	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte("a.b.c"), 0o600))
+	configHome := t.TempDir()
+	dataHome := t.TempDir()
+	stateHome := t.TempDir()
+	runtimeDir := t.TempDir()
+	o := &globals.GlobalOpts{
+		ConfigHome: configHome,
+		DataHome:   dataHome,
+		StateHome:  stateHome,
+		RuntimeDir: runtimeDir,
+		Out:        new(bytes.Buffer),
+		GetEnvoyVersions: func(context.Context) (*version.ReleaseVersions, error) {
+			return &version.ReleaseVersions{}, nil
+		},
+		Platform: globals.DefaultPlatform,
+	}
+	require.NoError(t, os.WriteFile(filepath.Join(o.ConfigHome, "envoy-version"), []byte("a.b.c"), 0o600))
 
-	expectedErr := fmt.Sprintf(`invalid version in "$FUNC_E_HOME/version": "a.b.c" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
+	// Using XDG conventions, error message shows new path
+	expectedErr := fmt.Sprintf(`invalid version in "$FUNC_E_CONFIG_HOME/envoy-version": "a.b.c" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
 	err := setEnvoyVersion(context.Background(), o)
 	require.EqualError(t, err, expectedErr)
 }
 
 func TestSetEnvoyVersion_UsesLatestVersionOnInitialRun(t *testing.T) {
+	homeDir := t.TempDir()
 	o := &globals.GlobalOpts{
 		GetEnvoyVersions: func(context.Context) (*version.ReleaseVersions, error) {
 			return &version.ReleaseVersions{Versions: map[version.PatchVersion]version.Release{
@@ -87,9 +148,12 @@ func TestSetEnvoyVersion_UsesLatestVersionOnInitialRun(t *testing.T) {
 				"1.20.4": {Tarballs: map[version.Platform]version.TarballURL{"solaris/sparc64": ""}},
 			}}, nil
 		},
-		HomeDir:  t.TempDir(),
-		Out:      new(bytes.Buffer), // we expect logging
-		Platform: globals.DefaultPlatform,
+		ConfigHome: homeDir,
+		DataHome:   homeDir,
+		StateHome:  homeDir,
+		RuntimeDir: homeDir,
+		Out:        new(bytes.Buffer), // we expect logging
+		Platform:   globals.DefaultPlatform,
 	}
 
 	err := setEnvoyVersion(context.Background(), o)
@@ -102,12 +166,13 @@ func TestSetEnvoyVersion_UsesLatestVersionOnInitialRun(t *testing.T) {
 	require.Contains(t, o.Out.(*bytes.Buffer).String(), "looking up the latest Envoy version\n")
 
 	// We persisted the minor component for next run!
-	writtenVersion, err := os.ReadFile(filepath.Join(o.HomeDir, "version"))
+	writtenVersion, err := os.ReadFile(filepath.Join(o.ConfigHome, "envoy-version"))
 	require.NoError(t, err)
 	require.Equal(t, o.EnvoyVersion.ToMinor().String(), string(writtenVersion))
 }
 
 func TestSetEnvoyVersion_NotFound(t *testing.T) {
+	homeDir := t.TempDir()
 	o := &globals.GlobalOpts{
 		GetEnvoyVersions: func(context.Context) (*version.ReleaseVersions, error) {
 			return &version.ReleaseVersions{Versions: map[version.PatchVersion]version.Release{
@@ -115,7 +180,10 @@ func TestSetEnvoyVersion_NotFound(t *testing.T) {
 			}}, nil
 		},
 		EnvoyVersionsURL: "fake URL", // for logging
-		HomeDir:          t.TempDir(),
+		ConfigHome:       homeDir,
+		DataHome:         homeDir,
+		StateHome:        homeDir,
+		RuntimeDir:       homeDir,
 		Out:              new(bytes.Buffer), // we expect logging
 		Platform:         globals.DefaultPlatform,
 	}
@@ -129,12 +197,16 @@ func TestSetEnvoyVersion_NotFound(t *testing.T) {
 }
 
 func TestSetEnvoyVersion_ErrorLookingUpLatestVersionOnInitialRun(t *testing.T) {
+	homeDir := t.TempDir()
 	o := &globals.GlobalOpts{
 		GetEnvoyVersions: func(context.Context) (*version.ReleaseVersions, error) {
 			return nil, errors.New("file not found")
 		},
 		EnvoyVersionsURL: "fake URL", // for logging
-		HomeDir:          t.TempDir(),
+		ConfigHome:       homeDir,
+		DataHome:         homeDir,
+		StateHome:        homeDir,
+		RuntimeDir:       homeDir,
 		Out:              new(bytes.Buffer), // we expect logging
 	}
 
@@ -145,7 +217,7 @@ func TestSetEnvoyVersion_ErrorLookingUpLatestVersionOnInitialRun(t *testing.T) {
 	require.Contains(t, o.Out.(*bytes.Buffer).String(), "looking up the latest Envoy version\n")
 
 	// No version file was written
-	require.NoFileExists(t, filepath.Join(o.HomeDir, "version"))
+	require.NoFileExists(t, filepath.Join(o.ConfigHome, "envoy-version"))
 }
 
 func TestEnsurePatchVersion(t *testing.T) {
@@ -157,13 +229,17 @@ func TestEnsurePatchVersion(t *testing.T) {
 		version.PatchVersion("1.18.4_debug"): {Tarballs: map[version.Platform]version.TarballURL{globals.DefaultPlatform: ""}},
 	}
 
+	homeDir := t.TempDir()
 	o := &globals.GlobalOpts{
 		GetEnvoyVersions: func(context.Context) (*version.ReleaseVersions, error) {
 			return &version.ReleaseVersions{Versions: versions}, nil
 		},
-		HomeDir:  t.TempDir(),
-		Out:      new(bytes.Buffer), // we expect logging
-		Platform: globals.DefaultPlatform,
+		ConfigHome: homeDir,
+		DataHome:   homeDir,
+		StateHome:  homeDir,
+		RuntimeDir: homeDir,
+		Out:        new(bytes.Buffer), // we expect logging
+		Platform:   globals.DefaultPlatform,
 	}
 
 	actual, err := EnsurePatchVersion(context.Background(), o, version.MinorVersion("1.18"))
@@ -181,12 +257,16 @@ func TestEnsurePatchVersion_NotFound(t *testing.T) {
 		version.PatchVersion("1.1_debug"): {Tarballs: map[version.Platform]version.TarballURL{globals.DefaultPlatform: ""}},
 	}
 
+	homeDir := t.TempDir()
 	o := &globals.GlobalOpts{
 		GetEnvoyVersions: func(context.Context) (*version.ReleaseVersions, error) {
 			return &version.ReleaseVersions{Versions: versions}, nil
 		},
 		EnvoyVersionsURL: "fake URL", // for logging
-		HomeDir:          t.TempDir(),
+		ConfigHome:       homeDir,
+		DataHome:         homeDir,
+		StateHome:        homeDir,
+		RuntimeDir:       homeDir,
 		Out:              new(bytes.Buffer), // we expect logging
 		Platform:         globals.DefaultPlatform,
 	}
@@ -238,13 +318,20 @@ func TestEnsurePatchVersion_FallbackSuccess(t *testing.T) {
 	for _, tt := range tests {
 		tc := tt // pin! see https://github.com/kyoh86/scopelint for why
 		t.Run(tc.name, func(t *testing.T) {
+			configHome := t.TempDir()
+			dataHome := t.TempDir()
+			stateHome := t.TempDir()
+			runtimeDir := t.TempDir()
 			o := &globals.GlobalOpts{
 				GetEnvoyVersions: tc.getEnvoyVersions,
-				HomeDir:          t.TempDir(),
+				ConfigHome:       configHome,
+				DataHome:         dataHome,
+				StateHome:        stateHome,
+				RuntimeDir:       runtimeDir,
 				Out:              new(bytes.Buffer), // we expect logging
 			}
 
-			lastKnownEnvoyDir := filepath.Join(o.HomeDir, "versions", "1.18.14")
+			lastKnownEnvoyDir := filepath.Join(o.DataHome, "envoy-versions", "1.18.14")
 			require.NoError(t, os.MkdirAll(lastKnownEnvoyDir, 0o700))
 
 			// Ensure that when we ask for a minor, the latest version is returned from the filesystem
@@ -259,12 +346,16 @@ func TestEnsurePatchVersion_FallbackSuccess(t *testing.T) {
 }
 
 func TestEnsurePatchVersion_FallbackFailure(t *testing.T) {
+	homeDir := t.TempDir()
 	o := &globals.GlobalOpts{
 		GetEnvoyVersions: func(context.Context) (*version.ReleaseVersions, error) {
 			return nil, errors.New("file not found")
 		},
-		HomeDir: t.TempDir(),
-		Out:     new(bytes.Buffer), // we expect logging
+		ConfigHome: homeDir,
+		DataHome:   homeDir,
+		StateHome:  homeDir,
+		RuntimeDir: homeDir,
+		Out:        new(bytes.Buffer), // we expect logging
 	}
 
 	// Since we have nothing local to fall back to, we should raise the remote error

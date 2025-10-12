@@ -60,8 +60,8 @@ jobs:
 
       - name: "Cache Envoy binaries"
         uses: actions/cache@v4
-        with:  # ~/.func-e/versions is cached so that we only re-download once: for TestFuncEInstall
-          path: ~/.func-e/versions
+        with:  # ~/.local/share/func-e/envoy-versions is cached so that we only re-download once: for TestFuncEInstall
+          path: ~/.local/share/func-e/envoy-versions
           key: test-${{ runner.os }}-envoy-${{ hashFiles('internal/version/last_known_envoy.txt') }}
           restore-keys: test-${{ runner.os }}-envoy-
 

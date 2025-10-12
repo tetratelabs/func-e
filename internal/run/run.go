@@ -57,6 +57,10 @@ func initOpts(ctx context.Context, options ...api.RunOption) (*globals.GlobalOpt
 	o := &globals.GlobalOpts{
 		EnvoyVersion: version.PatchVersion(ro.EnvoyVersion),
 		Out:          ro.Out,
+		ConfigHome:   ro.ConfigHome,
+		DataHome:     ro.DataHome,
+		StateHome:    ro.StateHome,
+		RuntimeDir:   ro.RuntimeDir,
 		RunOpts: globals.RunOpts{
 			EnvoyPath:   ro.EnvoyPath,
 			EnvoyOut:    ro.EnvoyOut,
@@ -64,7 +68,13 @@ func initOpts(ctx context.Context, options ...api.RunOption) (*globals.GlobalOpt
 			StartupHook: ro.StartupHook,
 		},
 	}
-	if err := runtime.InitializeGlobalOpts(o, ro.EnvoyVersionsURL, ro.HomeDir, ""); err != nil {
+	// Note: api.HomeDir() sets ConfigHome, DataHome, StateHome, RuntimeDir to same value (legacy mode)
+	// Legacy detection happens in InitializeGlobalOpts when all four match
+	homeDir := ""
+	if ro.ConfigHome != "" && ro.ConfigHome == ro.DataHome && ro.DataHome == ro.StateHome && ro.StateHome == ro.RuntimeDir {
+		homeDir = ro.ConfigHome // Legacy mode
+	}
+	if err := runtime.InitializeGlobalOpts(o, ro.EnvoyVersionsURL, homeDir, ro.ConfigHome, ro.DataHome, ro.StateHome, ro.RuntimeDir, "", ro.RunID); err != nil {
 		return nil, err
 	}
 

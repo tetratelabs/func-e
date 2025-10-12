@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
-	"strconv"
 	"time"
 
 	"github.com/tetratelabs/func-e/internal/admin"
@@ -23,14 +21,13 @@ import (
 func (r *Runtime) Run(ctx context.Context, args []string) error {
 	// We require the admin server, so ensure it exists, and we can read its listener via a file path.
 	var err error
-	adminAddressPath, args, err := ensureAdminAddress(r.logf, r.o.RunDir, args)
+	adminAddressPath, args, err := ensureAdminAddress(r.logf, r.o.RuntimeDir, args)
 	if err != nil {
 		return err
 	}
 
-	// Append the run directory to args for an easy lookup of where pid files etc are stored.
-	// Why? MacOS SIP restricts cross-process env var access: we need a solution that works with both Linux and MacOS.
-	args = append(args, "--", "--func-e-run-dir", r.o.RunDir)
+	// Ensure a re-run in the same directory has no stale admin-address file
+	_ = os.RemoveAll(adminAddressPathFlag)
 
 	cmd := exec.CommandContext(ctx, r.o.EnvoyPath, args...) // #nosec -> users can run whatever binary they like!
 	cmd.Stdout = r.Out
@@ -39,14 +36,11 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 
 	r.cmd = cmd
 
-	// Print the binary and run directory to the user for debugging purposes.
-	r.logf("starting: %s in run directory %s", r.o.EnvoyPath, r.o.RunDir)
+	// Print the binary and state directory to the user for debugging purposes.
+	r.logf("starting: %s with logs in %s", r.o.EnvoyPath, r.o.RunDir)
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("unable to start Envoy process: %w", err)
 	}
-
-	// Warn, but don't fail if we can't write the pid file for some reason
-	r.maybeWarn(os.WriteFile(filepath.Join(r.o.RunDir, "envoy.pid"), []byte(strconv.Itoa(cmd.Process.Pid)), 0o600))
 
 	hookErrCh := make(chan error, 1)
 
@@ -64,7 +58,7 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 		}()
 
 		var err error
-		adminClient, err := admin.NewAdminClient(monitorCtx, r.o.RunDir, adminAddressPath)
+		adminClient, err := admin.NewAdminClient(monitorCtx, adminAddressPath)
 		if err != nil {
 			// If we can't create the admin client, it likely means Envoy failed to start
 			// Don't log or return error here - let cmd.Wait() handle the exit error
@@ -74,7 +68,7 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 
 		// StartupHook's precondition is the admin server being ready.
 		if err = adminClient.AwaitReady(monitorCtx, 100*time.Millisecond); err == nil {
-			err = r.startupHook(monitorCtx, adminClient)
+			err = r.startupHook(monitorCtx, adminClient, r.o.RunID)
 		}
 
 		// Report real errors; ignore context cancellation (clean shutdown)

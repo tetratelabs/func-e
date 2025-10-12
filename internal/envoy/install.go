@@ -22,7 +22,7 @@ var binEnvoy = filepath.Join("bin", "envoy")
 // InstallIfNeeded downloads an Envoy binary corresponding to globals.GlobalOpts and returns a path to it or an error.
 func InstallIfNeeded(ctx context.Context, o *globals.GlobalOpts) (string, error) {
 	v := o.EnvoyVersion
-	installPath := filepath.Join(o.HomeDir, "versions", v.String())
+	installPath := filepath.Join(o.EnvoyVersionsDir(), v.String())
 	envoyPath := filepath.Join(installPath, binEnvoy)
 	_, err := os.Stat(envoyPath)
 	switch {

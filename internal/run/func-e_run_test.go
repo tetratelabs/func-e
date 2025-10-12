@@ -21,8 +21,12 @@ func TestRun_LogWarn(t *testing.T) {
 	e2e.TestRun_LogWarn(t.Context(), t, fakeFuncEFactory{})
 }
 
-func TestRun_RunDirectory(t *testing.T) {
-	e2e.TestRun_RunDirectory(t.Context(), t, fakeFuncEFactory{})
+func TestRun_RunDir(t *testing.T) {
+	// Test that FUNC_E_STATE_HOME env var works correctly to control
+	// where runtime-generated files (logs, config_dump.json) are written.
+	stateDir := t.TempDir()
+	t.Setenv("FUNC_E_STATE_HOME", stateDir)
+	e2e.TestRun_RunDir(t.Context(), t, fakeFuncEFactory{}, stateDir)
 }
 
 func TestRun_InvalidConfig(t *testing.T) {
@@ -36,4 +40,10 @@ func TestRun_StaticFile(t *testing.T) {
 func TestRun_CtrlCs(t *testing.T) {
 	// This doesn't call ctrl-c, rather cancels the context multiple times
 	e2e.TestRun_CtrlCs(t.Context(), t, fakeFuncEFactory{})
+}
+
+func TestRun_LegacyHomeDir(t *testing.T) {
+	homeDir := t.TempDir()
+	t.Setenv("FUNC_E_HOME", homeDir)
+	e2e.TestRun_LegacyHomeDir(t.Context(), t, fakeFuncEFactory{})
 }

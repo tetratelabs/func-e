@@ -27,17 +27,19 @@ const (
 	adminAddressPathFlag = `--admin-address-path`
 )
 
-// NewRuntime creates a new Runtime that runs envoy in globals.RunOpts RunDir
-// opts allows a user running envoy to control the working directory by ID or path, allowing explicit cleanup.
+// NewRuntime creates a new Runtime that runs envoy with the given options.
+// opts allows a user running envoy to control directories and hooks.
 func NewRuntime(opts *globals.RunOpts, logf LogFunc) *Runtime {
 	// Use user-provided hook if set, otherwise use default
 	var hook internalapi.StartupHook
 	if opts.StartupHook != nil {
 		hook = opts.StartupHook
 	} else {
+		// Capture runDir in closure for config_dump collection
+		runDir := opts.RunDir
 		safeHook := &safeStartupHook{
-			delegate: func(ctx context.Context, adminClient internalapi.AdminClient) error {
-				return collectConfigDump(ctx, http.DefaultClient, adminClient)
+			delegate: func(ctx context.Context, adminClient internalapi.AdminClient, runID string) error {
+				return collectConfigDump(ctx, http.DefaultClient, adminClient, runDir)
 			},
 			logf:    logf,
 			timeout: 3 * time.Second,
@@ -72,23 +74,13 @@ func (r *Runtime) String() string {
 	return fmt.Sprintf("{exitStatus: %d}", exitStatus)
 }
 
-// GetRunDir returns the run-specific directory files can be written to.
-func (r *Runtime) GetRunDir() string {
-	return r.o.RunDir
-}
-
-// maybeWarn writes a warning message to Runtime.Out when the error isn't nil
-func (r *Runtime) maybeWarn(err error) {
-	if err != nil {
-		r.logf("warning: %s", err)
-	}
-}
-
-// ensureAdminAddress ensures there is an admin server in the args adds configYamlFlag of adminEphemeralConfig if there
-// is none. Next, we add adminAddressPathFlag if not already set. This allows reading back the admin address later
-// regardless of whether the admin server is ephemeral or not.
+// ensureAdminAddress ensures there is an admin server in the args adds
+// configYamlFlag of adminEphemeralConfig if there is none. Next, we add
+// adminAddressPathFlag if not already set. This allows reading back the admin
+// address later regardless of whether the admin server is ephemeral or not.
 //
-// Note: If adminAddressPathFlag is backfilled, it will be to the globals.RunOpts RunDir, which is mutable.
+// Note: If adminAddressPathFlag is backfilled, it will be to the
+// globals.RunOpts RunDir, which is mutable.
 func ensureAdminAddress(logf LogFunc, runDir string, argsIn []string) (string, []string, error) {
 	args := argsIn
 	var hasConfig bool
@@ -126,7 +118,6 @@ ARGS:
 		args = append(args, configYamlFlag, adminEphemeralConfig)
 	}
 
-	// TODO: remove admin address path requirement for non-ephemeral configs
 	if adminAddressPath == "" {
 		// Envoy's run directory is mutable, so it is fine to write the admin address there.
 		adminAddressPath = filepath.Join(runDir, "admin-address.txt")

@@ -9,12 +9,12 @@ DESCRIPTION:
 
    The first version in the below is run, controllable by the "use" command:
    ```
-   $ENVOY_VERSION, $PWD/.envoy-version, $FUNC_E_HOME/version
+   $ENVOY_VERSION, $PWD/.envoy-version, $FUNC_E_CONFIG_HOME/envoy-version
    ```
    The version to use is downloaded and installed, if necessary.
 
    Envoy interprets the '[arguments...]' and runs in the current working
    directory (aka $PWD) until func-e is interrupted (ex Ctrl+C, Ctrl+Break).
 
-   Envoy's process ID and console output write to "envoy.pid", stdout.log" and
-   "stderr.log" in the run directory (`$FUNC_E_HOME/runs/$epochtime`).
+   Envoy's console output writes to "stdout.log" and "stderr.log" in the run directory
+   (`${HOME}/.local/state/func-e`/envoy-logs/{runID}).

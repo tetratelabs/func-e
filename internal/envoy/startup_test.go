@@ -29,27 +29,27 @@ func TestSafeStartupHook(t *testing.T) {
 	}{
 		{
 			name: "successful delegate",
-			delegate: func(ctx context.Context, _ internalapi.AdminClient) error {
+			delegate: func(ctx context.Context, _ internalapi.AdminClient, _ string) error {
 				return nil
 			},
 		},
 		{
 			name: "delegate returns error",
-			delegate: func(ctx context.Context, _ internalapi.AdminClient) error {
+			delegate: func(ctx context.Context, _ internalapi.AdminClient, _ string) error {
 				return fmt.Errorf("delegate failed")
 			},
 			expectedLog: "delegate failed",
 		},
 		{
 			name: "delegate panics",
-			delegate: func(ctx context.Context, _ internalapi.AdminClient) error {
+			delegate: func(ctx context.Context, _ internalapi.AdminClient, _ string) error {
 				panic("test panic")
 			},
 			expectedLog: "startup hook panicked: test panic",
 		},
 		{
 			name: "delegate times out",
-			delegate: func(ctx context.Context, _ internalapi.AdminClient) error {
+			delegate: func(ctx context.Context, _ internalapi.AdminClient, _ string) error {
 				<-ctx.Done()
 				return ctx.Err()
 			},
@@ -58,7 +58,7 @@ func TestSafeStartupHook(t *testing.T) {
 		},
 		{
 			name: "no timeout set",
-			delegate: func(ctx context.Context, _ internalapi.AdminClient) error {
+			delegate: func(ctx context.Context, _ internalapi.AdminClient, _ string) error {
 				return fmt.Errorf("no timeout error")
 			},
 			timeout:     0,
@@ -80,13 +80,12 @@ func TestSafeStartupHook(t *testing.T) {
 			}
 
 			tempDir := t.TempDir()
-			require.NoError(t, os.WriteFile(filepath.Join(tempDir, "envoy.pid"), []byte("12345"), 0o600))
 			adminAddressPath := filepath.Join(tempDir, "admin-address.txt")
 			require.NoError(t, os.WriteFile(adminAddressPath, []byte("127.0.0.1:12345"), 0o600))
-			client, err := admin.NewAdminClient(t.Context(), tempDir, adminAddressPath)
+			client, err := admin.NewAdminClient(t.Context(), adminAddressPath)
 			require.NoError(t, err)
 
-			err = hook.Hook(t.Context(), client)
+			err = hook.Hook(t.Context(), client, "test-run-id")
 			require.NoError(t, err) // safeStartupHook should never return an error
 
 			if tt.expectedLog != "" {
@@ -146,13 +145,12 @@ func TestCollectConfigDump(t *testing.T) {
 				defer cancel()
 			}
 
-			require.NoError(t, os.WriteFile(filepath.Join(tempDir, "envoy.pid"), []byte("12345"), 0o600))
 			adminAddressPath := filepath.Join(tempDir, "admin-address.txt")
 			require.NoError(t, os.WriteFile(adminAddressPath, []byte(fmt.Sprintf("127.0.0.1:%d", adminPort)), 0o600))
-			client, err := admin.NewAdminClient(t.Context(), tempDir, adminAddressPath)
+			client, err := admin.NewAdminClient(t.Context(), adminAddressPath)
 			require.NoError(t, err)
 
-			err = collectConfigDump(ctx, ts.Client(), client)
+			err = collectConfigDump(ctx, ts.Client(), client, tempDir)
 			if tt.expectedError != "" {
 				require.Error(t, err)
 				url := fmt.Sprintf("http://127.0.0.1:%d/config_dump?include_eds", adminPort)

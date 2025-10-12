@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -22,54 +21,28 @@ import (
 	internalapi "github.com/tetratelabs/func-e/internal/api"
 )
 
-const (
-	funcERunDirFlag      = `--func-e-run-dir`
-	adminAddressPathFlag = `--admin-address-path`
-)
+const adminAddressPathFlag = `--admin-address-path`
 
-// NewAdminClient creates an AdminClient by reading the Envoy PID from runDir
-// and polling for the admin port at adminAddressPath.
-func NewAdminClient(ctx context.Context, runDir, adminAddressPath string) (internalapi.AdminClient, error) {
-	// Read PID immediately from {runDir}/envoy.pid
-	pidBytes, err := os.ReadFile(filepath.Join(runDir, "envoy.pid"))
-	if err != nil {
-		return nil, fmt.Errorf("failed to read envoy.pid: %w", err)
-	}
-
-	pidInt, err := strconv.ParseInt(strings.TrimSpace(string(pidBytes)), 10, 32)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse PID from envoy.pid: %w", err)
-	}
-
+// NewAdminClient creates an AdminClient by polling for the admin port at
+// adminAddressPath.
+func NewAdminClient(ctx context.Context, adminAddressPath string) (internalapi.AdminClient, error) {
 	// Block until admin port is available
 	port, err := pollAdminAddressPathForPort(ctx, adminAddressPath)
 	if err != nil {
 		return nil, err
 	}
 
-	return &adminClient{port: port, pid: int32(pidInt), runDir: runDir}, nil
+	return &adminClient{port: port}, nil
 }
 
 // adminClient checks Envoy readiness via the admin API /ready endpoint.
 type adminClient struct {
-	port   int
-	pid    int32
-	runDir string
+	port int
 }
 
 // Port implements the same method as documented on api.AdminClient
 func (c *adminClient) Port() int {
 	return c.port
-}
-
-// Pid implements the same method as documented on api.AdminClient
-func (c *adminClient) Pid() int32 {
-	return c.pid
-}
-
-// RunDir implements the same method as documented on api.AdminClient
-func (c *adminClient) RunDir() string {
-	return c.runDir
 }
 
 // IsReady implements the same method as documented on api.AdminClient
@@ -240,13 +213,14 @@ func extractFlagValue(flag string, cmdline []string) (string, error) {
 	return "", fmt.Errorf("%s not found in command line", flag)
 }
 
-// PollAdminAddressPathAndRunDir polls for the Envoy child process and extracts
-// the run directory and admin address path from its command line. This polls as
-// the goroutine may be called before the Envoy subprocess is started.
-func PollAdminAddressPathAndRunDir(ctx context.Context, funcEPid int) (runDir, adminAddressPath string, err error) {
+// PollEnvoyPidAndAdminAddressPath polls for the Envoy child process and
+// extracts its pid and admin address path from its command line.
+//
+// This polls as the goroutine may be called prior to the Envoy subprocess.
+func PollEnvoyPidAndAdminAddressPath(ctx context.Context, funcEPid int) (envoyPid int, adminAddressPath string, err error) {
 	funcEProc, err := process.NewProcessWithContext(ctx, int32(funcEPid))
 	if err != nil {
-		return "", "", fmt.Errorf("failed to Get func-e process: %w", err)
+		return 0, "", fmt.Errorf("failed to Get func-e process: %w", err)
 	}
 
 	ticker := time.NewTicker(50 * time.Millisecond)
@@ -259,9 +233,9 @@ LOOP:
 		select {
 		case <-ctx.Done():
 			if lastErr == nil {
-				return "", "", errors.New("timeout waiting for Envoy process")
+				return 0, "", errors.New("timeout waiting for Envoy process")
 			}
-			return "", "", fmt.Errorf("timeout waiting for Envoy process: %w", lastErr)
+			return 0, "", fmt.Errorf("timeout waiting for Envoy process: %w", lastErr)
 		case <-ticker.C:
 			children, childErr := funcEProc.ChildrenWithContext(ctx)
 			if childErr != nil {
@@ -276,6 +250,7 @@ LOOP:
 
 			// Assume the first child is the Envoy process
 			envoyProc = children[0]
+			envoyPid = int(envoyProc.Pid)
 			break LOOP
 		}
 	}
@@ -283,20 +258,14 @@ LOOP:
 	// Get command line args
 	envoyCmdline, err := envoyProc.CmdlineSlice()
 	if err != nil {
-		return "", "", fmt.Errorf("failed to Get command line of Envoy: %w", err)
-	}
-
-	// Extract run directory
-	runDir, err = extractFlagValue(funcERunDirFlag, envoyCmdline)
-	if err != nil {
-		return "", "", err
+		return 0, "", fmt.Errorf("failed to Get command line of Envoy: %w", err)
 	}
 
 	// Extract admin address path
 	adminAddressPath, err = extractFlagValue(adminAddressPathFlag, envoyCmdline)
 	if err != nil {
-		return "", "", err
+		return 0, "", err
 	}
 
-	return runDir, adminAddressPath, nil
+	return envoyPid, adminAddressPath, nil
 }

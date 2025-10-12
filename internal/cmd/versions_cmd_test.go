@@ -29,7 +29,7 @@ func TestFuncEVersions_NothingYet(t *testing.T) {
 
 func TestFuncEVersions_NoCurrentVersion(t *testing.T) {
 	o := setupTestVersions(t)
-	require.NoError(t, os.Remove(filepath.Join(o.HomeDir, "version")))
+	require.NoError(t, os.Remove(filepath.Join(o.ConfigHome, "envoy-version")))
 
 	c, stdout, stderr := newApp(o)
 	err := c.Run([]string{"func-e", "versions"})
@@ -48,7 +48,7 @@ func TestFuncEVersions_CurrentVersion(t *testing.T) {
 	o := setupTestVersions(t)
 
 	t.Run("no current version", func(t *testing.T) {
-		require.NoError(t, os.Remove(filepath.Join(o.HomeDir, "version")))
+		require.NoError(t, os.Remove(filepath.Join(o.ConfigHome, "envoy-version")))
 
 		c, stdout, _ := newApp(o)
 		require.NoError(t, c.Run([]string{"func-e", "versions"}))
@@ -58,13 +58,13 @@ func TestFuncEVersions_CurrentVersion(t *testing.T) {
 `, stdout.String())
 	})
 
-	t.Run("set by $FUNC_E_HOME/version", func(t *testing.T) {
-		require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte("1.1.2"), 0o600))
+	t.Run("set by $FUNC_E_CONFIG_HOME/envoy-version", func(t *testing.T) {
+		require.NoError(t, os.WriteFile(filepath.Join(o.ConfigHome, "envoy-version"), []byte("1.1.2"), 0o600))
 
 		c, stdout, _ := newApp(o)
 		require.NoError(t, c.Run([]string{"func-e", "versions"}))
 		require.Equal(t, `  1.2.2 2021-01-31
-* 1.1.2 2021-01-31 (set by $FUNC_E_HOME/version)
+* 1.1.2 2021-01-31 (set by $FUNC_E_CONFIG_HOME/envoy-version)
   1.2.1 2021-01-30
 `, stdout.String())
 	})
@@ -103,7 +103,7 @@ func TestFuncEVersions_Sorted(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, `  1.2.2 2021-01-31
   1.1.2 2021-01-31
-* 1.2.1 2021-01-30 (set by $FUNC_E_HOME/version)
+* 1.2.1 2021-01-30 (set by $FUNC_E_CONFIG_HOME/envoy-version)
 `, stdout.String())
 	require.Empty(t, stderr)
 }
@@ -123,12 +123,12 @@ func TestFuncEVersions_All_RemoteIsCurrent(t *testing.T) {
 	o := setupTest(t)
 
 	v := version.LastKnownEnvoy.String()
-	versionDir := filepath.Join(o.HomeDir, "versions", v)
+	versionDir := filepath.Join(o.DataHome, "envoy-versions", v)
 	require.NoError(t, os.MkdirAll(versionDir, 0o700))
 	morerequire.RequireSetMtime(t, versionDir, "2020-12-31")
-	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte(v), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(o.ConfigHome, "envoy-version"), []byte(v), 0o600))
 
-	expected := fmt.Sprintf("* %s 2020-12-31 (set by $FUNC_E_HOME/version)\n", v)
+	expected := fmt.Sprintf("* %s 2020-12-31 (set by $FUNC_E_CONFIG_HOME/envoy-version)\n", v)
 
 	c, stdout, stderr := newApp(o)
 	err := c.Run([]string{"func-e", "versions", "-a"})
@@ -147,7 +147,7 @@ func TestFuncEVersions_All_Mixed(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, fmt.Sprintf(`  1.2.2 2021-01-31
   1.1.2 2021-01-31
-* 1.2.1 2021-01-30 (set by $FUNC_E_HOME/version)
+* 1.2.1 2021-01-30 (set by $FUNC_E_CONFIG_HOME/envoy-version)
   %s 2020-12-31
 `, version.LastKnownEnvoy), stdout.String())
 	require.Empty(t, stderr)
@@ -156,17 +156,17 @@ func TestFuncEVersions_All_Mixed(t *testing.T) {
 func setupTestVersions(t *testing.T) (o *globals.GlobalOpts) {
 	o = setupTest(t)
 
-	oneOneTwo := filepath.Join(o.HomeDir, "versions", "1.1.2")
+	oneOneTwo := filepath.Join(o.DataHome, "envoy-versions", "1.1.2")
 	require.NoError(t, os.MkdirAll(oneOneTwo, 0o700))
 	morerequire.RequireSetMtime(t, oneOneTwo, "2021-01-31")
 
 	// Set the middle version current
-	oneTwoOne := filepath.Join(o.HomeDir, "versions", "1.2.1")
+	oneTwoOne := filepath.Join(o.DataHome, "envoy-versions", "1.2.1")
 	require.NoError(t, os.MkdirAll(oneTwoOne, 0o700))
 	morerequire.RequireSetMtime(t, oneTwoOne, "2021-01-30")
-	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte("1.2.1"), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(o.ConfigHome, "envoy-version"), []byte("1.2.1"), 0o600))
 
-	oneTwoTwo := filepath.Join(o.HomeDir, "versions", "1.2.2")
+	oneTwoTwo := filepath.Join(o.DataHome, "envoy-versions", "1.2.2")
 	require.NoError(t, os.MkdirAll(oneTwoTwo, 0o700))
 	morerequire.RequireSetMtime(t, oneTwoTwo, "2021-01-31")
 	return o

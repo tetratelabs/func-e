@@ -17,8 +17,9 @@ import (
 	"time"
 
 	"github.com/tetratelabs/func-e/experimental/admin"
+	internaladmin "github.com/tetratelabs/func-e/internal/admin"
 	"github.com/tetratelabs/func-e/internal/test/build"
-	"github.com/tetratelabs/func-e/internal/test/e2e"
+	internale2e "github.com/tetratelabs/func-e/internal/test/e2e"
 )
 
 var (
@@ -72,17 +73,24 @@ func funcEExec(ctx context.Context, args ...string) (string, string, error) {
 	return stdout.String(), stderr.String(), err
 }
 
-// funcEFactory implements runtest.FuncEFactory for E2E tests using a compiled func-e binary.
+// funcEFactory implements internale2e.FuncEFactory for E2E tests using a
+// compiled func-e binary.
 type funcEFactory struct{}
 
-func (funcEFactory) New(_ context.Context, _ *testing.T, stdout, stderr io.Writer) (e2e.FuncE, error) {
+func (funcEFactory) New(_ context.Context, _ *testing.T, stdout, stderr io.Writer) (internale2e.FuncE, error) {
 	return &funcE{stdout: stdout, stderr: stderr}, nil
 }
 
-// funcE implements runtest.FuncE for e2e tests using the compiled binary
+// funcE implements internale2e.FuncE for e2e tests using the compiled binary
 type funcE struct {
 	cmd            *exec.Cmd
 	stdout, stderr io.Writer
+	envoyPid       int
+}
+
+// EnvoyPid implements the same method as documented on internale2e.FuncE
+func (a *funcE) EnvoyPid() int {
+	return a.envoyPid
 }
 
 // OnStart inspects the running func-e process tree to find the Envoy process and its run directory,
@@ -93,7 +101,14 @@ func (a *funcE) OnStart(ctx context.Context) (admin.AdminClient, error) {
 	}
 	funcEPid := a.cmd.Process.Pid
 
-	adminClient, err := admin.NewAdminClient(ctx, funcEPid)
+	// Poll for the admin address path from the Envoy process command line
+	envoyPid, adminAddressPath, err := internaladmin.PollEnvoyPidAndAdminAddressPath(ctx, funcEPid)
+	if err != nil {
+		return nil, err
+	}
+	a.envoyPid = envoyPid
+
+	adminClient, err := internaladmin.NewAdminClient(ctx, adminAddressPath)
 	if err == nil {
 		err = adminClient.AwaitReady(ctx, 100*time.Millisecond)
 	}

@@ -337,7 +337,7 @@ func adminEndpoints(w http.ResponseWriter, r *http.Request) {
 func accessLogHandler(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
 
-	// The corresponding config returns a constant response so we know what the
+	// The corresponding config returns a constant response, so we know what the
 	// status code will be.
 	response := []byte("Hello, World!")
 	w.WriteHeader(http.StatusOK)

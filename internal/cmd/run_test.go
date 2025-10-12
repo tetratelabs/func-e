@@ -98,7 +98,7 @@ func TestFuncERun_ReadsHomeVersionFile(t *testing.T) {
 	o.EnvoyVersion = "" // pretend this is an initial setup
 	o.Out = new(bytes.Buffer)
 
-	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte(version.LastKnownEnvoyMinor), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(o.ConfigHome, "envoy-version"), []byte(version.LastKnownEnvoyMinor), 0o600))
 
 	c, _, _ := newApp(o)
 	runWithInvalidConfig(t, c)
@@ -107,7 +107,7 @@ func TestFuncERun_ReadsHomeVersionFile(t *testing.T) {
 	require.NotContains(t, o.Out.(*bytes.Buffer).String(), "looking up latest version")
 	require.Equal(t, version.LastKnownEnvoy, o.EnvoyVersion)
 
-	writtenVersion, err := os.ReadFile(filepath.Join(o.HomeDir, "version"))
+	writtenVersion, err := os.ReadFile(filepath.Join(o.ConfigHome, "envoy-version"))
 	require.NoError(t, err)
 	require.Equal(t, version.LastKnownEnvoyMinor.String(), string(writtenVersion))
 }
@@ -118,17 +118,17 @@ func TestFuncERun_CreatesHomeVersionFile(t *testing.T) {
 	o.Out = new(bytes.Buffer)
 
 	// make sure first run where the home doesn't exist yet, works!
-	require.NoError(t, os.RemoveAll(o.HomeDir))
+	require.NoError(t, os.RemoveAll(o.DataHome))
 
 	c, _, _ := newApp(o)
 	runWithInvalidConfig(t, c)
 
 	// We logged the implicit lookup
 	require.Contains(t, o.Out.(*bytes.Buffer).String(), "looking up the latest Envoy version")
-	require.FileExists(t, filepath.Join(o.HomeDir, "version"))
+	require.FileExists(t, filepath.Join(o.ConfigHome, "envoy-version"))
 	require.Equal(t, version.LastKnownEnvoy, o.EnvoyVersion)
 
-	writtenVersion, err := os.ReadFile(filepath.Join(o.HomeDir, "version"))
+	writtenVersion, err := os.ReadFile(filepath.Join(o.ConfigHome, "envoy-version"))
 	require.NoError(t, err)
 	require.Equal(t, version.LastKnownEnvoyMinor.String(), string(writtenVersion))
 }
@@ -146,13 +146,13 @@ func TestFuncERun_ValidatesHomeVersion(t *testing.T) {
 	o.Out = new(bytes.Buffer)
 
 	o.EnvoyVersion = ""
-	require.NoError(t, os.WriteFile(filepath.Join(o.HomeDir, "version"), []byte("a.a.a"), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(o.ConfigHome, "envoy-version"), []byte("a.a.a"), 0o600))
 
 	c, _, _ := newApp(o)
 	err := c.Run([]string{"func-e", "run"})
 
 	// Verify the command failed with the expected error
-	expectedErr := fmt.Sprintf(`invalid version in "$FUNC_E_HOME/version": "a.a.a" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
+	expectedErr := fmt.Sprintf(`invalid version in "$FUNC_E_CONFIG_HOME/envoy-version": "a.a.a" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
 	require.EqualError(t, err, expectedErr)
 }
 
@@ -179,7 +179,10 @@ func TestFuncERun_ErrsWhenVersionsServerDown(t *testing.T) {
 
 	o := &globals.GlobalOpts{
 		EnvoyVersionsURL: "https://127.0.0.1:9999",
-		HomeDir:          tempDir,
+		ConfigHome:       tempDir,
+		DataHome:         tempDir,
+		StateHome:        tempDir,
+		RuntimeDir:       tempDir,
 		Out:              new(bytes.Buffer),
 	}
 	c, _, _ := newApp(o)

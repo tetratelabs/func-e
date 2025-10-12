@@ -6,7 +6,6 @@ package admin_test
 import (
 	"context"
 	"io"
-	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -18,7 +17,7 @@ import (
 
 func TestWithStartupHook(t *testing.T) {
 	// Test that middleware.WithStartupHook returns a valid RunOption
-	customHook := func(ctx context.Context, adminClient admin.AdminClient) error {
+	customHook := func(ctx context.Context, adminClient admin.AdminClient, runID string) error {
 		return nil
 	}
 
@@ -30,30 +29,35 @@ func TestWithStartupHook_E2E(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
-	var actualRunDir string
 	var actualAdminPort int
+	var actualRunID string
 
-	// Inject startup hook that captures runDir and adminPort
-	startupHook := func(ctx context.Context, adminClient admin.AdminClient) error {
-		actualRunDir = adminClient.RunDir()
+	// Inject startup hook that captures the adminPort and runID
+	startupHook := func(ctx context.Context, adminClient admin.AdminClient, runID string) error {
 		actualAdminPort = adminClient.Port()
+		actualRunID = runID
 		// Cancel immediately to stop Envoy and complete test quickly
 		cancel()
 		return nil
 	}
 
+	// Use temp directories to isolate test from real system
+	tempDir := t.TempDir()
+
 	// Run with minimal Envoy config
 	err := func_e.Run(ctx, []string{
 		"--config-yaml",
 		"admin: {address: {socket_address: {address: '127.0.0.1', port_value: 0}}}",
-	}, api.Out(io.Discard), api.EnvoyOut(io.Discard), api.EnvoyErr(io.Discard), admin.WithStartupHook(startupHook))
+	}, api.Out(io.Discard), api.EnvoyOut(io.Discard), api.EnvoyErr(io.Discard),
+		api.ConfigHome(tempDir), api.DataHome(tempDir), api.StateHome(tempDir), api.RuntimeDir(tempDir),
+		admin.WithStartupHook(startupHook))
 
 	// Expect nil error since Run returns nil on context cancellation (documented behavior)
 	require.NoError(t, err)
 
-	// Run dir should have been caught
-	require.FileExists(t, filepath.Join(actualRunDir, "stdout.log"))
-
 	// Should get a real admin port, not the ephemeral input (0)
 	require.NotZero(t, actualAdminPort)
+
+	// Should get a non-empty runID
+	require.NotEmpty(t, actualRunID, "runID should be provided to startup hook")
 }

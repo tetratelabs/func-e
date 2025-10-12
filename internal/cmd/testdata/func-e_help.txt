@@ -7,18 +7,28 @@ USAGE:
 
    To list versions of Envoy you can use, execute `func-e versions -a`. To
    choose one, invoke `func-e use 1.35.3`. This installs into
-   `$FUNC_E_HOME/versions/1.35.3`, if not already present. You may also use
-   minor version, such as `func-e use 1.35`.
+   `$FUNC_E_DATA_HOME/envoy-versions/1.35.3`, if not already present. You may
+   also use minor version, such as `func-e use 1.35`.
 
    You may want to override `$ENVOY_VERSIONS_URL` to supply custom builds or
    otherwise control the source of Envoy binaries. When overriding, validate
    your JSON first: https://archive.tetratelabs.io/release-versions-schema.json
 
+   Directory structure:
+     `$FUNC_E_CONFIG_HOME` stores configuration files
+       (default: ${HOME}/.config/func-e)
+     `$FUNC_E_DATA_HOME` stores Envoy binaries
+       (default: ${HOME}/.local/share/func-e)
+     `$FUNC_E_STATE_HOME` stores logs
+       (default: ${HOME}/.local/state/func-e)
+     `$FUNC_E_RUNTIME_DIR` stores temporary files
+       (default: /tmp/func-e-${UID})
+
    Advanced:
    `FUNC_E_PLATFORM` overrides the host OS and architecture of Envoy binaries.
    This is used when emulating another platform, e.g. x86 on Apple Silicon M1.
    Note: Changing the OS value can cause problems as Envoy has dependencies,
-   such as glibc. This value must be constant within a `$FUNC_E_HOME`.
+   such as glibc. This value must be constant within a `$FUNC_E_DATA_HOME`.
 
 VERSION:
    1.0
@@ -31,7 +41,12 @@ COMMANDS:
    which     Prints the path to the Envoy binary used by the "run" command
 
 GLOBAL OPTIONS:
-   --home-dir value            func-e home directory (location of installed versions and run archives) (default: ${HOME}/.func-e) [$FUNC_E_HOME]
+   --home-dir value            (deprecated) func-e home directory - use --config-home, --data-home, --state-home or --runtime-dir instead [$FUNC_E_HOME]
+   --config-home value         directory for configuration files (default: ${HOME}/.config/func-e) [$FUNC_E_CONFIG_HOME]
+   --data-home value           directory for Envoy binaries (default: ${HOME}/.local/share/func-e) [$FUNC_E_DATA_HOME]
+   --state-home value          directory for logs (used by run command) (default: ${HOME}/.local/state/func-e) [$FUNC_E_STATE_HOME]
+   --runtime-dir value         directory for temporary files (used by run command) (default: /tmp/func-e-${UID}) [$FUNC_E_RUNTIME_DIR]
+   --run-id value              custom run identifier for logs/runtime directories (used by run command) (default: auto-generated timestamp) [$FUNC_E_RUN_ID]
    --envoy-versions-url value  URL of Envoy versions JSON (default: https://archive.tetratelabs.io/envoy/envoy-versions.json) [$ENVOY_VERSIONS_URL]
    --platform value            the host OS and architecture of Envoy binaries. Ex. darwin/arm64 (default: $GOOS/$GOARCH) [$FUNC_E_PLATFORM]
    --version, -v               print the version
