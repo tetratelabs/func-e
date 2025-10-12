@@ -10,14 +10,13 @@ import (
 	"github.com/tetratelabs/func-e/api"
 	internalapi "github.com/tetratelabs/func-e/internal/api"
 	"github.com/tetratelabs/func-e/internal/globals"
-	internalmiddleware "github.com/tetratelabs/func-e/internal/middleware"
-	"github.com/tetratelabs/func-e/internal/opts"
+	"github.com/tetratelabs/func-e/internal/runtime"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
 // EnvoyPath overrides the path to the Envoy binary. Used for testing with a fake binary.
 func EnvoyPath(envoyPath string) api.RunOption {
-	return func(o *opts.RunOpts) {
+	return func(o *internalapi.RunOpts) {
 		o.EnvoyPath = envoyPath
 	}
 }
@@ -26,7 +25,7 @@ func EnvoyPath(envoyPath string) api.RunOption {
 func Run(ctx context.Context, args []string, options ...api.RunOption) error {
 	// Check if middleware is set in context
 	baseRun := api.RunFunc(runImpl)
-	if middlewareVal := ctx.Value(internalmiddleware.Key{}); middlewareVal != nil {
+	if middlewareVal := ctx.Value(internalapi.RunMiddlewareKey{}); middlewareVal != nil {
 		// Type assert to function that matches our middleware signature
 		if middleware, ok := middlewareVal.(func(api.RunFunc) api.RunFunc); ok {
 			baseRun = middleware(baseRun)
@@ -42,11 +41,11 @@ func runImpl(ctx context.Context, args []string, options ...api.RunOption) error
 	if err != nil {
 		return err
 	}
-	return internalapi.Run(ctx, o, args)
+	return runtime.Run(ctx, o, args)
 }
 
 func initOpts(ctx context.Context, options ...api.RunOption) (*globals.GlobalOpts, error) {
-	ro := &opts.RunOpts{
+	ro := &internalapi.RunOpts{
 		Out:      os.Stdout,
 		EnvoyOut: os.Stdout,
 		EnvoyErr: os.Stderr,
@@ -65,11 +64,11 @@ func initOpts(ctx context.Context, options ...api.RunOption) (*globals.GlobalOpt
 			StartupHook: ro.StartupHook,
 		},
 	}
-	if err := internalapi.InitializeGlobalOpts(o, ro.EnvoyVersionsURL, ro.HomeDir, ""); err != nil {
+	if err := runtime.InitializeGlobalOpts(o, ro.EnvoyVersionsURL, ro.HomeDir, ""); err != nil {
 		return nil, err
 	}
 
-	if err := internalapi.EnsureEnvoyVersion(ctx, o); err != nil {
+	if err := runtime.EnsureEnvoyVersion(ctx, o); err != nil {
 		return nil, err
 	}
 	return o, nil

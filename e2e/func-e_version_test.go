@@ -12,7 +12,7 @@ import (
 func TestFuncEVersion(t *testing.T) {
 	t.Parallel()
 
-	stdout, stderr, err := funcEExec("--version")
+	stdout, stderr, err := funcEExec(t.Context(), "--version")
 
 	require.Regexp(t, `^func-e version ([^\s]+)\r?\n$`, stdout)
 	require.Empty(t, stderr)

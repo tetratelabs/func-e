@@ -36,14 +36,15 @@ func TestParseListeners(t *testing.T) {
 	udpProxyPath := filepath.Join(sourceDir, "testdata", "udp_proxy.yaml")
 
 	tests := []struct {
-		name      string
-		args      []string
-		expect    *Config
-		expectErr string
+		name       string
+		configPath string
+		configYaml string
+		expect     *Config
+		expectErr  string
 	}{
 		{
-			name: "admin_localhost",
-			args: []string{"-c", adminLocalhostPath},
+			name:       "admin_localhost",
+			configPath: adminLocalhostPath,
 			expect: &Config{
 				Admin: "127.0.0.1:9901",
 				StaticListeners: []Listener{{
@@ -53,8 +54,8 @@ func TestParseListeners(t *testing.T) {
 			},
 		},
 		{
-			name: "admin_ephemeral",
-			args: []string{"-c", adminEphemeralPath},
+			name:       "admin_ephemeral",
+			configPath: adminEphemeralPath,
 			expect: &Config{
 				Admin: "127.0.0.1:0",
 				StaticListeners: []Listener{{
@@ -64,8 +65,8 @@ func TestParseListeners(t *testing.T) {
 			},
 		},
 		{
-			name: "no_admin",
-			args: []string{"-c", noAdminPath},
+			name:       "no_admin",
+			configPath: noAdminPath,
 			expect: &Config{
 				Admin: "",
 				StaticListeners: []Listener{{
@@ -75,8 +76,8 @@ func TestParseListeners(t *testing.T) {
 			},
 		},
 		{
-			name: "access_log",
-			args: []string{"-c", accessLogPath},
+			name:       "access_log",
+			configPath: accessLogPath,
 			expect: &Config{
 				Admin: "127.0.0.1:0",
 				StaticListeners: []Listener{{
@@ -113,8 +114,8 @@ http_filters:
 			},
 		},
 		{
-			name: "static_file",
-			args: []string{"-c", staticFilePath},
+			name:       "static_file",
+			configPath: staticFilePath,
 			expect: &Config{
 				Admin: "",
 				StaticListeners: []Listener{{
@@ -129,95 +130,14 @@ http_filters:
 			},
 		},
 		{
-			name: "file_last_wins",
-			args: []string{"-c", adminLocalhostPath, "-c", adminEphemeralPath},
-			expect: &Config{
-				Admin: "127.0.0.1:0",
-				StaticListeners: []Listener{{
-					Name:    "test_listener",
-					Address: "0.0.0.0:10000",
-				}},
-			},
-		},
-
-		{
-			name: "multiple_configs_last_has_admin",
-			args: []string{
-				"--config-yaml", `admin: {address: {socket_address: {address: "127.0.0.1", port_value: 9901}}}`,
-				"--config-yaml", `admin: {address: {socket_address: {address: "127.0.0.2", port_value: 9902}}}`,
-			},
-			expect: &Config{
-				Admin:           "127.0.0.2:9902",
-				StaticListeners: []Listener{},
-			},
+			name:       "invalid_yaml",
+			configYaml: "invalid: {yaml",
+			expectErr:  "failed to unmarshal YAML: yaml: line 1: did not find expected ',' or '}'",
 		},
 		{
-			name: "multiple_configs_last_has_no_admin",
-			args: []string{
-				"--config-yaml", `admin: {address: {socket_address: {address: "127.0.0.1", port_value: 9901}}}`,
-				"--config-yaml", `static_resources: {listeners: [{name: test_listener, address: {socket_address: {address: "127.0.0.1", port_value: 8080}}, filter_chains: [{filters: [{name: envoy.minimal}]}]}]}`,
-			},
-			expect: &Config{
-				Admin: "127.0.0.1:9901",
-				StaticListeners: []Listener{{
-					Name:    "test_listener",
-					Address: "127.0.0.1:8080",
-					Filters: []filterInfo{{
-						Name: "envoy.minimal",
-					}},
-				}},
-			},
-		},
-		{
-			name: "multiple_configs_first_has_no_admin",
-			args: []string{
-				"--config-yaml", `static_resources: {listeners: [{name: test_listener, address: {socket_address: {address: "127.0.0.1", port_value: 8080}}, filter_chains: [{filters: [{name: envoy.minimal}]}]}]}`,
-				"--config-yaml", `admin: {address: {socket_address: {address: "127.0.0.2", port_value: 9902}}}`,
-			},
-			expect: &Config{
-				Admin: "127.0.0.2:9902",
-				StaticListeners: []Listener{{
-					Name:    "test_listener",
-					Address: "127.0.0.1:8080",
-					Filters: []filterInfo{{
-						Name: "envoy.minimal",
-					}},
-				}},
-			},
-		},
-		{
-			name: "no_admin_in_any",
-			args: []string{
-				"--config-yaml", `static_resources: {listeners: [{name: test_listener, address: {socket_address: {address: "127.0.0.1", port_value: 8080}}, filter_chains: [{filters: [{name: envoy.minimal}]}]}]}`,
-				"--config-yaml", `static_resources: {clusters: [{name: test_cluster}]}`,
-			},
-			expect: &Config{
-				Admin: "",
-				StaticListeners: []Listener{{
-					Name:    "test_listener",
-					Address: "127.0.0.1:8080",
-					Filters: []filterInfo{{
-						Name: "envoy.minimal",
-					}},
-				}},
-			},
-		},
-		{
-			name:      "invalid_yaml",
-			args:      []string{"--config-yaml", "invalid: {yaml"},
-			expectErr: "failed to unmarshal YAML: yaml: line 1: did not find expected ',' or '}'",
-		},
-		{
-			name:      "missing_value",
-			args:      []string{"--config-yaml"},
-			expectErr: "missing value for --config-yaml",
-		},
-		{
-			name: "mixed_config_path_and_yaml_last_wins",
-			args: []string{
-				"-c", adminLocalhostPath,
-				"--config-yaml", `admin: {address: {socket_address: {address: "127.0.0.3", port_value: 9903}}}`,
-			},
+			name:       "mixed_config_path_and_yaml_last_wins",
+			configPath: adminLocalhostPath,
+			configYaml: `admin: {address: {socket_address: {address: "127.0.0.3", port_value: 9903}}}`,
 			expect: &Config{
 				Admin: "127.0.0.3:9903",
 				StaticListeners: []Listener{{
@@ -227,13 +147,11 @@ http_filters:
 			},
 		},
 		{
-			name: "mixed_config_path_and_yaml_file_wins",
-			args: []string{
-				"--config-yaml", `admin: {address: {socket_address: {address: "127.0.0.3", port_value: 9903}}}`,
-				"-c", adminEphemeralPath,
-			},
+			name:       "mixed_config_path_and_yaml_yaml_always_wins",
+			configPath: adminEphemeralPath,
+			configYaml: `admin: {address: {socket_address: {address: "127.0.0.3", port_value: 9903}}}`,
 			expect: &Config{
-				Admin: "127.0.0.1:0",
+				Admin: "127.0.0.3:9903",
 				StaticListeners: []Listener{{
 					Name:    "test_listener",
 					Address: "0.0.0.0:10000",
@@ -241,30 +159,8 @@ http_filters:
 			},
 		},
 		{
-			name: "admin_with_other_fields_ignored",
-			args: []string{
-				"--config-yaml", `admin: {address: {socket_address: {address: "127.0.0.1", port_value: 9901}}}`,
-				"--config-yaml", `admin: {address: {socket_address: {address: "127.0.0.2", port_value: 9902}}, some_other_field: "ignored"}`,
-			},
-			expect: &Config{
-				Admin:           "127.0.0.2:9902",
-				StaticListeners: []Listener{},
-			},
-		},
-		{
-			name: "admin_partial_override_behavior",
-			args: []string{
-				"--config-yaml", `admin: {address: {socket_address: {address: "127.0.0.1", port_value: 9901}}}`,
-				"--config-yaml", `admin: {address: {socket_address: {address: "127.0.0.2"}}}`,
-			},
-			expect: &Config{
-				Admin:           "127.0.0.2:0",
-				StaticListeners: []Listener{},
-			},
-		},
-		{
-			name: "udp_proxy",
-			args: []string{"-c", udpProxyPath},
+			name:       "udp_proxy",
+			configPath: udpProxyPath,
 			expect: &Config{
 				Admin: "",
 				StaticListeners: []Listener{{
@@ -292,7 +188,7 @@ matcher:
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := ParseListeners(tt.args)
+			result, err := ParseListeners(tt.configPath, tt.configYaml)
 			if tt.expectErr != "" {
 				require.EqualError(t, err, tt.expectErr)
 			} else {
@@ -310,48 +206,37 @@ func TestFindAdminAddress(t *testing.T) {
 	adminLocalhostPath := filepath.Join(testdataDir, "admin_localhost.yaml")
 
 	tests := []struct {
-		name      string
-		args      []string
-		expect    string
-		expectErr string
+		name       string
+		configPath string
+		configYaml string
+		expect     string
+		expectErr  string
 	}{
 		{
-			name:   "file_with_admin",
-			args:   []string{"-c", adminLocalhostPath},
-			expect: "127.0.0.1:9901",
+			name:       "file_with_admin",
+			configPath: adminLocalhostPath,
+			expect:     "127.0.0.1:9901",
 		},
 		{
-			name:   "file_without_admin",
-			args:   []string{"-c", noAdminPath},
-			expect: "",
+			name:       "file_without_admin",
+			configPath: noAdminPath,
+			expect:     "",
 		},
 		{
-			name: "config_with_admin",
-			args: []string{
-				"--config-yaml", `admin: {address: {socket_address: {address: "127.0.0.1", port_value: 9901}}}`,
-			},
-			expect: "127.0.0.1:9901",
+			name:       "config_with_admin",
+			configYaml: `admin: {address: {socket_address: {address: "127.0.0.1", port_value: 9901}}}`,
+			expect:     "127.0.0.1:9901",
 		},
 		{
-			name: "config_without_admin",
-			args: []string{
-				"--config-yaml", `static_resources: {listeners: [{name: test_listener}]}`,
-			},
-			expect: "",
-		},
-		{
-			name: "last_admin_wins",
-			args: []string{
-				"--config-yaml", `admin: {address: {socket_address: {address: "127.0.0.1", port_value: 9901}}}`,
-				"--config-yaml", `admin: {address: {socket_address: {address: "127.0.0.2", port_value: 9902}}}`,
-			},
-			expect: "127.0.0.2:9902",
+			name:       "config_without_admin",
+			configYaml: `static_resources: {listeners: [{name: test_listener}]}`,
+			expect:     "",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			hostPort, err := FindAdminAddress(tt.args)
+			hostPort, err := FindAdminAddress(tt.configPath, tt.configYaml)
 			if tt.expectErr != "" {
 				require.EqualError(t, err, tt.expectErr)
 			} else {

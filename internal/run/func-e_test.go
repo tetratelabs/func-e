@@ -5,16 +5,16 @@ package run
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"os"
-	"path/filepath"
-	"strconv"
 	"testing"
+	"time"
 
 	"github.com/tetratelabs/func-e/api"
+	"github.com/tetratelabs/func-e/experimental/admin"
 	internalapi "github.com/tetratelabs/func-e/internal/api"
 	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/runtime"
 	"github.com/tetratelabs/func-e/internal/test/e2e"
 )
 
@@ -48,20 +48,13 @@ func (f *fakeFuncE) Interrupt(context.Context) error {
 	return nil
 }
 
-// OnStart uses the cached runDir to read the envoy PID from the file created by envoy/run.go
-func (f *fakeFuncE) OnStart(context.Context) (runDir string, envoyPid int32, err error) {
-	envoyPidFile := filepath.Join(f.o.RunDir, "envoy.pid")
-	pidBytes, err := os.ReadFile(envoyPidFile)
-	if err != nil {
-		return f.o.RunDir, 0, err
+// OnStart creates an admin client using the run directory and waits for Envoy to be ready.
+func (f *fakeFuncE) OnStart(ctx context.Context) (internalapi.AdminClient, error) {
+	adminClient, err := admin.NewAdminClient(ctx, os.Getpid())
+	if err == nil {
+		err = adminClient.AwaitReady(ctx, 100*time.Millisecond)
 	}
-
-	pid, err := strconv.Atoi(string(pidBytes))
-	if err != nil {
-		return f.o.RunDir, 0, fmt.Errorf("failed to parse Envoy PID from %s: %w", envoyPidFile, err)
-	}
-
-	return f.o.RunDir, int32(pid), nil
+	return adminClient, err
 }
 
 // Run invokes the underlying api.Run function, which has been configured to use a fake Envoy binary.
@@ -69,5 +62,5 @@ func (f *fakeFuncE) Run(ctx context.Context, args []string) error {
 	// Since we aren't launching a real process, we proxy interrupt with context cancellation.
 	ctx, cancel := context.WithCancel(ctx)
 	f.cancelFunc = cancel
-	return internalapi.Run(ctx, f.o, args)
+	return runtime.Run(ctx, f.o, args)
 }

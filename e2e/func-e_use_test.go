@@ -22,7 +22,7 @@ func TestFuncEUse(t *testing.T) {
 	homeDir := t.TempDir()
 
 	t.Run("not yet installed", func(t *testing.T) {
-		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", version.LastKnownEnvoy.String())
+		stdout, stderr, err := funcEExec(t.Context(), "--home-dir", homeDir, "use", version.LastKnownEnvoy.String())
 		require.NoError(t, err)
 		require.Regexp(t, `^downloading https:.*tar.*z\r?\n$`, stdout)
 		require.Empty(t, stderr)
@@ -38,7 +38,7 @@ func TestFuncEUse(t *testing.T) {
 	})
 
 	t.Run("already installed", func(t *testing.T) {
-		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", version.LastKnownEnvoy.String())
+		stdout, stderr, err := funcEExec(t.Context(), "--home-dir", homeDir, "use", version.LastKnownEnvoy.String())
 
 		require.NoError(t, err)
 		require.Equal(t, fmt.Sprintf("%s is already downloaded\n", version.LastKnownEnvoy.String()), stdout)
@@ -48,7 +48,7 @@ func TestFuncEUse(t *testing.T) {
 
 func TestFuncEUse_UnknownVersion(t *testing.T) {
 	v := "1.1.1"
-	stdout, stderr, err := funcEExec("use", v)
+	stdout, stderr, err := funcEExec(t.Context(), "use", v)
 
 	require.EqualError(t, err, "exit status 1")
 	require.Empty(t, stdout)
@@ -58,7 +58,7 @@ func TestFuncEUse_UnknownVersion(t *testing.T) {
 
 func TestFuncEUse_UnknownMinorVersion(t *testing.T) {
 	v := "1.1"
-	stdout, stderr, err := funcEExec("use", v)
+	stdout, stderr, err := funcEExec(t.Context(), "use", v)
 
 	require.EqualError(t, err, "exit status 1")
 	require.Regexp(t, `^looking up the latest patch for Envoy version 1.1\r?\n$`, stdout)
@@ -73,7 +73,7 @@ func TestFuncEUse_MinorVersion(t *testing.T) {
 	// The intended minor version to be installed. This version is known to have darwin and linux binaries.
 	minorVersion := "1.24"
 
-	allVersions, _, err := funcEExec("versions", "-a")
+	allVersions, _, err := funcEExec(t.Context(), "versions", "-a")
 	require.NoError(t, err)
 
 	baseVersion, upgradedVersion := getVersionsRange(allVersions, minorVersion)
@@ -81,7 +81,7 @@ func TestFuncEUse_MinorVersion(t *testing.T) {
 	homeDir := t.TempDir()
 
 	t.Run("install last known", func(t *testing.T) {
-		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", version.LastKnownEnvoy.String())
+		stdout, stderr, err := funcEExec(t.Context(), "--home-dir", homeDir, "use", version.LastKnownEnvoy.String())
 
 		require.NoError(t, err)
 		require.Regexp(t, `^downloading https:.*tar.*z\r?\n$`, stdout)
@@ -98,7 +98,7 @@ func TestFuncEUse_MinorVersion(t *testing.T) {
 	})
 
 	t.Run(fmt.Sprintf("install %s as base version", baseVersion), func(t *testing.T) {
-		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", baseVersion)
+		stdout, stderr, err := funcEExec(t.Context(), "--home-dir", homeDir, "use", baseVersion)
 
 		require.NoError(t, err)
 		require.Regexp(t, `^downloading https:.*tar.*z\r?\n$`, stdout)
@@ -115,7 +115,7 @@ func TestFuncEUse_MinorVersion(t *testing.T) {
 	})
 
 	t.Run(fmt.Sprintf("install %s as upgraded version", upgradedVersion), func(t *testing.T) {
-		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", minorVersion)
+		stdout, stderr, err := funcEExec(t.Context(), "--home-dir", homeDir, "use", minorVersion)
 
 		require.NoError(t, err)
 		require.Regexp(t, `^looking up the latest patch for Envoy version 1.24\r?\ndownloading https:.*tar.*z\r?\n$`, stdout)
@@ -132,14 +132,14 @@ func TestFuncEUse_MinorVersion(t *testing.T) {
 	})
 
 	t.Run("use upgraded version after downloaded", func(t *testing.T) {
-		stdout, stderr, err := funcEExec("--home-dir", homeDir, "use", minorVersion)
+		stdout, stderr, err := funcEExec(t.Context(), "--home-dir", homeDir, "use", minorVersion)
 		require.NoError(t, err)
 		require.Equal(t, fmt.Sprintf("looking up the latest patch for Envoy version 1.24\n%s is already downloaded\n", upgradedVersion), stdout)
 		require.Empty(t, stderr)
 	})
 
 	t.Run("which upgraded version", func(t *testing.T) {
-		stdout, stderr, err := funcEExec("--home-dir", homeDir, "which")
+		stdout, stderr, err := funcEExec(t.Context(), "--home-dir", homeDir, "which")
 		relativeEnvoyBin := filepath.Join("versions", upgradedVersion, "bin", "envoy"+"")
 		require.Contains(t, stdout, fmt.Sprintf("%s\n", relativeEnvoyBin))
 		require.Empty(t, stderr)

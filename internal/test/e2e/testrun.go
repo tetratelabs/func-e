@@ -4,11 +4,12 @@
 package e2e
 
 import (
-	"bufio"
 	"context"
 	"errors"
 	"io"
+	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -19,13 +20,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/func-e/internal"
+	internalapi "github.com/tetratelabs/func-e/internal/api"
 	"github.com/tetratelabs/func-e/internal/test/morerequire"
 )
 
-var envoyStartedLine = "starting main dispatch loop"
-
 // RunTestFunc is a test function called once Envoy is started.
-type RunTestFunc func(ctx context.Context, runDir string, envoyPid int32, interruptFuncE func(context.Context) error, adminClient *AdminClient)
+type RunTestFunc func(ctx context.Context, interruptFuncE func(context.Context) error, adminClient internalapi.AdminClient)
 
 type RunTestOptions struct {
 	ExpectFail bool
@@ -43,6 +43,21 @@ func TestRun(ctx context.Context, t *testing.T, factory FuncEFactory) {
 	})
 }
 
+// TestRun_AdminAddressPath tests we do not assume the admin address path is in the run directory.
+func TestRun_AdminAddressPath(ctx context.Context, t *testing.T, factory FuncEFactory) {
+	adminAddressPath := path.Join(t.TempDir(), "--admin-address-path")
+	executeRunTest(ctx, t, factory, RunTestOptions{
+		Args: []string{"--config-yaml", "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 0}}}", "--admin-address-path", adminAddressPath},
+	})
+}
+
+// TestRun_LogWarn tests we do not depend on any log messages written to info level.
+func TestRun_LogWarn(ctx context.Context, t *testing.T, factory FuncEFactory) {
+	executeRunTest(ctx, t, factory, RunTestOptions{
+		Args: []string{"--config-yaml", "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 0}}}", "--log-level", "warn"},
+	})
+}
+
 // TestRun_StaticFile tests "func-e run" runs envoy in the right directory, and can read files in it.
 func TestRun_StaticFile(ctx context.Context, t *testing.T, factory FuncEFactory) {
 	revertWd := morerequire.RequireChdir(t, t.TempDir())
@@ -56,11 +71,15 @@ func TestRun_StaticFile(ctx context.Context, t *testing.T, factory FuncEFactory)
 	})
 
 	executeRunTest(ctx, t, factory, RunTestOptions{
-		TestFunc: func(ctx context.Context, runDir string, envoyPid int32, interruptFuncE func(context.Context) error, adminClient *AdminClient) {
-			mainURL, err := adminClient.GetListenerBaseURL(ctx, "main")
+		TestFunc: func(ctx context.Context, interruptFuncE func(context.Context) error, adminClient internalapi.AdminClient) {
+			req, err := adminClient.NewListenerRequest(ctx, "main", http.MethodGet, "/", nil)
 			require.NoError(t, err)
 
-			body, err := httpGet(ctx, mainURL)
+			resp, err := http.DefaultClient.Do(req)
+			require.NoError(t, err)
+			defer resp.Body.Close() //nolint:errcheck
+
+			body, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
 			require.Equal(t, expectedResponse, body)
 		},
@@ -80,24 +99,32 @@ func TestRun_RunDirectory(ctx context.Context, t *testing.T, factory FuncEFactor
 	})
 
 	executeRunTest(ctx, t, factory, RunTestOptions{
-		TestFunc: func(ctx context.Context, runDir string, envoyPid int32, interruptFuncE func(context.Context) error, adminClient *AdminClient) {
-			mainURL, err := adminClient.GetListenerBaseURL(ctx, "main")
+		TestFunc: func(ctx context.Context, interruptFuncE func(context.Context) error, adminClient internalapi.AdminClient) {
+			// Get the listener twice to generate access logs in stdout
+			req, err := adminClient.NewListenerRequest(ctx, "main", http.MethodGet, "/", nil)
 			require.NoError(t, err)
 
-			// Get the listener twice to generate access logs in stdout
-			responseBody, err := httpGet(ctx, mainURL)
+			resp, err := http.DefaultClient.Do(req)
+			require.NoError(t, err)
+			defer resp.Body.Close() //nolint:errcheck
+
+			responseBody, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
 			require.Equal(t, inlineString, responseBody)
 
 			// Make another request to generate more logs
-			_, err = httpGet(ctx, mainURL)
+			req2, err := adminClient.NewListenerRequest(ctx, "main", http.MethodGet, "/", nil)
 			require.NoError(t, err)
+
+			resp2, err := http.DefaultClient.Do(req2)
+			require.NoError(t, err)
+			defer resp2.Body.Close() //nolint:errcheck
 
 			// Wait a moment for logs to be flushed
 			time.Sleep(100 * time.Millisecond)
 
 			// Now check the run directory before shutting down
-			checkRunDirectoryWithAccessLogs(t, runDir)
+			checkRunDirectoryWithAccessLogs(t, adminClient.RunDir())
 		},
 		Args: []string{"-c", "envoy.yaml"},
 	})
@@ -123,7 +150,7 @@ func TestRun_InvalidConfig(ctx context.Context, t *testing.T, factory FuncEFacto
 func TestRun_CtrlCs(ctx context.Context, t *testing.T, factory FuncEFactory) {
 	executeRunTest(ctx, t, factory, RunTestOptions{
 		Args: []string{"--config-yaml", "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 0}}}"},
-		TestFunc: func(ctx context.Context, runDir string, envoyPid int32, interruptFuncE func(context.Context) error, adminClient *AdminClient) {
+		TestFunc: func(ctx context.Context, interruptFuncE func(context.Context) error, adminClient internalapi.AdminClient) {
 			// First interrupt should begin graceful shutdown
 			require.NoError(t, interruptFuncE(ctx))
 
@@ -144,18 +171,16 @@ func setupTestFiles(t *testing.T, files map[string][]byte) {
 
 // executeRunTest executes the given func-e arguments and runs the provided test function once Envoy is available.
 func executeRunTest(ctx context.Context, t *testing.T, factory FuncEFactory, opts RunTestOptions) {
-	var stdoutBuf strings.Builder
-	stderrReader, stderrWriter := io.Pipe()
-	var stderrBuf strings.Builder
+	var stdoutBuf, stderr strings.Builder
 
 	t.Cleanup(func() {
 		if t.Failed() {
 			_, _ = os.Stdout.WriteString(stdoutBuf.String())
-			_, _ = os.Stderr.WriteString(stderrBuf.String())
+			_, _ = os.Stderr.WriteString(stderr.String())
 		}
 	})
 
-	funcE, err := factory.New(ctx, t, &stdoutBuf, stderrWriter)
+	funcE, err := factory.New(ctx, t, &stdoutBuf, &stderr)
 	require.NoError(t, err)
 
 	// Note: We can't check the func-e process because in the case of api-mode it is the test runner!
@@ -165,88 +190,62 @@ func executeRunTest(ctx context.Context, t *testing.T, factory FuncEFactory, opt
 		runErrCh <- funcE.Run(ctx, opts.Args)
 	}()
 
-	// Test failures won't fail fast unless the calling goroutine checks the status.
-	testFailed := make(chan bool, 1)
+	// Poll synchronously for Envoy to start and become ready via admin API
+	var adminClient internalapi.AdminClient
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
 
-	// We don't need to process stdout because Envoy writes nothing notable to it.
-	// We scan until the process is started, which is the barrier for running any test function.
-	var envoyPid int32
-	var runDir string
-	stderrScanner := bufio.NewScanner(stderrReader)
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				t.Errorf("Panic in stderrScanner goroutine: %v", r)
-				testFailed <- true // Indicate that the test failed due to a panic
+	var lastErr error
+	var runErr error
+
+polling:
+	for {
+		select {
+		case runErr = <-runErrCh:
+			// funcE.Run completed
+			break polling
+
+		case <-ctx.Done():
+			// Test context timed out
+			if lastErr != nil {
+				t.Errorf("timeout waiting for Envoy to start: %v", lastErr)
 			} else {
-				testFailed <- t.Failed() // Send test failure status after processing.
+				t.Errorf("timeout waiting for Envoy to start")
 			}
-		}()
+			runErr = <-runErrCh
+			break polling
 
-		// Goroutine lifecycle: Scans stderr lines and handles Envoy start detection.
-		// - Scans each line, checking for Envoy start indicator.
-		// - Upon detecting start, gets PID, runs test if provided, interrupts Envoy.
-		// - Exits the loop early after interrupting to allow process termination.
-		// - Defers sending testFailed to ensure cleanup even on early return or panic.
-		// Continues scanning until EOF or error.
-		for stderrScanner.Scan() {
-			line := stderrScanner.Text()
-			stderrBuf.WriteString(line + "\n")
-			if !strings.Contains(line, envoyStartedLine) {
-				continue
+		case <-ticker.C:
+			// Try to get Envoy process info and wait for admin API to be ready
+			adminClient, lastErr = funcE.OnStart(ctx)
+			if lastErr != nil {
+				continue // Keep polling
 			}
 
-			// We shouldn't get here because on failure, the above loop should exit when envoy fails to start.
+			// Envoy is ready!
 			if opts.ExpectFail {
 				t.Errorf("Envoy started unexpectedly")
-				break // break the loop to allow troubleshooting.
+				runErr = <-runErrCh
+				break polling
 			}
 
-			// Envoy started successfully when we want it to. Even if there is no TestFunc, validate there is a
-			// run directory and Envoy PID.
-			runDir, envoyPid, err = funcE.OnStart(ctx)
-			require.NoError(t, err)
-
-			// If a test function is provided, run it and then interrupt func-e. These are different branches
-			// to ensure a test failure doesn't leak the interrupt call.
+			// Run test or just interrupt
 			if opts.TestFunc != nil {
-				runTestAndInterruptFuncE(ctx, t, funcE, runDir, envoyPid, opts.TestFunc)
+				runTestAndInterruptFuncE(ctx, t, funcE, adminClient, opts.TestFunc)
 			} else {
 				require.NoError(t, funcE.Interrupt(ctx))
 			}
-			break // break the loop to allow the process to terminate.
-		}
-	}()
 
-	// This block waits for the result of the func-e run. There are three main
-	// outcomes to wait for, handled by the select statement:
-	// 1. The func-e run completes, sending an error (or nil) to `runErrCh`.
-	// 2. The test fails within the stderr scanning goroutine, which sends a
-	//    signal to `testFailed`.
-	// 3. The test context is canceled (e.g., due to a timeout).
-	var runErr error
-	select {
-	case <-ctx.Done():
-		// The test timed out or was canceled before func-e finished.
-		t.Fatalf("Context done before func-e finished: %v", ctx.Err())
-	case runErr = <-runErrCh:
-		// `funcE.Run` finished. `runErr` now holds its return value.
-	case failed := <-testFailed:
-		// The stderr scanner goroutine reported a test failure.
-		if failed {
-			t.FailNow() // Fail the test immediately.
+			// Wait for funcE.Run to complete after test
+			runErr = <-runErrCh
+			break polling
 		}
-		// If the test didn't fail, we still need to wait for funcE.Run to finish.
-		runErr = <-runErrCh
 	}
 
-	// Close the stderr pipe writer to signal the scanner to stop.
-	_ = stderrWriter.Close()
-	// Ensure the scanner didn't encounter any errors.
-	require.NoError(t, stderrScanner.Err())
-
 	// Update envoyPid to reflect current state - if process doesn't exist or isn't running, it's 0
-	if envoyPid != 0 {
+	var envoyPid int32
+	if adminClient != nil {
+		envoyPid = adminClient.Pid()
 		envoyProcess, err := process.NewProcessWithContext(ctx, envoyPid)
 		if err != nil {
 			envoyPid = 0 // Process doesn't exist
@@ -278,7 +277,7 @@ func executeRunTest(ctx context.Context, t *testing.T, factory FuncEFactory, opt
 }
 
 // runTestAndInterruptFuncE runs the test function and ensures func-e is interrupted afterward.
-func runTestAndInterruptFuncE(ctx context.Context, t *testing.T, funcE FuncE, runDir string, envoyPid int32, callback func(context.Context, string, int32, func(context.Context) error, *AdminClient)) {
+func runTestAndInterruptFuncE(ctx context.Context, t *testing.T, funcE FuncE, adminClient internalapi.AdminClient, callback RunTestFunc) {
 	defer func() {
 		if err := funcE.Interrupt(ctx); err != nil {
 			// Only fail if it's not an expected error from killing the process
@@ -290,8 +289,8 @@ func runTestAndInterruptFuncE(ctx context.Context, t *testing.T, funcE FuncE, ru
 			t.Logf("context canceled during interrupt: %v", ctx.Err())
 		}
 	}() // Defer ensures interrupt is called even if callback panics.
-	adminClient := requireAdminReady(ctx, t, runDir)
-	callback(ctx, runDir, envoyPid, func(ctx context.Context) error { return funcE.Interrupt(ctx) }, adminClient)
+
+	callback(ctx, func(ctx context.Context) error { return funcE.Interrupt(ctx) }, adminClient)
 }
 
 func checkRunDirectoryWithAccessLogs(t *testing.T, runDir string) {
@@ -322,7 +321,7 @@ func checkRunDirectoryWithAccessLogs(t *testing.T, runDir string) {
 	require.NotEmpty(t, stdoutStr, "stdout.log should contain access logs")
 
 	// Check for expected access log format elements
-	require.Contains(t, stdoutStr, "GET / HTTP/1.1", "should contain GET request")
-	require.Contains(t, stdoutStr, "200", "should contain 200 status code")
-	require.Contains(t, stdoutStr, "13", "should contain response body size (13 bytes for 'Hello, World!')")
+	require.Contains(t, stdoutStr, "GET / HTTP/1.1")
+	require.Contains(t, stdoutStr, "200")
+	require.Contains(t, stdoutStr, "13") // 13 bytes for 'Hello, World!'
 }

@@ -1,7 +1,7 @@
 // Copyright 2025 Tetrate
 // SPDX-License-Identifier: Apache-2.0
 
-package api_test
+package runtime_test
 
 import (
 	"os/user"
@@ -10,8 +10,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/func-e/internal/api"
 	"github.com/tetratelabs/func-e/internal/globals"
+	"github.com/tetratelabs/func-e/internal/runtime"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
@@ -61,7 +61,7 @@ func TestInitializeGlobalOpts(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			o := &globals.GlobalOpts{}
-			err := api.InitializeGlobalOpts(o, tc.envoyVersionsURL, tc.homeDir, tc.platform)
+			err := runtime.InitializeGlobalOpts(o, tc.envoyVersionsURL, tc.homeDir, tc.platform)
 
 			if tc.expectedErr != "" {
 				require.EqualError(t, err, tc.expectedErr)

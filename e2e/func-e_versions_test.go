@@ -17,7 +17,7 @@ import (
 func TestFuncEVersions_NothingYet(t *testing.T) {
 	homeDir := t.TempDir()
 
-	stdout, stderr, err := funcEExec("--home-dir", homeDir, "versions")
+	stdout, stderr, err := funcEExec(t.Context(), "--home-dir", homeDir, "versions")
 
 	require.NoError(t, err)
 	require.Empty(t, stdout)
@@ -27,7 +27,7 @@ func TestFuncEVersions_NothingYet(t *testing.T) {
 func TestFuncEVersions(t *testing.T) {
 	t.Parallel()
 
-	stdout, stderr, err := funcEExec("versions")
+	stdout, stderr, err := funcEExec(t.Context(), "versions")
 
 	// Depending on ~/func-e/version, what's selected may not be the latest version or even installed at all.
 	require.Regexp(t, "[ *] [1-9][0-9]*\\.[0-9]+\\.[0-9]+(_debug)? 202[1-9]-[01][0-9]-[0-3][0-9].*\n", stdout)
@@ -38,7 +38,7 @@ func TestFuncEVersions(t *testing.T) {
 func TestFuncEVersions_All(t *testing.T) {
 	t.Parallel()
 
-	stdout, stderr, err := funcEExec("versions", "-a")
+	stdout, stderr, err := funcEExec(t.Context(), "versions", "-a")
 
 	require.Regexp(t, fmt.Sprintf("[ *] %s 202[1-9]-[01][0-9]-[0-3][0-9].*\n", version.LastKnownEnvoy), stdout)
 	require.Empty(t, stderr)
@@ -50,9 +50,9 @@ func TestFuncEVersions_AllIncludesInstalled(t *testing.T) {
 
 	// Cheap test that one includes the other. It doesn't actually parse the output, but the above tests prove the
 	// latest version is in each deviation.
-	allVersions, _, err := funcEExec("versions", "-a")
+	allVersions, _, err := funcEExec(t.Context(), "versions", "-a")
 	require.NoError(t, err)
-	installedVersions, _, err := funcEExec("versions")
+	installedVersions, _, err := funcEExec(t.Context(), "versions")
 	require.NoError(t, err)
 
 	require.Greater(t, countLines(allVersions), countLines(installedVersions), "expected more versions available than installed")

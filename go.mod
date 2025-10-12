@@ -1,6 +1,6 @@
 module github.com/tetratelabs/func-e
 
-go 1.25
+go 1.25.2
 
 require (
 	github.com/shirou/gopsutil/v4 v4.25.8

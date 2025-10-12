@@ -9,13 +9,13 @@ import (
 	"context"
 	"io"
 
-	"github.com/tetratelabs/func-e/internal/opts"
+	"github.com/tetratelabs/func-e/internal/api"
 )
 
 // HomeDir is an absolute path which most importantly contains "versions"
 // installed from EnvoyVersionsURL. Defaults to "${HOME}/.func-e"
 func HomeDir(homeDir string) RunOption {
-	return func(o *opts.RunOpts) {
+	return func(o *api.RunOpts) {
 		o.HomeDir = homeDir
 	}
 }
@@ -23,7 +23,7 @@ func HomeDir(homeDir string) RunOption {
 // EnvoyVersionsURL is the path to the envoy-versions.json.
 // Defaults to "https://archive.tetratelabs.io/envoy/envoy-versions.json"
 func EnvoyVersionsURL(envoyVersionsURL string) RunOption {
-	return func(o *opts.RunOpts) {
+	return func(o *api.RunOpts) {
 		o.EnvoyVersionsURL = envoyVersionsURL
 	}
 }
@@ -35,28 +35,28 @@ func EnvoyVersionsURL(envoyVersionsURL string) RunOption {
 // EnvoyVersionsURL. Its value can be in full version major.minor.patch format,
 // e.g. 1.18.1 or without patch component, major.minor, e.g. 1.18.
 func EnvoyVersion(envoyVersion string) RunOption {
-	return func(o *opts.RunOpts) {
+	return func(o *api.RunOpts) {
 		o.EnvoyVersion = envoyVersion
 	}
 }
 
 // Out is where status messages are written. Defaults to os.Stdout
 func Out(out io.Writer) RunOption {
-	return func(o *opts.RunOpts) {
+	return func(o *api.RunOpts) {
 		o.Out = out
 	}
 }
 
 // EnvoyOut sets the writer for Envoy stdout
 func EnvoyOut(w io.Writer) RunOption {
-	return func(o *opts.RunOpts) {
+	return func(o *api.RunOpts) {
 		o.EnvoyOut = w
 	}
 }
 
 // EnvoyErr sets the writer for Envoy stderr
 func EnvoyErr(w io.Writer) RunOption {
-	return func(o *opts.RunOpts) {
+	return func(o *api.RunOpts) {
 		o.EnvoyErr = w
 	}
 }
@@ -65,7 +65,7 @@ func EnvoyErr(w io.Writer) RunOption {
 //
 // Note: None of these default to values read from OS environment variables.
 // If you wish to introduce such behavior, populate them in calling code.
-type RunOption func(*opts.RunOpts)
+type RunOption func(*api.RunOpts)
 
 // RunFunc downloads Envoy and runs it as a process with the arguments
 // passed to it. Use api.RunOption for configuration options.

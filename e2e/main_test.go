@@ -4,6 +4,7 @@
 package e2e
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -28,7 +29,7 @@ func TestMain(m *testing.M) {
 	}
 
 	// pre-flight check the binary is usable
-	versionLine, _, err := funcEExec("--version")
+	versionLine, _, err := funcEExec(context.Background(), "--version")
 	if err != nil {
 		exitOnInvalidBinary(err)
 	}
