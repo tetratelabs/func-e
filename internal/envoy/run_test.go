@@ -27,7 +27,7 @@ func TestRuntime_Run_EnvoyError(t *testing.T) {
 	runDir := filepath.Join(tempDir, "runs", "1619574747231823000")
 	require.NoError(t, os.MkdirAll(runDir, 0o750))
 
-	// Initialize client
+	// Initialize runtime
 	stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
 	logToOutput := func(format string, args ...interface{}) {
 		stdout.WriteString(fmt.Sprintf(format, args...) + "\n")
@@ -125,7 +125,7 @@ func TestRuntime_Run_StartupHook(t *testing.T) {
 			runDir := filepath.Join(tempDir, "runs", "test")
 			require.NoError(t, os.MkdirAll(runDir, 0o750))
 
-			// Create client with custom startup hook
+			// Create runtime with custom startup hook
 			r := NewRuntime(&globals.RunOpts{
 				EnvoyPath: fakeEnvoyBin,
 				RunDir:    runDir,

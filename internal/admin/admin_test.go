@@ -329,9 +329,10 @@ func TestExtractFlagValue(t *testing.T) {
 
 func TestPollAdminAddressPathAndRunDir(t *testing.T) {
 	t.Run("success - finds run directory and defaults admin address path", func(t *testing.T) {
-		runDir := t.TempDir()
 		ctx, cancel := context.WithCancel(t.Context())
 		t.Cleanup(cancel)
+
+		runDir := t.TempDir()
 		adminAddressPath := path.Join(t.TempDir(), "admin-address.txt")
 
 		cmdStr := fmt.Sprintf("sleep 30 && echo --admin-address-path %s -- --func-e-run-dir %s", adminAddressPath, runDir)

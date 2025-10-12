@@ -87,7 +87,7 @@ func getHomeVersion(homeDir string) (v string, err error) {
 }
 
 // VersionUsageList is the priority order of Envoy version sources.
-// This includes unresolved variables as it is both used statically for markdown generation, and also at client.
+// This includes unresolved variables as it is both used statically for markdown generation, and also at runtime.
 func VersionUsageList() string {
 	return strings.Join([]string{currentVersionVar, CurrentVersionWorkingDirFile, CurrentVersionHomeDirFile}, ", ")
 }
