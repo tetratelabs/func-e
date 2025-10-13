@@ -107,13 +107,6 @@ func setEnvoyVersion(ctx context.Context, o *globals.GlobalOpts) (err error) {
 // initializeRunOpts initializes the api options
 func initializeRunOpts(ctx context.Context, o *globals.GlobalOpts) error {
 	runOpts := &o.RunOpts
-	if o.EnvoyPath == "" { // not overridden for tests
-		envoyPath, err := envoy.InstallIfNeeded(ctx, o)
-		if err != nil {
-			return err
-		}
-		o.EnvoyPath = envoyPath
-	}
 
 	// Set up directories using pre-generated runID
 	if runOpts.RunDir == "" { // not overridden for tests
@@ -130,6 +123,15 @@ func initializeRunOpts(ctx context.Context, o *globals.GlobalOpts) error {
 	if err := o.Mkdirs(); err != nil {
 		return err
 	}
+
+	if o.EnvoyPath == "" { // not overridden for tests
+		envoyPath, err := envoy.InstallIfNeeded(ctx, o)
+		if err != nil {
+			return err
+		}
+		o.EnvoyPath = envoyPath
+	}
+
 	return nil
 }
 

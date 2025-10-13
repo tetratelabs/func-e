@@ -181,6 +181,7 @@ func TestGlobalOpts_Mkdirs_PerRunRuntimeDirPermissions(t *testing.T) {
 
 	runID := "20250413_123045_999"
 	o.RunID = runID
+	o.RunID = runID
 	o.RunDir = o.EnvoyRunDir(runID)
 	o.RuntimeDir = o.EnvoyRuntimeDir(runID)
 

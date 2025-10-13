@@ -111,7 +111,7 @@ func (o *GlobalOpts) Mkdirs() error {
 			struct {
 				path string
 				perm os.FileMode
-			}{o.RuntimeDir, 0o700},
+			}{o.RunOpts.RuntimeDir, 0o700}, // Use embedded RunOpts.RuntimeDir, not base RuntimeDir
 		)
 	}
 
