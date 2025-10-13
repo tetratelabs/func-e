@@ -79,7 +79,9 @@ func InitializeGlobalOpts(o *globals.GlobalOpts, envoyVersionsURL, homeDir, conf
 	if o.GetEnvoyVersions == nil { // not overridden for tests
 		o.GetEnvoyVersions = envoy.NewGetVersions(o.EnvoyVersionsURL, o.Platform, o.Version)
 	}
-	return nil
+
+	// Create base XDG directories now that all paths are configured
+	return o.Mkdirs()
 }
 
 func getPlatform(platform string) version.Platform {

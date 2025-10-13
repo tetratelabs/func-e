@@ -23,9 +23,6 @@ const (
 // if the former is present.
 func WriteCurrentVersion(v version.Version, configHome, versionFilePath string) error {
 	if _, err := os.Stat(".envoy-version"); os.IsNotExist(err) {
-		if e := os.MkdirAll(configHome, 0o750); e != nil {
-			return e
-		}
 		return os.WriteFile(versionFilePath, []byte(v.String()), 0o600)
 	} else if err != nil {
 		return err

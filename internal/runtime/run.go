@@ -118,16 +118,17 @@ func initializeRunOpts(ctx context.Context, o *globals.GlobalOpts) error {
 	// Set up directories using pre-generated runID
 	if runOpts.RunDir == "" { // not overridden for tests
 		runOpts.RunDir = o.EnvoyRunDir(o.RunID)
+	}
+	if runOpts.RuntimeDir == "" { // not overridden for tests
 		runOpts.RuntimeDir = o.EnvoyRuntimeDir(o.RunID)
+	}
+	if runOpts.RunID == "" { // not overridden for tests
 		runOpts.RunID = o.RunID
 	}
 
-	// Eagerly create the run and runtime dirs so that errors raise early
-	if err := os.MkdirAll(runOpts.RunDir, 0o750); err != nil {
-		return fmt.Errorf("validation error: unable to create run directory %q, so we cannot run envoy", runOpts.RunDir)
-	}
-	if err := os.MkdirAll(runOpts.RuntimeDir, 0o750); err != nil {
-		return fmt.Errorf("validation error: unable to create runtime directory %q, so we cannot run envoy", runOpts.RuntimeDir)
+	// Create all XDG directories now that runID is finalized
+	if err := o.Mkdirs(); err != nil {
+		return err
 	}
 	return nil
 }
