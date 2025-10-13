@@ -44,6 +44,10 @@ $ func-e use %s`, currentVersionWorkingDirFile, currentVersionConfigFile, versio
 			return err
 		},
 		Action: func(c *cli.Context) (err error) {
+			// Create base XDG directories before any file operations
+			if err = o.Mkdirs(); err != nil {
+				return err
+			}
 			// The argument could be a MinorVersion (ex. 1.19) or a PatchVersion (ex. 1.19.3)
 			// We need to download and install a patch version
 			if o.EnvoyVersion, err = runtime.EnsurePatchVersion(c.Context, o, v); err != nil {

@@ -25,6 +25,10 @@ func NewWhichCmd(o *globals.GlobalOpts) *cli.Command {
 			return runtime.EnsureEnvoyVersion(c.Context, o)
 		},
 		Action: func(c *cli.Context) error {
+			// Create base XDG directories before any file operations
+			if err := o.Mkdirs(); err != nil {
+				return err
+			}
 			ev, err := envoy.InstallIfNeeded(c.Context, o)
 			if err != nil {
 				return err

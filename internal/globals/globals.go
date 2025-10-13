@@ -6,6 +6,7 @@ package globals
 import (
 	"fmt"
 	"io"
+	"os"
 	"runtime"
 	"strings"
 
@@ -81,6 +82,45 @@ func (o *GlobalOpts) Logf(format string, a ...interface{}) {
 		format += "\n"
 	}
 	fmt.Fprintf(o.Out, format, a...) //nolint:errcheck
+}
+
+// Mkdirs creates XDG Base Directory directories needed by func-e.
+// Only creates directories that will actually be used:
+// - ConfigHome and DataHome are always created (for version files and binaries)
+// - Per-run directories are only created when RunDir is set (intermediate dirs created automatically)
+// Permissions follow XDG spec: RuntimeDir uses 0700, others use 0750.
+func (o *GlobalOpts) Mkdirs() error {
+	// Base directories always needed (for version files and binary installation)
+	dirs := []struct {
+		path string
+		perm os.FileMode
+	}{
+		{o.ConfigHome, 0o750},
+		{o.DataHome, 0o750},
+		{o.EnvoyVersionsDir(), 0o750},
+	}
+
+	// Per-run directories (only when actually running Envoy)
+	// os.MkdirAll creates intermediate directories automatically
+	if o.RunDir != "" {
+		dirs = append(dirs,
+			struct {
+				path string
+				perm os.FileMode
+			}{o.RunDir, 0o750},
+			struct {
+				path string
+				perm os.FileMode
+			}{o.RunOpts.RuntimeDir, 0o700}, // Use embedded RunOpts.RuntimeDir, not base RuntimeDir
+		)
+	}
+
+	for _, d := range dirs {
+		if err := os.MkdirAll(d.path, d.perm); err != nil {
+			return fmt.Errorf("unable to create directory %q: %w", d.path, err)
+		}
+	}
+	return nil
 }
 
 const (
