@@ -22,6 +22,9 @@ type FuncE interface {
 	// The returned error might be a process exit or context cancellation.
 	Run(ctx context.Context, args []string) error
 
+	// EnvoyPid is non-zero when the process launched.
+	EnvoyPid() int
+
 	// Interrupt signals the running func-e process to terminate gracefully
 	Interrupt(context.Context) error
 

@@ -21,8 +21,12 @@ func TestRun_LogWarn(t *testing.T) {
 	e2e.TestRun_LogWarn(t.Context(), t, funcEFactory{})
 }
 
-func TestRun_RunDirectory(t *testing.T) {
-	e2e.TestRun_RunDirectory(t.Context(), t, funcEFactory{})
+func TestRun_RunDir(t *testing.T) {
+	// For binary e2e tests, state directory is controlled via FUNC_E_STATE_HOME env var
+	// (CLI layer), not library API options like api.StateHome().
+	stateDir := t.TempDir()
+	t.Setenv("FUNC_E_STATE_HOME", stateDir)
+	e2e.TestRun_RunDir(t.Context(), t, funcEFactory{}, stateDir)
 }
 
 func TestRun_InvalidConfig(t *testing.T) {
@@ -35,4 +39,8 @@ func TestRun_StaticFile(t *testing.T) {
 
 func TestRun_CtrlCs(t *testing.T) {
 	e2e.TestRun_CtrlCs(t.Context(), t, funcEFactory{})
+}
+
+func TestRun_LegacyHomeDir(t *testing.T) {
+	e2e.TestRun_LegacyHomeDir(t.Context(), t, funcEFactory{})
 }

@@ -18,7 +18,7 @@ func TestFuncEWhich(t *testing.T) {
 	c, stdout, stderr := newApp(o)
 
 	require.NoError(t, c.Run([]string{"func-e", "which"}))
-	envoyPath := filepath.Join(o.HomeDir, "versions", o.EnvoyVersion.String(), "bin", "envoy")
+	envoyPath := filepath.Join(o.DataHome, "envoy-versions", o.EnvoyVersion.String(), "bin", "envoy")
 	require.Equal(t, fmt.Sprintf("%s\n", envoyPath), stdout.String())
 	require.Empty(t, stderr)
 }

@@ -16,9 +16,9 @@ import (
 
 // NewUseCmd create a command responsible for downloading and extracting Envoy
 func NewUseCmd(o *globals.GlobalOpts) *cli.Command {
-	versionsDir := "$FUNC_E_HOME/versions/"
+	versionsDir := "$FUNC_E_DATA_HOME/envoy-versions/"
 	currentVersionWorkingDirFile := envoy.CurrentVersionWorkingDirFile
-	currentVersionHomeDirFile := envoy.CurrentVersionHomeDirFile
+	currentVersionConfigFile := envoy.CurrentVersionConfigFile
 
 	var v version.Version
 	return &cli.Command{
@@ -36,7 +36,7 @@ depending on which is present.
 
 Example:
 $ func-e use %s
-$ func-e use %s`, currentVersionWorkingDirFile, currentVersionHomeDirFile, version.LastKnownEnvoy, version.LastKnownEnvoyMinor),
+$ func-e use %s`, currentVersionWorkingDirFile, currentVersionConfigFile, version.LastKnownEnvoy, version.LastKnownEnvoyMinor),
 		Before: func(c *cli.Context) (err error) {
 			if v, err = version.NewVersion("[version] argument", c.Args().First()); err != nil {
 				err = NewValidationError(err.Error())
@@ -53,7 +53,7 @@ $ func-e use %s`, currentVersionWorkingDirFile, currentVersionHomeDirFile, versi
 				return err
 			}
 			// Persist the input precision. This allows those specifying a MinorVersion to always get the latest patch.
-			return envoy.WriteCurrentVersion(v, o.HomeDir)
+			return envoy.WriteCurrentVersion(v, o.ConfigHome, o.EnvoyVersionFile())
 		},
 		CustomHelpTemplate: cli.CommandHelpTemplate,
 	}

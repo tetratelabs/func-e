@@ -16,8 +16,8 @@ import (
 // NewApp create a new root command. The globals.GlobalOpts parameter allows tests to scope overrides, which avoids
 // having to define a flag for everything needed in tests.
 func NewApp(o *globals.GlobalOpts) *cli.App {
-	var envoyVersionsURL, homeDir, platform string
-	lastKnownEnvoyPath := fmt.Sprintf("`$FUNC_E_HOME/versions/%s`", version.LastKnownEnvoy)
+	var envoyVersionsURL, homeDir, configHome, dataHome, stateHome, runtimeDir, platform, runID string
+	lastKnownEnvoyPath := fmt.Sprintf("`$FUNC_E_DATA_HOME/envoy-versions/%s`", version.LastKnownEnvoy)
 
 	app := cli.NewApp()
 	app.Name = "func-e"
@@ -29,26 +29,70 @@ downloads and installs the latest version of Envoy for you.
 
 To list versions of Envoy you can use, execute ` + "`func-e versions -a`" + `. To
 choose one, invoke ` + fmt.Sprintf("`func-e use %s`", version.LastKnownEnvoy) + `. This installs into
-` + lastKnownEnvoyPath + `, if not already present. You may also use
-minor version, such as ` + fmt.Sprintf("`func-e use %s`", version.LastKnownEnvoyMinor) + `.
+` + lastKnownEnvoyPath + `, if not already present. You may
+also use minor version, such as ` + fmt.Sprintf("`func-e use %s`", version.LastKnownEnvoyMinor) + `.
 
 You may want to override ` + "`$ENVOY_VERSIONS_URL`" + ` to supply custom builds or
 otherwise control the source of Envoy binaries. When overriding, validate
 your JSON first: ` + globals.DefaultEnvoyVersionsSchemaURL + `
 
+Directory structure:
+  ` + "`$FUNC_E_CONFIG_HOME`" + ` stores configuration files
+    (default: ` + globals.DefaultConfigHome + `)
+  ` + "`$FUNC_E_DATA_HOME`" + ` stores Envoy binaries
+    (default: ` + globals.DefaultDataHome + `)
+  ` + "`$FUNC_E_STATE_HOME`" + ` stores logs
+    (default: ` + globals.DefaultStateHome + `)
+  ` + "`$FUNC_E_RUNTIME_DIR`" + ` stores temporary files
+    (default: ` + globals.DefaultRuntimeDir + `)
+
 Advanced:
 ` + "`FUNC_E_PLATFORM`" + ` overrides the host OS and architecture of Envoy binaries.
 This is used when emulating another platform, e.g. x86 on Apple Silicon M1.
 Note: Changing the OS value can cause problems as Envoy has dependencies,
-such as glibc. This value must be constant within a ` + "`$FUNC_E_HOME`" + `.`
+such as glibc. This value must be constant within a ` + "`$FUNC_E_DATA_HOME`" + `.`
 	app.Version = o.Version
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
 			Name:        "home-dir",
-			Usage:       "func-e home directory (location of installed versions and run archives)",
-			DefaultText: globals.DefaultHomeDir,
+			Usage:       "(deprecated) func-e home directory - use --config-home, --data-home, --state-home or --runtime-dir instead",
 			Destination: &homeDir,
 			EnvVars:     []string{"FUNC_E_HOME"},
+		},
+		&cli.StringFlag{
+			Name:        "config-home",
+			Usage:       "directory for configuration files",
+			DefaultText: globals.DefaultConfigHome,
+			Destination: &configHome,
+			EnvVars:     []string{"FUNC_E_CONFIG_HOME"},
+		},
+		&cli.StringFlag{
+			Name:        "data-home",
+			Usage:       "directory for Envoy binaries",
+			DefaultText: globals.DefaultDataHome,
+			Destination: &dataHome,
+			EnvVars:     []string{"FUNC_E_DATA_HOME"},
+		},
+		&cli.StringFlag{
+			Name:        "state-home",
+			Usage:       "directory for logs (used by run command)",
+			DefaultText: globals.DefaultStateHome,
+			Destination: &stateHome,
+			EnvVars:     []string{"FUNC_E_STATE_HOME"},
+		},
+		&cli.StringFlag{
+			Name:        "runtime-dir",
+			Usage:       "directory for temporary files (used by run command)",
+			DefaultText: globals.DefaultRuntimeDir,
+			Destination: &runtimeDir,
+			EnvVars:     []string{"FUNC_E_RUNTIME_DIR"},
+		},
+		&cli.StringFlag{
+			Name:        "run-id",
+			Usage:       "custom run identifier for logs/runtime directories (used by run command)",
+			DefaultText: "auto-generated timestamp",
+			Destination: &runID,
+			EnvVars:     []string{"FUNC_E_RUN_ID"},
 		},
 		&cli.StringFlag{
 			Name:        "envoy-versions-url",
@@ -66,7 +110,13 @@ such as glibc. This value must be constant within a ` + "`$FUNC_E_HOME`" + `.`
 		},
 	}
 	app.Before = func(c *cli.Context) error {
-		if err := runtime.InitializeGlobalOpts(o, envoyVersionsURL, homeDir, platform); err != nil {
+		// Emit deprecation warning if $FUNC_E_HOME is set
+		if homeDir != "" {
+			fmt.Fprintln(c.App.ErrWriter, "WARNING: $FUNC_E_HOME (--home-dir) is deprecated and will be removed in a future version.") //nolint:errcheck
+			fmt.Fprintln(c.App.ErrWriter, "Please use --config-home, --data-home, --state-home or --runtime-dir instead.")             //nolint:errcheck
+		}
+
+		if err := runtime.InitializeGlobalOpts(o, envoyVersionsURL, homeDir, configHome, dataHome, stateHome, runtimeDir, platform, runID); err != nil {
 			return NewValidationError(err.Error())
 		}
 		return nil

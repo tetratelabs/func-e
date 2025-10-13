@@ -87,8 +87,13 @@ func TestRun_StaticFile(ctx context.Context, t *testing.T, factory FuncEFactory)
 	})
 }
 
-// TestRun_RunDirectory tests that the run directory is properly created with expected files.
-func TestRun_RunDirectory(ctx context.Context, t *testing.T, factory FuncEFactory) {
+// TestRun_RunDir tests that runtime-generated files (logs, config_dump.json) are properly
+// created in the state directory. This test uses api.StateHome() library option to override
+// where state files are written, without affecting the data directory (envoy versions).
+// The factory must be configured with the provided stateDir, and the test will verify files
+// are created in the expected location (stateDir/envoy-runs/{runID}/).
+func TestRun_RunDir(ctx context.Context, t *testing.T, factory FuncEFactory, stateDir string) {
+	// Work in a different directory to ensure state files don't pollute working directory
 	revertWd := morerequire.RequireChdir(t, t.TempDir())
 	defer revertWd()
 
@@ -113,18 +118,25 @@ func TestRun_RunDirectory(ctx context.Context, t *testing.T, factory FuncEFactor
 			require.Equal(t, inlineString, responseBody)
 
 			// Make another request to generate more logs
-			req2, err := adminClient.NewListenerRequest(ctx, "main", http.MethodGet, "/", nil)
+			req, err = adminClient.NewListenerRequest(ctx, "main", http.MethodGet, "/", nil)
 			require.NoError(t, err)
 
-			resp2, err := http.DefaultClient.Do(req2)
+			resp, err = http.DefaultClient.Do(req)
 			require.NoError(t, err)
-			defer resp2.Body.Close() //nolint:errcheck
+			defer resp.Body.Close() //nolint:errcheck
 
 			// Wait a moment for logs to be flushed
 			time.Sleep(100 * time.Millisecond)
 
-			// Now check the run directory before shutting down
-			checkRunDirectoryWithAccessLogs(t, adminClient.RunDir())
+			// Now check the state directory before shutting down.
+			// Logs are in ${stateDir}/envoy-runs/{runID}/
+			// The factory was configured with api.StateHome(stateDir) library option.
+			envoyRunsDir := filepath.Join(stateDir, "envoy-runs")
+			entries, err := os.ReadDir(envoyRunsDir)
+			require.NoError(t, err, "envoy-runs directory should exist")
+			require.Len(t, entries, 1, "should have exactly one run subdirectory")
+			actualRunDir := filepath.Join(envoyRunsDir, entries[0].Name())
+			checkRunDirectoryWithAccessLogs(t, actualRunDir)
 		},
 		Args: []string{"-c", "envoy.yaml"},
 	})
@@ -162,6 +174,64 @@ func TestRun_CtrlCs(ctx context.Context, t *testing.T, factory FuncEFactory) {
 	})
 }
 
+// TestRun_LegacyHomeDir tests "func-e run" with FUNC_E_HOME (legacy mode) to ensure:
+// 1. Files are created in legacy directory structure (versions/, runs/, version)
+// 2. RunID is in epoch format (not ISO timestamp)
+// Note: Deprecation warning is tested separately in CLI tests (internal/cmd/app_test.go)
+func TestRun_LegacyHomeDir(ctx context.Context, t *testing.T, factory FuncEFactory) {
+	homeDir := t.TempDir()
+	t.Setenv("FUNC_E_HOME", homeDir)
+
+	revertWd := morerequire.RequireChdir(t, t.TempDir())
+	defer revertWd()
+
+	setupTestFiles(t, map[string][]byte{
+		"envoy.yaml": internal.AccessLogYaml,
+	})
+
+	executeRunTest(ctx, t, factory, RunTestOptions{
+		TestFunc: func(ctx context.Context, interruptFuncE func(context.Context) error, adminClient internalapi.AdminClient) {
+			// Get the listener twice to generate access logs in stdout
+			req, err := adminClient.NewListenerRequest(ctx, "main", http.MethodGet, "/", nil)
+			require.NoError(t, err)
+
+			resp, err := http.DefaultClient.Do(req)
+			require.NoError(t, err)
+			defer resp.Body.Close() //nolint:errcheck
+
+			responseBody, err := io.ReadAll(resp.Body)
+			require.NoError(t, err)
+			require.Equal(t, []byte("Hello, World!"), responseBody)
+
+			// Make another request to generate more logs
+			req, err = adminClient.NewListenerRequest(ctx, "main", http.MethodGet, "/", nil)
+			require.NoError(t, err)
+
+			resp, err = http.DefaultClient.Do(req)
+			require.NoError(t, err)
+			defer resp.Body.Close() //nolint:errcheck
+
+			// Wait a moment for logs to be flushed
+			time.Sleep(100 * time.Millisecond)
+
+			// Verify legacy structure
+			// Legacy mode: homeDir/runs/{epochRunID}/
+			runsDir := filepath.Join(homeDir, "runs")
+			entries, err := os.ReadDir(runsDir)
+			require.NoError(t, err, "runs directory should exist in legacy mode")
+			require.Len(t, entries, 1, "should have exactly one run subdirectory")
+
+			runID := entries[0].Name()
+			// Verify runID is epoch format (numeric string, not ISO timestamp)
+			require.Regexp(t, `^\d{19}$`, runID)
+
+			actualRunDir := filepath.Join(runsDir, runID)
+			checkRunDirectoryWithAccessLogs(t, actualRunDir)
+		},
+		Args: []string{"-c", "envoy.yaml"},
+	})
+}
+
 // setupTestFiles writes the given files to the current directory for test setup.
 func setupTestFiles(t *testing.T, files map[string][]byte) {
 	for name, content := range files {
@@ -192,67 +262,68 @@ func executeRunTest(ctx context.Context, t *testing.T, factory FuncEFactory, opt
 
 	// Poll synchronously for Envoy to start and become ready via admin API
 	var adminClient internalapi.AdminClient
-	ticker := time.NewTicker(100 * time.Millisecond)
-	defer ticker.Stop()
-
-	var lastErr error
 	var runErr error
 
-polling:
-	for {
-		select {
-		case runErr = <-runErrCh:
-			// funcE.Run completed
-			break polling
+	// When ExpectFail is true, we don't poll for Envoy to start - just wait for it to fail
+	if opts.ExpectFail {
+		runErr = <-runErrCh
+	} else {
+		ticker := time.NewTicker(100 * time.Millisecond)
+		defer ticker.Stop()
 
-		case <-ctx.Done():
-			// Test context timed out
-			if lastErr != nil {
-				t.Errorf("timeout waiting for Envoy to start: %v", lastErr)
-			} else {
-				t.Errorf("timeout waiting for Envoy to start")
-			}
-			runErr = <-runErrCh
-			break polling
+		var lastErr error
 
-		case <-ticker.C:
-			// Try to get Envoy process info and wait for admin API to be ready
-			adminClient, lastErr = funcE.OnStart(ctx)
-			if lastErr != nil {
-				continue // Keep polling
-			}
+	polling:
+		for {
+			select {
+			case runErr = <-runErrCh:
+				// funcE.Run completed
+				break polling
 
-			// Envoy is ready!
-			if opts.ExpectFail {
-				t.Errorf("Envoy started unexpectedly")
+			case <-ctx.Done():
+				// Test context timed out
+				if lastErr != nil {
+					t.Errorf("timeout waiting for Envoy to start: %v", lastErr)
+				} else {
+					t.Errorf("timeout waiting for Envoy to start")
+				}
+				runErr = <-runErrCh
+				break polling
+
+			case <-ticker.C:
+				// Try to get Envoy process info and wait for admin API to be ready
+				adminClient, lastErr = funcE.OnStart(ctx)
+				if lastErr != nil {
+					continue // Keep polling
+				}
+
+				// Envoy is ready! Run test or just interrupt
+				if opts.TestFunc != nil {
+					runTestAndInterruptFuncE(ctx, t, funcE, adminClient, opts.TestFunc)
+				} else {
+					require.NoError(t, funcE.Interrupt(ctx))
+				}
+
+				// Wait for funcE.Run to complete after test
 				runErr = <-runErrCh
 				break polling
 			}
-
-			// Run test or just interrupt
-			if opts.TestFunc != nil {
-				runTestAndInterruptFuncE(ctx, t, funcE, adminClient, opts.TestFunc)
-			} else {
-				require.NoError(t, funcE.Interrupt(ctx))
-			}
-
-			// Wait for funcE.Run to complete after test
-			runErr = <-runErrCh
-			break polling
 		}
 	}
 
 	// Update envoyPid to reflect current state - if process doesn't exist or isn't running, it's 0
 	var envoyPid int32
-	if adminClient != nil {
-		envoyPid = adminClient.Pid()
-		envoyProcess, err := process.NewProcessWithContext(ctx, envoyPid)
-		if err != nil {
-			envoyPid = 0 // Process doesn't exist
-		} else {
-			isRunning, _ := envoyProcess.IsRunning()
-			if !isRunning {
-				envoyPid = 0 // Process exists but not running
+	if funcE != nil {
+		envoyPid = int32(funcE.EnvoyPid())
+		if envoyPid != 0 {
+			envoyProcess, err := process.NewProcessWithContext(ctx, envoyPid)
+			if err != nil {
+				envoyPid = 0 // Process doesn't exist
+			} else {
+				isRunning, _ := envoyProcess.IsRunning()
+				if !isRunning {
+					envoyPid = 0 // Process exists but not running
+				}
 			}
 		}
 	}

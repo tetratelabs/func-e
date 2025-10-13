@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"os/user"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/tetratelabs/func-e/internal/envoy"
 	"github.com/tetratelabs/func-e/internal/globals"
@@ -16,16 +18,59 @@ import (
 )
 
 // InitializeGlobalOpts ensures the global options are initialized.
-func InitializeGlobalOpts(o *globals.GlobalOpts, envoyVersionsURL, homeDir, platform string) error {
+func InitializeGlobalOpts(o *globals.GlobalOpts, envoyVersionsURL, homeDir, configHome, dataHome, stateHome, runtimeDir, platform, runID string) error {
 	if o.Platform == "" { // not overridden for tests
 		o.Platform = getPlatform(platform)
 	}
+
 	var err error
-	if o.HomeDir == "" { // not overridden for tests
-		if o.HomeDir, err = getHomeDir(homeDir); err != nil { // overridden for tests
-			return nil
+
+	// Legacy mode: FUNC_E_HOME sets all four directories to the same value
+	if homeDir != "" {
+		abs, err := filepath.Abs(homeDir)
+		if err != nil {
+			return err
+		}
+		o.HomeDir = homeDir
+		o.ConfigHome = abs
+		o.DataHome = abs
+		o.StateHome = abs
+		o.RuntimeDir = abs
+	} else {
+		// Independent directories with proper defaults
+		if o.ConfigHome == "" { // not overridden for tests
+			if o.ConfigHome, err = getConfigHome(configHome); err != nil {
+				return err
+			}
+		}
+		if o.DataHome == "" { // not overridden for tests
+			if o.DataHome, err = getDataHome(dataHome); err != nil {
+				return err
+			}
+		}
+		if o.StateHome == "" { // not overridden for tests
+			if o.StateHome, err = getStateHome(stateHome); err != nil {
+				return err
+			}
+		}
+		if o.RuntimeDir == "" { // not overridden for tests
+			if o.RuntimeDir, err = getRuntimeDir(runtimeDir); err != nil {
+				return err
+			}
 		}
 	}
+
+	// Generate or validate runID
+	if runID == "" {
+		o.RunID = o.GenerateRunID(time.Now())
+	} else {
+		// Validate that runID doesn't contain path separators
+		if strings.ContainsAny(runID, "/\\") {
+			return fmt.Errorf("runID cannot contain path separators (/ or \\): %q", runID)
+		}
+		o.RunID = runID
+	}
+
 	if o.EnvoyVersionsURL == "" { // not overridden for tests
 		if o.EnvoyVersionsURL, err = getEnvoyVersionsURL(envoyVersionsURL); err != nil {
 			return err
@@ -44,15 +89,60 @@ func getPlatform(platform string) version.Platform {
 	return globals.DefaultPlatform
 }
 
-func getHomeDir(homeDir string) (string, error) {
-	if homeDir == "" {
+func getConfigHome(configHome string) (string, error) {
+	if configHome == "" {
 		u, err := user.Current()
 		if err != nil || u.HomeDir == "" {
 			return "", err
 		}
-		return filepath.Join(u.HomeDir, ".func-e"), nil
+		return filepath.Join(u.HomeDir, ".config", "func-e"), nil
 	}
-	abs, err := filepath.Abs(homeDir)
+	abs, err := filepath.Abs(configHome)
+	if err != nil {
+		return "", err
+	}
+	return abs, nil
+}
+
+func getDataHome(dataHome string) (string, error) {
+	if dataHome == "" {
+		u, err := user.Current()
+		if err != nil || u.HomeDir == "" {
+			return "", err
+		}
+		return filepath.Join(u.HomeDir, ".local", "share", "func-e"), nil
+	}
+	abs, err := filepath.Abs(dataHome)
+	if err != nil {
+		return "", err
+	}
+	return abs, nil
+}
+
+func getStateHome(stateHome string) (string, error) {
+	if stateHome == "" {
+		u, err := user.Current()
+		if err != nil || u.HomeDir == "" {
+			return "", err
+		}
+		return filepath.Join(u.HomeDir, ".local", "state", "func-e"), nil
+	}
+	abs, err := filepath.Abs(stateHome)
+	if err != nil {
+		return "", err
+	}
+	return abs, nil
+}
+
+func getRuntimeDir(runtimeDir string) (string, error) {
+	if runtimeDir == "" {
+		u, err := user.Current()
+		if err != nil || u.Uid == "" {
+			return "", err
+		}
+		return filepath.Join("/tmp", fmt.Sprintf("func-e-%s", u.Uid)), nil
+	}
+	abs, err := filepath.Abs(runtimeDir)
 	if err != nil {
 		return "", err
 	}

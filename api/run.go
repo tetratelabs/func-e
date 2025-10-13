@@ -12,11 +12,75 @@ import (
 	"github.com/tetratelabs/func-e/internal/api"
 )
 
-// HomeDir is an absolute path which most importantly contains "versions"
-// installed from EnvoyVersionsURL. Defaults to "${HOME}/.func-e"
+// Deprecated: Use ConfigHome, DataHome, StateHome or RuntimeDir instead.
+// This function will be removed in a future version.
 func HomeDir(homeDir string) RunOption {
 	return func(o *api.RunOpts) {
-		o.HomeDir = homeDir
+		o.ConfigHome = homeDir
+		o.DataHome = homeDir
+		o.StateHome = homeDir
+		o.RuntimeDir = homeDir
+	}
+}
+
+// ConfigHome is the directory containing configuration files.
+// Defaults to "~/.config/func-e"
+//
+// Files stored here:
+// - envoy-version (selected version preference)
+func ConfigHome(configHome string) RunOption {
+	return func(o *api.RunOpts) {
+		o.ConfigHome = configHome
+	}
+}
+
+// DataHome is the directory containing downloaded Envoy binaries.
+// Defaults to "~/.local/share/func-e"
+//
+// Files stored here:
+// - envoy-versions/{version}/bin/envoy (downloaded Envoy binaries)
+func DataHome(dataHome string) RunOption {
+	return func(o *api.RunOpts) {
+		o.DataHome = dataHome
+	}
+}
+
+// StateHome is the directory containing persistent state like run logs.
+// Defaults to "~/.local/state/func-e"
+//
+// Files stored here:
+// - envoy-runs/{runID}/stdout.log,stderr.log (per-run logs)
+// - envoy-runs/{runID}/config_dump.json (Envoy configuration snapshot)
+func StateHome(stateHome string) RunOption {
+	return func(o *api.RunOpts) {
+		o.StateHome = stateHome
+	}
+}
+
+// RuntimeDir is the directory containing ephemeral runtime files.
+// Defaults to "/tmp/func-e-${UID}"
+//
+// Files stored here:
+// - {runID}/admin-address.txt (Envoy admin API endpoint)
+//
+// Note: Runtime files are ephemeral and may be cleaned up on system restart.
+func RuntimeDir(runtimeDir string) RunOption {
+	return func(o *api.RunOpts) {
+		o.RuntimeDir = runtimeDir
+	}
+}
+
+// RunID sets a custom run identifier used in StateDir and RuntimeDir paths.
+// By default, a timestamp-based runID is auto-generated (e.g., "20250115_123456_789").
+//
+// Use this to:
+// - Create predictable directories for Docker/K8s (e.g., RunID("0"))
+// - Implement custom naming schemes
+//
+// Validation: runID cannot contain path separators (/ or \)
+func RunID(runID string) RunOption {
+	return func(o *api.RunOpts) {
+		o.RunID = runID
 	}
 }
 
@@ -29,7 +93,7 @@ func EnvoyVersionsURL(envoyVersionsURL string) RunOption {
 }
 
 // EnvoyVersion overrides the version of Envoy to run. Defaults to the
-// contents of "$HomeDir/versions/version".
+// contents of "$ConfigHome/envoy-version".
 //
 // When that file is missing, it is generated from ".latestVersion" from the
 // EnvoyVersionsURL. Its value can be in full version major.minor.patch format,

@@ -15,16 +15,18 @@ import (
 
 // RunOpts support invocations of "func-e run"
 type RunOpts struct {
-	// EnvoyPath is the exec.Cmd path to "envoy". Defaults to "$HomeDir/versions/$version/bin/envoy"
+	// EnvoyPath is the exec.Cmd path to "envoy". Defaults to "$DataHome/envoy-versions/$version/bin/envoy"
 	EnvoyPath string
 	// EnvoyOut is where to write Envoy's stdout.
 	EnvoyOut io.Writer
-	// EnvoyErr is where to write Envoy's stdout.
+	// EnvoyErr is where to write Envoy's stderr.
 	EnvoyErr io.Writer
-	// RunDir is the location any generated files are written.
-	// This is not Envoy's working directory, which remains the same as the $PWD of func-e.
-	// Defaults to "$HomeDir/runs/$epochtime"
+	// RunDir is the per-run directory for logs. Generated from StateHome + runID.
 	RunDir string
+	// RuntimeDir is the per-run directory for ephemeral files. Generated from RuntimeDir + runID.
+	RuntimeDir string
+	// RunID is the unique identifier for this run. Used in RunDir and RuntimeDir paths.
+	RunID string
 	// StartupHook is an experimental hook that runs after Envoy starts.
 	StartupHook admin.StartupHook
 }
@@ -35,7 +37,7 @@ type RunOpts struct {
 //  1. value that precedes flag parsing, used in tests
 //  2. to a value of the command line argument, e.g. `--home-dir`
 //  3. optional mapping to an environment variable, e.g. `FUNC_E_HOME` (not all flags are mapped to ENV)
-//  4. otherwise, to the default value, e.g. DefaultHomeDir
+//  4. otherwise, to the default value, e.g. DefaultDataHome
 type GlobalOpts struct {
 	// RunOpts are inlined to allow tests to override parameters without changing ENV variables or flags
 	RunOpts
@@ -44,12 +46,20 @@ type GlobalOpts struct {
 	Version string
 	// EnvoyVersionsURL is the path to the envoy-versions.json. Defaults to DefaultEnvoyVersionsURL
 	EnvoyVersionsURL string
-	// EnvoyVersion is the default version of Envoy to run. Defaults to the contents of "$HomeDir/versions/version".
+	// EnvoyVersion is the default version of Envoy to run. Defaults to the contents of "$ConfigHome/envoy-version".
 	// When that file is missing, it is generated from ".latestVersion" from the EnvoyVersionsURL. Its
 	// value can be in full version major.minor.patch format, e.g. 1.18.1 or without patch component,
 	// major.minor, e.g. 1.18.
 	EnvoyVersion version.PatchVersion
-	// HomeDir is an absolute path which most importantly contains "versions" installed from EnvoyVersionsURL. Defaults to DefaultHomeDir
+	// ConfigHome is the directory containing configuration files. Defaults to DefaultConfigHome
+	ConfigHome string
+	// DataHome is the directory containing Envoy binaries. Defaults to DefaultDataHome
+	DataHome string
+	// StateHome is the directory containing persistent state like logs. Defaults to DefaultStateHome
+	StateHome string
+	// RuntimeDir is the directory for ephemeral runtime files. Defaults to DefaultRuntimeDir
+	RuntimeDir string
+	// HomeDir is the deprecated FUNC_E_HOME directory. When set, legacy paths are used.
 	HomeDir string
 	// Quiet means don't Logf to Out
 	Quiet bool
@@ -82,5 +92,13 @@ const (
 	DefaultPlatform = version.Platform(runtime.GOOS + "/" + runtime.GOARCH)
 )
 
-// DefaultHomeDir is the default value for GlobalOpts.HomeDir
-var DefaultHomeDir = "${HOME}/.func-e"
+var (
+	// DefaultConfigHome is the default text for GlobalOpts.ConfigHome
+	DefaultConfigHome = "${HOME}/.config/func-e"
+	// DefaultDataHome is the default text for GlobalOpts.DataHome
+	DefaultDataHome = "${HOME}/.local/share/func-e"
+	// DefaultStateHome is the default text for GlobalOpts.StateHome
+	DefaultStateHome = "${HOME}/.local/state/func-e"
+	// DefaultRuntimeDir is the default text for GlobalOpts.RuntimeDir
+	DefaultRuntimeDir = "/tmp/func-e-${UID}"
+)

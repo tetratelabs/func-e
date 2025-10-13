@@ -26,7 +26,7 @@ type safeStartupHook struct {
 var _ internalapi.StartupHook = (*safeStartupHook)(nil).Hook
 
 // Hook implements the StartupHook interface with panic recovery and timeout.
-func (s *safeStartupHook) Hook(ctx context.Context, adminClient internalapi.AdminClient) error {
+func (s *safeStartupHook) Hook(ctx context.Context, adminClient internalapi.AdminClient, runID string) error {
 	defer func() {
 		if p := recover(); p != nil {
 			s.logf("startup hook panicked: %v", p)
@@ -39,7 +39,7 @@ func (s *safeStartupHook) Hook(ctx context.Context, adminClient internalapi.Admi
 		defer cancel()
 	}
 
-	if err := s.delegate(ctx, adminClient); err != nil {
+	if err := s.delegate(ctx, adminClient, runID); err != nil {
 		s.logf(err.Error())
 	}
 	return nil
@@ -54,9 +54,9 @@ func (s *safeStartupHook) Hook(ctx context.Context, adminClient internalapi.Admi
 // - Endpoints (EDS)
 // - Secrets (SDS)
 // This provides a comprehensive snapshot of Envoy's dynamic configuration state.
-func collectConfigDump(ctx context.Context, client *http.Client, adminClient internalapi.AdminClient) error {
+func collectConfigDump(ctx context.Context, client *http.Client, adminClient internalapi.AdminClient, runDir string) error {
 	url := fmt.Sprintf("http://127.0.0.1:%d/config_dump?include_eds", adminClient.Port())
-	file := filepath.Join(adminClient.RunDir(), "config_dump.json")
+	file := filepath.Join(runDir, "config_dump.json")
 	return copyURLToFile(ctx, client, url, file)
 }
 

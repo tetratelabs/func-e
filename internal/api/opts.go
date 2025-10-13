@@ -11,7 +11,11 @@ import (
 
 // RunOpts holds the configuration set by RunOptions.
 type RunOpts struct {
-	HomeDir          string
+	ConfigHome       string
+	DataHome         string
+	StateHome        string
+	RuntimeDir       string
+	RunID            string // Optional: custom run identifier for StateDir and RuntimeDir paths
 	EnvoyVersion     string
 	EnvoyVersionsURL string
 	Out              io.Writer

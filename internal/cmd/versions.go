@@ -6,7 +6,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
 	"text/tabwriter"
 	"time"
@@ -31,12 +30,12 @@ func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			rows, err := getInstalledVersions(o.HomeDir)
+			rows, err := getInstalledVersions(o.EnvoyVersionsDir())
 			if err != nil {
 				return err
 			}
 
-			currentVersion, currentVersionSource, err := envoy.CurrentVersion(o.HomeDir)
+			currentVersion, currentVersionSource, err := envoy.CurrentVersion(o.DataHome, o.EnvoyVersionFile(), o.EnvoyVersionFileSource())
 			if err != nil {
 				return err
 			}
@@ -79,9 +78,9 @@ type versionReleaseDate struct {
 	releaseDate version.ReleaseDate
 }
 
-func getInstalledVersions(homeDir string) ([]versionReleaseDate, error) {
+func getInstalledVersions(versionsDir string) ([]versionReleaseDate, error) {
 	var rows []versionReleaseDate
-	files, err := os.ReadDir(filepath.Join(homeDir, "versions"))
+	files, err := os.ReadDir(versionsDir)
 	if os.IsNotExist(err) {
 		return rows, nil
 	} else if err != nil {

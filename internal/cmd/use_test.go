@@ -55,10 +55,10 @@ func TestFuncEUse_InstallsAndWritesHomeVersion(t *testing.T) {
 	require.NoError(t, c.Run([]string{"func-e", "use", evs}))
 
 	// The binary was installed
-	require.FileExists(t, filepath.Join(o.HomeDir, "versions", evs, "bin", "envoy"+""))
+	require.FileExists(t, filepath.Join(o.DataHome, "envoy-versions", evs, "bin", "envoy"+""))
 
 	// The current version was written
-	f, err := os.ReadFile(filepath.Join(o.HomeDir, "version"))
+	f, err := os.ReadFile(filepath.Join(o.ConfigHome, "envoy-version"))
 	require.NoError(t, err)
 	require.Equal(t, evs, string(f))
 }
@@ -90,14 +90,14 @@ func TestFuncEUse_InstallMinorVersion(t *testing.T) {
 		{
 			name: "not-upgraded",
 			firstVersions: availableVersions{
-				latestPatch: "3",
-				versions:    []version.PatchVersion{version.PatchVersion("1.12.3")},
+				latestPatch: "5",
+				versions:    []version.PatchVersion{version.PatchVersion("1.29.5")},
 			},
 			secondVersions: availableVersions{
-				latestPatch: "3",
-				versions:    []version.PatchVersion{version.PatchVersion("1.12.3")},
+				latestPatch: "5",
+				versions:    []version.PatchVersion{version.PatchVersion("1.29.5")},
 			},
-			minorVersion: "1.12",
+			minorVersion: "1.29",
 		},
 	}
 
@@ -109,7 +109,7 @@ func TestFuncEUse_InstallMinorVersion(t *testing.T) {
 
 			c, _, _ := newApp(o)
 			require.NoError(t, c.Run([]string{"func-e", "use", tc.minorVersion}))
-			f, err := os.ReadFile(filepath.Join(o.HomeDir, "version"))
+			f, err := os.ReadFile(filepath.Join(o.ConfigHome, "envoy-version"))
 			require.NoError(t, err)
 			require.Equal(t, tc.minorVersion, string(f))
 
@@ -117,7 +117,7 @@ func TestFuncEUse_InstallMinorVersion(t *testing.T) {
 			o.EnvoyVersion = ""
 			c, stdout, stderr := newApp(o)
 			require.NoError(t, c.Run([]string{"func-e", "which"}))
-			envoyPath := filepath.Join(o.HomeDir, "versions", tc.minorVersion+"."+tc.firstVersions.latestPatch, "bin", "envoy"+"")
+			envoyPath := filepath.Join(o.DataHome, "envoy-versions", tc.minorVersion+"."+tc.firstVersions.latestPatch, "bin", "envoy"+"")
 			require.Equal(t, fmt.Sprintf("%s\n", envoyPath), stdout.String())
 			require.Empty(t, stderr)
 
@@ -126,7 +126,7 @@ func TestFuncEUse_InstallMinorVersion(t *testing.T) {
 			require.NoError(t, err)
 			c, _, _ = newApp(o)
 			require.NoError(t, c.Run([]string{"func-e", "use", tc.minorVersion}))
-			f, err = os.ReadFile(filepath.Join(o.HomeDir, "version"))
+			f, err = os.ReadFile(filepath.Join(o.ConfigHome, "envoy-version"))
 			require.NoError(t, err)
 			require.Equal(t, tc.minorVersion, string(f))
 
@@ -134,7 +134,7 @@ func TestFuncEUse_InstallMinorVersion(t *testing.T) {
 			o.EnvoyVersion = ""
 			c, stdout, stderr = newApp(o)
 			require.NoError(t, c.Run([]string{"func-e", "which"}))
-			envoyPath = filepath.Join(o.HomeDir, "versions", tc.minorVersion+"."+tc.secondVersions.latestPatch, "bin", "envoy"+"")
+			envoyPath = filepath.Join(o.DataHome, "envoy-versions", tc.minorVersion+"."+tc.secondVersions.latestPatch, "bin", "envoy"+"")
 			require.Equal(t, fmt.Sprintf("%s\n", envoyPath), stdout.String())
 			require.Empty(t, stderr)
 		})
@@ -145,7 +145,7 @@ func TestFuncEUse_InstallMinorVersionCheckLatestPatchFailed(t *testing.T) {
 	o := setupTest(t)
 
 	// The initial version to be installed.
-	minorVersion := "1.12"
+	minorVersion := "1.29"
 	latestPatch := "3"
 	initial := availableVersions{
 		latestPatch: latestPatch,
@@ -158,14 +158,14 @@ func TestFuncEUse_InstallMinorVersionCheckLatestPatchFailed(t *testing.T) {
 
 	c, _, _ := newApp(o)
 	require.NoError(t, c.Run([]string{"func-e", "use", minorVersion}))
-	f, err := os.ReadFile(filepath.Join(o.HomeDir, "version"))
+	f, err := os.ReadFile(filepath.Join(o.ConfigHome, "envoy-version"))
 	require.NoError(t, err)
 	require.Equal(t, minorVersion, string(f))
 
 	o.EnvoyVersion = ""
 	c, stdout, stderr := newApp(o)
 	require.NoError(t, c.Run([]string{"func-e", "which"}))
-	envoyPath := filepath.Join(o.HomeDir, "versions", minorVersion+"."+latestPatch, "bin", "envoy"+"")
+	envoyPath := filepath.Join(o.DataHome, "envoy-versions", minorVersion+"."+latestPatch, "bin", "envoy"+"")
 	require.Equal(t, fmt.Sprintf("%s\n", envoyPath), stdout.String())
 	require.Empty(t, stderr)
 
@@ -174,7 +174,7 @@ func TestFuncEUse_InstallMinorVersionCheckLatestPatchFailed(t *testing.T) {
 	}
 	c, _, _ = newApp(o)
 	require.NoError(t, c.Run([]string{"func-e", "use", minorVersion}))
-	f, err = os.ReadFile(filepath.Join(o.HomeDir, "version"))
+	f, err = os.ReadFile(filepath.Join(o.ConfigHome, "envoy-version"))
 	require.NoError(t, err)
 	require.Equal(t, minorVersion, string(f))
 
@@ -182,7 +182,7 @@ func TestFuncEUse_InstallMinorVersionCheckLatestPatchFailed(t *testing.T) {
 	c, stdout, stderr = newApp(o)
 	require.NoError(t, c.Run([]string{"func-e", "which"}))
 	// The path points to the latest installed version.
-	envoyPath = filepath.Join(o.HomeDir, "versions", minorVersion+"."+latestPatch, "bin", "envoy"+"")
+	envoyPath = filepath.Join(o.DataHome, "envoy-versions", minorVersion+"."+latestPatch, "bin", "envoy"+"")
 	t.Log(stdout.String())
 	require.Equal(t, fmt.Sprintf("%s\n", envoyPath), stdout.String())
 	require.Empty(t, stderr)

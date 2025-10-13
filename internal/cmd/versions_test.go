@@ -20,34 +20,35 @@ func TestGetInstalledVersions_ErrorsWhenFileIsInVersionsDir(t *testing.T) {
 	versionsDir := filepath.Join(homeDir, "versions")
 	require.NoError(t, os.WriteFile(versionsDir, []byte{}, 0o600))
 
-	_, err := getInstalledVersions(homeDir)
+	_, err := getInstalledVersions(versionsDir)
 	require.Error(t, err)
 }
 
 func TestGetInstalledVersions_MissingOrEmptyVersionsDir(t *testing.T) {
 	homeDir := t.TempDir()
+	versionsDir := filepath.Join(homeDir, "versions")
 
-	rows, err := getInstalledVersions(homeDir)
+	rows, err := getInstalledVersions(versionsDir)
 	require.NoError(t, err) // ensures we don't error just because nothing is installed yet.
 	require.Empty(t, rows)
 
 	// Now, create the versions directory but don't add one
-	versionsDir := filepath.Join(homeDir, "versions")
 	require.NoError(t, os.Mkdir(versionsDir, 0o700))
 
-	rows, err = getInstalledVersions(homeDir)
+	rows, err = getInstalledVersions(versionsDir)
 	require.NoError(t, err)
 	require.Empty(t, rows)
 }
 
 func TestGetInstalledVersions_ReleaseDateFromMtime(t *testing.T) {
 	homeDir := t.TempDir()
+	versionsDir := filepath.Join(homeDir, "versions")
 
-	oneOneTwo := filepath.Join(homeDir, "versions", "1.1.2")
+	oneOneTwo := filepath.Join(versionsDir, "1.1.2")
 	require.NoError(t, os.MkdirAll(oneOneTwo, 0o700))
 	morerequire.RequireSetMtime(t, oneOneTwo, "2020-12-31")
 
-	rows, err := getInstalledVersions(homeDir)
+	rows, err := getInstalledVersions(versionsDir)
 	require.NoError(t, err)
 	require.Equal(t, []versionReleaseDate{{"1.1.2", "2020-12-31"}}, rows)
 }
@@ -65,7 +66,7 @@ func TestGetInstalledVersions_SkipsFileInVersionsDir(t *testing.T) {
 	morerequire.RequireSetMtime(t, oneOneTwo, "2020-12-31")
 
 	// ensure there are no versions in the output
-	rows, err := getInstalledVersions(homeDir)
+	rows, err := getInstalledVersions(versionsDir)
 	require.NoError(t, err)
 	require.Empty(t, rows)
 }

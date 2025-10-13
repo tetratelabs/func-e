@@ -16,11 +16,14 @@ go test -parallel 1 -v -failfast ./e2e
 When run via `make`, `func-e` is built on-demand by `$(current_binary)` target (same as `make build`).
 Ex. `$PWD/build/func-e_darwin_arm64/func-e`
 
-It is also a good idea to override `FUNC_E_HOME` when running e2e, since by default it uses `$HOME/.func-e`.
+It is also a good idea to override the data directories when running e2e to avoid interfering with your local environment.
+The defaults are `~/.local/share/func-e`, `~/.local/state/func-e` and `/tmp/func-e-${UID}`.
 
 ```bash
-FUNC_E_HOME=/tmp/test make e2e
+FUNC_E_DATA_HOME=/tmp/test FUNC_E_STATE_HOME=/tmp/test FUNC_E_RUNTIME_DIR=/tmp/test make e2e
 ```
+
+Note: The deprecated `FUNC_E_HOME` environment variable is still supported for backwards compatibility.
 
 ## Envoy version list
 If the `func-e` version is a snapshot and "envoy-versions.json" exists, tests run against the local. This allows local

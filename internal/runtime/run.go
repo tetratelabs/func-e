@@ -9,8 +9,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strconv"
-	"time"
 
 	"github.com/tetratelabs/func-e/internal/envoy"
 	"github.com/tetratelabs/func-e/internal/globals"
@@ -34,7 +32,7 @@ func EnsurePatchVersion(ctx context.Context, o *globals.GlobalOpts, v version.Ve
 		}
 
 		// Attempt the last installed version instead of raising an error. There may not be one!
-		if rows, e := getInstalledVersions(o.HomeDir); e == nil {
+		if rows, e := getInstalledVersions(o.EnvoyVersionsDir()); e == nil {
 			for _, r := range rows {
 				patchVersions = append(patchVersions, r.version)
 			}
@@ -60,9 +58,10 @@ func Run(ctx context.Context, o *globals.GlobalOpts, args []string) error {
 		return err
 	}
 
+	stateDir := o.RunDir
 	r := envoy.NewRuntime(&o.RunOpts, o.Logf)
 
-	stdoutLog, err := os.OpenFile(filepath.Join(r.GetRunDir(), "stdout.log"), os.O_CREATE|os.O_WRONLY, 0o600)
+	stdoutLog, err := os.OpenFile(filepath.Join(stateDir, "stdout.log"), os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {
 		return fmt.Errorf("couldn't create stdout log file: %w", err)
 	}
@@ -70,7 +69,7 @@ func Run(ctx context.Context, o *globals.GlobalOpts, args []string) error {
 	r.OutFile = stdoutLog
 	r.Out = io.MultiWriter(o.EnvoyOut, stdoutLog)
 
-	stderrLog, err := os.OpenFile(filepath.Join(r.GetRunDir(), "stderr.log"), os.O_CREATE|os.O_WRONLY, 0o600)
+	stderrLog, err := os.OpenFile(filepath.Join(stateDir, "stderr.log"), os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {
 		return fmt.Errorf("couldn't create stderr log file: %w", err)
 	}
@@ -81,10 +80,10 @@ func Run(ctx context.Context, o *globals.GlobalOpts, args []string) error {
 	return r.Run(ctx, args)
 }
 
-// setEnvoyVersion makes sure the $FUNC_E_HOME/version exists.
+// setEnvoyVersion makes sure the version file exists.
 func setEnvoyVersion(ctx context.Context, o *globals.GlobalOpts) (err error) {
 	var v version.Version
-	if v, _, err = envoy.CurrentVersion(o.HomeDir); err != nil {
+	if v, _, err = envoy.CurrentVersion(o.DataHome, o.EnvoyVersionFile(), o.EnvoyVersionFileSource()); err != nil {
 		return err
 	} else if v != nil { // We found an existing version, but it might be in MinorVersion format!
 		o.EnvoyVersion, err = EnsurePatchVersion(ctx, o, v)
@@ -102,7 +101,7 @@ func setEnvoyVersion(ctx context.Context, o *globals.GlobalOpts) (err error) {
 		return fmt.Errorf("%s does not contain an Envoy release for platform %s", o.EnvoyVersionsURL, o.Platform)
 	}
 	// Persist it as a minor version, so that each invocation checks for the latest patch.
-	return envoy.WriteCurrentVersion(o.EnvoyVersion.ToMinor(), o.HomeDir)
+	return envoy.WriteCurrentVersion(o.EnvoyVersion.ToMinor(), o.DataHome, o.EnvoyVersionFile())
 }
 
 // initializeRunOpts initializes the api options
@@ -115,15 +114,20 @@ func initializeRunOpts(ctx context.Context, o *globals.GlobalOpts) error {
 		}
 		o.EnvoyPath = envoyPath
 	}
-	if runOpts.RunDir == "" { // not overridden for tests
-		runID := strconv.FormatInt(time.Now().UnixNano(), 10)
-		runDir := filepath.Join(filepath.Join(o.HomeDir, "runs"), runID)
 
-		// Eagerly create the run dir, so that errors raise early
-		if err := os.MkdirAll(runDir, 0o750); err != nil {
-			return fmt.Errorf("validation error: unable to create working directory %q, so we cannot run envoy", runDir)
-		}
-		runOpts.RunDir = runDir
+	// Set up directories using pre-generated runID
+	if runOpts.RunDir == "" { // not overridden for tests
+		runOpts.RunDir = o.EnvoyRunDir(o.RunID)
+		runOpts.RuntimeDir = o.EnvoyRuntimeDir(o.RunID)
+		runOpts.RunID = o.RunID
+	}
+
+	// Eagerly create the run and runtime dirs so that errors raise early
+	if err := os.MkdirAll(runOpts.RunDir, 0o750); err != nil {
+		return fmt.Errorf("validation error: unable to create run directory %q, so we cannot run envoy", runOpts.RunDir)
+	}
+	if err := os.MkdirAll(runOpts.RuntimeDir, 0o750); err != nil {
+		return fmt.Errorf("validation error: unable to create runtime directory %q, so we cannot run envoy", runOpts.RuntimeDir)
 	}
 	return nil
 }
@@ -143,9 +147,9 @@ type versionReleaseDate struct {
 	releaseDate version.ReleaseDate
 }
 
-func getInstalledVersions(homeDir string) ([]versionReleaseDate, error) {
+func getInstalledVersions(versionsDir string) ([]versionReleaseDate, error) {
 	var rows []versionReleaseDate
-	files, err := os.ReadDir(filepath.Join(homeDir, "versions"))
+	files, err := os.ReadDir(versionsDir)
 	if os.IsNotExist(err) {
 		return rows, nil
 	} else if err != nil {

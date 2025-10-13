@@ -237,12 +237,15 @@ func setupInstallTest(t *testing.T) *installTest {
 		tempDir:    t.TempDir(),
 		tarballURL: test.TarballURL(versionsServer.URL, runtime.GOOS, runtime.GOARCH, version.LastKnownEnvoy),
 		GlobalOpts: globals.GlobalOpts{
-			HomeDir:          homeDir,
+			ConfigHome:       homeDir,
+			DataHome:         homeDir,
+			StateHome:        homeDir,
+			RuntimeDir:       homeDir,
 			EnvoyVersionsURL: versionsServer.URL + "/envoy-versions.json",
 			Out:              new(bytes.Buffer),
 			Platform:         globals.DefaultPlatform,
 			RunOpts: globals.RunOpts{
-				EnvoyPath: filepath.Join(homeDir, "versions", version.LastKnownEnvoy.String(), binEnvoy),
+				EnvoyPath: filepath.Join(homeDir, "envoy-versions", version.LastKnownEnvoy.String(), binEnvoy),
 			},
 		},
 	}

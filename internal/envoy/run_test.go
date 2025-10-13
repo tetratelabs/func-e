@@ -33,8 +33,9 @@ func TestRuntime_Run_EnvoyError(t *testing.T) {
 		stdout.WriteString(fmt.Sprintf(format, args...) + "\n")
 	}
 	r := NewRuntime(&globals.RunOpts{
-		EnvoyPath: fakeEnvoyBin,
-		RunDir:    runDir,
+		EnvoyPath:  fakeEnvoyBin,
+		RunDir:     runDir,
+		RuntimeDir: runDir,
 	}, logToOutput)
 	r.Out, r.Err = stdout, stderr
 
@@ -50,8 +51,6 @@ func TestRuntime_Run_EnvoyError(t *testing.T) {
 			"--config-yaml", "invalid.yaml",
 			// test we added additional arguments
 			"--admin-address-path", filepath.Join(runDir, "admin-address.txt"),
-			"--",
-			"--func-e-run-dir", runDir,
 		}, r.cmd.Args, "command arguments mismatch")
 		require.Empty(t, r.cmd.Dir, "working directory should be empty")
 	})
@@ -83,7 +82,7 @@ func TestRuntime_Run_StartupHook(t *testing.T) {
 	}{
 		{
 			name: "startup hook returns error",
-			startupHook: func(ctx context.Context, adminClient internalapi.AdminClient) error {
+			startupHook: func(ctx context.Context, adminClient internalapi.AdminClient, runID string) error {
 				return errors.New("database connection failed")
 			},
 			expectError: "database connection failed",
@@ -94,7 +93,7 @@ func TestRuntime_Run_StartupHook(t *testing.T) {
 		},
 		{
 			name: "startup hook panics",
-			startupHook: func(ctx context.Context, adminClient internalapi.AdminClient) error {
+			startupHook: func(ctx context.Context, adminClient internalapi.AdminClient, runID string) error {
 				panic("nil pointer dereference")
 			},
 			expectError: "startup hook panicked: nil pointer dereference",
@@ -105,7 +104,7 @@ func TestRuntime_Run_StartupHook(t *testing.T) {
 		},
 		{
 			name: "startup hook succeeds",
-			startupHook: func(ctx context.Context, adminClient internalapi.AdminClient) error {
+			startupHook: func(ctx context.Context, adminClient internalapi.AdminClient, runID string) error {
 				logToOutput("startup hook executed successfully")
 				return nil
 			},
@@ -127,8 +126,9 @@ func TestRuntime_Run_StartupHook(t *testing.T) {
 
 			// Create runtime with custom startup hook
 			r := NewRuntime(&globals.RunOpts{
-				EnvoyPath: fakeEnvoyBin,
-				RunDir:    runDir,
+				EnvoyPath:  fakeEnvoyBin,
+				RunDir:     runDir,
+				RuntimeDir: runDir,
 			}, logToOutput)
 			r.Out, r.Err = new(bytes.Buffer), new(bytes.Buffer)
 
@@ -138,9 +138,9 @@ func TestRuntime_Run_StartupHook(t *testing.T) {
 			defer cancel()
 
 			// Wrap the hook to cancel context after execution
-			r.startupHook = func(ctx context.Context, adminClient internalapi.AdminClient) error {
+			r.startupHook = func(ctx context.Context, adminClient internalapi.AdminClient, runID string) error {
 				defer cancel() // Always cancel, even if hook panics
-				return tt.startupHook(ctx, adminClient)
+				return tt.startupHook(ctx, adminClient, runID)
 			}
 
 			err := r.Run(ctx, tt.envoyArgs)

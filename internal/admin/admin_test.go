@@ -20,7 +20,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestPollAdminAddressPathForPort(t *testing.T) {
+func TestPollEnvoyPidAndAdminAddressPathForPort(t *testing.T) {
 	tests := []struct {
 		name          string
 		setup         func(t *testing.T, path string)
@@ -303,15 +303,14 @@ func TestExtractFlagValue(t *testing.T) {
 		expected      string
 		expectedError string
 	}{
-		{"valid flag with path", funcERunDirFlag, []string{"envoy", "--func-e-run-dir", tmpDir}, tmpDir, ""},
-		{"flag at end with path", funcERunDirFlag, []string{"--config", "/etc/envoy.yaml", "--func-e-run-dir", tmpDir}, tmpDir, ""},
-		{"flag not present", funcERunDirFlag, []string{"envoy", "--config", "/etc/envoy.yaml"}, "", "--func-e-run-dir not found in command line"},
-		{"flag present but no value", funcERunDirFlag, []string{"envoy", "--func-e-run-dir"}, "", "--func-e-run-dir not found in command line"},
-		{"empty cmdline", funcERunDirFlag, []string{}, "", "--func-e-run-dir not found in command line"},
-		{"sh -c wrapped command", funcERunDirFlag, []string{"sh", "-c", "sleep 30 && echo -- --func-e-run-dir " + tmpDir}, tmpDir, ""},
-		{"sh -c with multiple spaces", funcERunDirFlag, []string{"sh", "-c", "envoy  --func-e-run-dir  " + tmpDir + "  --other-flag"}, tmpDir, ""},
-		{"admin address path flag", adminAddressPathFlag, []string{"envoy", "--admin-address-path", tmpFile}, tmpFile, ""},
-		{"both flags present", adminAddressPathFlag, []string{"envoy", "--func-e-run-dir", tmpDir, "--admin-address-path", tmpFile}, tmpFile, ""},
+		{"valid flag with path", adminAddressPathFlag, []string{"envoy", adminAddressPathFlag, tmpDir}, tmpDir, ""},
+		{"flag at end with path", adminAddressPathFlag, []string{"--config", "/etc/envoy.yaml", adminAddressPathFlag, tmpDir}, tmpDir, ""},
+		{"flag not present", adminAddressPathFlag, []string{"envoy", "--config", "/etc/envoy.yaml"}, "", adminAddressPathFlag + " not found in command line"},
+		{"flag present but no value", adminAddressPathFlag, []string{"envoy", adminAddressPathFlag}, "", adminAddressPathFlag + " not found in command line"},
+		{"empty cmdline", adminAddressPathFlag, []string{}, "", adminAddressPathFlag + " not found in command line"},
+		{"sh -c wrapped command", adminAddressPathFlag, []string{"sh", "-c", fmt.Sprintf("sleep 30 && echo %s %s", adminAddressPathFlag, tmpDir)}, tmpDir, ""},
+		{"sh -c with multiple spaces", adminAddressPathFlag, []string{"sh", "-c", fmt.Sprintf("envoy %s %s --other-flag", adminAddressPathFlag, tmpDir)}, tmpDir, ""},
+		{"admin address path flag", adminAddressPathFlag, []string{"envoy", adminAddressPathFlag, tmpFile}, tmpFile, ""},
 	}
 
 	for _, tt := range tests {
@@ -327,15 +326,14 @@ func TestExtractFlagValue(t *testing.T) {
 	}
 }
 
-func TestPollAdminAddressPathAndRunDir(t *testing.T) {
-	t.Run("success - finds run directory and defaults admin address path", func(t *testing.T) {
+func TestPollEnvoyPidAndAdminAddressPath(t *testing.T) {
+	t.Run("success - finds envoy PID and defaults admin address path", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(t.Context())
 		t.Cleanup(cancel)
 
-		runDir := t.TempDir()
 		adminAddressPath := path.Join(t.TempDir(), "admin-address.txt")
 
-		cmdStr := fmt.Sprintf("sleep 30 && echo --admin-address-path %s -- --func-e-run-dir %s", adminAddressPath, runDir)
+		cmdStr := fmt.Sprintf("sleep 30 && echo --admin-address-path %s", adminAddressPath)
 		cmd := exec.CommandContext(ctx, "sh", "-c", cmdStr)
 		require.NoError(t, cmd.Start())
 		t.Cleanup(func() {
@@ -345,9 +343,9 @@ func TestPollAdminAddressPathAndRunDir(t *testing.T) {
 
 		time.Sleep(100 * time.Millisecond)
 
-		actualRunDir, actualAdminAddressPath, err := PollAdminAddressPathAndRunDir(t.Context(), os.Getpid())
+		actualEnvoyPid, actualAdminAddressPath, err := PollEnvoyPidAndAdminAddressPath(t.Context(), os.Getpid())
 		require.NoError(t, err)
-		require.Equal(t, runDir, actualRunDir)
+		require.Equal(t, cmd.Process.Pid, actualEnvoyPid)
 		require.Equal(t, adminAddressPath, actualAdminAddressPath)
 	})
 
@@ -355,92 +353,67 @@ func TestPollAdminAddressPathAndRunDir(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), 200*time.Millisecond)
 		t.Cleanup(cancel)
 
-		_, _, err := PollAdminAddressPathAndRunDir(ctx, os.Getpid())
+		_, _, err := PollEnvoyPidAndAdminAddressPath(ctx, os.Getpid())
 		require.EqualError(t, err, "timeout waiting for Envoy process: no Envoy process found")
 	})
 }
 
 func TestNewAdminClient(t *testing.T) {
-	baseTempDir := t.TempDir()
-	runDir := filepath.Join(baseTempDir, "run")
+	adminAddressPath := filepath.Join(t.TempDir(), "admin-address.txt")
 
 	tests := []struct {
 		name          string
-		setup         func(t *testing.T, runDir string)
+		setup         func(t *testing.T)
 		ctx           func(t *testing.T) context.Context
 		expectedError string
-		expectedPid   int32
 		expectedPort  int
 	}{
 		{
-			name: "success - reads PID and polls for admin port",
-			setup: func(t *testing.T, runDir string) {
+			name: "success - polls for admin port",
+			setup: func(t *testing.T) {
 				t.Helper()
-				require.NoError(t, os.MkdirAll(runDir, 0o755))
-				pidFile := filepath.Join(runDir, "envoy.pid")
-				adminFile := filepath.Join(runDir, "admin-address.txt")
-				currentPid := int32(os.Getpid())
-				require.NoError(t, os.WriteFile(pidFile, []byte(strconv.Itoa(int(currentPid))), 0o600))
 				go func() {
 					time.Sleep(100 * time.Millisecond)
-					_ = os.WriteFile(adminFile, []byte("127.0.0.1:9901"), 0o600)
+					_ = os.WriteFile(adminAddressPath, []byte("127.0.0.1:9901"), 0o600)
 				}()
 			},
 			ctx:          func(t *testing.T) context.Context { return t.Context() },
-			expectedPid:  int32(os.Getpid()),
 			expectedPort: 9901,
 		},
 		{
-			name: "returns error when PID file missing",
-			setup: func(t *testing.T, runDir string) {
+			name: "returns error when --admin-address-path has invalid content",
+			setup: func(t *testing.T) {
 				t.Helper()
-				require.NoError(t, os.MkdirAll(runDir, 0o755))
+				require.NoError(t, os.WriteFile(adminAddressPath, []byte("not-a-number"), 0o600))
 			},
 			ctx:           func(t *testing.T) context.Context { return t.Context() },
-			expectedError: "failed to read envoy.pid: open " + runDir + "/envoy.pid: no such file or directory",
-		},
-		{
-			name: "returns error when PID file has invalid content",
-			setup: func(t *testing.T, runDir string) {
-				t.Helper()
-				require.NoError(t, os.MkdirAll(runDir, 0o755))
-				pidFile := filepath.Join(runDir, "envoy.pid")
-				require.NoError(t, os.WriteFile(pidFile, []byte("not-a-number"), 0o600))
-			},
-			ctx:           func(t *testing.T) context.Context { return t.Context() },
-			expectedError: "failed to parse PID from envoy.pid: strconv.ParseInt: parsing \"not-a-number\": invalid syntax",
+			expectedError: "failed to parse Envoy's admin port: strconv.Atoi: parsing \"\": invalid syntax",
 		},
 		{
 			name: "returns error when admin address file never appears",
-			setup: func(t *testing.T, runDir string) {
-				t.Helper()
-				require.NoError(t, os.MkdirAll(runDir, 0o755))
-				pidFile := filepath.Join(runDir, "envoy.pid")
-				require.NoError(t, os.WriteFile(pidFile, []byte(strconv.Itoa(os.Getpid())), 0o600))
-			},
 			ctx: func(t *testing.T) context.Context {
 				t.Helper()
 				ctx, cancel := context.WithTimeout(t.Context(), 200*time.Millisecond)
 				t.Cleanup(cancel)
 				return ctx
 			},
-			expectedError: "timeout waiting for Envoy admin address file: open " + runDir + "/admin-address.txt: no such file or directory",
+			expectedError: "timeout waiting for Envoy admin address file: open " + adminAddressPath + ": no such file or directory",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Clean up from previous test
-			_ = os.RemoveAll(runDir)
-			tt.setup(t, runDir)
-			adminAddressPath := filepath.Join(runDir, "admin-address.txt")
-			client, err := NewAdminClient(tt.ctx(t), runDir, adminAddressPath)
+			_ = os.RemoveAll(adminAddressPath)
+			if tt.setup != nil {
+				tt.setup(t)
+			}
+			client, err := NewAdminClient(tt.ctx(t), adminAddressPath)
 			if tt.expectedError != "" {
 				require.EqualError(t, err, tt.expectedError)
 			} else {
 				require.NoError(t, err)
 				require.Equal(t, tt.expectedPort, client.Port())
-				require.Equal(t, tt.expectedPid, client.Pid())
 			}
 		})
 	}

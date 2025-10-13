@@ -17,28 +17,29 @@ import (
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
-// TestFuncEUse needs to always execute, so we run it in a separate home directory
+// TestFuncEUse needs to always execute, so we run it in a separate data directory
 func TestFuncEUse(t *testing.T) {
-	homeDir := t.TempDir()
+	configHome := t.TempDir()
+	dataHome := t.TempDir()
 
 	t.Run("not yet installed", func(t *testing.T) {
-		stdout, stderr, err := funcEExec(t.Context(), "--home-dir", homeDir, "use", version.LastKnownEnvoy.String())
+		stdout, stderr, err := funcEExec(t.Context(), "--config-home", configHome, "--data-home", dataHome, "use", version.LastKnownEnvoy.String())
 		require.NoError(t, err)
 		require.Regexp(t, `^downloading https:.*tar.*z\r?\n$`, stdout)
 		require.Empty(t, stderr)
 
 		// The binary was installed
-		envoyBin := filepath.Join(homeDir, "versions", version.LastKnownEnvoy.String(), "bin", "envoy"+"")
+		envoyBin := filepath.Join(dataHome, "envoy-versions", version.LastKnownEnvoy.String(), "bin", "envoy"+"")
 		require.FileExists(t, envoyBin)
 
 		// The current version was written
-		f, err := os.ReadFile(filepath.Join(homeDir, "version"))
+		f, err := os.ReadFile(filepath.Join(configHome, "envoy-version"))
 		require.NoError(t, err)
 		require.Equal(t, version.LastKnownEnvoy, version.PatchVersion(f))
 	})
 
 	t.Run("already installed", func(t *testing.T) {
-		stdout, stderr, err := funcEExec(t.Context(), "--home-dir", homeDir, "use", version.LastKnownEnvoy.String())
+		stdout, stderr, err := funcEExec(t.Context(), "--config-home", configHome, "--data-home", dataHome, "use", version.LastKnownEnvoy.String())
 
 		require.NoError(t, err)
 		require.Equal(t, fmt.Sprintf("%s is already downloaded\n", version.LastKnownEnvoy.String()), stdout)
@@ -78,69 +79,70 @@ func TestFuncEUse_MinorVersion(t *testing.T) {
 
 	baseVersion, upgradedVersion := getVersionsRange(allVersions, minorVersion)
 
-	homeDir := t.TempDir()
+	configHome := t.TempDir()
+	dataHome := t.TempDir()
 
 	t.Run("install last known", func(t *testing.T) {
-		stdout, stderr, err := funcEExec(t.Context(), "--home-dir", homeDir, "use", version.LastKnownEnvoy.String())
+		stdout, stderr, err := funcEExec(t.Context(), "--config-home", configHome, "--data-home", dataHome, "use", version.LastKnownEnvoy.String())
 
 		require.NoError(t, err)
 		require.Regexp(t, `^downloading https:.*tar.*z\r?\n$`, stdout)
 		require.Empty(t, stderr)
 
-		// The binary was installed.
-		envoyBin := filepath.Join(homeDir, "versions", version.LastKnownEnvoy.String(), "bin", "envoy"+"")
+		// The binary was installed
+		envoyBin := filepath.Join(dataHome, "envoy-versions", version.LastKnownEnvoy.String(), "bin", "envoy"+"")
 		require.FileExists(t, envoyBin)
 
-		// The current version was written.
-		f, err := os.ReadFile(filepath.Join(homeDir, "version"))
+		// The current version was written
+		f, err := os.ReadFile(filepath.Join(configHome, "envoy-version"))
 		require.NoError(t, err)
 		require.Equal(t, version.LastKnownEnvoy, version.PatchVersion(f))
 	})
 
 	t.Run(fmt.Sprintf("install %s as base version", baseVersion), func(t *testing.T) {
-		stdout, stderr, err := funcEExec(t.Context(), "--home-dir", homeDir, "use", baseVersion)
+		stdout, stderr, err := funcEExec(t.Context(), "--config-home", configHome, "--data-home", dataHome, "use", baseVersion)
 
 		require.NoError(t, err)
 		require.Regexp(t, `^downloading https:.*tar.*z\r?\n$`, stdout)
 		require.Empty(t, stderr)
 
-		// The binary was installed.
-		envoyBin := filepath.Join(homeDir, "versions", baseVersion, "bin", "envoy"+"")
+		// The binary was installed
+		envoyBin := filepath.Join(dataHome, "envoy-versions", baseVersion, "bin", "envoy"+"")
 		require.FileExists(t, envoyBin)
 
-		// The base version was written.
-		f, err := os.ReadFile(filepath.Join(homeDir, "version"))
+		// The base version was written
+		f, err := os.ReadFile(filepath.Join(configHome, "envoy-version"))
 		require.NoError(t, err)
 		require.Equal(t, baseVersion, string(f))
 	})
 
 	t.Run(fmt.Sprintf("install %s as upgraded version", upgradedVersion), func(t *testing.T) {
-		stdout, stderr, err := funcEExec(t.Context(), "--home-dir", homeDir, "use", minorVersion)
+		stdout, stderr, err := funcEExec(t.Context(), "--config-home", configHome, "--data-home", dataHome, "use", minorVersion)
 
 		require.NoError(t, err)
 		require.Regexp(t, `^looking up the latest patch for Envoy version 1.24\r?\ndownloading https:.*tar.*z\r?\n$`, stdout)
 		require.Empty(t, stderr)
 
-		// The binary was installed.
-		envoyBin := filepath.Join(homeDir, "versions", upgradedVersion, "bin", "envoy"+"")
+		// The binary was installed
+		envoyBin := filepath.Join(dataHome, "envoy-versions", upgradedVersion, "bin", "envoy"+"")
 		require.FileExists(t, envoyBin)
 
-		// The upgraded version was written.
-		f, err := os.ReadFile(filepath.Join(homeDir, "version"))
+		// The upgraded version was written
+		f, err := os.ReadFile(filepath.Join(configHome, "envoy-version"))
 		require.NoError(t, err)
 		require.Equal(t, minorVersion, string(f))
 	})
 
 	t.Run("use upgraded version after downloaded", func(t *testing.T) {
-		stdout, stderr, err := funcEExec(t.Context(), "--home-dir", homeDir, "use", minorVersion)
+		stdout, stderr, err := funcEExec(t.Context(), "--config-home", configHome, "--data-home", dataHome, "use", minorVersion)
 		require.NoError(t, err)
 		require.Equal(t, fmt.Sprintf("looking up the latest patch for Envoy version 1.24\n%s is already downloaded\n", upgradedVersion), stdout)
 		require.Empty(t, stderr)
 	})
 
 	t.Run("which upgraded version", func(t *testing.T) {
-		stdout, stderr, err := funcEExec(t.Context(), "--home-dir", homeDir, "which")
-		relativeEnvoyBin := filepath.Join("versions", upgradedVersion, "bin", "envoy"+"")
+		stdout, stderr, err := funcEExec(t.Context(), "--config-home", configHome, "--data-home", dataHome, "which")
+		relativeEnvoyBin := filepath.Join("envoy-versions", upgradedVersion, "bin", "envoy"+"")
 		require.Contains(t, stdout, fmt.Sprintf("%s\n", relativeEnvoyBin))
 		require.Empty(t, stderr)
 		require.NoError(t, err)

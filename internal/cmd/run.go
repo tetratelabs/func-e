@@ -15,7 +15,6 @@ import (
 
 // NewRunCmd create a command responsible for starting an Envoy process
 func NewRunCmd(o *globals.GlobalOpts) *cli.Command {
-	runDirectoryExpression := "$FUNC_E_HOME/runs/$epochtime"
 	cmd := &cli.Command{
 		Name:            "run",
 		Usage:           "Run Envoy with the given [arguments...] until interrupted",
@@ -30,8 +29,8 @@ The version to use is downloaded and installed, if necessary.
 Envoy interprets the '[arguments...]' and runs in the current working
 directory (aka $PWD) until func-e is interrupted (ex Ctrl+C, Ctrl+Break).
 
-Envoy's process ID and console output write to "envoy.pid", stdout.log" and
-"stderr.log" in the run directory (` + fmt.Sprintf("`%s`", runDirectoryExpression) + `).`,
+Envoy's console output writes to "stdout.log" and "stderr.log" in the run directory
+(` + fmt.Sprintf("`%s`", globals.DefaultStateHome) + `/envoy-logs/{runID}).`,
 		Before: func(c *cli.Context) error {
 			if err := runtime.EnsureEnvoyVersion(c.Context, o); err != nil {
 				return NewValidationError(err.Error())
