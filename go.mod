@@ -1,9 +1,11 @@
 module github.com/tetratelabs/func-e
 
-go 1.25.2
+// Revlocked to go 1.24 until Envoy Gateway catches up
+// See https://github.com/envoyproxy/gateway/blob/main/go.mod#L3
+go 1.24.8
 
 require (
-	github.com/shirou/gopsutil/v4 v4.25.8
+	github.com/shirou/gopsutil/v4 v4.25.9
 	github.com/stretchr/testify v1.11.1
 	github.com/ulikunitz/xz v0.5.15
 	github.com/urfave/cli/v2 v2.27.7
@@ -13,7 +15,7 @@ require (
 require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/ebitengine/purego v0.8.4 // indirect
+	github.com/ebitengine/purego v0.9.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/lufia/plan9stats v0.0.0-20220913051719-115f729f3c8c // indirect
