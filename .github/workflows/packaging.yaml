@@ -6,7 +6,7 @@ name: "packaging"
 
 on:
   push:  # We run tests on non-tagged pushes to master
-    tags: ''
+    tags-ignore: ['*']
     branches: master
     paths:
       - 'packaging/msi/*'
