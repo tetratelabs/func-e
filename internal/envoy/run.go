@@ -21,7 +21,7 @@ import (
 func (r *Runtime) Run(ctx context.Context, args []string) error {
 	// We require the admin server, so ensure it exists, and we can read its listener via a file path.
 	var err error
-	adminAddressPath, args, err := ensureAdminAddress(r.logf, r.o.RuntimeDir, args)
+	adminAddressPath, args, err := ensureAdminAddress(r.logf, r.o.TempDir, args)
 	if err != nil {
 		return err
 	}

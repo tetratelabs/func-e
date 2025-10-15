@@ -66,6 +66,7 @@ func initOpts(ctx context.Context, options ...api.RunOption) (*globals.GlobalOpt
 			EnvoyOut:    ro.EnvoyOut,
 			EnvoyErr:    ro.EnvoyErr,
 			StartupHook: ro.StartupHook,
+			// TempDir is set later in initializeRunOpts via EnvoyRuntimeDir(runID)
 		},
 	}
 	// Note: api.HomeDir() sets ConfigHome, DataHome, StateHome, RuntimeDir to same value (legacy mode)

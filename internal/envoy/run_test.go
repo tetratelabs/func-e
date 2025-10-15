@@ -33,9 +33,9 @@ func TestRuntime_Run_EnvoyError(t *testing.T) {
 		stdout.WriteString(fmt.Sprintf(format, args...) + "\n")
 	}
 	r := NewRuntime(&globals.RunOpts{
-		EnvoyPath:  fakeEnvoyBin,
-		RunDir:     runDir,
-		RuntimeDir: runDir,
+		EnvoyPath: fakeEnvoyBin,
+		RunDir:    runDir,
+		TempDir:   runDir,
 	}, logToOutput)
 	r.Out, r.Err = stdout, stderr
 
@@ -126,9 +126,9 @@ func TestRuntime_Run_StartupHook(t *testing.T) {
 
 			// Create runtime with custom startup hook
 			r := NewRuntime(&globals.RunOpts{
-				EnvoyPath:  fakeEnvoyBin,
-				RunDir:     runDir,
-				RuntimeDir: runDir,
+				EnvoyPath: fakeEnvoyBin,
+				RunDir:    runDir,
+				TempDir:   runDir,
 			}, logToOutput)
 			r.Out, r.Err = new(bytes.Buffer), new(bytes.Buffer)
 

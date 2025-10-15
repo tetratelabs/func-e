@@ -24,9 +24,9 @@ type RunOpts struct {
 	EnvoyErr io.Writer
 	// RunDir is the per-run directory for logs. Generated from StateHome + runID.
 	RunDir string
-	// RuntimeDir is the per-run directory for ephemeral files. Generated from RuntimeDir + runID.
-	RuntimeDir string
-	// RunID is the unique identifier for this run. Used in RunDir and RuntimeDir paths.
+	// TempDir is the per-run directory for ephemeral files. Generated from RuntimeDir + runID.
+	TempDir string
+	// RunID is the unique identifier for this run. Used in RunDir and TempDir paths.
 	RunID string
 	// StartupHook is an experimental hook that runs after Envoy starts.
 	StartupHook admin.StartupHook
@@ -111,7 +111,7 @@ func (o *GlobalOpts) Mkdirs() error {
 			struct {
 				path string
 				perm os.FileMode
-			}{o.RunOpts.RuntimeDir, 0o700}, // Use embedded RunOpts.RuntimeDir, not base RuntimeDir
+			}{o.TempDir, 0o700}, // XDG spec requires 0700 for runtime dirs
 		)
 	}
 

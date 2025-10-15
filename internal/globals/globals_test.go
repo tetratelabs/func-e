@@ -112,7 +112,7 @@ func TestGlobalOpts_Mkdirs(t *testing.T) {
 			if tc.runID != "" {
 				o.RunID = tc.runID
 				o.RunDir = o.EnvoyRunDir(tc.runID)
-				o.RuntimeDir = o.EnvoyRuntimeDir(tc.runID)
+				o.TempDir = o.EnvoyRuntimeDir(tc.runID)
 			}
 
 			// Call Mkdirs
@@ -181,14 +181,13 @@ func TestGlobalOpts_Mkdirs_PerRunRuntimeDirPermissions(t *testing.T) {
 
 	runID := "20250413_123045_999"
 	o.RunID = runID
-	o.RunID = runID
 	o.RunDir = o.EnvoyRunDir(runID)
-	o.RuntimeDir = o.EnvoyRuntimeDir(runID)
+	o.TempDir = o.EnvoyRuntimeDir(runID)
 
 	require.NoError(t, o.Mkdirs())
 
 	// Verify per-run RuntimeDir has 0700 permissions (XDG spec requirement)
-	info, err := os.Stat(o.RuntimeDir)
+	info, err := os.Stat(o.TempDir)
 	require.NoError(t, err)
 	require.Equal(t, os.FileMode(0o700), info.Mode().Perm(), "per-run RuntimeDir must have 0700 permissions per XDG spec")
 
