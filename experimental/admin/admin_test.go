@@ -13,19 +13,11 @@ import (
 	func_e "github.com/tetratelabs/func-e"
 	"github.com/tetratelabs/func-e/api"
 	"github.com/tetratelabs/func-e/experimental/admin"
+	"github.com/tetratelabs/func-e/internal/test"
+	"github.com/tetratelabs/func-e/internal/version"
 )
 
 func TestWithStartupHook(t *testing.T) {
-	// Test that middleware.WithStartupHook returns a valid RunOption
-	customHook := func(ctx context.Context, adminClient admin.AdminClient, runID string) error {
-		return nil
-	}
-
-	actual := admin.WithStartupHook(customHook)
-	require.NotNil(t, actual)
-}
-
-func TestWithStartupHook_E2E(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
@@ -41,16 +33,28 @@ func TestWithStartupHook_E2E(t *testing.T) {
 		return nil
 	}
 
+	// Set up fake envoy versions server
+	versionsServer := test.RequireEnvoyVersionsTestServer(t, version.LastKnownEnvoy)
+	defer versionsServer.Close()
+
 	// Use temp directories to isolate test from real system
 	tempDir := t.TempDir()
 
+	opts := []api.RunOption{
+		api.EnvoyOut(io.Discard),
+		api.EnvoyErr(io.Discard),
+		api.ConfigHome(tempDir),
+		api.DataHome(tempDir),
+		api.StateHome(tempDir),
+		api.RuntimeDir(tempDir),
+		api.EnvoyVersionsURL(versionsServer.URL + "/envoy-versions.json"),
+		admin.WithStartupHook(startupHook),
+	}
 	// Run with minimal Envoy config
 	err := func_e.Run(ctx, []string{
 		"--config-yaml",
 		"admin: {address: {socket_address: {address: '127.0.0.1', port_value: 0}}}",
-	}, api.Out(io.Discard), api.EnvoyOut(io.Discard), api.EnvoyErr(io.Discard),
-		api.ConfigHome(tempDir), api.DataHome(tempDir), api.StateHome(tempDir), api.RuntimeDir(tempDir),
-		admin.WithStartupHook(startupHook))
+	}, opts...)
 
 	// Expect nil error since Run returns nil on context cancellation (documented behavior)
 	require.NoError(t, err)
