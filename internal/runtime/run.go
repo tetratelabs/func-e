@@ -112,8 +112,8 @@ func initializeRunOpts(ctx context.Context, o *globals.GlobalOpts) error {
 	if runOpts.RunDir == "" { // not overridden for tests
 		runOpts.RunDir = o.EnvoyRunDir(o.RunID)
 	}
-	if runOpts.RuntimeDir == "" { // not overridden for tests
-		runOpts.RuntimeDir = o.EnvoyRuntimeDir(o.RunID)
+	if runOpts.TempDir == "" { // not overridden for tests
+		runOpts.TempDir = o.EnvoyRuntimeDir(o.RunID)
 	}
 	if runOpts.RunID == "" { // not overridden for tests
 		runOpts.RunID = o.RunID

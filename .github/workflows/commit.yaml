@@ -6,7 +6,7 @@ name: "build"
 
 on:
   push:  # We run tests on non-tagged pushes to master
-    tags: ''
+    tags-ignore: ['*']
     branches: master
     # ignore docs as they are built with Netlify. Ignore travis-related changes, too.
     paths-ignore:
