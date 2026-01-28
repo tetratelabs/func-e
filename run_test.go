@@ -23,7 +23,10 @@ import (
 // but still give some coverage.
 func TestFuncERun_InvalidConfig(t *testing.T) {
 	var stdout, stderr bytes.Buffer
-	err := func_e.Run(t.Context(), []string{}, api.HomeDir(t.TempDir()), run.EnvoyPath(fakeEnvoyBin), //nolint:staticcheck // intentional use of deprecated API for legacy mode testing
+	err := func_e.Run(t.Context(), []string{},
+		api.EnvoyVersion("1.0.0"), // intentional invalid to avoid a runtime lookup
+		api.HomeDir(t.TempDir()),  //nolint:staticcheck // intentional use of deprecated API for legacy mode testing
+		run.EnvoyPath(fakeEnvoyBin),
 		api.Out(&stdout),
 		api.EnvoyOut(&stdout),
 		api.EnvoyErr(&stderr))

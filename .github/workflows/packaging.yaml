@@ -39,10 +39,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: "Cache Go"
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/go/pkg/mod
           # go.mod for go release version, go.sum for modules used, and Tools.mk for 'go run' tools
@@ -58,7 +58,7 @@ jobs:
       # Downside of this is that, we pressure the cache capacity set per repository. We delete all caches created
       # on PRs on close. See .github/workflows/clear_cache.yaml. On main branch, in any way this cache will be deleted
       # in 7 days, also this at most a few MB, so this won't be an issue.
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         id: cache
         with:
           # Use share the cache containing archives across OSes.
@@ -79,9 +79,9 @@ jobs:
         os: [ubuntu-latest, macos-latest]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
-    - uses: actions/cache@v4
+    - uses: actions/cache@v5
       id: cache
       with:
         # We need this cache to run tests.
