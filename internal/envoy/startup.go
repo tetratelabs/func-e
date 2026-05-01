@@ -54,30 +54,33 @@ func (s *safeStartupHook) Hook(ctx context.Context, adminClient internalapi.Admi
 // - Endpoints (EDS)
 // - Secrets (SDS)
 // This provides a comprehensive snapshot of Envoy's dynamic configuration state.
-func collectConfigDump(ctx context.Context, client *http.Client, adminClient internalapi.AdminClient, runDir string) error {
-	url := fmt.Sprintf("http://127.0.0.1:%d/config_dump?include_eds", adminClient.Port())
+func collectConfigDump(ctx context.Context, adminClient internalapi.AdminClient, runDir string) error {
+	body, err := adminClient.Get(ctx, "/config_dump?include_eds")
 	file := filepath.Join(runDir, "config_dump.json")
-	return copyURLToFile(ctx, client, url, file)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(file, body, 0o600)
 }
 
-func copyURLToFile(ctx context.Context, client *http.Client, url, fullPath string) error {
+func copyURLToFile(ctx context.Context, clientFn internalapi.HTTPClientFunc, url, fullPath string) error {
 	// #nosec -> runDir is allowed to be anywhere
 	f, err := os.OpenFile(fullPath, os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {
 		return fmt.Errorf("could not open %q: %w", fullPath, err)
 	}
-	defer f.Close() //nolint:errcheck
+	defer f.Close() //nolint:errcheck // io.Copy below reports write errors
 
 	// #nosec -> adminAddress is written by Envoy and the paths are hard-coded
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
 		return fmt.Errorf("could not create request %v: %w", url, err)
 	}
-	res, err := client.Do(req)
+	res, err := clientFn().Do(req)
 	if err != nil {
 		return fmt.Errorf("could not read %v: %w", url, err)
 	}
-	defer res.Body.Close() //nolint:errcheck
+	defer res.Body.Close() //nolint:errcheck // body copied to file below
 
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("received %v from %v", res.StatusCode, url)

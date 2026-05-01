@@ -11,12 +11,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/urfave/cli/v2"
 
+	"github.com/tetratelabs/func-e/internal/admin"
 	rootcmd "github.com/tetratelabs/func-e/internal/cmd"
 	"github.com/tetratelabs/func-e/internal/envoy"
 	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/test"
+	"github.com/tetratelabs/func-e/internal/test/httptest"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
@@ -31,7 +32,7 @@ func TestFuncEValidateArgs(t *testing.T) {
 	}{
 		{
 			name:        "--envoy-versions-url not a URL",
-			args:        []string{"func-e", "--envoy-versions-url", "/not/url"},
+			args:        []string{"--envoy-versions-url", "/not/url", "which"},
 			expectedErr: `"/not/url" is not a valid Envoy versions URL`,
 		},
 	}
@@ -62,12 +63,12 @@ func TestHomeDir(t *testing.T) {
 	tests := []testCase{ // we don't test default as that depends on the runtime env
 		{
 			name:     "default",
-			args:     []string{"func-e"},
-			expected: filepath.Join(u.HomeDir, ".local/share/func-e"),
+			args:     []string{"which"},
+			expected: filepath.Join(u.HomeDir, ".local", "share", "func-e"),
 		},
 		{
 			name: "FUNC_E_HOME env (legacy mode)",
-			args: []string{"func-e"},
+			args: []string{"which"},
 			setup: func() {
 				t.Setenv("FUNC_E_HOME", alt1)
 			},
@@ -76,13 +77,13 @@ func TestHomeDir(t *testing.T) {
 		},
 		{
 			name:           "--home-dir arg (legacy mode)",
-			args:           []string{"func-e", "--home-dir", alt1},
+			args:           []string{"--home-dir", alt1, "which"},
 			expected:       alt1,
 			expectedStderr: deprecationWarning,
 		},
 		{
 			name: "prioritizes --home-dir arg over FUNC_E_HOME env",
-			args: []string{"func-e", "--home-dir", alt1},
+			args: []string{"--home-dir", alt1, "which"},
 			setup: func() {
 				t.Setenv("FUNC_E_HOME", alt2)
 			},
@@ -98,17 +99,12 @@ func TestHomeDir(t *testing.T) {
 			}
 
 			o := &globals.GlobalOpts{}
-			c, _, stderr := newApp(o)
-			c.Commands = append(c.Commands, &cli.Command{Name: "test", Action: func(_ *cli.Context) error {
-				return nil
-			}})
+			stdout := new(bytes.Buffer)
+			stderr := new(bytes.Buffer)
 
-			err := c.Run(append(tc.args, "test"))
-
+			err := rootcmd.ParseFlags(stdout, stderr, tc.args, o)
 			require.NoError(t, err)
-			// In legacy mode, all three directories point to the same location
 			require.Equal(t, tc.expected, o.DataHome)
-
 			require.Equal(t, tc.expectedStderr, stderr.String())
 		})
 	}
@@ -122,7 +118,7 @@ func TestDataHome(t *testing.T) {
 		envVar:      "FUNC_E_DATA_HOME",
 		flag:        "--data-home",
 		suffix:      "data",
-		defaultPath: filepath.Join(u.HomeDir, ".local/share/func-e"),
+		defaultPath: filepath.Join(u.HomeDir, ".local", "share", "func-e"),
 		accessor:    func(o *globals.GlobalOpts) string { return o.DataHome },
 	})
 }
@@ -135,7 +131,7 @@ func TestStateHome(t *testing.T) {
 		envVar:      "FUNC_E_STATE_HOME",
 		flag:        "--state-home",
 		suffix:      "state",
-		defaultPath: filepath.Join(u.HomeDir, ".local/state/func-e"),
+		defaultPath: filepath.Join(u.HomeDir, ".local", "state", "func-e"),
 		accessor:    func(o *globals.GlobalOpts) string { return o.StateHome },
 	})
 }
@@ -149,6 +145,7 @@ type dirConfigTest struct {
 }
 
 func testDirConfig(t *testing.T, cfg dirConfigTest) {
+	t.Helper()
 	type testCase struct {
 		name     string
 		args     []string
@@ -165,12 +162,12 @@ func testDirConfig(t *testing.T, cfg dirConfigTest) {
 	tests := []testCase{
 		{
 			name:     "default",
-			args:     []string{"func-e"},
+			args:     []string{"which"},
 			expected: cfg.defaultPath,
 		},
 		{
 			name: cfg.envVar + " env",
-			args: []string{"func-e"},
+			args: []string{"which"},
 			env: map[string]string{
 				cfg.envVar: alt1,
 			},
@@ -178,12 +175,12 @@ func testDirConfig(t *testing.T, cfg dirConfigTest) {
 		},
 		{
 			name:     cfg.flag + " flag",
-			args:     []string{"func-e", cfg.flag, alt1},
+			args:     []string{cfg.flag, alt1, "which"},
 			expected: alt1,
 		},
 		{
 			name: "prioritizes " + cfg.flag + " arg over " + cfg.envVar + " env",
-			args: []string{"func-e", cfg.flag, alt1},
+			args: []string{cfg.flag, alt1, "which"},
 			env: map[string]string{
 				cfg.envVar: alt2,
 			},
@@ -222,12 +219,12 @@ func TestRuntimeDir(t *testing.T) {
 	tests := []testCase{
 		{
 			name:     "default is /tmp/func-e-${UID}",
-			args:     []string{"func-e"},
+			args:     []string{"which"},
 			expected: "/tmp/func-e-" + u.Uid,
 		},
 		{
 			name: "FUNC_E_RUNTIME_DIR env",
-			args: []string{"func-e"},
+			args: []string{"which"},
 			env: map[string]string{
 				"FUNC_E_RUNTIME_DIR": alt1,
 			},
@@ -235,12 +232,12 @@ func TestRuntimeDir(t *testing.T) {
 		},
 		{
 			name:     "--runtime-dir flag",
-			args:     []string{"func-e", "--runtime-dir", alt1},
+			args:     []string{"--runtime-dir", alt1, "which"},
 			expected: alt1,
 		},
 		{
 			name: "prioritizes --runtime-dir arg over FUNC_E_RUNTIME_DIR env",
-			args: []string{"func-e", "--runtime-dir", alt1},
+			args: []string{"--runtime-dir", alt1, "which"},
 			env: map[string]string{
 				"FUNC_E_RUNTIME_DIR": alt2,
 			},
@@ -273,7 +270,7 @@ func TestPlatformArg(t *testing.T) {
 	tests := []testCase{
 		{
 			name: "FUNC_E_PLATFORM env",
-			args: []string{"func-e"},
+			args: []string{"which"},
 			env: map[string]string{
 				"FUNC_E_PLATFORM": "linux/amd64",
 			},
@@ -281,7 +278,7 @@ func TestPlatformArg(t *testing.T) {
 		},
 		{
 			name:     "--platform flag",
-			args:     []string{"func-e", "--platform", "darwin/amd64"},
+			args:     []string{"--platform", "darwin/amd64", "which"},
 			expected: version.Platform("darwin/amd64"),
 		},
 	}
@@ -311,12 +308,12 @@ func TestEnvoyVersionsURL(t *testing.T) {
 	tests := []testCase{ // we don't test default as that depends on the runtime env
 		{
 			name:     "default is https://archive.tetratelabs.io/envoy/envoy-versions.json",
-			args:     []string{"func-e"},
+			args:     []string{"which"},
 			expected: "https://archive.tetratelabs.io/envoy/envoy-versions.json",
 		},
 		{
 			name: "ENVOY_VERSIONS_URL env",
-			args: []string{"func-e"},
+			args: []string{"which"},
 			env: map[string]string{
 				"ENVOY_VERSIONS_URL": "http://ENVOY_VERSIONS_URL/env",
 			},
@@ -324,12 +321,12 @@ func TestEnvoyVersionsURL(t *testing.T) {
 		},
 		{
 			name:     "--envoy-versions-url flag",
-			args:     []string{"func-e", "--envoy-versions-url", "http://versions/arg"},
+			args:     []string{"--envoy-versions-url", "http://versions/arg", "which"},
 			expected: "http://versions/arg",
 		},
 		{
 			name: "prioritizes --envoy-versions-url arg over ENVOY_VERSIONS_URL env",
-			args: []string{"func-e", "--envoy-versions-url", "http://versions/arg"},
+			args: []string{"--envoy-versions-url", "http://versions/arg", "which"},
 			env: map[string]string{
 				"ENVOY_VERSIONS_URL": "http://ENVOY_VERSIONS_URL/env",
 			},
@@ -352,52 +349,34 @@ func TestEnvoyVersionsURL(t *testing.T) {
 	}
 }
 
-// newApp initializes a command with buffers for stdout and stderr.
-func newApp(o *globals.GlobalOpts) (c *cli.App, stdout, stderr *bytes.Buffer) {
-	stdout = new(bytes.Buffer)
-	stderr = new(bytes.Buffer)
-	c = rootcmd.NewApp(o)
-	c.Name = "func-e"
-	c.Writer = stdout
-	c.ErrWriter = stderr
-	o.Out = stdout
-	return c, stdout, stderr
-}
-
+// runTestCommand exercises global flag parsing without running any real command.
+// The args must include a valid command name for kong to parse (e.g., "which" or "versions").
 func runTestCommand(t *testing.T, o *globals.GlobalOpts, args []string) error {
-	c, stdout, stderr := newApp(o)
-	c.Commands = append(c.Commands, &cli.Command{Name: "test", Action: func(_ *cli.Context) error {
-		return nil
-	}})
-
-	err := c.Run(append(args, "test"))
-
-	// Main handles logging of errors, so we expect nothing in stdout or stderr even in error case
-	require.Empty(t, stdout)
-	require.Empty(t, stderr)
-	return err
+	t.Helper()
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+	return rootcmd.ParseFlags(stdout, stderr, args, o)
 }
 
-// setupTest returns globals.GlobalOpts and a tear-down function.
-// The tear-down functions reverts side-effects such as temp directories and a fake Envoy versions server.
+// setupTest returns globals.GlobalOpts with test defaults.
 func setupTest(t *testing.T) *globals.GlobalOpts {
+	t.Helper()
 	result := globals.GlobalOpts{}
 	result.EnvoyVersion = version.LastKnownEnvoy
 	result.Platform = globals.DefaultPlatform
-	result.Out = io.Discard // ignore logging by default
+	result.Out = io.Discard
 	result.EnvoyOut = io.Discard
 	result.EnvoyErr = io.Discard
 
-	// Use separate temp directories for XDG convention
 	result.ConfigHome = t.TempDir()
 	result.DataHome = t.TempDir()
 	result.StateHome = t.TempDir()
 	result.RuntimeDir = t.TempDir()
 
-	versionsServer := test.RequireEnvoyVersionsTestServer(t, version.LastKnownEnvoy)
-	result.EnvoyVersionsURL = versionsServer.URL + "/envoy-versions.json"
-	result.GetEnvoyVersions = envoy.NewGetVersions(result.EnvoyVersionsURL, result.Platform, result.Version)
-
-	t.Cleanup(versionsServer.Close)
+	baseURL := "http://" + admin.ServerAddr
+	handler := test.NewEnvoyVersionsHandler(t, baseURL, version.LastKnownEnvoy)
+	result.HTTPClientFunc = httptest.HandlerFactory(handler)
+	result.EnvoyVersionsURL = baseURL + "/envoy-versions.json"
+	result.GetEnvoyVersions = envoy.NewGetVersions(result.HTTPClientFunc, result.EnvoyVersionsURL, result.UserAgent)
 	return &result
 }

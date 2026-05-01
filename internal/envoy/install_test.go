@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -17,59 +16,68 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/tetratelabs/func-e/internal/admin"
 	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/test"
+	"github.com/tetratelabs/func-e/internal/test/httptest"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
 func TestUntarEnvoyError(t *testing.T) {
-	ctx := context.Background()
-	tempDir := t.TempDir()
-	dst := filepath.Join(tempDir, "dst")
-
 	tarball, tarballSHA256sum := test.RequireFakeEnvoyTarGz(t, version.LastKnownEnvoy)
 
-	var realHandler func(w http.ResponseWriter, r *http.Request)
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if realHandler != nil {
-			realHandler(w, r)
-		} else {
-			w.WriteHeader(http.StatusNotFound)
-		}
-	}))
-	defer server.Close()
-
-	url := version.TarballURL(server.URL + "/file.tar.gz")
-	t.Run("error on incorrect URL", func(t *testing.T) {
-		err := untarEnvoy(ctx, dst, url, tarballSHA256sum, globals.DefaultPlatform, "dev")
-		require.EqualError(t, err, fmt.Sprintf(`received 404 status code from %s`, url))
-	})
-
-	realHandler = func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
+	tests := []struct {
+		name        string
+		handler     http.HandlerFunc
+		sha256Sum   version.SHA256Sum
+		expectedErr string
+	}{
+		{
+			name: "error on incorrect URL",
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				http.NotFound(w, r)
+			},
+			sha256Sum:   tarballSHA256sum,
+			expectedErr: `received 404 status code from $URL`,
+		},
+		{
+			name: "error on empty",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			},
+			sha256Sum:   tarballSHA256sum,
+			expectedErr: `error untarring $URL: EOF`,
+		},
+		{
+			name: "error on not a tar",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte("mary had a little lamb"))
+			},
+			sha256Sum:   tarballSHA256sum,
+			expectedErr: `error untarring $URL: gzip: invalid header`,
+		},
+		{
+			name: "error on wrong sha256sum a tar",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				w.Write(tarball)
+			},
+			sha256Sum:   "cafebabe",
+			expectedErr: fmt.Sprintf(`error untarring $URL: expected SHA-256 sum "cafebabe", but have %q`, tarballSHA256sum),
+		},
 	}
-	t.Run("error on empty", func(t *testing.T) {
-		err := untarEnvoy(ctx, dst, url, tarballSHA256sum, globals.DefaultPlatform, "dev")
-		require.EqualError(t, err, fmt.Sprintf(`error untarring %s: EOF`, url))
-	})
 
-	realHandler = func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("mary had a little lamb")) //nolint
-	}
-	t.Run("error on not a tar", func(t *testing.T) {
-		err := untarEnvoy(ctx, dst, url, tarballSHA256sum, globals.DefaultPlatform, "dev")
-		require.EqualError(t, err, fmt.Sprintf(`error untarring %s: gzip: invalid header`, url))
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dst := filepath.Join(t.TempDir(), "dst")
+			url := version.TarballURL("http://" + admin.ServerAddr + "/file.tar.gz")
 
-	realHandler = func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write(tarball) //nolint
+			err := untarEnvoy(t.Context(), httptest.HandlerFactory(tt.handler), dst, url, tt.sha256Sum, globals.DefaultDevUserAgent)
+			expectedErr := strings.ReplaceAll(tt.expectedErr, "$URL", string(url))
+			require.EqualError(t, err, expectedErr)
+		})
 	}
-	t.Run("error on wrong sha256sum a tar", func(t *testing.T) {
-		err := untarEnvoy(ctx, dst, url, "cafebabe", globals.DefaultPlatform, "dev")
-		require.EqualError(t, err, fmt.Sprintf(`error untarring %s: expected SHA-256 sum "cafebabe", but have "%s"`, url, tarballSHA256sum))
-	})
 }
 
 // TestUntarEnvoy doesn't test compression formats because that logic is in tar.Tar
@@ -77,16 +85,15 @@ func TestUntarEnvoy(t *testing.T) {
 	tempDir := t.TempDir()
 
 	tarball, tarballSHA256sum := test.RequireFakeEnvoyTarGz(t, version.LastKnownEnvoy)
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	written := 0
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		l, err := w.Write(tarball)
-		require.NoError(t, err)
-		require.Equal(t, len(tarball), l)
-	}))
-	defer server.Close()
+		written, _ = w.Write(tarball)
+	})
 
-	err := untarEnvoy(context.Background(), tempDir, version.TarballURL(server.URL), tarballSHA256sum, globals.DefaultPlatform, "dev")
+	err := untarEnvoy(t.Context(), httptest.HandlerFactory(handler), tempDir, version.TarballURL("http://"+admin.ServerAddr), tarballSHA256sum, globals.DefaultDevUserAgent)
 	require.NoError(t, err)
+	require.Equal(t, len(tarball), written)
 	require.FileExists(t, filepath.Join(tempDir, binEnvoy))
 }
 
@@ -94,7 +101,7 @@ func TestInstallIfNeeded_ErrorOnIncorrectURL(t *testing.T) {
 	o := setupInstallTest(t)
 
 	o.EnvoyVersionsURL += "/varsionz.json"
-	o.GetEnvoyVersions = NewGetVersions(o.EnvoyVersionsURL, o.Platform, o.Version)
+	o.GetEnvoyVersions = NewGetVersions(o.HTTPClientFunc, o.EnvoyVersionsURL, o.UserAgent)
 	o.EnvoyVersion = version.LastKnownEnvoy
 	_, err := InstallIfNeeded(o.ctx, &o.GlobalOpts)
 	require.EqualError(t, err, "received 404 status code from "+o.EnvoyVersionsURL)
@@ -102,8 +109,6 @@ func TestInstallIfNeeded_ErrorOnIncorrectURL(t *testing.T) {
 }
 
 func TestInstallIfNeeded_Validates(t *testing.T) {
-	o := setupInstallTest(t)
-
 	tests := []struct {
 		name        string
 		p           version.Platform
@@ -126,8 +131,9 @@ func TestInstallIfNeeded_Validates(t *testing.T) {
 
 	for _, tt := range tests {
 		tc := tt
-		o.Platform = tt.p
 		t.Run(tc.name, func(t *testing.T) {
+			o := setupInstallTest(t)
+			o.Platform = tc.p
 			o.Out = new(bytes.Buffer)
 			o.EnvoyVersion = tc.v
 			_, e := InstallIfNeeded(o.ctx, &o.GlobalOpts)
@@ -139,7 +145,6 @@ func TestInstallIfNeeded_Validates(t *testing.T) {
 
 func TestInstallIfNeeded(t *testing.T) {
 	o := setupInstallTest(t)
-	out := o.Out.(*bytes.Buffer)
 
 	o.EnvoyVersion = version.LastKnownEnvoy
 	envoyPath, e := InstallIfNeeded(o.ctx, &o.GlobalOpts)
@@ -147,35 +152,16 @@ func TestInstallIfNeeded(t *testing.T) {
 	require.Equal(t, o.EnvoyPath, envoyPath)
 	require.FileExists(t, envoyPath)
 
-	// The version directory timestamp matches the fake release date, not the current time
-	versionDir := strings.Replace(envoyPath, binEnvoy, "", 1)
+	versionDir := filepath.Dir(filepath.Dir(envoyPath))
 	f, err := os.Stat(versionDir)
 	require.NoError(t, err)
 	require.Equal(t, f.ModTime().UTC().Format("2006-01-02"), string(test.FakeReleaseDate))
 
-	require.Equal(t, fmt.Sprintf("downloading %s\n", o.tarballURL), out.String())
-}
-
-func TestInstallIfNeeded_NotFound(t *testing.T) {
-	o := setupInstallTest(t)
-
-	t.Run("unknown version", func(t *testing.T) {
-		o.Platform = "darwin/amd64"
-		o.EnvoyVersion = version.PatchVersion("1.1.1")
-		_, e := InstallIfNeeded(o.ctx, &o.GlobalOpts)
-		require.EqualError(t, e, `couldn't find version "1.1.1" for platform "darwin/amd64"`)
-	})
-	t.Run("unknown platform", func(t *testing.T) {
-		o.Platform = "solaris/amd64"
-		o.EnvoyVersion = version.LastKnownEnvoy
-		_, e := InstallIfNeeded(o.ctx, &o.GlobalOpts)
-		require.EqualError(t, e, fmt.Sprintf(`couldn't find version "%s" for platform "solaris/amd64"`, version.LastKnownEnvoy))
-	})
+	require.Equal(t, fmt.Sprintf("downloading %s\n", o.tarballURL), o.Out.(*bytes.Buffer).String())
 }
 
 func TestInstallIfNeeded_AlreadyExists(t *testing.T) {
 	o := setupInstallTest(t)
-	out := o.Out.(*bytes.Buffer)
 
 	require.NoError(t, os.MkdirAll(filepath.Dir(o.EnvoyPath), 0o700))
 	require.NoError(t, os.WriteFile(o.EnvoyPath, []byte("fake"), 0o700))
@@ -186,7 +172,7 @@ func TestInstallIfNeeded_AlreadyExists(t *testing.T) {
 	o.EnvoyVersion = version.LastKnownEnvoy
 	envoyPath, e := InstallIfNeeded(o.ctx, &o.GlobalOpts)
 	require.NoError(t, e)
-	require.Equal(t, fmt.Sprintf("%s is already downloaded\n", version.LastKnownEnvoy), out.String())
+	require.Equal(t, fmt.Sprintf("%s is already downloaded\n", version.LastKnownEnvoy), o.Out.(*bytes.Buffer).String())
 
 	newStat, e := os.Stat(envoyPath)
 	require.NoError(t, e)
@@ -201,23 +187,23 @@ func TestVerifyEnvoy(t *testing.T) {
 	envoyPath := filepath.Join(tempDir, "versions", version.LastKnownEnvoy.String())
 	require.NoError(t, os.MkdirAll(filepath.Join(envoyPath, "bin"), 0o755))
 	t.Run("envoy binary doesn't exist", func(t *testing.T) {
-		EnvoyPath, e := verifyEnvoy(envoyPath)
-		require.Empty(t, EnvoyPath)
-		require.Contains(t, e.Error(), "file")
+		actualEnvoyPath, e := verifyEnvoy(envoyPath)
+		require.Empty(t, actualEnvoyPath)
+		require.ErrorContains(t, e, "file")
 	})
 
 	expectedEnvoyPath := filepath.Join(envoyPath, binEnvoy)
 	require.NoError(t, os.WriteFile(expectedEnvoyPath, []byte{}, 0o700))
 	t.Run("envoy binary ok", func(t *testing.T) {
-		EnvoyPath, e := verifyEnvoy(envoyPath)
-		require.Equal(t, expectedEnvoyPath, EnvoyPath)
+		actualEnvoyPath, e := verifyEnvoy(envoyPath)
+		require.Equal(t, expectedEnvoyPath, actualEnvoyPath)
 		require.NoError(t, e)
 	})
 
 	require.NoError(t, os.Chmod(expectedEnvoyPath, 0o600))
 	t.Run("envoy binary not executable", func(t *testing.T) {
-		EnvoyPath, e := verifyEnvoy(envoyPath)
-		require.Empty(t, EnvoyPath)
+		actualEnvoyPath, e := verifyEnvoy(envoyPath)
+		require.Empty(t, actualEnvoyPath)
 		require.EqualError(t, e, fmt.Sprintf(`envoy binary not executable at %q`, expectedEnvoyPath))
 	})
 }
@@ -230,26 +216,28 @@ type installTest struct {
 }
 
 func setupInstallTest(t *testing.T) *installTest {
-	versionsServer := test.RequireEnvoyVersionsTestServer(t, version.LastKnownEnvoy)
+	t.Helper()
+	baseURL := "http://" + admin.ServerAddr
+	handler := test.NewEnvoyVersionsHandler(t, baseURL, version.LastKnownEnvoy)
 	homeDir := t.TempDir()
 	setup := &installTest{
-		ctx:        context.Background(),
+		ctx:        t.Context(),
 		tempDir:    t.TempDir(),
-		tarballURL: test.TarballURL(versionsServer.URL, runtime.GOOS, runtime.GOARCH, version.LastKnownEnvoy),
+		tarballURL: test.TarballURL(baseURL, runtime.GOOS, runtime.GOARCH, version.LastKnownEnvoy),
 		GlobalOpts: globals.GlobalOpts{
 			ConfigHome:       homeDir,
 			DataHome:         homeDir,
 			StateHome:        homeDir,
 			RuntimeDir:       homeDir,
-			EnvoyVersionsURL: versionsServer.URL + "/envoy-versions.json",
+			EnvoyVersionsURL: baseURL + "/envoy-versions.json",
 			Out:              new(bytes.Buffer),
 			Platform:         globals.DefaultPlatform,
 			RunOpts: globals.RunOpts{
-				EnvoyPath: filepath.Join(homeDir, "envoy-versions", version.LastKnownEnvoy.String(), binEnvoy),
+				EnvoyPath:      filepath.Join(homeDir, "envoy-versions", version.LastKnownEnvoy.String(), binEnvoy),
+				HTTPClientFunc: httptest.HandlerFactory(handler),
 			},
 		},
 	}
-	setup.GetEnvoyVersions = NewGetVersions(setup.EnvoyVersionsURL, setup.Platform, setup.Version)
-	t.Cleanup(versionsServer.Close)
+	setup.GetEnvoyVersions = NewGetVersions(setup.HTTPClientFunc, setup.EnvoyVersionsURL, setup.UserAgent)
 	return setup
 }

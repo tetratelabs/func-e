@@ -21,43 +21,79 @@ import (
 	internalapi "github.com/tetratelabs/func-e/internal/api"
 )
 
-const adminAddressPathFlag = `--admin-address-path`
+const (
+	ServerAddr      = "127.0.0.1:9901"
+	AddressPathFlag = "--admin-address-path"
+	live            = "live"
+)
 
 // NewAdminClient creates an AdminClient by polling for the admin port at
 // adminAddressPath.
-func NewAdminClient(ctx context.Context, adminAddressPath string) (internalapi.AdminClient, error) {
-	// Block until admin port is available
+func NewAdminClient(ctx context.Context, clientFn internalapi.HTTPClientFunc, adminAddressPath string) (internalapi.AdminClient, error) {
+	// Envoy writes its admin address after startup, so this blocks until the
+	// port is available or the caller's context is done.
 	port, err := pollAdminAddressPathForPort(ctx, adminAddressPath)
 	if err != nil {
 		return nil, err
 	}
-
-	return &adminClient{port: port}, nil
+	return newAdminClient(clientFn, fmt.Sprintf("http://127.0.0.1:%d", port), port), nil
 }
+
+// NewAdminClientForURL creates an AdminClient for the given base URL and HTTP client factory.
+func NewAdminClientForURL(baseURL string, clientFn internalapi.HTTPClientFunc) (internalapi.AdminClient, error) {
+	baseURL = strings.TrimRight(baseURL, "/")
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse Envoy admin address: %w", err)
+	}
+	port, err := strconv.Atoi(u.Port())
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse Envoy admin port: %w", err)
+	}
+	return newAdminClient(clientFn, baseURL, port), nil
+}
+
+func newAdminClient(clientFn internalapi.HTTPClientFunc, baseURL string, port int) *adminClient {
+	return &adminClient{
+		baseURL:    baseURL,
+		httpClient: clientFn(),
+		port:       port,
+	}
+}
+
+var _ internalapi.AdminClient = (*adminClient)(nil)
 
 // adminClient checks Envoy readiness via the admin API /ready endpoint.
 type adminClient struct {
-	port int
+	baseURL    string
+	httpClient *http.Client
+	port       int
 }
 
-// Port implements the same method as documented on api.AdminClient
+// Port implements api.AdminClient.
 func (c *adminClient) Port() int {
 	return c.port
 }
 
-// IsReady implements the same method as documented on api.AdminClient
+// Do implements api.AdminClient.
+func (c *adminClient) Do(req *http.Request) (*http.Response, error) {
+	// #nosec G704 -- requests executed through AdminClient target Envoy admin/listener URLs.
+	return c.httpClient.Do(req)
+}
+
+// IsReady implements api.AdminClient.
 func (c *adminClient) IsReady(ctx context.Context) error {
 	body, err := c.Get(ctx, "/ready")
 	if err != nil {
 		return err
 	}
-	if body := strings.ToLower(strings.TrimSpace(string(body))); body != "live" {
+	if body := strings.ToLower(strings.TrimSpace(string(body))); body != live {
 		return fmt.Errorf("unexpected /ready response body: %q", body)
 	}
 	return nil
 }
 
-// AwaitReady implements the same method as documented on api.AdminClient
+// AwaitReady implements api.AdminClient.
 func (c *adminClient) AwaitReady(ctx context.Context, tickDuration time.Duration) error {
 	ticker := time.NewTicker(tickDuration)
 	defer ticker.Stop()
@@ -66,7 +102,8 @@ func (c *adminClient) AwaitReady(ctx context.Context, tickDuration time.Duration
 	for {
 		select {
 		case <-ctx.Done():
-			// Prioritize the last IsReady error over context error
+			// If Envoy answered but never became ready, the last readiness
+			// failure is more useful than the polling deadline.
 			if lastErr != nil {
 				return lastErr
 			}
@@ -100,7 +137,7 @@ type socketAddress struct {
 	PortValue int `json:"port_value"`
 }
 
-// NewListenerRequest implements the same method as documented on api.AdminClient
+// NewListenerRequest implements api.AdminClient.
 func (c *adminClient) NewListenerRequest(ctx context.Context, name, method, path string, body io.Reader) (*http.Request, error) {
 	respBody, err := c.Get(ctx, "/listeners?format=json")
 	if err != nil {
@@ -127,19 +164,19 @@ func (c *adminClient) NewListenerRequest(ctx context.Context, name, method, path
 	return http.NewRequestWithContext(ctx, method, baseURL+path, body)
 }
 
-// Get implements the same method as documented on api.AdminClient
+// Get implements api.AdminClient.
 func (c *adminClient) Get(ctx context.Context, path string) ([]byte, error) {
-	url := fmt.Sprintf("http://127.0.0.1:%d%s", c.port, path)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("http://127.0.0.1:%d%s", c.port, path), nil)
+	endpoint := c.baseURL + path
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, http.NoBody)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := c.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("error Envoy admin URL %s: %w", url, err)
+		return nil, fmt.Errorf("error Envoy admin URL %s: %w", endpoint, err)
 	}
-	defer resp.Body.Close() //nolint:errcheck
+	defer resp.Body.Close() //nolint:errcheck // body fully read below
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -147,7 +184,7 @@ func (c *adminClient) Get(ctx context.Context, path string) ([]byte, error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("error Envoy admin URL %s: status_code=%d,body:%s", url, resp.StatusCode, body)
+		return nil, fmt.Errorf("error Envoy admin URL %s: status_code=%d,body:%s", endpoint, resp.StatusCode, body)
 	}
 	return body, nil
 }
@@ -169,7 +206,7 @@ LOOP:
 			}
 			return 0, fmt.Errorf("timeout waiting for Envoy admin address file: %w", lastErr)
 		case <-ticker.C:
-			data, err := os.ReadFile(adminAddressPath)
+			data, err := os.ReadFile(adminAddressPath) //nolint:gosec // path comes from our own --admin-address-path flag
 			if err != nil {
 				lastErr = err
 				continue
@@ -184,7 +221,8 @@ LOOP:
 		}
 	}
 
-	// Parse as URL to extract port
+	// Parse as a URL so hostnames, IPv4, and bracketed IPv6 addresses share
+	// one port extraction path.
 	u, err := url.Parse("http://" + adminAddr)
 	if err != nil {
 		return 0, fmt.Errorf("failed to parse Envoy's admin address: %w", err)
@@ -200,16 +238,29 @@ LOOP:
 
 // extractFlagValue parses a flag value from command line arguments.
 func extractFlagValue(flag string, cmdline []string) (string, error) {
-	// Join cmdline into a single string and split by spaces to handle sh -c
-	// cases (these cases are only used in tests).
-	fullCmd := strings.Join(cmdline, " ")
-	parts := strings.Fields(fullCmd)
-
-	for i, arg := range parts {
-		if arg == flag && i+1 < len(parts) {
-			return parts[i+1], nil
+	for i, arg := range cmdline {
+		if arg == flag && i+1 < len(cmdline) && cmdline[i+1] != "" {
+			return cmdline[i+1], nil
+		}
+		if value, ok := strings.CutPrefix(arg, flag+"="); ok && value != "" {
+			return value, nil
 		}
 	}
+
+	// Shell wrappers expose the wrapped command as one argv entry. Keep this
+	// fallback after the argv-preserving scan so direct args can contain spaces.
+	if len(cmdline) >= 3 && cmdline[1] == "-c" {
+		fields := strings.Fields(cmdline[2])
+		for i, arg := range fields {
+			if arg == flag && i+1 < len(fields) && fields[i+1] != "" {
+				return fields[i+1], nil
+			}
+			if value, ok := strings.CutPrefix(arg, flag+"="); ok && value != "" {
+				return value, nil
+			}
+		}
+	}
+
 	return "", fmt.Errorf("%s not found in command line", flag)
 }
 
@@ -218,9 +269,9 @@ func extractFlagValue(flag string, cmdline []string) (string, error) {
 //
 // This polls as the goroutine may be called prior to the Envoy subprocess.
 func PollEnvoyPidAndAdminAddressPath(ctx context.Context, funcEPid int) (envoyPid int, adminAddressPath string, err error) {
-	funcEProc, err := process.NewProcessWithContext(ctx, int32(funcEPid))
+	funcEProc, err := process.NewProcessWithContext(ctx, int32(funcEPid)) //nolint:gosec // funcEPid never overflows int32
 	if err != nil {
-		return 0, "", fmt.Errorf("failed to Get func-e process: %w", err)
+		return 0, "", fmt.Errorf("failed to get func-e process: %w", err)
 	}
 
 	ticker := time.NewTicker(50 * time.Millisecond)
@@ -248,21 +299,19 @@ LOOP:
 				continue
 			}
 
-			// Assume the first child is the Envoy process
+			// func-e starts one Envoy child process.
 			envoyProc = children[0]
 			envoyPid = int(envoyProc.Pid)
 			break LOOP
 		}
 	}
 
-	// Get command line args
-	envoyCmdline, err := envoyProc.CmdlineSlice()
+	envoyCmdline, err := envoyProc.CmdlineSliceWithContext(ctx)
 	if err != nil {
-		return 0, "", fmt.Errorf("failed to Get command line of Envoy: %w", err)
+		return 0, "", fmt.Errorf("failed to get command line of Envoy: %w", err)
 	}
 
-	// Extract admin address path
-	adminAddressPath, err = extractFlagValue(adminAddressPathFlag, envoyCmdline)
+	adminAddressPath, err = extractFlagValue(AddressPathFlag, envoyCmdline)
 	if err != nil {
 		return 0, "", err
 	}

@@ -13,7 +13,7 @@ import (
 
 // AdminClient provides methods to interact with Envoy's admin API.
 //
-// This type alias exposes the internal AdminClient interface for experimental use.
+//revive:disable-next-line:exported // type alias exposes the internal AdminClient interface for experimental use.
 type AdminClient = internalapi.AdminClient
 
 // NewAdminClient returns an AdminClient if `funcEPid` has a child envoy process.
@@ -23,7 +23,7 @@ func NewAdminClient(ctx context.Context, funcEPid int) (AdminClient, error) {
 	if err != nil {
 		return nil, err
 	}
-	return admin.NewAdminClient(ctx, adminAddressPath)
+	return admin.NewAdminClient(ctx, api.DefaultHTTPClient, adminAddressPath)
 }
 
 // StartupHook runs once the Envoy admin server is ready. Configure this

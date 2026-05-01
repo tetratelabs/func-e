@@ -65,14 +65,14 @@ func TestNewDecompressor(t *testing.T) {
 		t.Run(p, func(t *testing.T) {
 			f, err := os.Open(p)
 			require.NoError(t, err)
-			defer f.Close() //nolint:errcheck
+			defer f.Close()
 
 			expected, err := os.ReadFile(strings.TrimSuffix(p, path.Ext(p)))
 			require.NoError(t, err)
 
 			d, err := newDecompressor(f)
 			require.NoError(t, err)
-			defer d.Close() //nolint:errcheck
+			defer d.Close()
 
 			actual, err := io.ReadAll(d)
 			require.NoError(t, err)
@@ -102,7 +102,7 @@ func TestUntar(t *testing.T) {
 			}
 			f, err := os.Open(srcFile)
 			require.NoError(t, err)
-			defer f.Close() //nolint:errcheck
+			defer f.Close()
 
 			err = Untar(dst, f)
 			require.NoError(t, err)
@@ -131,7 +131,7 @@ func TestUntarAndVerify(t *testing.T) {
 
 			f, err := os.Open(file)
 			require.NoError(t, err)
-			defer f.Close() //nolint:errcheck
+			defer f.Close()
 
 			err = UntarAndVerify(tempDir, f, sha256)
 			require.NoError(t, err)
@@ -160,7 +160,7 @@ func TestUntarAndVerify_InvalidSignature(t *testing.T) {
 
 	f, err := os.Open("testdata/empty.tar.xz")
 	require.NoError(t, err)
-	defer f.Close() //nolint:errcheck
+	defer f.Close()
 
 	err = UntarAndVerify(tempDir, f, "cafebabe")
 	require.EqualError(t, err, `expected SHA-256 sum "cafebabe", but have "0ff74a47ceef95ffaf6e629aac7e54d262300e5ee318830b41da1f809fc71afd"`)
@@ -176,6 +176,7 @@ const ignoreGroupWritePolicyMask = 0x1ef // 111101111 in binary.
 
 // requireTestFiles ensures the given directory includes the testdata/foo directory
 func requireTestFiles(t *testing.T, dst string) {
+	t.Helper()
 	// NOTE: this will not include empty.txt as we don't want to clutter the tar with empty files
 	for _, p := range []string{"bar.sh", filepath.Join("bar", "baz.txt")} {
 		expected, e := os.Stat(filepath.Join("testdata", "foo", p))
@@ -188,8 +189,9 @@ func requireTestFiles(t *testing.T, dst string) {
 	}
 }
 
-// requireTestFiles ensures the given directory is empty
+// requireEmptyDirectory ensures the given directory is empty
 func requireEmptyDirectory(t *testing.T, dst string) {
+	t.Helper()
 	d, e := os.ReadDir(dst)
 	require.NoError(t, e)
 	require.Empty(t, d, e)
@@ -205,7 +207,7 @@ func TestTarGZ(t *testing.T) {
 
 	f, e := os.Open(dst)
 	require.NoError(t, e)
-	defer f.Close() //nolint:errcheck
+	defer f.Close()
 
 	e = Untar(tempDir, f)
 	require.NoError(t, e)

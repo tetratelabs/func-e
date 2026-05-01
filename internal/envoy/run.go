@@ -27,7 +27,7 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 	}
 
 	// Ensure a re-run in the same directory has no stale admin-address file
-	_ = os.RemoveAll(adminAddressPathFlag)
+	os.RemoveAll(adminAddressPath) //nolint:errcheck,gosec // missing path is the desired state
 
 	cmd := exec.CommandContext(ctx, r.o.EnvoyPath, args...) // #nosec -> users can run whatever binary they like!
 	cmd.Stdout = r.Out
@@ -44,7 +44,7 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 
 	hookErrCh := make(chan error, 1)
 
-	// Create a context that's cancelled when Envoy process exits
+	// Create a context that's canceled when Envoy process exits
 	monitorCtx, cancelMonitor := context.WithCancel(ctx)
 	defer cancelMonitor()
 
@@ -58,7 +58,7 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 		}()
 
 		var err error
-		adminClient, err := admin.NewAdminClient(monitorCtx, adminAddressPath)
+		adminClient, err := admin.NewAdminClient(monitorCtx, r.o.HTTPClientFunc, adminAddressPath)
 		if err != nil {
 			// If we can't create the admin client, it likely means Envoy failed to start
 			// Don't log or return error here - let cmd.Wait() handle the exit error

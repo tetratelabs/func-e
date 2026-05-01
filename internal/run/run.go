@@ -46,9 +46,10 @@ func runImpl(ctx context.Context, args []string, options ...api.RunOption) error
 
 func initOpts(ctx context.Context, options ...api.RunOption) (*globals.GlobalOpts, error) {
 	ro := &internalapi.RunOpts{
-		Out:      os.Stdout,
-		EnvoyOut: os.Stdout,
-		EnvoyErr: os.Stderr,
+		Out:            os.Stdout,
+		EnvoyOut:       os.Stdout,
+		EnvoyErr:       os.Stderr,
+		HTTPClientFunc: api.DefaultHTTPClient,
 	}
 	for _, option := range options {
 		option(ro)
@@ -62,10 +63,11 @@ func initOpts(ctx context.Context, options ...api.RunOption) (*globals.GlobalOpt
 		StateHome:    ro.StateHome,
 		RuntimeDir:   ro.RuntimeDir,
 		RunOpts: globals.RunOpts{
-			EnvoyPath:   ro.EnvoyPath,
-			EnvoyOut:    ro.EnvoyOut,
-			EnvoyErr:    ro.EnvoyErr,
-			StartupHook: ro.StartupHook,
+			EnvoyPath:      ro.EnvoyPath,
+			EnvoyOut:       ro.EnvoyOut,
+			EnvoyErr:       ro.EnvoyErr,
+			HTTPClientFunc: ro.HTTPClientFunc,
+			StartupHook:    ro.StartupHook,
 			// TempDir is set later in initializeRunOpts via EnvoyRuntimeDir(runID)
 		},
 	}

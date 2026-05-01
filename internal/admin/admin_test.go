@@ -5,28 +5,48 @@ package admin
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
-	"net/http/httptest"
-	"net/url"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/tetratelabs/func-e/internal/test/httptest"
 )
+
+const readyPath = "/ready"
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
+
+func setupTestServer(t *testing.T, handler http.Handler) *adminClient {
+	t.Helper()
+	client, err := NewAdminClientForURL("http://"+ServerAddr, httptest.HandlerFactory(handler))
+	require.NoError(t, err)
+	actual, ok := client.(*adminClient)
+	require.True(t, ok)
+	return actual
+}
 
 func TestPollEnvoyPidAndAdminAddressPathForPort(t *testing.T) {
 	tests := []struct {
-		name          string
-		setup         func(t *testing.T, path string)
-		ctx           func(t *testing.T) context.Context
-		expectedPort  int
-		expectedError string
+		name         string
+		setup        func(t *testing.T, path string)
+		ctx          func(t *testing.T) context.Context
+		expectedPort int
+		expectedErr  string
 	}{
 		{
 			name: "file appears after delay",
@@ -34,15 +54,15 @@ func TestPollEnvoyPidAndAdminAddressPathForPort(t *testing.T) {
 				t.Helper()
 				go func() {
 					time.Sleep(100 * time.Millisecond)
-					_ = os.WriteFile(path, []byte("127.0.0.1:9901\n"), 0o600)
+					os.WriteFile(path, []byte("127.0.0.1:9901\n"), 0o600)
 				}()
 			},
-			ctx:          func(t *testing.T) context.Context { return t.Context() },
+			ctx:          func(t *testing.T) context.Context { t.Helper(); return t.Context() },
 			expectedPort: 9901,
 		},
 		{
 			name: "timeout when file never appears",
-			setup: func(t *testing.T, path string) {
+			setup: func(t *testing.T, _ string) {
 				t.Helper()
 			},
 			ctx: func(t *testing.T) context.Context {
@@ -51,7 +71,7 @@ func TestPollEnvoyPidAndAdminAddressPathForPort(t *testing.T) {
 				t.Cleanup(cancel)
 				return ctx
 			},
-			expectedError: "timeout waiting for Envoy admin address file",
+			expectedErr: "timeout waiting for Envoy admin address file: open $ADMIN_ADDRESS_PATH: no such file or directory",
 		},
 		{
 			name: "extracts port from address with any hostname",
@@ -59,7 +79,7 @@ func TestPollEnvoyPidAndAdminAddressPathForPort(t *testing.T) {
 				t.Helper()
 				require.NoError(t, os.WriteFile(path, []byte("localhost:9901"), 0o600))
 			},
-			ctx:          func(t *testing.T) context.Context { return t.Context() },
+			ctx:          func(t *testing.T) context.Context { t.Helper(); return t.Context() },
 			expectedPort: 9901,
 		},
 		{
@@ -68,129 +88,166 @@ func TestPollEnvoyPidAndAdminAddressPathForPort(t *testing.T) {
 				t.Helper()
 				require.NoError(t, os.WriteFile(path, []byte("invalid-address"), 0o600))
 			},
-			ctx:           func(t *testing.T) context.Context { return t.Context() },
-			expectedError: "failed to parse Envoy's admin port: strconv.Atoi: parsing \"\": invalid syntax",
+			ctx:         func(t *testing.T) context.Context { t.Helper(); return t.Context() },
+			expectedErr: "failed to parse Envoy's admin port: strconv.Atoi: parsing \"\": invalid syntax",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			path := filepath.Join(t.TempDir(), "admin-address.txt")
-			tt.setup(t, path)
-			actualPort, err := pollAdminAddressPathForPort(tt.ctx(t), path)
-			if tt.expectedError != "" {
-				// The timeout error includes the file path, others don't
-				if tt.name == "timeout when file never appears" {
-					expectedErr := fmt.Sprintf("%s: open %s: no such file or directory", tt.expectedError, path)
+			synctest.Test(t, func(t *testing.T) {
+				adminPath := filepath.Join(t.TempDir(), "admin-address.txt")
+				tt.setup(t, adminPath)
+				actualPort, err := pollAdminAddressPathForPort(tt.ctx(t), adminPath)
+				if tt.expectedErr != "" {
+					expectedErr := strings.ReplaceAll(tt.expectedErr, "$ADMIN_ADDRESS_PATH", adminPath)
 					require.EqualError(t, err, expectedErr)
 				} else {
-					require.EqualError(t, err, tt.expectedError)
+					require.NoError(t, err)
+					require.Equal(t, tt.expectedPort, actualPort)
 				}
-			} else {
-				require.NoError(t, err)
-				require.Equal(t, tt.expectedPort, actualPort)
-			}
+			})
 		})
 	}
 }
 
-func setupTestServer(t *testing.T, handler *http.HandlerFunc) *adminClient {
-	t.Helper()
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		(*handler)(w, r)
-	}))
-	t.Cleanup(server.Close)
-	u, err := url.Parse(server.URL)
-	require.NoError(t, err)
-	port, err := strconv.Atoi(u.Port())
-	require.NoError(t, err)
-	return &adminClient{port: port}
+func TestPollAdminAddressPathForPort_PollsOnTickerBoundary(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		adminPath := filepath.Join(t.TempDir(), "admin-address.txt")
+		resultCh := make(chan struct {
+			port int
+			err  error
+		}, 1)
+
+		go func() {
+			port, err := pollAdminAddressPathForPort(t.Context(), adminPath)
+			resultCh <- struct {
+				port int
+				err  error
+			}{port: port, err: err}
+		}()
+
+		synctest.Wait()
+		select {
+		case res := <-resultCh:
+			t.Fatalf("poll returned too early: port=%d err=%v", res.port, res.err)
+		default:
+		}
+
+		time.Sleep(49 * time.Millisecond)
+		synctest.Wait()
+		select {
+		case res := <-resultCh:
+			t.Fatalf("poll returned before first tick: port=%d err=%v", res.port, res.err)
+		default:
+		}
+
+		require.NoError(t, os.WriteFile(adminPath, []byte("127.0.0.1:9901\n"), 0o600))
+		synctest.Wait()
+		select {
+		case res := <-resultCh:
+			t.Fatalf("poll observed file before next tick: port=%d err=%v", res.port, res.err)
+		default:
+		}
+
+		time.Sleep(1 * time.Millisecond)
+		synctest.Wait()
+		res := <-resultCh
+		require.NoError(t, res.err)
+		require.Equal(t, 9901, res.port)
+	})
 }
 
 func TestAdminClient_get(t *testing.T) {
-	var handler http.HandlerFunc
-	client := setupTestServer(t, &handler)
-
 	tests := []struct {
-		name          string
-		handler       http.HandlerFunc
-		ctx           func(t *testing.T) context.Context
-		path          string
-		expected      []byte
-		expectedError string
+		name        string
+		handler     http.HandlerFunc
+		ctx         func(t *testing.T) context.Context
+		path        string
+		expected    []byte
+		expectedErr string
 	}{
 		{
 			name: "returns body on 200 status",
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				require.Equal(t, "/test", r.URL.Path)
+			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusOK)
 				_, _ = w.Write([]byte("response body"))
 			},
-			ctx:      func(t *testing.T) context.Context { return t.Context() },
+			ctx:      func(t *testing.T) context.Context { t.Helper(); return t.Context() },
 			path:     "/test",
 			expected: []byte("response body"),
+		},
+		{
+			name: "returns error on non-200 status code",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusServiceUnavailable)
+				_, _ = w.Write([]byte("not ready"))
+			},
+			ctx:         func(t *testing.T) context.Context { t.Helper(); return t.Context() },
+			path:        "/test",
+			expectedErr: `error Envoy admin URL $URL/test: status_code=503,body:not ready`,
+		},
+		{
+			name: "respects context cancellation",
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				<-r.Context().Done()
+				w.WriteHeader(http.StatusOK)
+			},
+			ctx: func(t *testing.T) context.Context {
+				t.Helper()
+				ctx, cancel := context.WithTimeout(t.Context(), 10*time.Millisecond)
+				t.Cleanup(cancel)
+				return ctx
+			},
+			path:        "/test",
+			expectedErr: `error Envoy admin URL $URL/test: Get "$URL/test": context deadline exceeded`,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			handler = tt.handler
+			actualMethod := ""
+			actualPath := ""
+			client := setupTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				actualMethod = r.Method
+				actualPath = r.URL.Path
+				tt.handler(w, r)
+			}))
 			actual, err := client.Get(tt.ctx(t), tt.path)
-			if tt.expectedError != "" {
-				expectedErr := fmt.Sprintf("error Envoy admin URL http://127.0.0.1:%d%s: %s", client.port, tt.path, tt.expectedError)
+			if tt.expectedErr != "" {
+				expectedErr := strings.ReplaceAll(tt.expectedErr, "$URL", client.baseURL)
 				require.EqualError(t, err, expectedErr)
 			} else {
 				require.NoError(t, err)
 				require.Equal(t, tt.expected, actual)
 			}
+			require.Equal(t, http.MethodGet, actualMethod)
+			require.Equal(t, tt.path, actualPath)
 		})
 	}
 
-	t.Run("returns error on non-200 status code", func(t *testing.T) {
-		handler = func(w http.ResponseWriter, _ *http.Request) {
-			w.WriteHeader(http.StatusServiceUnavailable)
-			_, _ = w.Write([]byte("not ready"))
-		}
-		_, err := client.Get(t.Context(), "/test")
-		expectedErr := fmt.Sprintf("error Envoy admin URL http://127.0.0.1:%d/test: status_code=503,body:not ready", client.port)
-		require.EqualError(t, err, expectedErr)
-	})
-
-	t.Run("respects context cancellation", func(t *testing.T) {
-		handler = func(w http.ResponseWriter, _ *http.Request) {
-			time.Sleep(2 * time.Second)
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte("response"))
-		}
-		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Millisecond)
-		t.Cleanup(cancel)
-		_, err := client.Get(ctx, "/test")
-		expectedErr := fmt.Sprintf("error Envoy admin URL http://127.0.0.1:%d/test: Get \"http://127.0.0.1:%d/test\": context deadline exceeded", client.port, client.port)
-		require.EqualError(t, err, expectedErr)
-	})
-
 	t.Run("returns error on connection failure", func(t *testing.T) {
-		client := &adminClient{port: 1} // port 1 should not be listening
+		client := newAdminClient(func() *http.Client {
+			return &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+				return nil, errors.New("connection refused")
+			})}
+		}, "http://127.0.0.1:1", 1)
 		_, err := client.Get(t.Context(), "/test")
-		require.EqualError(t, err, "error Envoy admin URL http://127.0.0.1:1/test: Get \"http://127.0.0.1:1/test\": dial tcp 127.0.0.1:1: connect: connection refused")
+		require.EqualError(t, err, "error Envoy admin URL http://127.0.0.1:1/test: Get \"http://127.0.0.1:1/test\": connection refused")
 	})
 }
 
 func TestAdminClient_IsReady(t *testing.T) {
-	var handler http.HandlerFunc
-	client := setupTestServer(t, &handler)
-
 	tests := []struct {
-		name          string
-		handler       http.HandlerFunc
-		expectedError string
+		name        string
+		handler     http.HandlerFunc
+		expectedErr string
 	}{
 		{
 			name: "returns nil when body is live",
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				require.Equal(t, "/ready", r.URL.Path)
+			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte("live"))
+				_, _ = w.Write([]byte(live))
 			},
 		},
 		{
@@ -199,50 +256,47 @@ func TestAdminClient_IsReady(t *testing.T) {
 				w.WriteHeader(http.StatusOK)
 				_, _ = w.Write([]byte("something else"))
 			},
-			expectedError: "unexpected /ready response body: \"something else\"",
+			expectedErr: "unexpected /ready response body: \"something else\"",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			handler = tt.handler
+			actualPath := ""
+			client := setupTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				actualPath = r.URL.Path
+				tt.handler(w, r)
+			}))
 			err := client.IsReady(t.Context())
-			if tt.expectedError != "" {
-				require.EqualError(t, err, tt.expectedError)
+			if tt.expectedErr != "" {
+				require.EqualError(t, err, tt.expectedErr)
 			} else {
 				require.NoError(t, err)
 			}
+			require.Equal(t, readyPath, actualPath)
 		})
 	}
 }
 
 func TestAdminClient_NewListenerRequest(t *testing.T) {
-	var handler http.HandlerFunc
-	client := setupTestServer(t, &handler)
-
 	tests := []struct {
 		name           string
-		handler        http.HandlerFunc
 		listenerName   string
 		method         string
 		path           string
+		body           string
 		expectedPort   int
 		expectedMethod string
-		expectedError  string
+		expectedErr    string
 	}{
 		{
 			name: "creates request when listener exists",
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				require.Equal(t, "/listeners", r.URL.Path)
-				require.Equal(t, "json", r.URL.Query().Get("format"))
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte(`{
+			body: `{
                     "listener_statuses": [
                         {"name": "main", "local_address": {"socket_address": {"port_value": 8080}}},
                         {"name": "admin", "local_address": {"socket_address": {"port_value": 9901}}}
                     ]
-                }`))
-			},
+                }`,
 			listenerName:   "main",
 			method:         http.MethodGet,
 			path:           "/path?query=value#fragment",
@@ -251,43 +305,50 @@ func TestAdminClient_NewListenerRequest(t *testing.T) {
 		},
 		{
 			name: "returns error when listener not found",
-			handler: func(w http.ResponseWriter, _ *http.Request) {
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte(`{
+			body: `{
                     "listener_statuses": [
                         {"name": "admin", "local_address": {"socket_address": {"port_value": 9901}}}
                     ]
-                }`))
-			},
-			listenerName:  "nonexistent",
-			method:        http.MethodGet,
-			path:          "/",
-			expectedError: "listener \"nonexistent\" not found",
+                }`,
+			listenerName: "nonexistent",
+			method:       http.MethodGet,
+			path:         "/",
+			expectedErr:  "listener \"nonexistent\" not found",
 		},
 		{
-			name: "returns error on invalid JSON response",
-			handler: func(w http.ResponseWriter, _ *http.Request) {
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte("not valid json"))
-			},
-			listenerName:  "main",
-			method:        http.MethodPost,
-			path:          "/api/data",
-			expectedError: "failed to parse Envoy listeners: invalid character 'o' in literal null (expecting 'u')",
+			name:         "returns error on invalid JSON response",
+			body:         "not valid json",
+			listenerName: "main",
+			method:       http.MethodPost,
+			path:         "/api/data",
+			expectedErr:  "failed to parse Envoy listeners: invalid character 'o' in literal null (expecting 'u')",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			handler = tt.handler
-			req, err := client.NewListenerRequest(t.Context(), tt.listenerName, tt.method, tt.path, nil)
-			if tt.expectedError != "" {
-				require.EqualError(t, err, tt.expectedError)
+			actualMethod := ""
+			actualPath := ""
+			actualFormat := ""
+			client := setupTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				actualMethod = r.Method
+				actualPath = r.URL.Path
+				actualFormat = r.URL.Query().Get("format")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(tt.body))
+			}))
+
+			req, err := client.NewListenerRequest(t.Context(), tt.listenerName, tt.method, tt.path, http.NoBody)
+			if tt.expectedErr != "" {
+				require.EqualError(t, err, tt.expectedErr)
 			} else {
 				require.NoError(t, err)
 				require.Equal(t, "http://127.0.0.1:"+strconv.Itoa(tt.expectedPort)+tt.path, req.URL.String())
 				require.Equal(t, tt.expectedMethod, req.Method)
 			}
+			require.Equal(t, http.MethodGet, actualMethod)
+			require.Equal(t, "/listeners", actualPath)
+			require.Equal(t, "json", actualFormat)
 		})
 	}
 }
@@ -295,29 +356,33 @@ func TestAdminClient_NewListenerRequest(t *testing.T) {
 func TestExtractFlagValue(t *testing.T) {
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "admin-address.txt")
+	pathWithSpaces := filepath.Join(tmpDir, "admin address.txt")
 
 	tests := []struct {
-		name          string
-		flag          string
-		cmdline       []string
-		expected      string
-		expectedError string
+		name        string
+		flag        string
+		cmdline     []string
+		expected    string
+		expectedErr string
 	}{
-		{"valid flag with path", adminAddressPathFlag, []string{"envoy", adminAddressPathFlag, tmpDir}, tmpDir, ""},
-		{"flag at end with path", adminAddressPathFlag, []string{"--config", "/etc/envoy.yaml", adminAddressPathFlag, tmpDir}, tmpDir, ""},
-		{"flag not present", adminAddressPathFlag, []string{"envoy", "--config", "/etc/envoy.yaml"}, "", adminAddressPathFlag + " not found in command line"},
-		{"flag present but no value", adminAddressPathFlag, []string{"envoy", adminAddressPathFlag}, "", adminAddressPathFlag + " not found in command line"},
-		{"empty cmdline", adminAddressPathFlag, []string{}, "", adminAddressPathFlag + " not found in command line"},
-		{"sh -c wrapped command", adminAddressPathFlag, []string{"sh", "-c", fmt.Sprintf("sleep 30 && echo %s %s", adminAddressPathFlag, tmpDir)}, tmpDir, ""},
-		{"sh -c with multiple spaces", adminAddressPathFlag, []string{"sh", "-c", fmt.Sprintf("envoy %s %s --other-flag", adminAddressPathFlag, tmpDir)}, tmpDir, ""},
-		{"admin address path flag", adminAddressPathFlag, []string{"envoy", adminAddressPathFlag, tmpFile}, tmpFile, ""},
+		{"valid flag with path", AddressPathFlag, []string{"envoy", AddressPathFlag, tmpDir}, tmpDir, ""},
+		{"valid flag with path containing spaces", AddressPathFlag, []string{"envoy", AddressPathFlag, pathWithSpaces}, pathWithSpaces, ""},
+		{"valid equals flag", AddressPathFlag, []string{"envoy", AddressPathFlag + "=" + tmpFile}, tmpFile, ""},
+		{"flag at end with path", AddressPathFlag, []string{"--config", "/etc/envoy.yaml", AddressPathFlag, tmpDir}, tmpDir, ""},
+		{"flag not present", AddressPathFlag, []string{"envoy", "--config", "/etc/envoy.yaml"}, "", AddressPathFlag + " not found in command line"},
+		{"flag present but no value", AddressPathFlag, []string{"envoy", AddressPathFlag}, "", AddressPathFlag + " not found in command line"},
+		{"empty cmdline", AddressPathFlag, []string{}, "", AddressPathFlag + " not found in command line"},
+		{"sh -c wrapped command", AddressPathFlag, []string{"sh", "-c", fmt.Sprintf("sleep 30 && echo %s %s", AddressPathFlag, tmpDir)}, tmpDir, ""},
+		{"sh -c with multiple spaces", AddressPathFlag, []string{"sh", "-c", fmt.Sprintf("envoy %s %s --other-flag", AddressPathFlag, tmpDir)}, tmpDir, ""},
+		{"sh -c with equals flag", AddressPathFlag, []string{"sh", "-c", fmt.Sprintf("envoy %s=%s --other-flag", AddressPathFlag, tmpFile)}, tmpFile, ""},
+		{"admin address path flag", AddressPathFlag, []string{"envoy", AddressPathFlag, tmpFile}, tmpFile, ""},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			actual, err := extractFlagValue(tt.flag, tt.cmdline)
-			if tt.expectedError != "" {
-				require.EqualError(t, err, tt.expectedError)
+			if tt.expectedErr != "" {
+				require.EqualError(t, err, tt.expectedErr)
 			} else {
 				require.NoError(t, err)
 				require.Equal(t, tt.expected, actual)
@@ -333,12 +398,12 @@ func TestPollEnvoyPidAndAdminAddressPath(t *testing.T) {
 
 		adminAddressPath := path.Join(t.TempDir(), "admin-address.txt")
 
-		cmdStr := fmt.Sprintf("sleep 30 && echo --admin-address-path %s", adminAddressPath)
+		cmdStr := "sleep 30 && echo --admin-address-path " + adminAddressPath
 		cmd := exec.CommandContext(ctx, "sh", "-c", cmdStr)
 		require.NoError(t, cmd.Start())
 		t.Cleanup(func() {
-			_ = cmd.Process.Kill()
-			_, _ = cmd.Process.Wait()
+			cmd.Process.Kill()
+			cmd.Process.Wait()
 		})
 
 		time.Sleep(100 * time.Millisecond)
@@ -359,35 +424,33 @@ func TestPollEnvoyPidAndAdminAddressPath(t *testing.T) {
 }
 
 func TestNewAdminClient(t *testing.T) {
-	adminAddressPath := filepath.Join(t.TempDir(), "admin-address.txt")
-
 	tests := []struct {
-		name          string
-		setup         func(t *testing.T)
-		ctx           func(t *testing.T) context.Context
-		expectedError string
-		expectedPort  int
+		name         string
+		setup        func(t *testing.T, adminAddressPath string)
+		ctx          func(t *testing.T) context.Context
+		expectedErr  string
+		expectedPort int
 	}{
 		{
 			name: "success - polls for admin port",
-			setup: func(t *testing.T) {
+			setup: func(t *testing.T, adminAddressPath string) {
 				t.Helper()
 				go func() {
 					time.Sleep(100 * time.Millisecond)
-					_ = os.WriteFile(adminAddressPath, []byte("127.0.0.1:9901"), 0o600)
+					os.WriteFile(adminAddressPath, []byte(ServerAddr), 0o600)
 				}()
 			},
-			ctx:          func(t *testing.T) context.Context { return t.Context() },
+			ctx:          func(t *testing.T) context.Context { t.Helper(); return t.Context() },
 			expectedPort: 9901,
 		},
 		{
 			name: "returns error when --admin-address-path has invalid content",
-			setup: func(t *testing.T) {
+			setup: func(t *testing.T, adminAddressPath string) {
 				t.Helper()
 				require.NoError(t, os.WriteFile(adminAddressPath, []byte("not-a-number"), 0o600))
 			},
-			ctx:           func(t *testing.T) context.Context { return t.Context() },
-			expectedError: "failed to parse Envoy's admin port: strconv.Atoi: parsing \"\": invalid syntax",
+			ctx:         func(t *testing.T) context.Context { t.Helper(); return t.Context() },
+			expectedErr: "failed to parse Envoy's admin port: strconv.Atoi: parsing \"\": invalid syntax",
 		},
 		{
 			name: "returns error when admin address file never appears",
@@ -397,63 +460,63 @@ func TestNewAdminClient(t *testing.T) {
 				t.Cleanup(cancel)
 				return ctx
 			},
-			expectedError: "timeout waiting for Envoy admin address file: open " + adminAddressPath + ": no such file or directory",
+			expectedErr: "timeout waiting for Envoy admin address file: open $ADMIN_ADDRESS_PATH: no such file or directory",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Clean up from previous test
-			_ = os.RemoveAll(adminAddressPath)
-			if tt.setup != nil {
-				tt.setup(t)
-			}
-			client, err := NewAdminClient(tt.ctx(t), adminAddressPath)
-			if tt.expectedError != "" {
-				require.EqualError(t, err, tt.expectedError)
-			} else {
-				require.NoError(t, err)
-				require.Equal(t, tt.expectedPort, client.Port())
-			}
+			synctest.Test(t, func(t *testing.T) {
+				adminAddressPath := filepath.Join(t.TempDir(), "admin-address.txt")
+				if tt.setup != nil {
+					tt.setup(t, adminAddressPath)
+				}
+				client, err := NewAdminClient(tt.ctx(t), httptest.HandlerFactory(http.NotFoundHandler()), adminAddressPath)
+				if tt.expectedErr != "" {
+					expectedErr := strings.ReplaceAll(tt.expectedErr, "$ADMIN_ADDRESS_PATH", adminAddressPath)
+					require.EqualError(t, err, expectedErr)
+				} else {
+					require.NoError(t, err)
+					require.Equal(t, tt.expectedPort, client.Port())
+				}
+			})
 		})
 	}
 }
 
 func TestAdminClient_AwaitReady(t *testing.T) {
-	var handler http.HandlerFunc
-	client := setupTestServer(t, &handler)
-
 	tests := []struct {
 		name          string
-		handler       func(callCount *int) http.HandlerFunc
+		body          func(callCount int) string
+		statusCode    func(callCount int) int
 		ctx           func(t *testing.T) context.Context
 		interval      time.Duration
-		expectedError string
+		expectedErr   string
 		expectedCalls int
 	}{
 		{
 			name: "returns nil when admin becomes ready after polling",
-			handler: func(callCount *int) http.HandlerFunc {
-				return func(w http.ResponseWriter, r *http.Request) {
-					require.Equal(t, "/ready", r.URL.Path)
-					*callCount++
-					if *callCount < 3 {
-						w.WriteHeader(http.StatusServiceUnavailable)
-						_, _ = w.Write([]byte("not ready"))
-					} else {
-						w.WriteHeader(http.StatusOK)
-						_, _ = w.Write([]byte("live"))
-					}
+			body: func(callCount int) string {
+				if callCount < 3 {
+					return "not ready"
 				}
+				return live
 			},
-			ctx:           func(t *testing.T) context.Context { return t.Context() },
+			statusCode: func(callCount int) int {
+				if callCount < 3 {
+					return http.StatusServiceUnavailable
+				}
+				return http.StatusOK
+			},
+			ctx:           func(t *testing.T) context.Context { t.Helper(); return t.Context() },
 			interval:      10 * time.Millisecond,
 			expectedCalls: 3,
 		},
 		{
 			name: "returns context error when no IsReady calls made",
-			handler: func(callCount *int) http.HandlerFunc {
-				return func(w http.ResponseWriter, _ *http.Request) {}
+			body: func(int) string { return live },
+			statusCode: func(int) int {
+				return http.StatusOK
 			},
 			ctx: func(t *testing.T) context.Context {
 				t.Helper()
@@ -461,20 +524,16 @@ func TestAdminClient_AwaitReady(t *testing.T) {
 				t.Cleanup(cancel)
 				return ctx
 			},
-			interval:      100 * time.Millisecond,
-			expectedError: "context deadline exceeded",
+			interval:    100 * time.Millisecond,
+			expectedErr: "context deadline exceeded",
 		},
 		{
 			name: "returns immediately when already ready",
-			handler: func(callCount *int) http.HandlerFunc {
-				return func(w http.ResponseWriter, r *http.Request) {
-					require.Equal(t, "/ready", r.URL.Path)
-					*callCount++
-					w.WriteHeader(http.StatusOK)
-					_, _ = w.Write([]byte("live"))
-				}
+			body: func(int) string { return live },
+			statusCode: func(int) int {
+				return http.StatusOK
 			},
-			ctx:           func(t *testing.T) context.Context { return t.Context() },
+			ctx:           func(t *testing.T) context.Context { t.Helper(); return t.Context() },
 			interval:      10 * time.Millisecond,
 			expectedCalls: 1,
 		},
@@ -482,51 +541,108 @@ func TestAdminClient_AwaitReady(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			callCount := 0
-			handler = tt.handler(&callCount)
+			synctest.Test(t, func(t *testing.T) {
+				callCount := 0
+				methods := []string{}
+				paths := []string{}
+				client := setupTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					callCount++
+					methods = append(methods, r.Method)
+					paths = append(paths, r.URL.Path)
+					w.WriteHeader(tt.statusCode(callCount))
+					_, _ = w.Write([]byte(tt.body(callCount)))
+				}))
 
-			err := client.AwaitReady(tt.ctx(t), tt.interval)
-			if tt.expectedError != "" {
-				// there's a temp file in the name
-				require.EqualError(t, err, tt.expectedError)
-			} else {
-				require.NoError(t, err)
-			}
-			if tt.expectedCalls > 0 {
+				err := client.AwaitReady(tt.ctx(t), tt.interval)
+				if tt.expectedErr != "" {
+					require.EqualError(t, err, tt.expectedErr)
+				} else {
+					require.NoError(t, err)
+				}
 				require.Equal(t, tt.expectedCalls, callCount)
-			}
+				require.Len(t, methods, callCount)
+				require.Len(t, paths, callCount)
+				for i := range methods {
+					require.Equal(t, http.MethodGet, methods[i])
+					require.Equal(t, readyPath, paths[i])
+				}
+			})
 		})
 	}
 }
 
 func TestAdminClient_AwaitReady_ReturnsLastErrorOnTimeout(t *testing.T) {
-	var handler http.HandlerFunc
-	client := setupTestServer(t, &handler)
+	synctest.Test(t, func(t *testing.T) {
+		ctx, cancel := context.WithCancel(t.Context())
+		t.Cleanup(cancel)
 
-	ctx, cancel := context.WithCancel(t.Context())
-	defer cancel()
+		callCount := 0
+		methods := []string{}
+		paths := []string{}
+		client := setupTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			callCount++
+			if callCount == 2 {
+				cancel()
+			}
+			methods = append(methods, r.Method)
+			paths = append(paths, r.URL.Path)
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte("still not ready"))
+		}))
 
-	callCount := 1
-
-	handler = func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, "/ready", r.URL.Path)
-		if callCount == 2 {
-			cancel()
+		err := client.AwaitReady(ctx, 100*time.Millisecond)
+		expectedErr := fmt.Sprintf("error Envoy admin URL %s/ready: status_code=503,body:still not ready", client.baseURL)
+		require.EqualError(t, err, expectedErr)
+		require.Equal(t, 2, callCount)
+		require.Len(t, methods, 2)
+		require.Len(t, paths, 2)
+		for i := range methods {
+			require.Equal(t, http.MethodGet, methods[i])
+			require.Equal(t, readyPath, paths[i])
 		}
-		callCount++
-		w.WriteHeader(http.StatusServiceUnavailable)
-		_, _ = w.Write([]byte("still not ready"))
-		w.(http.Flusher).Flush()
-	}
+	})
+}
 
-	errChan := make(chan error, 1)
-	go func() {
-		errChan <- client.AwaitReady(ctx, 100*time.Millisecond)
-	}()
+func TestAdminClient_AwaitReady_FirstPollOnFirstTick(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		callCount := 0
+		actualMethod := ""
+		actualPath := ""
+		client := setupTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			callCount++
+			actualMethod = r.Method
+			actualPath = r.URL.Path
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(live))
+		}))
 
-	// The error should be the last IsReady error, not the context cancellation error
-	err := <-errChan
-	expectedErr := fmt.Sprintf("error Envoy admin URL http://127.0.0.1:%d/ready: status_code=503,body:still not ready", client.port)
-	require.EqualError(t, err, expectedErr)
-	require.GreaterOrEqual(t, callCount, 2)
+		errCh := make(chan error, 1)
+		go func() {
+			errCh <- client.AwaitReady(t.Context(), time.Second)
+		}()
+
+		synctest.Wait()
+		require.Zero(t, callCount)
+		select {
+		case err := <-errCh:
+			t.Fatalf("AwaitReady returned before first tick: %v", err)
+		default:
+		}
+
+		time.Sleep(time.Second - time.Nanosecond)
+		synctest.Wait()
+		require.Zero(t, callCount)
+		select {
+		case err := <-errCh:
+			t.Fatalf("AwaitReady returned before first tick: %v", err)
+		default:
+		}
+
+		time.Sleep(1 * time.Nanosecond)
+		synctest.Wait()
+		require.Equal(t, 1, callCount)
+		require.Equal(t, http.MethodGet, actualMethod)
+		require.Equal(t, readyPath, actualPath)
+		require.NoError(t, <-errCh)
+	})
 }

@@ -64,7 +64,8 @@ func TestWithRunMiddleware_E2E(t *testing.T) {
 	testMiddleware := func(next api.RunFunc) api.RunFunc {
 		return func(ctx context.Context, args []string, options ...api.RunOption) error {
 			// Override options to prove we override them
-			options = append(options,
+			options = append(
+				options,
 				api.Out(io.Discard),
 				api.EnvoyOut(io.Discard),
 				api.EnvoyErr(&stderr),

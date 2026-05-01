@@ -6,6 +6,7 @@ package e2e
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -16,6 +17,7 @@ import (
 	"testing"
 	"time"
 
+	publicapi "github.com/tetratelabs/func-e/api"
 	"github.com/tetratelabs/func-e/experimental/admin"
 	internaladmin "github.com/tetratelabs/func-e/internal/admin"
 	"github.com/tetratelabs/func-e/internal/test/build"
@@ -48,7 +50,7 @@ func readOrBuildFuncEBin() error {
 			return fmt.Errorf("failed to create build directory %s: %w", buildDir, err)
 		}
 		var err error
-		if funcEBin, err = build.GoBuild(filepath.Join(projectRoot, "cmd/func-e/main.go"), buildDir); err != nil {
+		if funcEBin, err = build.GoBuild(filepath.Join(projectRoot, "cmd", "func-e", "main.go"), buildDir); err != nil {
 			return err
 		}
 	}
@@ -63,14 +65,14 @@ func readOrBuildFuncEBin() error {
 }
 
 // funcEExec is a temporary adapter for e2e tests except run.
-func funcEExec(ctx context.Context, args ...string) (string, string, error) {
+func funcEExec(ctx context.Context, args ...string) (stdout, stderr string, err error) {
 	cmd := exec.CommandContext(ctx, funcEBin, args...)
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
-	cmd.Stdout = io.MultiWriter(os.Stdout, stdout) // we want to see full `func-e` output in the test log
-	cmd.Stderr = io.MultiWriter(os.Stderr, stderr)
-	err := cmd.Run()
-	return stdout.String(), stderr.String(), err
+	stdoutBuf := new(bytes.Buffer)
+	stderrBuf := new(bytes.Buffer)
+	cmd.Stdout = io.MultiWriter(os.Stdout, stdoutBuf) // we want to see full `func-e` output in the test log
+	cmd.Stderr = io.MultiWriter(os.Stderr, stderrBuf)
+	err = cmd.Run()
+	return stdoutBuf.String(), stderrBuf.String(), err
 }
 
 // funcEFactory implements internale2e.FuncEFactory for E2E tests using a
@@ -97,7 +99,7 @@ func (a *funcE) EnvoyPid() int {
 // then waits for Envoy's admin API to be ready.
 func (a *funcE) OnStart(ctx context.Context) (admin.AdminClient, error) {
 	if a.cmd == nil || a.cmd.Process == nil {
-		return nil, fmt.Errorf("no active process")
+		return nil, errors.New("no active process")
 	}
 	funcEPid := a.cmd.Process.Pid
 
@@ -108,7 +110,7 @@ func (a *funcE) OnStart(ctx context.Context) (admin.AdminClient, error) {
 	}
 	a.envoyPid = envoyPid
 
-	adminClient, err := internaladmin.NewAdminClient(ctx, adminAddressPath)
+	adminClient, err := internaladmin.NewAdminClient(ctx, publicapi.DefaultHTTPClient, adminAddressPath)
 	if err == nil {
 		err = adminClient.AwaitReady(ctx, 100*time.Millisecond)
 	}
@@ -130,7 +132,7 @@ func (a *funcE) Run(ctx context.Context, args []string) error {
 // Interrupt sends an interrupt signal to the running func-e process.
 func (a *funcE) Interrupt(_ context.Context) error {
 	if a.cmd == nil || a.cmd.Process == nil {
-		return fmt.Errorf("no active process to interrupt")
+		return errors.New("no active process to interrupt")
 	}
 	return a.cmd.Process.Signal(syscall.SIGINT)
 }

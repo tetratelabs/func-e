@@ -54,34 +54,31 @@ such as glibc. This value must be constant within a `$FUNC_E_DATA_HOME`.
 
 
 .SH GLOBAL OPTIONS
-\fB--config-home\fP="": directory for configuration files (default: ${HOME}/.config/func-e)
+\fB--config-home\fP="": directory for configuration files
 
 .PP
-\fB--data-home\fP="": directory for Envoy binaries (default: ${HOME}/.local/share/func-e)
+\fB--data-home\fP="": directory for Envoy binaries
 
 .PP
-\fB--envoy-versions-url\fP="": URL of Envoy versions JSON (default: https://archive.tetratelabs.io/envoy/envoy-versions.json)
+\fB--envoy-versions-url\fP="": URL of Envoy versions JSON
 
 .PP
 \fB--home-dir\fP="": (deprecated) func-e home directory - use --config-home, --data-home, --state-home or --runtime-dir instead
 
 .PP
-\fB--platform\fP="": the host OS and architecture of Envoy binaries. Ex. darwin/arm64 (default: $GOOS/$GOARCH)
+\fB--platform\fP="": the host OS and architecture of Envoy binaries. Ex. darwin/arm64
 
 .PP
-\fB--run-id\fP="": custom run identifier for logs/runtime directories (used by run command) (default: auto-generated timestamp)
+\fB--run-id\fP="": custom run identifier for logs/runtime directories (used by run command)
 
 .PP
-\fB--runtime-dir\fP="": directory for temporary files (used by run command) (default: /tmp/func-e-${UID})
+\fB--runtime-dir\fP="": directory for temporary files (used by run command)
 
 .PP
-\fB--state-home\fP="": directory for logs (used by run command) (default: ${HOME}/.local/state/func-e)
+\fB--state-home\fP="": directory for logs (used by run command)
 
 
 .SH COMMANDS
-.SH help
-Shows how to use a [command]
-
 .SH run
 Run Envoy with the given [arguments...] until interrupted
 

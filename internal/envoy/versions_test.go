@@ -4,21 +4,23 @@
 package envoy
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/tetratelabs/func-e/internal/admin"
 	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/test"
+	"github.com/tetratelabs/func-e/internal/test/httptest"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
 func TestNewGetVersions(t *testing.T) {
-	versionsServer := test.RequireEnvoyVersionsTestServer(t, version.LastKnownEnvoy)
-	gv := NewGetVersions(versionsServer.URL+"/envoy-versions.json", globals.DefaultPlatform, "dev")
+	baseURL := "http://" + admin.ServerAddr
+	handler := test.NewEnvoyVersionsHandler(t, baseURL, version.LastKnownEnvoy)
+	gv := NewGetVersions(httptest.HandlerFactory(handler), baseURL+"/envoy-versions.json", globals.DefaultDevUserAgent)
 
-	evs, err := gv(context.Background())
+	evs, err := gv(t.Context())
 	require.NoError(t, err)
 	require.Contains(t, evs.Versions, version.LastKnownEnvoy)
 }

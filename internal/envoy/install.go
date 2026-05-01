@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"time"
 
+	internalapi "github.com/tetratelabs/func-e/internal/api"
 	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/tar"
 	"github.com/tetratelabs/func-e/internal/version"
@@ -52,7 +53,7 @@ func InstallIfNeeded(ctx context.Context, o *globals.GlobalOpts) (string, error)
 			return "", fmt.Errorf("unable to create directory %q: %w", installPath, err)
 		}
 		o.Logf("downloading %s\n", tarballURL)
-		if err = untarEnvoy(ctx, installPath, tarballURL, sha256Sum, o.Platform, o.Version); err != nil { //nolint
+		if err := untarEnvoy(ctx, o.HTTPClientFunc, installPath, tarballURL, sha256Sum, o.UserAgent); err != nil {
 			return "", err
 		}
 		if err = os.Chtimes(installPath, mtime, mtime); err != nil { // overwrite the mtime to preserve it in the list
@@ -79,14 +80,14 @@ func verifyEnvoy(installPath string) (string, error) {
 	return envoyPath, nil
 }
 
-func untarEnvoy(ctx context.Context, dst string, src version.TarballURL, // dst, src order like io.Copy
-	sha256Sum version.SHA256Sum, p version.Platform, v string,
+func untarEnvoy(ctx context.Context, clientFn internalapi.HTTPClientFunc, dst string, src version.TarballURL, // dst, src order like io.Copy
+	sha256Sum version.SHA256Sum, ua string,
 ) error {
-	res, err := httpGet(ctx, http.DefaultClient, string(src), p, v)
+	res, err := httpGet(ctx, clientFn, string(src), ua)
 	if err != nil {
 		return err
 	}
-	defer res.Body.Close() //nolint
+	defer res.Body.Close() //nolint:errcheck // body untarred below
 
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("received %v status code from %s", res.StatusCode, src)

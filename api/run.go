@@ -8,12 +8,13 @@ package api
 import (
 	"context"
 	"io"
+	"net/http"
 
 	"github.com/tetratelabs/func-e/internal/api"
 )
 
-// Deprecated: Use ConfigHome, DataHome, StateHome or RuntimeDir instead.
-// This function will be removed in a future version.
+// HomeDir sets all of ConfigHome, DataHome, StateHome and RuntimeDir to the
+// given directory.
 func HomeDir(homeDir string) RunOption {
 	return func(o *api.RunOpts) {
 		o.ConfigHome = homeDir
@@ -122,6 +123,19 @@ func EnvoyOut(w io.Writer) RunOption {
 func EnvoyErr(w io.Writer) RunOption {
 	return func(o *api.RunOpts) {
 		o.EnvoyErr = w
+	}
+}
+
+// HTTPClientFunc creates HTTP clients used during a run.
+type HTTPClientFunc = api.HTTPClientFunc
+
+// DefaultHTTPClient returns http.DefaultClient.
+func DefaultHTTPClient() *http.Client { return http.DefaultClient }
+
+// HTTPClient sets the factory used to create HTTP clients for a run.
+func HTTPClient(clientFunc HTTPClientFunc) RunOption {
+	return func(o *api.RunOpts) {
+		o.HTTPClientFunc = clientFunc
 	}
 }
 

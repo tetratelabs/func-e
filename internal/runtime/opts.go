@@ -76,8 +76,14 @@ func InitializeGlobalOpts(o *globals.GlobalOpts, envoyVersionsURL, homeDir, conf
 			return err
 		}
 	}
+	if o.UserAgent == "" { // not overridden for tests
+		o.UserAgent = globals.DefaultDevUserAgent
+		if strings.HasPrefix(o.Version, "v") && !strings.Contains(o.Version, "SNAPSHOT") {
+			o.UserAgent = fmt.Sprintf("func-e/%s (%s)", o.Version, o.Platform)
+		}
+	}
 	if o.GetEnvoyVersions == nil { // not overridden for tests
-		o.GetEnvoyVersions = envoy.NewGetVersions(o.EnvoyVersionsURL, o.Platform, o.Version)
+		o.GetEnvoyVersions = envoy.NewGetVersions(o.HTTPClientFunc, o.EnvoyVersionsURL, o.UserAgent)
 	}
 
 	// Create base XDG directories now that all paths are configured
@@ -142,7 +148,7 @@ func getRuntimeDir(runtimeDir string) (string, error) {
 		if err != nil || u.Uid == "" {
 			return "", err
 		}
-		return filepath.Join("/tmp", fmt.Sprintf("func-e-%s", u.Uid)), nil
+		return "/tmp/func-e-" + u.Uid, nil
 	}
 	abs, err := filepath.Abs(runtimeDir)
 	if err != nil {

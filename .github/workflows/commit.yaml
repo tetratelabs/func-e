@@ -8,7 +8,7 @@ on:
   push:  # We run tests on non-tagged pushes to master
     tags-ignore: ['*']
     branches: master
-    # ignore docs as they are built with Netlify. Ignore travis-related changes, too.
+    # Ignore docs as they are built with Netlify.
     paths-ignore:
       - '**/*.md'
       - 'site/**'
@@ -19,9 +19,7 @@ on:
       - '**/*.md'
       - 'site/**'
       - 'netlify.toml'
-      - 'packaging/msi/*'
       - 'packaging/icon@48w.ico'
-      - '.github/workflows/msi.yaml'
   # workflow_dispatch will let us manually trigger the workflow from GitHub actions dashboard.
   # For example, you can try to build a branch without raising a pull request.
   # See https://docs.github.com/en/free-pro-team@latest/actions/managing-workflow-runs/manually-running-a-workflow
@@ -39,7 +37,7 @@ jobs:
     strategy:
       fail-fast: false  # don't fail fast as sometimes failures are operating system specific
       matrix:  # use latest available versions and be consistent on all workflows!
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-26]
 
     steps:
       - name: "Checkout"
@@ -55,15 +53,15 @@ jobs:
         with:
           path: ~/go/pkg/mod
           # go.mod for Go release version, go.sum for modules used, and tools/go.* for tool dependencies
-          key: test-${{ runner.os }}-go-${{ hashFiles('go.mod', 'go.sum', 'tools/go.mod', 'tools/go.sum') }}
-          restore-keys: test-${{ runner.os }}-go-
+          key: test-${{ runner.os }}-${{ runner.arch }}-go-${{ hashFiles('go.mod', 'go.sum', 'tools/go.mod', 'tools/go.sum') }}
+          restore-keys: test-${{ runner.os }}-${{ runner.arch }}-go-
 
       - name: "Cache Envoy binaries"
         uses: actions/cache@v5
         with:  # ~/.local/share/func-e/envoy-versions is cached so that we only re-download once: for TestFuncEInstall
           path: ~/.local/share/func-e/envoy-versions
-          key: test-${{ runner.os }}-envoy-${{ hashFiles('internal/version/last_known_envoy.txt') }}
-          restore-keys: test-${{ runner.os }}-envoy-
+          key: test-${{ runner.os }}-${{ runner.arch }}-envoy-${{ hashFiles('internal/version/last_known_envoy.txt') }}
+          restore-keys: test-${{ runner.os }}-${{ runner.arch }}-envoy-
 
       - name: "Verify clean check-in"
         run: make check

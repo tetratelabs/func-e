@@ -9,7 +9,6 @@ on:
     tags-ignore: ['*']
     branches: master
     paths:
-      - 'packaging/msi/*'
       - 'packaging/nfpm/*'
       - 'packaging/icon@48w.ico'
       - '.github/workflows/packaging.yaml'
@@ -19,7 +18,6 @@ on:
   pull_request:  # We also run tests on pull requests targeted at the master branch
     branches: master
     paths:
-      - 'packaging/msi/*'
       - 'packaging/nfpm/*'
       - 'packaging/icon@48w.ico'
       - '.github/workflows/packaging.yaml'
@@ -37,8 +35,8 @@ defaults:
 
 jobs:
   packaging:
-    name: "Test packaging build (${{ matrix.os }})"
-    runs-on: ubuntu-latest
+    name: "Test packaging build"
+    runs-on: ubuntu-24.04
     steps:
       - name: "Checkout"
         uses: actions/checkout@v6
@@ -48,8 +46,8 @@ jobs:
         with:
           path: ~/go/pkg/mod
           # go.mod for Go release version, go.sum for modules used, and tools/go.* for tool dependencies
-          key: test-${{ runner.os }}-go-${{ hashFiles('go.mod', 'go.sum', 'tools/go.mod', 'tools/go.sum') }}
-          restore-keys: test-${{ runner.os }}-go-
+          key: test-${{ runner.os }}-${{ runner.arch }}-go-${{ hashFiles('go.mod', 'go.sum', 'tools/go.mod', 'tools/go.sum') }}
+          restore-keys: test-${{ runner.os }}-${{ runner.arch }}-go-
 
       - name: "Build packages (Installer, Debian, RPM)"
         run: make dist
@@ -57,9 +55,7 @@ jobs:
       # In order to share the built artifacts in the subsequent tests, we use cache instead of actions/upload-artifacts.
       # The reason is that upload-artifacts are not globally consistent and sometimes pre_release_test won't be able to
       # find the artifacts uploaded here. See https://github.com/actions/upload-artifact/issues/21 for more context.
-      # Downside of this is that, we pressure the cache capacity set per repository. We delete all caches created
-      # on PRs on close. See .github/workflows/clear_cache.yaml. On main branch, in any way this cache will be deleted
-      # in 7 days, also this at most a few MB, so this won't be an issue.
+      # Downside of this is extra cache pressure per repository, but these per-run caches expire automatically.
       - uses: actions/cache@v5
         id: cache
         with:
@@ -78,7 +74,7 @@ jobs:
     strategy:
       fail-fast: false # don't fail fast as sometimes failures are arch/OS specific
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-26]
 
     steps:
     - uses: actions/checkout@v6
@@ -99,5 +95,5 @@ jobs:
     - name: "Test RPM package (CentOS)"
       if: runner.os == 'Linux'
       run: docker run --rm -v $PWD:/work --entrypoint packaging/nfpm/verify_rpm.sh ${CENTOS_IMAGE}
-      env:  # CENTOS_IMAGE was built by internal-images.yaml
+      env:  # CENTOS_IMAGE was built by internal-images.yml
         CENTOS_IMAGE: ghcr.io/tetratelabs/func-e-internal:centos-9

@@ -18,7 +18,7 @@ var fakeEnvoyBin string
 func TestMain(m *testing.M) {
 	var err error
 	if fakeEnvoyBin, err = build.GoBuild(internal.FakeEnvoySrcPath, os.TempDir()); err != nil {
-		fmt.Fprintf(os.Stderr, `failed to start api tests due to build error: %v\n`, err) //nolint:errcheck
+		fmt.Fprintf(os.Stderr, `failed to start api tests due to build error: %v\n`, err)
 		os.Exit(1)
 	}
 	os.Exit(m.Run())

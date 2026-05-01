@@ -21,12 +21,12 @@ import (
 
 	"github.com/tetratelabs/func-e/internal"
 	internalapi "github.com/tetratelabs/func-e/internal/api"
-	"github.com/tetratelabs/func-e/internal/test/morerequire"
 )
 
 // RunTestFunc is a test function called once Envoy is started.
 type RunTestFunc func(ctx context.Context, interruptFuncE func(context.Context) error, adminClient internalapi.AdminClient)
 
+// RunTestOptions configures executeRunTest invocations.
 type RunTestOptions struct {
 	ExpectFail bool
 	TestFunc   RunTestFunc
@@ -43,25 +43,24 @@ func TestRun(ctx context.Context, t *testing.T, factory FuncEFactory) {
 	})
 }
 
-// TestRun_AdminAddressPath tests we do not assume the admin address path is in the run directory.
-func TestRun_AdminAddressPath(ctx context.Context, t *testing.T, factory FuncEFactory) {
+// TestRunAdminAddressPath tests we do not assume the admin address path is in the run directory.
+func TestRunAdminAddressPath(ctx context.Context, t *testing.T, factory FuncEFactory) {
 	adminAddressPath := path.Join(t.TempDir(), "--admin-address-path")
 	executeRunTest(ctx, t, factory, RunTestOptions{
 		Args: []string{"--config-yaml", "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 0}}}", "--admin-address-path", adminAddressPath},
 	})
 }
 
-// TestRun_LogWarn tests we do not depend on any log messages written to info level.
-func TestRun_LogWarn(ctx context.Context, t *testing.T, factory FuncEFactory) {
+// TestRunLogWarn tests we do not depend on any log messages written to info level.
+func TestRunLogWarn(ctx context.Context, t *testing.T, factory FuncEFactory) {
 	executeRunTest(ctx, t, factory, RunTestOptions{
 		Args: []string{"--config-yaml", "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 0}}}", "--log-level", "warn"},
 	})
 }
 
-// TestRun_StaticFile tests "func-e run" runs envoy in the right directory, and can read files in it.
-func TestRun_StaticFile(ctx context.Context, t *testing.T, factory FuncEFactory) {
-	revertWd := morerequire.RequireChdir(t, t.TempDir())
-	defer revertWd()
+// TestRunStaticFile tests "func-e run" runs envoy in the right directory, and can read files in it.
+func TestRunStaticFile(ctx context.Context, t *testing.T, factory FuncEFactory) {
+	t.Chdir(t.TempDir())
 
 	expectedResponse := []byte("foo")
 
@@ -71,13 +70,13 @@ func TestRun_StaticFile(ctx context.Context, t *testing.T, factory FuncEFactory)
 	})
 
 	executeRunTest(ctx, t, factory, RunTestOptions{
-		TestFunc: func(ctx context.Context, interruptFuncE func(context.Context) error, adminClient internalapi.AdminClient) {
-			req, err := adminClient.NewListenerRequest(ctx, "main", http.MethodGet, "/", nil)
+		TestFunc: func(ctx context.Context, _ func(context.Context) error, adminClient internalapi.AdminClient) {
+			req, err := adminClient.NewListenerRequest(ctx, "main", http.MethodGet, "/", http.NoBody)
 			require.NoError(t, err)
 
-			resp, err := http.DefaultClient.Do(req)
+			resp, err := adminClient.Do(req)
 			require.NoError(t, err)
-			defer resp.Body.Close() //nolint:errcheck
+			defer resp.Body.Close()
 
 			body, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
@@ -87,15 +86,14 @@ func TestRun_StaticFile(ctx context.Context, t *testing.T, factory FuncEFactory)
 	})
 }
 
-// TestRun_RunDir tests that runtime-generated files (logs, config_dump.json) are properly
+// TestRunRunDir tests that runtime-generated files (logs, config_dump.json) are properly
 // created in the state directory. This test uses api.StateHome() library option to override
 // where state files are written, without affecting the data directory (envoy versions).
 // The factory must be configured with the provided stateDir, and the test will verify files
 // are created in the expected location (stateDir/envoy-runs/{runID}/).
-func TestRun_RunDir(ctx context.Context, t *testing.T, factory FuncEFactory, stateDir string) {
+func TestRunRunDir(ctx context.Context, t *testing.T, factory FuncEFactory, stateDir string) {
 	// Work in a different directory to ensure state files don't pollute working directory
-	revertWd := morerequire.RequireChdir(t, t.TempDir())
-	defer revertWd()
+	t.Chdir(t.TempDir())
 
 	inlineString := []byte("Hello, World!")
 
@@ -104,26 +102,26 @@ func TestRun_RunDir(ctx context.Context, t *testing.T, factory FuncEFactory, sta
 	})
 
 	executeRunTest(ctx, t, factory, RunTestOptions{
-		TestFunc: func(ctx context.Context, interruptFuncE func(context.Context) error, adminClient internalapi.AdminClient) {
+		TestFunc: func(ctx context.Context, _ func(context.Context) error, adminClient internalapi.AdminClient) {
 			// Get the listener twice to generate access logs in stdout
-			req, err := adminClient.NewListenerRequest(ctx, "main", http.MethodGet, "/", nil)
+			req, err := adminClient.NewListenerRequest(ctx, "main", http.MethodGet, "/", http.NoBody)
 			require.NoError(t, err)
 
-			resp, err := http.DefaultClient.Do(req)
+			resp, err := adminClient.Do(req)
 			require.NoError(t, err)
-			defer resp.Body.Close() //nolint:errcheck
+			defer resp.Body.Close()
 
 			responseBody, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
 			require.Equal(t, inlineString, responseBody)
 
 			// Make another request to generate more logs
-			req, err = adminClient.NewListenerRequest(ctx, "main", http.MethodGet, "/", nil)
+			req, err = adminClient.NewListenerRequest(ctx, "main", http.MethodGet, "/", http.NoBody)
 			require.NoError(t, err)
 
-			resp, err = http.DefaultClient.Do(req)
+			resp, err = adminClient.Do(req)
 			require.NoError(t, err)
-			defer resp.Body.Close() //nolint:errcheck
+			defer resp.Body.Close()
 
 			// Wait a moment for logs to be flushed
 			time.Sleep(100 * time.Millisecond)
@@ -142,10 +140,9 @@ func TestRun_RunDir(ctx context.Context, t *testing.T, factory FuncEFactory, sta
 	})
 }
 
-// TestRun_InvalidConfig tests "func-e run" with an invalid configuration.
-func TestRun_InvalidConfig(ctx context.Context, t *testing.T, factory FuncEFactory) {
-	revertWd := morerequire.RequireChdir(t, t.TempDir())
-	defer revertWd()
+// TestRunInvalidConfig tests "func-e run" with an invalid configuration.
+func TestRunInvalidConfig(ctx context.Context, t *testing.T, factory FuncEFactory) {
+	t.Chdir(t.TempDir())
 
 	setupTestFiles(t, map[string][]byte{
 		"invalid.yaml": []byte("invalid yaml content"),
@@ -157,59 +154,58 @@ func TestRun_InvalidConfig(ctx context.Context, t *testing.T, factory FuncEFacto
 	})
 }
 
-// TestRun_CtrlCs tests the "Ctrl+C twice" behavior where multiple interrupts
+// TestRunCtrlCs tests the "Ctrl+C twice" behavior where multiple interrupts
 // are handled gracefully without causing issues.
-func TestRun_CtrlCs(ctx context.Context, t *testing.T, factory FuncEFactory) {
+func TestRunCtrlCs(ctx context.Context, t *testing.T, factory FuncEFactory) {
 	executeRunTest(ctx, t, factory, RunTestOptions{
 		Args: []string{"--config-yaml", "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 0}}}"},
-		TestFunc: func(ctx context.Context, interruptFuncE func(context.Context) error, adminClient internalapi.AdminClient) {
+		TestFunc: func(ctx context.Context, interruptFuncE func(context.Context) error, _ internalapi.AdminClient) {
 			// First interrupt should begin graceful shutdown
 			require.NoError(t, interruptFuncE(ctx))
 
 			// Send 5 more interrupts to ensure no special casing
-			for i := 0; i < 5; i++ {
+			for range 5 {
 				require.NoError(t, interruptFuncE(ctx))
 			}
 		},
 	})
 }
 
-// TestRun_LegacyHomeDir tests "func-e run" with FUNC_E_HOME (legacy mode) to ensure:
+// TestRunLegacyHomeDir tests "func-e run" with FUNC_E_HOME (legacy mode) to ensure:
 // 1. Files are created in legacy directory structure (versions/, runs/, version)
 // 2. RunID is in epoch format (not ISO timestamp)
 // Note: Deprecation warning is tested separately in CLI tests (internal/cmd/app_test.go)
-func TestRun_LegacyHomeDir(ctx context.Context, t *testing.T, factory FuncEFactory) {
+func TestRunLegacyHomeDir(ctx context.Context, t *testing.T, factory FuncEFactory) {
 	homeDir := t.TempDir()
 	t.Setenv("FUNC_E_HOME", homeDir)
 
-	revertWd := morerequire.RequireChdir(t, t.TempDir())
-	defer revertWd()
+	t.Chdir(t.TempDir())
 
 	setupTestFiles(t, map[string][]byte{
 		"envoy.yaml": internal.AccessLogYaml,
 	})
 
 	executeRunTest(ctx, t, factory, RunTestOptions{
-		TestFunc: func(ctx context.Context, interruptFuncE func(context.Context) error, adminClient internalapi.AdminClient) {
+		TestFunc: func(ctx context.Context, _ func(context.Context) error, adminClient internalapi.AdminClient) {
 			// Get the listener twice to generate access logs in stdout
-			req, err := adminClient.NewListenerRequest(ctx, "main", http.MethodGet, "/", nil)
+			req, err := adminClient.NewListenerRequest(ctx, "main", http.MethodGet, "/", http.NoBody)
 			require.NoError(t, err)
 
-			resp, err := http.DefaultClient.Do(req)
+			resp, err := adminClient.Do(req)
 			require.NoError(t, err)
-			defer resp.Body.Close() //nolint:errcheck
+			defer resp.Body.Close()
 
 			responseBody, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
 			require.Equal(t, []byte("Hello, World!"), responseBody)
 
 			// Make another request to generate more logs
-			req, err = adminClient.NewListenerRequest(ctx, "main", http.MethodGet, "/", nil)
+			req, err = adminClient.NewListenerRequest(ctx, "main", http.MethodGet, "/", http.NoBody)
 			require.NoError(t, err)
 
-			resp, err = http.DefaultClient.Do(req)
+			resp, err = adminClient.Do(req)
 			require.NoError(t, err)
-			defer resp.Body.Close() //nolint:errcheck
+			defer resp.Body.Close()
 
 			// Wait a moment for logs to be flushed
 			time.Sleep(100 * time.Millisecond)
@@ -234,6 +230,7 @@ func TestRun_LegacyHomeDir(ctx context.Context, t *testing.T, factory FuncEFacto
 
 // setupTestFiles writes the given files to the current directory for test setup.
 func setupTestFiles(t *testing.T, files map[string][]byte) {
+	t.Helper()
 	for name, content := range files {
 		require.NoError(t, os.WriteFile(name, content, 0o600))
 	}
@@ -241,6 +238,7 @@ func setupTestFiles(t *testing.T, files map[string][]byte) {
 
 // executeRunTest executes the given func-e arguments and runs the provided test function once Envoy is available.
 func executeRunTest(ctx context.Context, t *testing.T, factory FuncEFactory, opts RunTestOptions) {
+	t.Helper()
 	var stdoutBuf, stderr strings.Builder
 
 	t.Cleanup(func() {
@@ -320,7 +318,7 @@ func executeRunTest(ctx context.Context, t *testing.T, factory FuncEFactory, opt
 			if err != nil {
 				envoyPid = 0 // Process doesn't exist
 			} else {
-				isRunning, _ := envoyProcess.IsRunning()
+				isRunning, _ := envoyProcess.IsRunningWithContext(ctx)
 				if !isRunning {
 					envoyPid = 0 // Process exists but not running
 				}
@@ -334,7 +332,7 @@ func executeRunTest(ctx context.Context, t *testing.T, factory FuncEFactory, opt
 		require.NoError(t, runErr, "expected func-e to exit cleanly on interrupt")
 		require.Equal(t, int32(0), envoyPid, "expected Envoy process to be gone after normal shutdown")
 	} else {
-		require.True(t, envoyPid == 0, "expected Envoy not to start")
+		require.Equal(t, int32(0), envoyPid, "expected Envoy not to start")
 		require.Error(t, runErr)
 	}
 
@@ -342,13 +340,14 @@ func executeRunTest(ctx context.Context, t *testing.T, factory FuncEFactory, opt
 	if envoyPid != 0 {
 		t.Logf("Cleaning up Envoy process %d", envoyPid)
 		if p, err := process.NewProcessWithContext(ctx, envoyPid); err == nil {
-			_ = p.Kill()
+			p.KillWithContext(ctx)
 		}
 	}
 }
 
 // runTestAndInterruptFuncE runs the test function and ensures func-e is interrupted afterward.
 func runTestAndInterruptFuncE(ctx context.Context, t *testing.T, funcE FuncE, adminClient internalapi.AdminClient, callback RunTestFunc) {
+	t.Helper()
 	defer func() {
 		if err := funcE.Interrupt(ctx); err != nil {
 			// Only fail if it's not an expected error from killing the process
@@ -365,11 +364,12 @@ func runTestAndInterruptFuncE(ctx context.Context, t *testing.T, funcE FuncE, ad
 }
 
 func checkRunDirectoryWithAccessLogs(t *testing.T, runDir string) {
+	t.Helper()
 	// Check log files (always created)
 	logFiles := []string{"stdout.log", "stderr.log"}
 	for _, filename := range logFiles {
-		path := filepath.Join(runDir, filename)
-		f, err := os.Stat(path)
+		logPath := filepath.Join(runDir, filename)
+		f, err := os.Stat(logPath)
 		require.NoError(t, err, "%s should exist", filename)
 		if filename == "stderr.log" {
 			require.Positive(t, f.Size(), "%s is empty", filename)

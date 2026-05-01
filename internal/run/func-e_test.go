@@ -22,6 +22,7 @@ import (
 type fakeFuncEFactory struct{}
 
 func (f fakeFuncEFactory) New(ctx context.Context, t *testing.T, stdout, stderr io.Writer) (e2e.FuncE, error) {
+	t.Helper()
 	opts := make([]api.RunOption, 0, 4)
 
 	// Read from environment variables to support both legacy and separate directory modes
@@ -34,7 +35,7 @@ func (f fakeFuncEFactory) New(ctx context.Context, t *testing.T, stdout, stderr 
 	switch {
 	case homeDir != "":
 		// Legacy mode via FUNC_E_HOME
-		opts = append(opts[:0], api.HomeDir(homeDir)) //nolint:staticcheck // intentional use of deprecated API for legacy mode testing
+		opts = append(opts[:0], api.HomeDir(homeDir))
 	case dataHome != "" || stateHome != "" || runtimeDir != "":
 		// Separate directories mode - apply only what's set via env vars
 		// Helper function to get directory or create temp dir
@@ -51,7 +52,8 @@ func (f fakeFuncEFactory) New(ctx context.Context, t *testing.T, stdout, stderr 
 			api.RuntimeDir(getDir(runtimeDir)))
 	default:
 		// Default: use separate temp directories
-		opts = append(opts[:0],
+		opts = append(
+			opts[:0],
 			api.DataHome(t.TempDir()),
 			api.StateHome(t.TempDir()),
 			api.RuntimeDir(t.TempDir()),
@@ -100,7 +102,7 @@ func (f *fakeFuncE) OnStart(ctx context.Context) (internalapi.AdminClient, error
 		return nil, err
 	}
 	f.envoyPid = envoyPid
-	adminClient, err := internaladmin.NewAdminClient(ctx, adminAddressPath)
+	adminClient, err := internaladmin.NewAdminClient(ctx, f.o.HTTPClientFunc, adminAddressPath)
 	if err == nil {
 		err = adminClient.AwaitReady(ctx, 100*time.Millisecond)
 	}

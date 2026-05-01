@@ -34,25 +34,23 @@ func TestRunErrors(t *testing.T) {
 		{
 			name:           "incorrect global flag name",
 			args:           []string{"func-e", "--d"},
-			expectedStatus: 1,
-			expectedStderr: `flag provided but not defined: -d
-show usage with: func-e help
+			expectedStatus: 80,
+			expectedStderr: `func-e: error: unknown flag --d, did you mean one of "-h", "--data-home", "-v"?
 `,
 		},
 		{
 			name:           "incorrect global flag value",
-			args:           []string{"func-e", "--envoy-versions-url", ".", "list"},
+			args:           []string{"func-e", "--envoy-versions-url", ".", "which"},
 			expectedStatus: 1,
 			expectedStderr: `"." is not a valid Envoy versions URL
-show usage with: func-e help
+show usage with: func-e --help
 `,
 		},
 		{
 			name:           "unknown command",
 			args:           []string{"func-e", "fly"},
-			expectedStatus: 1,
-			expectedStderr: `unknown command "fly"
-show usage with: func-e help
+			expectedStatus: 80,
+			expectedStderr: `func-e: error: unexpected argument fly
 `,
 		},
 		{

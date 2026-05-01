@@ -11,42 +11,39 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/tetratelabs/func-e/internal"
+	"github.com/tetratelabs/func-e/internal/admin"
 )
 
-func getTestDataPath() string {
+func testDataPath(t *testing.T) string {
+	t.Helper()
 	_, filename, _, ok := runtime.Caller(0)
 	if !ok {
-		panic("Unable to determine current file path")
+		t.Fatal("unable to determine current file path")
 	}
 	return filepath.Join(filepath.Dir(filename), "testdata")
 }
 
 func TestParseListeners(t *testing.T) {
-	_, filename, _, ok := runtime.Caller(0)
-	if !ok {
-		panic("Unable to determine current file path")
-	}
-
-	sourceDir := filepath.Dir(filename)
-	adminLocalhostPath := filepath.Join(sourceDir, "testdata", "admin_localhost.yaml")
-	adminEphemeralPath := filepath.Join(sourceDir, "testdata", "admin_ephemeral.yaml")
-	noAdminPath := filepath.Join(sourceDir, "testdata", "no_admin.yaml")
-	accessLogPath := filepath.Join(sourceDir, "testdata", "access_log.yaml")
-	staticFilePath := filepath.Join(sourceDir, "testdata", "static_file.yaml")
-	udpProxyPath := filepath.Join(sourceDir, "testdata", "udp_proxy.yaml")
+	testdataDir := testDataPath(t)
+	adminLocalhostPath := filepath.Join(testdataDir, "admin_localhost.yaml")
+	adminEphemeralPath := filepath.Join(testdataDir, "admin_ephemeral.yaml")
+	noAdminPath := filepath.Join(testdataDir, "no_admin.yaml")
+	accessLogPath := filepath.Join(testdataDir, "access_log.yaml")
+	staticFilePath := filepath.Join(testdataDir, "static_file.yaml")
+	udpProxyPath := filepath.Join(testdataDir, "udp_proxy.yaml")
 
 	tests := []struct {
-		name       string
-		configPath string
-		configYaml string
-		expect     *Config
-		expectErr  string
+		name        string
+		configPath  string
+		configYaml  string
+		expect      *Config
+		expectedErr string
 	}{
 		{
 			name:       "admin_localhost",
 			configPath: adminLocalhostPath,
 			expect: &Config{
-				Admin: "127.0.0.1:9901",
+				Admin: admin.ServerAddr,
 				StaticListeners: []Listener{{
 					Name:    "test_listener",
 					Address: "0.0.0.0:10000",
@@ -130,9 +127,9 @@ http_filters:
 			},
 		},
 		{
-			name:       "invalid_yaml",
-			configYaml: "invalid: {yaml",
-			expectErr:  "failed to unmarshal YAML: yaml: line 1: did not find expected ',' or '}'",
+			name:        "invalid_yaml",
+			configYaml:  "invalid: {yaml",
+			expectedErr: "failed to unmarshal YAML: yaml: line 1: did not find expected ',' or '}'",
 		},
 		{
 			name:       "mixed_config_path_and_yaml_last_wins",
@@ -189,8 +186,8 @@ matcher:
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := ParseListeners(tt.configPath, tt.configYaml)
-			if tt.expectErr != "" {
-				require.EqualError(t, err, tt.expectErr)
+			if tt.expectedErr != "" {
+				require.EqualError(t, err, tt.expectedErr)
 			} else {
 				require.NoError(t, err)
 				require.Equal(t, tt.expect, result)
@@ -200,22 +197,22 @@ matcher:
 }
 
 func TestFindAdminAddress(t *testing.T) {
-	testdataDir := getTestDataPath()
+	testdataDir := testDataPath(t)
 
 	noAdminPath := filepath.Join(testdataDir, "no_admin.yaml")
 	adminLocalhostPath := filepath.Join(testdataDir, "admin_localhost.yaml")
 
 	tests := []struct {
-		name       string
-		configPath string
-		configYaml string
-		expect     string
-		expectErr  string
+		name        string
+		configPath  string
+		configYaml  string
+		expect      string
+		expectedErr string
 	}{
 		{
 			name:       "file_with_admin",
 			configPath: adminLocalhostPath,
-			expect:     "127.0.0.1:9901",
+			expect:     admin.ServerAddr,
 		},
 		{
 			name:       "file_without_admin",
@@ -225,7 +222,7 @@ func TestFindAdminAddress(t *testing.T) {
 		{
 			name:       "config_with_admin",
 			configYaml: `admin: {address: {socket_address: {address: "127.0.0.1", port_value: 9901}}}`,
-			expect:     "127.0.0.1:9901",
+			expect:     admin.ServerAddr,
 		},
 		{
 			name:       "config_without_admin",
@@ -237,12 +234,54 @@ func TestFindAdminAddress(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			hostPort, err := FindAdminAddress(tt.configPath, tt.configYaml)
-			if tt.expectErr != "" {
-				require.EqualError(t, err, tt.expectErr)
+			if tt.expectedErr != "" {
+				require.EqualError(t, err, tt.expectedErr)
 			} else {
 				require.NoError(t, err)
 				require.Equal(t, tt.expect, hostPort)
 			}
+		})
+	}
+}
+
+func TestFindAdminAddressFromArgs(t *testing.T) {
+	testdataDir := testDataPath(t)
+
+	adminLocalhostPath := filepath.Join(testdataDir, "admin_localhost.yaml")
+	adminYaml := `admin: {address: {socket_address: {address: "127.0.0.3", port_value: 9903}}}`
+
+	tests := []struct {
+		name   string
+		args   []string
+		expect string
+	}{
+		{
+			name:   "config path value",
+			args:   []string{"--config-path", adminLocalhostPath},
+			expect: admin.ServerAddr,
+		},
+		{
+			name:   "config path equals",
+			args:   []string{"--config-path=" + adminLocalhostPath},
+			expect: admin.ServerAddr,
+		},
+		{
+			name:   "config yaml value",
+			args:   []string{"--config-yaml", adminYaml},
+			expect: "127.0.0.3:9903",
+		},
+		{
+			name:   "config yaml equals",
+			args:   []string{"--config-yaml=" + adminYaml},
+			expect: "127.0.0.3:9903",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			hostPort, err := FindAdminAddressFromArgs(tt.args)
+			require.NoError(t, err)
+			require.Equal(t, tt.expect, hostPort)
 		})
 	}
 }

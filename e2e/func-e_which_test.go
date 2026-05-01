@@ -4,7 +4,6 @@
 package e2e
 
 import (
-	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -23,7 +22,7 @@ func TestFuncEWhich(t *testing.T) { // not parallel as it can end up downloading
 
 	stdout, stderr, err := funcEExec(t.Context(), "which")
 	relativeEnvoyBin := filepath.Join("versions", version.LastKnownEnvoy.String(), "bin", "envoy")
-	require.Contains(t, stdout, fmt.Sprintf("%s\n", relativeEnvoyBin))
+	require.Contains(t, stdout, relativeEnvoyBin+"\n")
 	require.Empty(t, stderr)
 	require.NoError(t, err)
 }

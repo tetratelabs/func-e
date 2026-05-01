@@ -4,6 +4,12 @@ defaultContentLanguage = "en"
 title = "func-e"
 theme = "hello-friend"
 
+[outputs]
+  home = ["HTML"]
+  section = ["HTML"]
+  taxonomy = ["HTML"]
+  term = ["HTML"]
+
 [params]
   defaultTheme = "light"
   showReadingTime = false

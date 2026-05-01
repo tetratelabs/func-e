@@ -35,7 +35,7 @@ func TestEnsureEnvoyVersion(t *testing.T) {
 	}
 	require.NoError(t, os.WriteFile(filepath.Join(o.ConfigHome, "envoy-version"), []byte(version.LastKnownEnvoy.String()), 0o600))
 
-	err := EnsureEnvoyVersion(context.Background(), o)
+	err := EnsureEnvoyVersion(t.Context(), o)
 	require.NoError(t, err)
 	require.Equal(t, version.LastKnownEnvoy, o.EnvoyVersion)
 }
@@ -60,7 +60,7 @@ func TestEnsureEnvoyVersion_ErrorIsAValidationError(t *testing.T) {
 
 	// Using XDG conventions, error message shows new path
 	expectedErr := fmt.Sprintf(`invalid version in "$FUNC_E_CONFIG_HOME/envoy-version": "a.b.c" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
-	err := EnsureEnvoyVersion(context.Background(), o)
+	err := EnsureEnvoyVersion(t.Context(), o)
 	require.EqualError(t, err, expectedErr)
 }
 
@@ -82,7 +82,7 @@ func TestSetEnvoyVersion_ReadsExistingPatchVersion(t *testing.T) {
 
 	require.NoError(t, os.WriteFile(filepath.Join(o.ConfigHome, "envoy-version"), []byte("1.18.13"), 0o600))
 
-	err := setEnvoyVersion(context.Background(), o)
+	err := setEnvoyVersion(t.Context(), o)
 	require.NoError(t, err)
 	require.Equal(t, version.PatchVersion("1.18.13"), o.EnvoyVersion)
 }
@@ -106,7 +106,7 @@ func TestSetEnvoyVersion_LooksUpLatestPatchForExistingMinorVersion(t *testing.T)
 
 	require.NoError(t, os.WriteFile(filepath.Join(o.ConfigHome, "envoy-version"), []byte("1.18"), 0o600))
 
-	err := setEnvoyVersion(context.Background(), o)
+	err := setEnvoyVersion(t.Context(), o)
 	require.NoError(t, err)
 	require.Equal(t, version.PatchVersion("1.18.13"), o.EnvoyVersion)
 
@@ -134,7 +134,7 @@ func TestSetEnvoyVersion_ErrorReadingExistingVersion(t *testing.T) {
 
 	// Using XDG conventions, error message shows new path
 	expectedErr := fmt.Sprintf(`invalid version in "$FUNC_E_CONFIG_HOME/envoy-version": "a.b.c" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
-	err := setEnvoyVersion(context.Background(), o)
+	err := setEnvoyVersion(t.Context(), o)
 	require.EqualError(t, err, expectedErr)
 }
 
@@ -156,7 +156,7 @@ func TestSetEnvoyVersion_UsesLatestVersionOnInitialRun(t *testing.T) {
 		Platform:   globals.DefaultPlatform,
 	}
 
-	err := setEnvoyVersion(context.Background(), o)
+	err := setEnvoyVersion(t.Context(), o)
 	require.NoError(t, err)
 
 	// The highest version for this platform was set
@@ -188,7 +188,7 @@ func TestSetEnvoyVersion_NotFound(t *testing.T) {
 		Platform:         globals.DefaultPlatform,
 	}
 
-	err := setEnvoyVersion(context.Background(), o)
+	err := setEnvoyVersion(t.Context(), o)
 	expectedErr := fmt.Sprintf("fake URL does not contain an Envoy release for platform %s", o.Platform)
 	require.EqualError(t, err, expectedErr)
 
@@ -210,7 +210,7 @@ func TestSetEnvoyVersion_ErrorLookingUpLatestVersionOnInitialRun(t *testing.T) {
 		Out:              new(bytes.Buffer), // we expect logging
 	}
 
-	err := setEnvoyVersion(context.Background(), o)
+	err := setEnvoyVersion(t.Context(), o)
 	require.EqualError(t, err, "couldn't lookup the latest Envoy version from fake URL: file not found")
 
 	// We notified the user about the remote lookup
@@ -242,7 +242,7 @@ func TestEnsurePatchVersion(t *testing.T) {
 		Platform:   globals.DefaultPlatform,
 	}
 
-	actual, err := EnsurePatchVersion(context.Background(), o, version.MinorVersion("1.18"))
+	actual, err := EnsurePatchVersion(t.Context(), o, version.MinorVersion("1.18"))
 	require.NoError(t, err)
 	require.Equal(t, version.PatchVersion("1.18.13"), actual)
 
@@ -271,7 +271,7 @@ func TestEnsurePatchVersion_NotFound(t *testing.T) {
 		Platform:         globals.DefaultPlatform,
 	}
 
-	_, err := EnsurePatchVersion(context.Background(), o, version.MinorVersion("1.18"))
+	_, err := EnsurePatchVersion(t.Context(), o, version.MinorVersion("1.18"))
 	expectedErr := fmt.Sprintf("fake URL does not contain an Envoy release for version 1.18 on platform %s", o.Platform)
 	require.EqualError(t, err, expectedErr)
 
@@ -281,7 +281,7 @@ func TestEnsurePatchVersion_NotFound(t *testing.T) {
 
 func TestEnsurePatchVersion_NoOpWhenAlreadyAPatchVersion(t *testing.T) {
 	expected := version.PatchVersion("1.19.1")
-	actual, err := EnsurePatchVersion(context.Background(), &globals.GlobalOpts{}, expected)
+	actual, err := EnsurePatchVersion(t.Context(), &globals.GlobalOpts{}, expected)
 	require.NoError(t, err)
 	require.Equal(t, expected, actual)
 }
@@ -335,7 +335,7 @@ func TestEnsurePatchVersion_FallbackSuccess(t *testing.T) {
 			require.NoError(t, os.MkdirAll(lastKnownEnvoyDir, 0o700))
 
 			// Ensure that when we ask for a minor, the latest version is returned from the filesystem
-			actual, err := EnsurePatchVersion(context.Background(), o, version.MinorVersion("1.18"))
+			actual, err := EnsurePatchVersion(t.Context(), o, version.MinorVersion("1.18"))
 			require.NoError(t, err)
 			require.Equal(t, version.PatchVersion("1.18.14"), actual)
 
@@ -359,7 +359,7 @@ func TestEnsurePatchVersion_FallbackFailure(t *testing.T) {
 	}
 
 	// Since we have nothing local to fall back to, we should raise the remote error
-	_, err := EnsurePatchVersion(context.Background(), o, version.MinorVersion("1.18"))
+	_, err := EnsurePatchVersion(t.Context(), o, version.MinorVersion("1.18"))
 	require.EqualError(t, err, "file not found")
 
 	// We notified the user about the remote lookup

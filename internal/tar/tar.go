@@ -10,20 +10,20 @@ import (
 	"compress/gzip"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"hash"
 	"io"
 	"io/fs"
 	"os"
+	pathpkg "path"
 	"path/filepath"
 	"strings"
 
-	"github.com/ulikunitz/xz"
+	"github.com/ulikunitz/xz/v2"
 
 	"github.com/tetratelabs/func-e/internal/version"
 )
-
-const pathSeparator = string(os.PathSeparator)
 
 type digester struct {
 	r io.Reader
@@ -57,16 +57,29 @@ func UntarAndVerify(dst string, src io.Reader, sha256Sum version.SHA256Sum) erro
 // This is used to decompress Envoy distributions in the "tarballURL" field of "envoy-versions.json".
 // To keep the binary size small, only supports compression formats used in practice. As of May 2021, all
 // "tarballURL" from stable releases were "tar.xz".
-func Untar(dst string, src io.Reader) error { // dst, src order like io.Copy
+func Untar(dst string, src io.Reader) (err error) { // dst, src order like io.Copy
 	if err := os.MkdirAll(dst, 0o750); err != nil {
 		return err
 	}
+	dstRoot, err := os.OpenRoot(dst)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if closeErr := dstRoot.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
+		}
+	}()
 
 	zSrc, err := newDecompressor(src)
 	if err != nil {
 		return err
 	}
-	defer zSrc.Close() //nolint
+	defer func() {
+		if closeErr := zSrc.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
+		}
+	}()
 
 	tr := tar.NewReader(zSrc)
 	for {
@@ -77,23 +90,27 @@ func Untar(dst string, src io.Reader) error { // dst, src order like io.Copy
 			return err
 		}
 
-		srcPath := filepath.Clean(header.Name)
-		slash := strings.Index(srcPath, pathSeparator)
-		if slash == -1 { // strip leading path
+		srcPath := strings.TrimPrefix(pathpkg.Clean(header.Name), "/")
+		_, srcPath, ok := strings.Cut(srcPath, "/")
+		if !ok || srcPath == "" { // strip leading path
 			continue
 		}
-		srcPath = srcPath[slash+1:]
+		srcPath = filepath.FromSlash(srcPath)
 
-		dstPath := filepath.Join(dst, srcPath)
 		info := header.FileInfo()
 		if info.IsDir() {
-			if err := os.MkdirAll(dstPath, info.Mode()); err != nil {
+			if err := dstRoot.MkdirAll(srcPath, info.Mode().Perm()); err != nil {
 				return err
 			}
 			continue
 		}
 
-		if err := extractFile(dstPath, tr, info.Mode()); err != nil {
+		if dir := filepath.Dir(srcPath); dir != "." {
+			if err := dstRoot.MkdirAll(dir, 0o750); err != nil {
+				return err
+			}
+		}
+		if err := extractFile(dstRoot, srcPath, tr, info.Mode().Perm()); err != nil {
 			return err
 		}
 	}
@@ -108,21 +125,21 @@ func newDecompressor(r io.Reader) (io.ReadCloser, error) {
 		return nil, err
 	}
 	if xz.ValidHeader(h) {
-		xzr, err := xz.NewReader(br)
-		if err != nil {
-			return nil, err
-		}
-		return io.NopCloser(xzr), nil
+		return xz.NewReader(br)
 	}
 	return gzip.NewReader(br)
 }
 
-func extractFile(dst string, src io.Reader, perm os.FileMode) error {
-	file, err := os.OpenFile(dst, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, perm) //nolint:gosec
+func extractFile(dst *os.Root, name string, src io.Reader, perm os.FileMode) (err error) {
+	file, err := dst.OpenFile(name, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, perm)
 	if err != nil {
 		return err
 	}
-	defer file.Close() //nolint
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
+		}
+	}()
 	_, err = io.Copy(file, src)
 	return err
 }
@@ -131,20 +148,20 @@ func extractFile(dst string, src io.Reader, perm os.FileMode) error {
 // Ex If "src" includes "/tmp/envoy/bin" and "/tmp/build/bin". If "src" is "/tmp/envoy", "dst" includes "envoy/bin".
 //
 // This is used to compress the working directory of Envoy after it is stopped.
-func TarGz(dst, src string) error { //nolint dst, src order like io.Copy
+func TarGz(dst, src string) error {
 	srcFS := os.DirFS(filepath.Dir(src))
 	basePath := filepath.Base(src)
 
 	// create the tar.gz file
-	file, err := os.OpenFile(dst, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600) //nolint:gosec
+	file, err := os.OpenFile(dst, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600) //nolint:gosec // dst is the caller-provided archive path
 	if err != nil {
 		return err
 	}
-	defer file.Close() //nolint
+	defer file.Close() //nolint:errcheck // archive errors surface via WalkDir
 	gzw := gzip.NewWriter(file)
-	defer gzw.Close() //nolint
+	defer gzw.Close() //nolint:errcheck // gzip footer; WalkDir reports archive errors
 	tw := tar.NewWriter(gzw)
-	defer tw.Close() //nolint
+	defer tw.Close() //nolint:errcheck // tar trailer; WalkDir reports archive errors
 
 	// Recurse through the path including all files and directories
 	return fs.WalkDir(srcFS, basePath, func(path string, d os.DirEntry, err error) error {
@@ -189,7 +206,7 @@ func cp(dst io.Writer, src fs.FS, path string, n int64) error { // dst, src orde
 	if err != nil {
 		return err
 	}
-	defer f.Close() //nolint
+	defer f.Close() //nolint:errcheck // source FS is read-only
 	_, err = io.CopyN(dst, f, n)
 	return err
 }

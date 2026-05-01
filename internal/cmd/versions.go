@@ -4,73 +4,60 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"os"
 	"sort"
 	"text/tabwriter"
 	"time"
-
-	"github.com/urfave/cli/v2"
 
 	"github.com/tetratelabs/func-e/internal/envoy"
 	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
-// NewVersionsCmd returns command that lists available Envoy versions for the current platform.
-func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
-	return &cli.Command{
-		Name:  "versions",
-		Usage: "List Envoy versions",
-		Flags: []cli.Flag{
-			&cli.BoolFlag{
-				Name:    "all",
-				Aliases: []string{"a"},
-				Usage:   "Show all versions including ones not yet installed",
-			},
-		},
-		Action: func(c *cli.Context) error {
-			rows, err := getInstalledVersions(o.EnvoyVersionsDir())
-			if err != nil {
-				return err
-			}
+type cmdVersions struct {
+	All bool `short:"a" help:"Show all versions including ones not yet installed"`
+}
 
-			currentVersion, currentVersionSource, err := envoy.CurrentVersion(o.DataHome, o.EnvoyVersionFile(), o.EnvoyVersionFileSource())
-			if err != nil {
-				return err
-			}
-
-			if c.Bool("all") {
-				if evs, err := o.GetEnvoyVersions(c.Context); err != nil {
-					return err
-				} else if err := addAvailableVersions(&rows, evs.Versions, o.Platform); err != nil {
-					return err
-				}
-			}
-
-			// Sort so that new release dates appear first and on conflict choosing the higher version
-			sort.Slice(rows, func(i, j int) bool {
-				if rows[i].releaseDate == rows[j].releaseDate {
-					return rows[i].version > rows[j].version
-				}
-				return rows[i].releaseDate > rows[j].releaseDate
-			})
-
-			// We use a tab writer to ensure we can format the current version
-			w := tabwriter.NewWriter(c.App.Writer, 0, 0, 1, ' ', tabwriter.AlignRight)
-			for _, vr := range rows { //nolint:gocritic
-				// TODO: handle when currentVersion is a MinorVersion
-				pv, ok := currentVersion.(version.PatchVersion)
-				if ok && vr.version == pv {
-					fmt.Fprintf(w, "* %s %s (set by %s)\n", vr.version, vr.releaseDate, currentVersionSource) //nolint:errcheck
-				} else {
-					fmt.Fprintf(w, "  %s %s\n", vr.version, vr.releaseDate) //nolint:errcheck
-				}
-			}
-			return w.Flush()
-		},
-		CustomHelpTemplate: cli.CommandHelpTemplate,
+func (c *cmdVersions) Run(ctx context.Context, o *globals.GlobalOpts, w io.Writer) error {
+	rows, err := getInstalledVersions(o.EnvoyVersionsDir())
+	if err != nil {
+		return err
 	}
+
+	currentVersion, currentVersionSource, err := envoy.CurrentVersion(o.DataHome, o.EnvoyVersionFile(), o.EnvoyVersionFileSource())
+	if err != nil {
+		return err
+	}
+
+	if c.All {
+		if evs, err := o.GetEnvoyVersions(ctx); err != nil {
+			return err
+		} else if err := addAvailableVersions(&rows, evs.Versions, o.Platform); err != nil {
+			return err
+		}
+	}
+
+	sort.Slice(rows, func(i, j int) bool {
+		if rows[i].releaseDate == rows[j].releaseDate {
+			return rows[i].version > rows[j].version
+		}
+		return rows[i].releaseDate > rows[j].releaseDate
+	})
+
+	tw := tabwriter.NewWriter(w, 0, 0, 1, ' ', tabwriter.AlignRight)
+	for _, vr := range rows {
+		// TODO: handle when currentVersion is a MinorVersion
+		pv, ok := currentVersion.(version.PatchVersion)
+		if ok && vr.version == pv {
+			fmt.Fprintf(tw, "* %s %s (set by %s)\n", vr.version, vr.releaseDate, currentVersionSource)
+		} else {
+			fmt.Fprintf(tw, "  %s %s\n", vr.version, vr.releaseDate)
+		}
+	}
+	return tw.Flush()
 }
 
 type versionReleaseDate struct {
@@ -102,7 +89,7 @@ func getInstalledVersions(versionsDir string) ([]versionReleaseDate, error) {
 // addAvailableVersions adds remote Envoy versions valid for this platform to "rows", if they don't already exist
 func addAvailableVersions(rows *[]versionReleaseDate, remote map[version.PatchVersion]version.Release, p version.Platform) error {
 	existingVersions := make(map[version.PatchVersion]bool)
-	for _, v := range *rows { //nolint:gocritic
+	for _, v := range *rows {
 		existingVersions[v.version] = true
 	}
 

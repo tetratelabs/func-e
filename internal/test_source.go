@@ -6,7 +6,6 @@ package internal
 import (
 	_ "embed"
 	"errors"
-	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -48,7 +47,7 @@ func absolutePath(parts ...string) string {
 	path := filepath.Join(append([]string{dir}, parts...)...)
 
 	if _, err := os.Stat(path); errors.Is(err, fs.ErrNotExist) {
-		panic(fmt.Sprintf("required file not found: %s", path))
+		panic("required file not found: " + path)
 	}
 
 	return path

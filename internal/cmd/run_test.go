@@ -9,169 +9,197 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
+	"testing/synctest"
 
 	"github.com/stretchr/testify/require"
-	"github.com/urfave/cli/v2"
 
 	rootcmd "github.com/tetratelabs/func-e/internal/cmd"
 	"github.com/tetratelabs/func-e/internal/globals"
-	"github.com/tetratelabs/func-e/internal/test/morerequire"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
-func init() {
-	// Don't let urfave quit the current test process on cancel!
-	cli.OsExiter = func(code int) { log.Printf("urfave called exit: %d", code) }
-}
-
 // TestFuncERun takes care to not duplicate test/e2e/testrun.go, but still give some coverage.
 func TestFuncERun(t *testing.T) {
-	o := setupTest(t)
+	synctest.Test(t, func(t *testing.T) {
+		o := setupTest(t)
 
-	// Use a fake Envoy binary
-	o.EnvoyPath = fakeEnvoyBin
+		// Use a fake Envoy binary
+		o.EnvoyPath = fakeEnvoyBin
 
-	c := rootcmd.NewApp(o)
-	c.Name = "func-e"
-	// Create a pipe to capture stderr
-	stderrReader, stderrWriter := io.Pipe()
-	c.ErrWriter = stderrWriter
+		// Create a pipe to capture stderr
+		stderrReader, stderrWriter := io.Pipe()
+		stdout := new(bytes.Buffer)
 
-	ctx, cancel := context.WithCancel(t.Context())
-	defer cancel()
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
 
-	// Start a goroutine to scan stderr until it reaches "starting main dispatch loop" written by envoy
-	go func() {
-		scanner := bufio.NewScanner(stderrReader)
-		for scanner.Scan() {
-			if strings.Contains(scanner.Text(), "starting main dispatch loop") {
-				cancel() // interrupts the child func-e process
-				return
+		// Start a goroutine to scan stderr until it reaches "starting main dispatch loop" written by envoy
+		go func() {
+			scanner := bufio.NewScanner(stderrReader)
+			for scanner.Scan() {
+				if strings.Contains(scanner.Text(), "starting main dispatch loop") {
+					cancel() // interrupts the child func-e process
+					return
+				}
 			}
-		}
-	}()
+		}()
 
-	// When interrupted, func-e should return nil to match Envoy's behavior of exit code 0
-	args := []string{"func-e", "run", "--config-yaml", "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 0}}}"}
-	require.NoError(t, c.RunContext(ctx, args))
+		o.Out = stdout
+		o.EnvoyOut = stdout
+		o.EnvoyErr = stderrWriter
 
-	// TestFuncERun_TeesConsoleToLogs proves we can read Envoy logs
-	stderrBytes, err := os.ReadFile(filepath.Join(o.RunDir, "stderr.log"))
-	stderr := string(stderrBytes)
-	require.NoError(t, err)
-	pattern := `(?s).*initializing epoch 0.*admin address:.*starting main dispatch loop.*`
-	matched, err := regexp.MatchString(pattern, stderr)
-	require.NoError(t, err)
-	require.True(t, matched, "Didn't find %s in Envoy stderr: %s", pattern, stderr)
+		err := rootcmd.DoMain(ctx, stdout, stderrWriter, []string{"run", "--config-yaml", "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 0}}}"}, o, "test")
+		require.NoError(t, err)
+
+		// TestFuncERun_TeesConsoleToLogs proves we can read Envoy logs
+		stderrBytes, err := os.ReadFile(filepath.Join(o.RunDir, "stderr.log"))
+		stderr := string(stderrBytes)
+		require.NoError(t, err)
+		pattern := `(?s).*initializing epoch 0.*admin address:.*starting main dispatch loop.*`
+		matched, err := regexp.MatchString(pattern, stderr)
+		require.NoError(t, err)
+		require.True(t, matched, "Didn't find %s in Envoy stderr: %s", pattern, stderr)
+	})
 }
 
 func TestFuncERun_TeesConsoleToLogs(t *testing.T) {
-	o := setupTest(t)
+	synctest.Test(t, func(t *testing.T) {
+		o := setupTest(t)
+		o.Out = io.Discard
 
-	c, stdout, stderr := newApp(o)
-	// ignore messages from func-e we only care about envoy
-	o.Out = io.Discard
-	runWithInvalidConfig(t, c)
+		stdout := new(bytes.Buffer)
+		stderr := new(bytes.Buffer)
+		o.EnvoyOut = stdout
+		o.EnvoyErr = stderr
 
-	stdoutStream := stdout.String()
-	require.Empty(t, stdoutStream, "envoy doesn't write to stdout by default")
-	stdoutLogBytes, err := os.ReadFile(filepath.Join(o.RunDir, "stdout.log"))
-	require.NoError(t, err)
-	require.Empty(t, stdoutLogBytes)
+		runWithInvalidConfig(t, o, stdout, stderr)
 
-	stderrStream := stderr.String()
-	require.Contains(t, stderrStream, "At least one of --config-path or --config-yaml or Options::configProto() should be non-empty")
-	stderrLogBytes, err := os.ReadFile(filepath.Join(o.RunDir, "stderr.log"))
-	require.NoError(t, err)
-	require.Equal(t, stderrStream, string(stderrLogBytes))
+		stdoutStream := stdout.String()
+		require.Empty(t, stdoutStream, "envoy doesn't write to stdout by default")
+		stdoutLogBytes, err := os.ReadFile(filepath.Join(o.RunDir, "stdout.log"))
+		require.NoError(t, err)
+		require.Empty(t, stdoutLogBytes)
+
+		stderrStream := stderr.String()
+		require.Contains(t, stderrStream, "At least one of --config-path or --config-yaml or Options::configProto() should be non-empty")
+		stderrLogBytes, err := os.ReadFile(filepath.Join(o.RunDir, "stderr.log"))
+		require.NoError(t, err)
+		require.Equal(t, stderrStream, string(stderrLogBytes))
+	})
+}
+
+func TestFuncERun_PassesFlagsToEnvoy(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		o := setupTest(t)
+		o.EnvoyPath = fakeEnvoyBin
+
+		stdout := new(bytes.Buffer)
+		stderr := new(bytes.Buffer)
+		err := rootcmd.DoMain(t.Context(), stdout, stderr, []string{"run", "--help"}, o, "test")
+
+		var exitErr *exec.ExitError
+		require.ErrorAs(t, err, &exitErr)
+		require.Equal(t, 1, exitErr.ExitCode())
+		require.Empty(t, stdout.String())
+		require.Contains(t, stderr.String(), "At least one of --config-path or --config-yaml or Options::configProto() should be non-empty")
+	})
 }
 
 func TestFuncERun_ReadsHomeVersionFile(t *testing.T) {
-	o := setupTest(t)
-	o.EnvoyVersion = "" // pretend this is an initial setup
-	o.Out = new(bytes.Buffer)
+	synctest.Test(t, func(t *testing.T) {
+		o := setupTest(t)
+		o.EnvoyVersion = "" // pretend this is an initial setup
+		o.Out = new(bytes.Buffer)
 
-	require.NoError(t, os.WriteFile(filepath.Join(o.ConfigHome, "envoy-version"), []byte(version.LastKnownEnvoyMinor), 0o600))
+		require.NoError(t, os.WriteFile(filepath.Join(o.ConfigHome, "envoy-version"), []byte(version.LastKnownEnvoyMinor), 0o600))
 
-	c, _, _ := newApp(o)
-	runWithInvalidConfig(t, c)
+		stdout := new(bytes.Buffer)
+		stderr := new(bytes.Buffer)
+		runWithInvalidConfig(t, o, stdout, stderr)
 
-	// No implicit lookup
-	require.NotContains(t, o.Out.(*bytes.Buffer).String(), "looking up latest version")
-	require.Equal(t, version.LastKnownEnvoy, o.EnvoyVersion)
+		// No implicit lookup
+		require.NotContains(t, o.Out.(*bytes.Buffer).String(), "looking up latest version")
+		require.Equal(t, version.LastKnownEnvoy, o.EnvoyVersion)
 
-	writtenVersion, err := os.ReadFile(filepath.Join(o.ConfigHome, "envoy-version"))
-	require.NoError(t, err)
-	require.Equal(t, version.LastKnownEnvoyMinor.String(), string(writtenVersion))
+		writtenVersion, err := os.ReadFile(filepath.Join(o.ConfigHome, "envoy-version"))
+		require.NoError(t, err)
+		require.Equal(t, version.LastKnownEnvoyMinor.String(), string(writtenVersion))
+	})
 }
 
 func TestFuncERun_CreatesHomeVersionFile(t *testing.T) {
-	o := setupTest(t)
-	o.EnvoyVersion = "" // pretend this is an initial setup
-	o.Out = new(bytes.Buffer)
+	synctest.Test(t, func(t *testing.T) {
+		o := setupTest(t)
+		o.EnvoyVersion = "" // pretend this is an initial setup
+		o.Out = new(bytes.Buffer)
 
-	// make sure first run where the home doesn't exist yet, works!
-	require.NoError(t, os.RemoveAll(o.DataHome))
+		// make sure first run where the home doesn't exist yet, works!
+		require.NoError(t, os.RemoveAll(o.DataHome))
 
-	c, _, _ := newApp(o)
-	runWithInvalidConfig(t, c)
+		stdout := new(bytes.Buffer)
+		stderr := new(bytes.Buffer)
+		runWithInvalidConfig(t, o, stdout, stderr)
 
-	// We logged the implicit lookup
-	require.Contains(t, o.Out.(*bytes.Buffer).String(), "looking up the latest Envoy version")
-	require.FileExists(t, filepath.Join(o.ConfigHome, "envoy-version"))
-	require.Equal(t, version.LastKnownEnvoy, o.EnvoyVersion)
+		// We logged the implicit lookup
+		require.Contains(t, o.Out.(*bytes.Buffer).String(), "looking up the latest Envoy version")
+		require.FileExists(t, filepath.Join(o.ConfigHome, "envoy-version"))
+		require.Equal(t, version.LastKnownEnvoy, o.EnvoyVersion)
 
-	writtenVersion, err := os.ReadFile(filepath.Join(o.ConfigHome, "envoy-version"))
-	require.NoError(t, err)
-	require.Equal(t, version.LastKnownEnvoyMinor.String(), string(writtenVersion))
+		writtenVersion, err := os.ReadFile(filepath.Join(o.ConfigHome, "envoy-version"))
+		require.NoError(t, err)
+		require.Equal(t, version.LastKnownEnvoyMinor.String(), string(writtenVersion))
+	})
 }
 
-// runWithInvalidConfig intentionally has envoy quit. This allows tests to not have to interrupt envoy to proceed
-func runWithInvalidConfig(t *testing.T, c *cli.App) {
-	err := c.Run([]string{"func-e", "run"})
+// runWithInvalidConfig intentionally has envoy quit.
+func runWithInvalidConfig(t *testing.T, o *globals.GlobalOpts, stdout, stderr *bytes.Buffer) {
+	t.Helper()
+	err := rootcmd.DoMain(t.Context(), stdout, stderr, []string{"run"}, o, "test")
 	var exitErr *exec.ExitError
 	require.ErrorAs(t, err, &exitErr)
 	require.Equal(t, 1, exitErr.ExitCode())
 }
 
 func TestFuncERun_ValidatesHomeVersion(t *testing.T) {
-	o := setupTest(t)
-	o.Out = new(bytes.Buffer)
+	synctest.Test(t, func(t *testing.T) {
+		o := setupTest(t)
+		o.Out = new(bytes.Buffer)
 
-	o.EnvoyVersion = ""
-	require.NoError(t, os.WriteFile(filepath.Join(o.ConfigHome, "envoy-version"), []byte("a.a.a"), 0o600))
+		o.EnvoyVersion = ""
+		require.NoError(t, os.WriteFile(filepath.Join(o.ConfigHome, "envoy-version"), []byte("a.a.a"), 0o600))
 
-	c, _, _ := newApp(o)
-	err := c.Run([]string{"func-e", "run"})
+		stdout := new(bytes.Buffer)
+		stderr := new(bytes.Buffer)
+		err := rootcmd.DoMain(t.Context(), stdout, stderr, []string{"run"}, o, "test")
 
-	// Verify the command failed with the expected error
-	expectedErr := fmt.Sprintf(`invalid version in "$FUNC_E_CONFIG_HOME/envoy-version": "a.a.a" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
-	require.EqualError(t, err, expectedErr)
+		expectedErr := fmt.Sprintf(`invalid version in "$FUNC_E_CONFIG_HOME/envoy-version": "a.a.a" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
+		require.EqualError(t, err, expectedErr)
+	})
 }
 
 // TestFuncERun_ValidatesWorkingVersion duplicates logic in version_test.go to ensure a non-home version validates.
 func TestFuncERun_ValidatesWorkingVersion(t *testing.T) {
-	o := setupTest(t)
-	o.Out = new(bytes.Buffer)
-	o.EnvoyVersion = ""
+	synctest.Test(t, func(t *testing.T) {
+		o := setupTest(t)
+		o.Out = new(bytes.Buffer)
+		o.EnvoyVersion = ""
 
-	revertWd := morerequire.RequireChdir(t, t.TempDir())
-	defer revertWd()
-	require.NoError(t, os.WriteFile(".envoy-version", []byte("b.b.b"), 0o600))
+		t.Chdir(t.TempDir())
+		require.NoError(t, os.WriteFile(".envoy-version", []byte("b.b.b"), 0o600))
 
-	c, _, _ := newApp(o)
-	err := c.Run([]string{"func-e", "run"})
+		stdout := new(bytes.Buffer)
+		stderr := new(bytes.Buffer)
+		err := rootcmd.DoMain(t.Context(), stdout, stderr, []string{"run"}, o, "test")
 
-	// Verify the command failed with the expected error
-	expectedErr := fmt.Sprintf(`invalid version in "$PWD/.envoy-version": "b.b.b" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
-	require.EqualError(t, err, expectedErr)
+		expectedErr := fmt.Sprintf(`invalid version in "$PWD/.envoy-version": "b.b.b" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
+		require.EqualError(t, err, expectedErr)
+	})
 }
 
 func TestFuncERun_ErrsWhenVersionsServerDown(t *testing.T) {
@@ -185,9 +213,11 @@ func TestFuncERun_ErrsWhenVersionsServerDown(t *testing.T) {
 		RuntimeDir:       tempDir,
 		Out:              new(bytes.Buffer),
 	}
-	c, _, _ := newApp(o)
-	err := c.Run([]string{"func-e", "run"})
+
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+	err := rootcmd.DoMain(t.Context(), stdout, stderr, []string{"run"}, o, "test")
 
 	require.Contains(t, o.Out.(*bytes.Buffer).String(), "looking up the latest Envoy version")
-	require.Contains(t, err.Error(), fmt.Sprintf(`couldn't lookup the latest Envoy version from %s`, o.EnvoyVersionsURL))
+	require.ErrorContains(t, err, `couldn't lookup the latest Envoy version from `+o.EnvoyVersionsURL)
 }

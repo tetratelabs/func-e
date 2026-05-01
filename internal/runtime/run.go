@@ -61,19 +61,19 @@ func Run(ctx context.Context, o *globals.GlobalOpts, args []string) error {
 	stateDir := o.RunDir
 	r := envoy.NewRuntime(&o.RunOpts, o.Logf)
 
-	stdoutLog, err := os.OpenFile(filepath.Join(stateDir, "stdout.log"), os.O_CREATE|os.O_WRONLY, 0o600)
+	stdoutLog, err := os.OpenFile(filepath.Join(stateDir, "stdout.log"), os.O_CREATE|os.O_WRONLY, 0o600) //nolint:gosec // stateDir is configured by us, not user input
 	if err != nil {
 		return fmt.Errorf("couldn't create stdout log file: %w", err)
 	}
-	defer stdoutLog.Close() //nolint
+	defer stdoutLog.Close() //nolint:errcheck // log used post-mortem only
 	r.OutFile = stdoutLog
 	r.Out = io.MultiWriter(o.EnvoyOut, stdoutLog)
 
-	stderrLog, err := os.OpenFile(filepath.Join(stateDir, "stderr.log"), os.O_CREATE|os.O_WRONLY, 0o600)
+	stderrLog, err := os.OpenFile(filepath.Join(stateDir, "stderr.log"), os.O_CREATE|os.O_WRONLY, 0o600) //nolint:gosec // stateDir is configured by us, not user input
 	if err != nil {
 		return fmt.Errorf("couldn't create stderr log file: %w", err)
 	}
-	defer stderrLog.Close() //nolint
+	defer stderrLog.Close() //nolint:errcheck // log used post-mortem only
 	r.ErrFile = stderrLog
 	r.Err = io.MultiWriter(o.EnvoyErr, stderrLog)
 

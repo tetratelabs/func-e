@@ -19,7 +19,7 @@ sudo dpkg -i "${deb_file}"
 
 echo ensuring func-e was installed
 test -f /usr/bin/func-e
-func-e -version
+func-e --version
 
 echo ensuring func-e man page was installed
 test -f /usr/local/share/man/man8/func-e.8

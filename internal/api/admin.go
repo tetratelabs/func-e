@@ -18,6 +18,9 @@ type AdminClient interface {
 	// Port returns the Envoy admin API port.
 	Port() int
 
+	// Do executes a request using the client configured for this AdminClient.
+	Do(req *http.Request) (*http.Response, error)
+
 	// Get returns the content at the given path or an error if != 200
 	Get(ctx context.Context, path string) ([]byte, error)
 
@@ -26,7 +29,7 @@ type AdminClient interface {
 	// This is a convenience form of Get on the /ready endpoint.
 	IsReady(ctx context.Context) error
 
-	// AwaitReady polls IsReady until it succeeds or the context is cancelled.
+	// AwaitReady polls IsReady until it succeeds or the context is canceled.
 	// On timeout/cancellation, returns the last error from IsReady if available,
 	// otherwise returns the context error.
 	AwaitReady(ctx context.Context, tickDuration time.Duration) error

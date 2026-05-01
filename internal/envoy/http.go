@@ -5,34 +5,63 @@ package envoy
 
 import (
 	"context"
-	"fmt"
+	"errors"
+	"net"
 	"net/http"
-	"strings"
+	neturl "net/url"
+	"time"
 
-	"github.com/tetratelabs/func-e/internal/version"
+	internalapi "github.com/tetratelabs/func-e/internal/api"
 )
 
-// httpGet adds the userAgent header to the request, so that we can tell what is a dev build vs release.
-func httpGet(ctx context.Context, client *http.Client, url string, p version.Platform, v string) (*http.Response, error) {
-	// #nosec -> url can be anywhere by design
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
+const userAgentHeader = "User-Agent"
+
+// httpGet GETs rawURL with a User-Agent header and one retry on transient
+// network errors.
+func httpGet(ctx context.Context, clientFn internalapi.HTTPClientFunc, rawURL, ua string) (*http.Response, error) {
+	client := clientFn()
+
+	for attempt := 0; ; attempt++ {
+		// #nosec -> url can be anywhere by design
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, http.NoBody)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Add(userAgentHeader, ua)
+
+		resp, err := client.Do(req)
+
+		if resp != nil || err == nil || ctx.Err() != nil || !isNetError(err) || attempt > 0 {
+			return resp, err
+		}
+
+		// Budget the retry delay from the remaining deadline to avoid wasting
+		// it on sleep (capped at 1s when there's no deadline).
+		delay := time.Second
+		if deadline, ok := ctx.Deadline(); ok {
+			if half := time.Until(deadline) / 2; half < delay {
+				delay = half
+			}
+		}
+		if delay <= 0 {
+			return resp, err
+		}
+
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(delay):
+		}
 	}
-	req.Header.Add("User-Agent", userAgent(p, v))
-	return client.Do(req)
 }
 
-// userAgent returns the 'User-Agent' header value used in HTTP requests. This is useful in log, metrics, analytics, or
-// request filtering. As this is a CLI, the best 'User-Agent' is the binary version including platform.
-//
-// The returned value limits cardinality to formal release * platform or one value for all non-releases.
-//
-// Note: Analytics may not work out-of-box. For example, Netlify does not support server-side analytics on 'User-Agent',
-// and even its 'Referer' analytics are limited to requests to HTML resources.
-func userAgent(p version.Platform, v string) string {
-	if !strings.HasPrefix(v, "v") || strings.Contains(v, "SNAPSHOT") {
-		return "func-e/dev"
+// isNetError unwraps url.Error so transient dial/TLS failures are retried
+// while HTTP-level errors (4xx, 5xx) are not.
+func isNetError(err error) bool {
+	if urlErr, ok := errors.AsType[*neturl.Error](err); ok {
+		err = urlErr.Err
 	}
-	return fmt.Sprintf("func-e/%s (%s)", v, p)
+
+	netErr, ok := errors.AsType[net.Error](err)
+	return ok && netErr != nil
 }

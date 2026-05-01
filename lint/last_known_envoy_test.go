@@ -4,12 +4,12 @@
 package lint
 
 import (
-	"context"
 	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
+	publicapi "github.com/tetratelabs/func-e/api"
 	"github.com/tetratelabs/func-e/internal/envoy"
 	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/version"
@@ -17,15 +17,15 @@ import (
 
 const lastKnownEnvoyFile = "../internal/version/last_known_envoy.txt"
 
-// TestLastKnownEnvoyAvailableOnAllPlatforms ensures that an inconsistent Envoy release doesn't end up being suggested,
+// TestLastKnownEnvoyAvailableOnAllPlatforms ensures that an inconsistent Envoy release doesn't end up being suggested
 // or used in unit tests. This passes only when all platforms are available. This is most frequently inconsistent due to
-// Homebrew (macOS) being a version behind latest Linux.
+// Homebrew (macOS) being a version behind the latest Linux.
 //
-// This issues a remote call to the versions server, so shouldn't be a normal unit test (as they must pass offline).
+// This issues a remote call to the version server, so shouldn't be a normal unit test (as they must pass offline).
 // This is invoked via `make lint`.
 func TestLastKnownEnvoyAvailableOnAllPlatforms(t *testing.T) {
-	getEnvoyVersions := envoy.NewGetVersions(globals.DefaultEnvoyVersionsURL, globals.DefaultPlatform, "dev")
-	evs, err := getEnvoyVersions(context.Background())
+	getEnvoyVersions := envoy.NewGetVersions(publicapi.DefaultHTTPClient, globals.DefaultEnvoyVersionsURL, globals.DefaultDevUserAgent)
+	evs, err := getEnvoyVersions(t.Context())
 	require.NoError(t, err)
 
 	var patchVersions []version.PatchVersion

@@ -4,49 +4,35 @@
 package func_e_test
 
 import (
-	"bytes"
-	"fmt"
-	"os"
-	"os/exec"
+	"net/http"
+	"net/url"
 	"testing"
+	"testing/synctest"
 
 	"github.com/stretchr/testify/require"
 
 	func_e "github.com/tetratelabs/func-e"
 	"github.com/tetratelabs/func-e/api"
-	"github.com/tetratelabs/func-e/internal"
-	"github.com/tetratelabs/func-e/internal/run"
-	"github.com/tetratelabs/func-e/internal/test/build"
 )
 
-// TestFuncERun_InvalidConfig takes care to not duplicate test/e2e/testrun.go,
-// but still give some coverage.
-func TestFuncERun_InvalidConfig(t *testing.T) {
-	var stdout, stderr bytes.Buffer
-	err := func_e.Run(t.Context(), []string{},
-		api.EnvoyVersion("1.0.0"), // intentional invalid to avoid a runtime lookup
-		api.HomeDir(t.TempDir()),  //nolint:staticcheck // intentional use of deprecated API for legacy mode testing
-		run.EnvoyPath(fakeEnvoyBin),
-		api.Out(&stdout),
-		api.EnvoyOut(&stdout),
-		api.EnvoyErr(&stderr))
+type roundTripperFunc func(*http.Request) (*http.Response, error)
 
-	var exitErr *exec.ExitError
-	require.ErrorAs(t, err, &exitErr)
-	require.Equal(t, 1, exitErr.ExitCode())
+func (f roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) { return f(req) }
 
-	require.Contains(t, stdout.String(), fakeEnvoyBin)
-	require.Contains(t, stderr.String(), "At least one of --config-path or --config-yaml")
-}
-
-// fakeEnvoyBin holds a path to the compiled internal.FakeEnvoySrcPath
-var fakeEnvoyBin string
-
-func TestMain(m *testing.M) {
-	var err error
-	if fakeEnvoyBin, err = build.GoBuild(internal.FakeEnvoySrcPath, os.TempDir()); err != nil {
-		fmt.Fprintf(os.Stderr, `failed to start api tests due to build error: %v\n`, err) //nolint:errcheck
-		os.Exit(1)
-	}
-	os.Exit(m.Run())
+// TestRun shows you can use func-e inside synctest.Test, by overriding the
+// api.HTTPClient threaded through func-e. More advanced test cases override
+// api.RunFunc to handle app behavior all without breaking the synctest bubble!
+func TestRun(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		var actualURL *url.URL
+		clientFn := func() *http.Client {
+			return &http.Client{Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				actualURL = req.URL
+				return &http.Response{StatusCode: http.StatusNotFound, Body: http.NoBody}, nil
+			})}
+		}
+		err := func_e.Run(t.Context(), []string{}, api.HomeDir(t.TempDir()), api.HTTPClient(clientFn))
+		require.Error(t, err)
+		require.Equal(t, "https://archive.tetratelabs.io/envoy/envoy-versions.json", actualURL.String())
+	})
 }

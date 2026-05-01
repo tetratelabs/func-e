@@ -41,7 +41,7 @@ func TestMain(m *testing.M) {
 			fmt.Fprintf(os.Stderr, "failed to serve %s: %v\n", envoyVersionsJSON, err)
 			os.Exit(1)
 		}
-		os.Setenv(envoyVersionsURLEnvKey, s.URL) //nolint:errcheck
+		os.Setenv(envoyVersionsURLEnvKey, s.URL)
 	}
 	os.Exit(m.Run())
 }
@@ -59,7 +59,7 @@ func mockEnvoyVersionsServer() (*httptest.Server, error) {
 		return nil, err
 	}
 
-	defer f.Close() //nolint:errcheck
+	defer f.Close()
 	b, err := io.ReadAll(f)
 	if err != nil {
 		return nil, err
@@ -71,13 +71,13 @@ func mockEnvoyVersionsServer() (*httptest.Server, error) {
 			h := r.Header.Get(k)
 			if h != v {
 				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte(fmt.Sprintf("invalid %q: %s != %s\n", k, h, v))) //nolint
+				fmt.Fprintf(w, "invalid %q: %s != %s\n", k, h, v)
 				return
 			}
 		}
 		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write(b) //nolint
+		w.Write(b)
 	}))
 	return ts, nil
 }

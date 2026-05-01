@@ -11,12 +11,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"syscall"
 	"testing"
 	"time"
 
+	"github.com/shirou/gopsutil/v4/process"
 	"github.com/stretchr/testify/require"
 
+	publicapi "github.com/tetratelabs/func-e/api"
+	"github.com/tetratelabs/func-e/internal/admin"
 	internalapi "github.com/tetratelabs/func-e/internal/api"
 	"github.com/tetratelabs/func-e/internal/globals"
 )
@@ -29,13 +31,14 @@ func TestRuntime_Run_EnvoyError(t *testing.T) {
 
 	// Initialize runtime
 	stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
-	logToOutput := func(format string, args ...interface{}) {
+	logToOutput := func(format string, args ...any) {
 		stdout.WriteString(fmt.Sprintf(format, args...) + "\n")
 	}
 	r := NewRuntime(&globals.RunOpts{
-		EnvoyPath: fakeEnvoyBin,
-		RunDir:    runDir,
-		TempDir:   runDir,
+		EnvoyPath:      fakeEnvoyBin,
+		HTTPClientFunc: publicapi.DefaultHTTPClient,
+		RunDir:         runDir,
+		TempDir:        runDir,
 	}, logToOutput)
 	r.Out, r.Err = stdout, stderr
 
@@ -50,13 +53,13 @@ func TestRuntime_Run_EnvoyError(t *testing.T) {
 			fakeEnvoyBin,
 			"--config-yaml", "invalid.yaml",
 			// test we added additional arguments
-			"--admin-address-path", filepath.Join(runDir, "admin-address.txt"),
+			admin.AddressPathFlag, filepath.Join(runDir, "admin-address.txt"),
 		}, r.cmd.Args, "command arguments mismatch")
 		require.Empty(t, r.cmd.Dir, "working directory should be empty")
 	})
 
 	t.Run("output messages", func(t *testing.T) {
-		require.Contains(t, stdout.String(), fmt.Sprintf("starting: %s", fakeEnvoyBin))
+		require.Contains(t, stdout.String(), "starting: "+fakeEnvoyBin)
 		require.Contains(t, stderr.String(), "cannot unmarshal !!str")
 	})
 
@@ -69,23 +72,23 @@ func TestRuntime_Run_EnvoyError(t *testing.T) {
 
 func TestRuntime_Run_StartupHook(t *testing.T) {
 	var logBuf bytes.Buffer
-	logToOutput := func(format string, args ...interface{}) {
+	logToOutput := func(format string, args ...any) {
 		logBuf.WriteString(fmt.Sprintf(format, args...) + "\n")
 	}
 
 	tests := []struct {
 		name        string
 		startupHook internalapi.StartupHook
-		expectError string
+		expectedErr string
 		expectLog   string
 		envoyArgs   []string
 	}{
 		{
 			name: "startup hook returns error",
-			startupHook: func(ctx context.Context, adminClient internalapi.AdminClient, runID string) error {
+			startupHook: func(_ context.Context, _ internalapi.AdminClient, _ string) error {
 				return errors.New("database connection failed")
 			},
-			expectError: "database connection failed",
+			expectedErr: "database connection failed",
 			expectLog:   "database connection failed",
 			envoyArgs: []string{
 				"--config-yaml", "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 0}}}",
@@ -93,10 +96,10 @@ func TestRuntime_Run_StartupHook(t *testing.T) {
 		},
 		{
 			name: "startup hook panics",
-			startupHook: func(ctx context.Context, adminClient internalapi.AdminClient, runID string) error {
+			startupHook: func(_ context.Context, _ internalapi.AdminClient, _ string) error {
 				panic("nil pointer dereference")
 			},
-			expectError: "startup hook panicked: nil pointer dereference",
+			expectedErr: "startup hook panicked: nil pointer dereference",
 			expectLog:   "startup hook panicked: nil pointer dereference",
 			envoyArgs: []string{
 				"--config-yaml", "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 0}}}",
@@ -104,7 +107,7 @@ func TestRuntime_Run_StartupHook(t *testing.T) {
 		},
 		{
 			name: "startup hook succeeds",
-			startupHook: func(ctx context.Context, adminClient internalapi.AdminClient, runID string) error {
+			startupHook: func(_ context.Context, _ internalapi.AdminClient, _ string) error {
 				logToOutput("startup hook executed successfully")
 				return nil
 			},
@@ -126,9 +129,10 @@ func TestRuntime_Run_StartupHook(t *testing.T) {
 
 			// Create runtime with custom startup hook
 			r := NewRuntime(&globals.RunOpts{
-				EnvoyPath: fakeEnvoyBin,
-				RunDir:    runDir,
-				TempDir:   runDir,
+				EnvoyPath:      fakeEnvoyBin,
+				HTTPClientFunc: publicapi.DefaultHTTPClient,
+				RunDir:         runDir,
+				TempDir:        runDir,
 			}, logToOutput)
 			r.Out, r.Err = new(bytes.Buffer), new(bytes.Buffer)
 
@@ -146,9 +150,9 @@ func TestRuntime_Run_StartupHook(t *testing.T) {
 			err := r.Run(ctx, tt.envoyArgs)
 
 			// Check error
-			if tt.expectError != "" {
+			if tt.expectedErr != "" {
 				require.Error(t, err)
-				require.Contains(t, err.Error(), tt.expectError)
+				require.ErrorContains(t, err, tt.expectedErr)
 			} else {
 				require.NoError(t, err)
 			}
@@ -163,10 +167,15 @@ func TestRuntime_Run_StartupHook(t *testing.T) {
 				// Give the process a moment to fully exit
 				time.Sleep(50 * time.Millisecond)
 
-				// Check if process is still alive by sending signal 0
-				err := r.cmd.Process.Signal(syscall.Signal(0))
-				require.Error(t, err, "process should be dead")
-				require.Contains(t, err.Error(), "process already finished")
+				p, err := process.NewProcessWithContext(t.Context(), int32(r.cmd.Process.Pid))
+				if err != nil {
+					require.ErrorIs(t, err, process.ErrorProcessNotRunning, "process should be dead")
+					return
+				}
+
+				running, err := p.IsRunningWithContext(t.Context())
+				require.NoError(t, err)
+				require.False(t, running, "process should be dead")
 			}
 		})
 	}

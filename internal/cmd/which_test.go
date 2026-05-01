@@ -4,21 +4,24 @@
 package cmd_test
 
 import (
-	"fmt"
+	"bytes"
 	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	rootcmd "github.com/tetratelabs/func-e/internal/cmd"
 )
 
 // TestFuncEWhich shows the path to the Envoy binary
 func TestFuncEWhich(t *testing.T) {
 	o := setupTest(t)
 
-	c, stdout, stderr := newApp(o)
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
 
-	require.NoError(t, c.Run([]string{"func-e", "which"}))
+	require.NoError(t, rootcmd.DoMain(t.Context(), stdout, stderr, []string{"which"}, o, "test"))
 	envoyPath := filepath.Join(o.DataHome, "envoy-versions", o.EnvoyVersion.String(), "bin", "envoy")
-	require.Equal(t, fmt.Sprintf("%s\n", envoyPath), stdout.String())
-	require.Empty(t, stderr)
+	require.Equal(t, envoyPath+"\n", stdout.String())
+	require.Empty(t, stderr.String())
 }
