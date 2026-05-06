@@ -248,23 +248,34 @@ LOOP:
 				continue
 			}
 
-			// Assume the first child is the Envoy process
-			envoyProc = children[0]
+			// Find the first child whose command line contains the
+			// --admin-address-path flag, which is guaranteed to be present
+			// in every func-e-managed Envoy process.
+			var envoyCmdline []string
+			for _, child := range children {
+				cmdline, cmdErr := child.CmdlineSliceWithContext(ctx)
+				if cmdErr != nil {
+					continue
+				}
+				if _, flagErr := extractFlagValue(adminAddressPathFlag, cmdline); flagErr == nil {
+					envoyProc = child
+					envoyCmdline = cmdline
+					break
+				}
+			}
+			if envoyProc == nil {
+				lastErr = errors.New("no Envoy process found")
+				continue
+			}
 			envoyPid = int(envoyProc.Pid)
+
+			// Extract admin address path from the already-fetched cmdline.
+			adminAddressPath, err = extractFlagValue(adminAddressPathFlag, envoyCmdline)
+			if err != nil {
+				return 0, "", err
+			}
 			break LOOP
 		}
-	}
-
-	// Get command line args
-	envoyCmdline, err := envoyProc.CmdlineSlice()
-	if err != nil {
-		return 0, "", fmt.Errorf("failed to Get command line of Envoy: %w", err)
-	}
-
-	// Extract admin address path
-	adminAddressPath, err = extractFlagValue(adminAddressPathFlag, envoyCmdline)
-	if err != nil {
-		return 0, "", err
 	}
 
 	return envoyPid, adminAddressPath, nil

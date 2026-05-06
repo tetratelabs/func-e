@@ -326,26 +326,48 @@ func TestExtractFlagValue(t *testing.T) {
 	}
 }
 
+func startChildProcess(t *testing.T, adminAddressPath string) *exec.Cmd {
+	t.Helper()
+	ctx, cancel := context.WithCancel(t.Context())
+	t.Cleanup(cancel)
+	cmdStr := fmt.Sprintf("sleep 30 && echo %s %s", adminAddressPathFlag, adminAddressPath)
+	cmd := exec.CommandContext(ctx, "sh", "-c", cmdStr)
+	require.NoError(t, cmd.Start())
+	t.Cleanup(func() {
+		_ = cmd.Process.Kill()
+		_, _ = cmd.Process.Wait()
+	})
+	return cmd
+}
+
 func TestPollEnvoyPidAndAdminAddressPath(t *testing.T) {
-	t.Run("success - finds envoy PID and defaults admin address path", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(t.Context())
-		t.Cleanup(cancel)
-
+	t.Run("success - finds envoy PID via admin address path flag in cmdline", func(t *testing.T) {
 		adminAddressPath := path.Join(t.TempDir(), "admin-address.txt")
-
-		cmdStr := fmt.Sprintf("sleep 30 && echo --admin-address-path %s", adminAddressPath)
-		cmd := exec.CommandContext(ctx, "sh", "-c", cmdStr)
-		require.NoError(t, cmd.Start())
-		t.Cleanup(func() {
-			_ = cmd.Process.Kill()
-			_, _ = cmd.Process.Wait()
-		})
-
+		cmd := startChildProcess(t, adminAddressPath)
 		time.Sleep(100 * time.Millisecond)
 
 		actualEnvoyPid, actualAdminAddressPath, err := PollEnvoyPidAndAdminAddressPath(t.Context(), os.Getpid())
 		require.NoError(t, err)
 		require.Equal(t, cmd.Process.Pid, actualEnvoyPid)
+		require.Equal(t, adminAddressPath, actualAdminAddressPath)
+	})
+
+	t.Run("multiple children - picks the one with admin address path flag", func(t *testing.T) {
+		adminAddressPath := path.Join(t.TempDir(), "admin-address.txt")
+
+		// Start a plain child without --admin-address-path first.
+		ctx, cancel := context.WithCancel(t.Context())
+		t.Cleanup(cancel)
+		unmanaged := exec.CommandContext(ctx, "sh", "-c", "sleep 30")
+		require.NoError(t, unmanaged.Start())
+		t.Cleanup(func() { _ = unmanaged.Process.Kill(); _, _ = unmanaged.Process.Wait() })
+		// Start the Envoy-like child with --admin-address-path second.
+		envoyCmd := startChildProcess(t, adminAddressPath)
+		time.Sleep(100 * time.Millisecond)
+
+		actualEnvoyPid, actualAdminAddressPath, err := PollEnvoyPidAndAdminAddressPath(t.Context(), os.Getpid())
+		require.NoError(t, err)
+		require.Equal(t, envoyCmd.Process.Pid, actualEnvoyPid)
 		require.Equal(t, adminAddressPath, actualAdminAddressPath)
 	})
 
