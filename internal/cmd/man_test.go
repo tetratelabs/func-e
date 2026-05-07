@@ -4,9 +4,7 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -15,16 +13,9 @@ import (
 const siteManpageFile = "../../packaging/nfpm/func-e.8"
 
 func TestManPageMatchesCommands(t *testing.T) {
-	expected := generateManPage()
-
 	actual, err := os.ReadFile(siteManpageFile)
 	require.NoError(t, err)
-	require.Equal(t, expected, string(actual))
-}
-
-func generateManPage() string {
-	var b strings.Builder
-	b.WriteString(`.nh
+	require.Equal(t, `.nh
 .TH func-e 8
 
 .SH NAME
@@ -49,34 +40,34 @@ func-e
 \fBUsage\fP:
 
 .EX
-`)
-	b.WriteString(description)
-	b.WriteString(`
+`+description+`
 .EE
 
 
 .SH GLOBAL OPTIONS
-`)
-	flags := []struct{ name, desc string }{
-		{"config-home", "directory for configuration files"},
-		{"data-home", "directory for Envoy binaries"},
-		{"envoy-versions-url", "URL of Envoy versions JSON"},
-		{"home-dir", "(deprecated) func-e home directory - use --config-home, --data-home, --state-home or --runtime-dir instead"},
-		{"platform", "the host OS and architecture of Envoy binaries. Ex. darwin/arm64"},
-		{"run-id", "custom run identifier for logs/runtime directories (used by run command)"},
-		{"runtime-dir", "directory for temporary files (used by run command)"},
-		{"state-home", "directory for logs (used by run command)"},
-	}
-	for i, f := range flags {
-		fmt.Fprintf(&b, `\fB--%s\fP="": %s`, f.name, f.desc)
-		b.WriteByte('\n')
-		if i < len(flags)-1 {
-			b.WriteString(`
+\fB--config-home\fP="": directory for configuration files
+
 .PP
-`)
-		}
-	}
-	b.WriteString(`
+\fB--data-home\fP="": directory for Envoy binaries
+
+.PP
+\fB--envoy-versions-url\fP="": URL of Envoy versions JSON
+
+.PP
+\fB--home-dir\fP="": (deprecated) func-e home directory - use --config-home, --data-home, --state-home or --runtime-dir instead
+
+.PP
+\fB--platform\fP="": the host OS and architecture of Envoy binaries. Ex. darwin/arm64
+
+.PP
+\fB--run-id\fP="": custom run identifier for logs/runtime directories (used by run command)
+
+.PP
+\fB--runtime-dir\fP="": directory for temporary files (used by run command)
+
+.PP
+\fB--state-home\fP="": directory for logs (used by run command)
+
 
 .SH COMMANDS
 .SH run
@@ -93,6 +84,5 @@ Sets the current [version] used by the "run" command
 
 .SH which
 Prints the path to the Envoy binary used by the "run" command
-`)
-	return b.String()
+`, string(actual))
 }
