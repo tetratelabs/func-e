@@ -208,7 +208,7 @@ check: ## Verify contents of last commit
 	fi
 
 site: ## Serve website content
-	@git submodule update
+	@git submodule update --init
 	@cd site && $(gotool) hugo server --minify --disableFastRender --baseURL http://localhost:1313 --cleanDestinationDir -D
 
 # define macros for multi-platform builds. these parse the filename being built
