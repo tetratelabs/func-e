@@ -1,5 +1,4 @@
 baseURL = "https://func-e.io/"
-languageCode = "en-us"
 defaultContentLanguage = "en"
 title = "func-e"
 theme = "hello-friend"
@@ -10,6 +9,7 @@ theme = "hello-friend"
 
 [languages]
   [languages.en]
+    locale = "en-us"
     [languages.en.params.logo]
       logoText = "func-e"
     [languages.en.menu]
