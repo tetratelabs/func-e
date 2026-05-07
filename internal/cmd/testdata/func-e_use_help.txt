@@ -15,5 +15,5 @@ DESCRIPTION:
    depending on which is present.
 
    Example:
-   $ func-e use 1.37.0
-   $ func-e use 1.37
+   $ func-e use 1.38.0
+   $ func-e use 1.38
