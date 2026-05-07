@@ -126,16 +126,13 @@ func EnvoyErr(w io.Writer) RunOption {
 	}
 }
 
-// HTTPTransportFunc creates the HTTP client transport used during a run.
-type HTTPTransportFunc = api.HTTPTransportFunc
-
-// DefaultHTTPTransport returns http.DefaultTransport.
-func DefaultHTTPTransport() http.RoundTripper { return http.DefaultTransport }
-
-// HTTPTransport sets used to create the HTTP client transport for a run.
-func HTTPTransport(transportFn HTTPTransportFunc) RunOption {
+// HTTPTransport is used for all func-e HTTP calls, including downloading
+// versions and fetching the admin API. Defaults to http.DefaultTransport.
+//
+// You can override this for tests or observability.
+func HTTPTransport(transport http.RoundTripper) RunOption {
 	return func(o *api.RunOpts) {
-		o.HTTPTransportFunc = transportFn
+		o.HTTPTransport = transport
 	}
 }
 

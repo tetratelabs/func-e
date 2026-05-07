@@ -10,22 +10,22 @@ import (
 	"net/http"
 )
 
-// HTTPTransportFunc creates the HTTP client transport used during a run.
-type HTTPTransportFunc func() http.RoundTripper
+// HTTPTransport creates the HTTP client transport used during a run.
+type HTTPTransport func() http.RoundTripper
 
 // RunOpts holds the configuration set by RunOptions.
 type RunOpts struct {
-	ConfigHome        string
-	DataHome          string
-	StateHome         string
-	RuntimeDir        string
-	RunID             string // Optional: custom run identifier for StateDir and RuntimeDir paths
-	EnvoyVersion      string
-	EnvoyVersionsURL  string
-	Out               io.Writer
-	EnvoyOut          io.Writer
-	EnvoyErr          io.Writer
-	HTTPTransportFunc HTTPTransportFunc
-	EnvoyPath         string      // Internal: path to the Envoy binary (for tests).
-	StartupHook       StartupHook // Experimental: custom startup hook
+	ConfigHome       string
+	DataHome         string
+	StateHome        string
+	RuntimeDir       string
+	RunID            string // Optional: custom run identifier for StateDir and RuntimeDir paths
+	EnvoyVersion     string
+	EnvoyVersionsURL string
+	Out              io.Writer
+	EnvoyOut         io.Writer
+	EnvoyErr         io.Writer
+	HTTPTransport    http.RoundTripper
+	EnvoyPath        string      // Internal: path to the Envoy binary (for tests).
+	StartupHook      StartupHook // Experimental: custom startup hook
 }
