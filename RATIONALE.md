@@ -49,5 +49,23 @@ their own directories and co-mingle its configuration and logs with those
 of func-e when it runs Envoy (the gateway process). It also allows Docker to
 export `FUNC_E_RUN_ID=0` to aid in location of key files.
 
+## Why tools/go.mod?
+
+`go tool` lets us run things like linters and hugo without a platform install.
+We keep them in `tools/go.mod` instead of the main `go.mod` because func-e is
+also imported as a library; tool dependencies should not leak into that graph.
+
+This replaces the former `go run package@version` process, where versions
+lived in Makefile commands instead of a normal checked-in module graph.
+
+The biggest tradeoff from our old process is tools are not isolated from each
+other. Hugo, golangci-lint, nfpm, etc. share one dependency graph and can
+revlock each other in the future.
+
+Another wrinkle is [Go rejects `-modfile` in workspace mode][go-work-modfile].
+To use `-modfile=tools/go.mod`, we have to set `GOWORK=off`. This causes cruft
+in the root Makefile.
+
 ---
 [xdg]: https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html
+[go-work-modfile]: https://go.dev/issue/59996

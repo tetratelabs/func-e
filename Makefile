@@ -31,8 +31,11 @@ endif
 # We may be using a very old version of Make (ex. 3.81 on macOS). This means we
 # can't re-set GOROOT or PATH via 'export' or use '.ONESHELL' to persist
 # variables across lines. Hence, we set variables on one-line.
-go     := export PATH="$(goroot)/bin:$${PATH}" && export GOROOT="$(goroot)" && go
-gotool := $(go) tool -modfile=$(reporoot)tools/go.mod
+goenv  := PATH="$(goroot)/bin:$${PATH}" GOROOT="$(goroot)"
+go     := $(goenv) go
+# go tool uses -modfile for tools/go.mod, which Go rejects in workspace mode.
+toolgo := GOWORK=off $(goenv) go
+gotool := $(toolgo) tool -modfile=$(reporoot)tools/go.mod
 
 # Set variables corresponding to the selected goroot and the current host.
 goarch := $(shell $(go) env GOARCH)
@@ -170,6 +173,7 @@ clean: ## Ensure a clean build
 # format is a PHONY target, so always runs. This allows skipping when sources didn't change.
 build/format: go.mod $(all_sources)
 	@$(go) mod tidy
+	@$(toolgo) -C tools mod tidy
 	@$(gotool) nwa add --mute -t .licenseheader -T raw "**/*.go"
 	@$(gotool) gofumpt -l -w .
 	@# gofumpt organizes imports, but does not handle local grouping.
