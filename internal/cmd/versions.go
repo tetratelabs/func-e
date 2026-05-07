@@ -4,13 +4,14 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sort"
 	"text/tabwriter"
 	"time"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 
 	"github.com/tetratelabs/func-e/internal/envoy"
 	"github.com/tetratelabs/func-e/internal/globals"
@@ -20,8 +21,9 @@ import (
 // NewVersionsCmd returns command that lists available Envoy versions for the current platform.
 func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 	return &cli.Command{
-		Name:  "versions",
-		Usage: "List Envoy versions",
+		Name:     "versions",
+		Usage:    "List Envoy versions",
+		HideHelp: true,
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
 				Name:    "all",
@@ -29,7 +31,7 @@ func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 				Usage:   "Show all versions including ones not yet installed",
 			},
 		},
-		Action: func(c *cli.Context) error {
+		Action: func(ctx context.Context, c *cli.Command) error {
 			rows, err := getInstalledVersions(o.EnvoyVersionsDir())
 			if err != nil {
 				return err
@@ -41,7 +43,7 @@ func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 			}
 
 			if c.Bool("all") {
-				if evs, err := o.GetEnvoyVersions(c.Context); err != nil {
+				if evs, err := o.GetEnvoyVersions(ctx); err != nil {
 					return err
 				} else if err := addAvailableVersions(&rows, evs.Versions, o.Platform); err != nil {
 					return err
@@ -57,7 +59,7 @@ func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 			})
 
 			// We use a tab writer to ensure we can format the current version
-			w := tabwriter.NewWriter(c.App.Writer, 0, 0, 1, ' ', tabwriter.AlignRight)
+			w := tabwriter.NewWriter(c.Root().Writer, 0, 0, 1, ' ', tabwriter.AlignRight)
 			for _, vr := range rows { //nolint:gocritic
 				// TODO: handle when currentVersion is a MinorVersion
 				pv, ok := currentVersion.(version.PatchVersion)
@@ -69,7 +71,6 @@ func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 			}
 			return w.Flush()
 		},
-		CustomHelpTemplate: cli.CommandHelpTemplate,
 	}
 }
 

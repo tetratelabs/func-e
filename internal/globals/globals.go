@@ -63,7 +63,7 @@ type GlobalOpts struct {
 	StateHome string
 	// RuntimeDir is the directory for ephemeral runtime files. Defaults to DefaultRuntimeDir
 	RuntimeDir string
-	// HomeDir is the deprecated FUNC_E_HOME directory. When set, legacy paths are used.
+	// HomeDir is the FUNC_E_HOME directory. When set, legacy paths are used.
 	HomeDir string
 	// Quiet means don't Logf to Out
 	Quiet bool

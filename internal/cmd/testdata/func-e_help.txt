@@ -41,12 +41,13 @@ COMMANDS:
    which     Prints the path to the Envoy binary used by the "run" command
 
 GLOBAL OPTIONS:
-   --home-dir value            (deprecated) func-e home directory - use --config-home, --data-home, --state-home or --runtime-dir instead [$FUNC_E_HOME]
-   --config-home value         directory for configuration files (default: ${HOME}/.config/func-e) [$FUNC_E_CONFIG_HOME]
-   --data-home value           directory for Envoy binaries (default: ${HOME}/.local/share/func-e) [$FUNC_E_DATA_HOME]
-   --state-home value          directory for logs (used by run command) (default: ${HOME}/.local/state/func-e) [$FUNC_E_STATE_HOME]
-   --runtime-dir value         directory for temporary files (used by run command) (default: /tmp/func-e-${UID}) [$FUNC_E_RUNTIME_DIR]
-   --run-id value              custom run identifier for logs/runtime directories (used by run command) (default: auto-generated timestamp) [$FUNC_E_RUN_ID]
-   --envoy-versions-url value  URL of Envoy versions JSON (default: https://archive.tetratelabs.io/envoy/envoy-versions.json) [$ENVOY_VERSIONS_URL]
-   --platform value            the host OS and architecture of Envoy binaries. Ex. darwin/arm64 (default: $GOOS/$GOARCH) [$FUNC_E_PLATFORM]
-   --version, -v               print the version
+   --home-dir string            func-e home directory [$FUNC_E_HOME]
+   --config-home string         directory for configuration files (default: ${HOME}/.config/func-e) [$FUNC_E_CONFIG_HOME]
+   --data-home string           directory for Envoy binaries (default: ${HOME}/.local/share/func-e) [$FUNC_E_DATA_HOME]
+   --state-home string          directory for logs (used by run command) (default: ${HOME}/.local/state/func-e) [$FUNC_E_STATE_HOME]
+   --runtime-dir string         directory for temporary files (used by run command) (default: /tmp/func-e-${UID}) [$FUNC_E_RUNTIME_DIR]
+   --run-id string              custom run identifier for logs/runtime directories (used by run command) (default: auto-generated timestamp) [$FUNC_E_RUN_ID]
+   --envoy-versions-url string  URL of Envoy versions JSON (default: https://archive.tetratelabs.io/envoy/envoy-versions.json) [$ENVOY_VERSIONS_URL]
+   --platform string            the host OS and architecture of Envoy binaries. Ex. darwin/arm64 (default: $GOOS/$GOARCH) [$FUNC_E_PLATFORM]
+   --help, -h                   show help
+   --version, -v                print the version

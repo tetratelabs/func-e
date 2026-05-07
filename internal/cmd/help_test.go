@@ -24,7 +24,7 @@ func TestFuncEHelp(t *testing.T) {
 			if command != "" {
 				args = []string{"func-e", "help", command}
 			}
-			require.NoError(t, c.RunContext(t.Context(), args))
+			require.NoError(t, c.Run(t.Context(), args))
 
 			expected := "func-e_help.txt"
 			if command != "" {

@@ -5,13 +5,14 @@ package cmd_test
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"os/user"
 	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 
 	"github.com/tetratelabs/func-e/internal/admin"
 	rootcmd "github.com/tetratelabs/func-e/internal/cmd"
@@ -21,9 +22,6 @@ import (
 	"github.com/tetratelabs/func-e/internal/test/httptest"
 	"github.com/tetratelabs/func-e/internal/version"
 )
-
-const deprecationWarning = "WARNING: $FUNC_E_HOME (--home-dir) is deprecated and will be removed in a future version.\n" +
-	"Please use --config-home, --data-home, --state-home or --runtime-dir instead.\n"
 
 func TestFuncEValidateArgs(t *testing.T) {
 	tests := []struct {
@@ -48,11 +46,10 @@ func TestFuncEValidateArgs(t *testing.T) {
 
 func TestHomeDir(t *testing.T) {
 	type testCase struct {
-		name           string
-		args           []string
-		setup          func()
-		expected       string
-		expectedStderr string
+		name     string
+		args     []string
+		setup    func()
+		expected string
 	}
 
 	u, err := user.Current()
@@ -73,14 +70,12 @@ func TestHomeDir(t *testing.T) {
 			setup: func() {
 				t.Setenv("FUNC_E_HOME", alt1)
 			},
-			expected:       alt1,
-			expectedStderr: deprecationWarning,
+			expected: alt1,
 		},
 		{
-			name:           "--home-dir arg (legacy mode)",
-			args:           []string{"func-e", "--home-dir", alt1},
-			expected:       alt1,
-			expectedStderr: deprecationWarning,
+			name:     "--home-dir arg (legacy mode)",
+			args:     []string{"func-e", "--home-dir", alt1},
+			expected: alt1,
 		},
 		{
 			name: "prioritizes --home-dir arg over FUNC_E_HOME env",
@@ -88,8 +83,7 @@ func TestHomeDir(t *testing.T) {
 			setup: func() {
 				t.Setenv("FUNC_E_HOME", alt2)
 			},
-			expected:       alt1,
-			expectedStderr: deprecationWarning,
+			expected: alt1,
 		},
 	}
 
@@ -101,17 +95,17 @@ func TestHomeDir(t *testing.T) {
 
 			o := &globals.GlobalOpts{}
 			c, _, stderr := newApp(o)
-			c.Commands = append(c.Commands, &cli.Command{Name: "test", Action: func(_ *cli.Context) error {
+			c.Commands = append(c.Commands, &cli.Command{Name: "test", Action: func(_ context.Context, _ *cli.Command) error {
 				return nil
 			}})
 
-			err := c.RunContext(t.Context(), append(tc.args, "test"))
+			err := c.Run(t.Context(), append(tc.args, "test"))
 
 			require.NoError(t, err)
 			// In legacy mode, all three directories point to the same location
 			require.Equal(t, tc.expected, o.DataHome)
 
-			require.Equal(t, tc.expectedStderr, stderr.String())
+			require.Empty(t, stderr)
 		})
 	}
 }
@@ -356,7 +350,7 @@ func TestEnvoyVersionsURL(t *testing.T) {
 }
 
 // newApp initializes a command with buffers for stdout and stderr.
-func newApp(o *globals.GlobalOpts) (c *cli.App, stdout, stderr *bytes.Buffer) {
+func newApp(o *globals.GlobalOpts) (c *cli.Command, stdout, stderr *bytes.Buffer) {
 	stdout = new(bytes.Buffer)
 	stderr = new(bytes.Buffer)
 	c = rootcmd.NewApp(o)
@@ -370,11 +364,11 @@ func newApp(o *globals.GlobalOpts) (c *cli.App, stdout, stderr *bytes.Buffer) {
 func runTestCommand(t *testing.T, o *globals.GlobalOpts, args []string) error {
 	t.Helper()
 	c, stdout, stderr := newApp(o)
-	c.Commands = append(c.Commands, &cli.Command{Name: "test", Action: func(_ *cli.Context) error {
+	c.Commands = append(c.Commands, &cli.Command{Name: "test", Action: func(_ context.Context, _ *cli.Command) error {
 		return nil
 	}})
 
-	err := c.RunContext(t.Context(), append(args, "test"))
+	err := c.Run(t.Context(), append(args, "test"))
 
 	// Main handles logging of errors, so we expect nothing in stdout or stderr even in error case
 	require.Empty(t, stdout)

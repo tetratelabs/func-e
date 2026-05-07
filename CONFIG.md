@@ -35,13 +35,7 @@ Gateway to define their own home directories under an XDG base convention.
   - Example: `--run-id 0` for predictable Docker/Kubernetes deployments
 - **Directory per run** isolates concurrent runs and ensures correlation
 
-## Legacy Mapping
-
-**Deprecation Warning**:
-```
-WARNING: FUNC_E_HOME is deprecated and will be removed in a future version.
-Please migrate to FUNC_E_CONFIG_HOME, FUNC_E_DATA_HOME, FUNC_E_STATE_HOME or FUNC_E_RUNTIME_DIR.
-```
+## FUNC_E_HOME Mapping
 
 | File Type              | Legacy Path Pattern                           | XDG Path Pattern                                            |
 |------------------------|-----------------------------------------------|-------------------------------------------------------------|
@@ -50,9 +44,8 @@ Please migrate to FUNC_E_CONFIG_HOME, FUNC_E_DATA_HOME, FUNC_E_STATE_HOME or FUN
 | Run Logs               | `$FUNC_E_HOME/runs/{epoch}/stdout.log`        | `$FUNC_E_STATE_HOME/envoy-runs/{runID}/stdout.log`          |
 | Admin Address          | `$FUNC_E_HOME/runs/{epoch}/admin-address.txt` | `$FUNC_E_RUNTIME_DIR/{runID}/admin-address.txt`             |
 
-These legacy patterns will be supported only when `FUNC_E_HOME` is set and will
-be removed in a future version. A file envoy.pid will not be written as it
-isn't necessary.
+These legacy patterns are used only when `FUNC_E_HOME` is set. A file envoy.pid
+will not be written as it isn't necessary.
 
 ---
 [xdg]: https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html

@@ -4,9 +4,10 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 
 	"github.com/tetratelabs/func-e/internal/envoy"
 	"github.com/tetratelabs/func-e/internal/globals"
@@ -25,6 +26,7 @@ func NewUseCmd(o *globals.GlobalOpts) *cli.Command {
 		Name:      "use",
 		Usage:     `Sets the current [version] used by the "run" command`,
 		ArgsUsage: "[version]",
+		HideHelp:  true,
 		Description: fmt.Sprintf(`The '[version]' is from the "versions -a" command.
 The Envoy [version] installs on-demand into `+versionsDir+`[version]
 if needed. You may also exclude the patch component of the [version]
@@ -37,28 +39,28 @@ depending on which is present.
 Example:
 $ func-e use %s
 $ func-e use %s`, currentVersionWorkingDirFile, currentVersionConfigFile, version.LastKnownEnvoy, version.LastKnownEnvoyMinor),
-		Before: func(c *cli.Context) (err error) {
+		Before: func(ctx context.Context, c *cli.Command) (context.Context, error) {
+			var err error
 			if v, err = version.NewVersion("[version] argument", c.Args().First()); err != nil {
-				err = NewValidationError(err.Error())
+				return ctx, NewValidationError(err.Error())
 			}
-			return err
+			return ctx, nil
 		},
-		Action: func(c *cli.Context) (err error) {
+		Action: func(ctx context.Context, _ *cli.Command) (err error) {
 			// Create base XDG directories before any file operations
 			if err := o.Mkdirs(); err != nil {
 				return err
 			}
 			// The argument could be a MinorVersion (ex. 1.19) or a PatchVersion (ex. 1.19.3)
 			// We need to download and install a patch version
-			if o.EnvoyVersion, err = runtime.EnsurePatchVersion(c.Context, o, v); err != nil {
+			if o.EnvoyVersion, err = runtime.EnsurePatchVersion(ctx, o, v); err != nil {
 				return err
 			}
-			if _, err = envoy.InstallIfNeeded(c.Context, o); err != nil {
+			if _, err = envoy.InstallIfNeeded(ctx, o); err != nil {
 				return err
 			}
 			// Persist the input precision. This allows those specifying a MinorVersion to always get the latest patch.
 			return envoy.WriteCurrentVersion(v, o.ConfigHome, o.EnvoyVersionFile())
 		},
-		CustomHelpTemplate: cli.CommandHelpTemplate,
 	}
 }

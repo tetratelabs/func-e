@@ -18,7 +18,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 
 	rootcmd "github.com/tetratelabs/func-e/internal/cmd"
 	"github.com/tetratelabs/func-e/internal/globals"
@@ -59,7 +59,7 @@ func TestFuncERun(t *testing.T) {
 
 	// When interrupted, func-e should return nil to match Envoy's behavior of exit code 0
 	args := []string{"func-e", "run", "--config-yaml", "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 0}}}"}
-	require.NoError(t, c.RunContext(ctx, args))
+	require.NoError(t, c.Run(ctx, args))
 
 	// TestFuncERun_TeesConsoleToLogs proves we can read Envoy logs
 	stderrBytes, err := os.ReadFile(filepath.Join(o.RunDir, "stderr.log"))
@@ -133,9 +133,9 @@ func TestFuncERun_CreatesHomeVersionFile(t *testing.T) {
 }
 
 // runWithInvalidConfig intentionally has envoy quit. This allows tests to not have to interrupt envoy to proceed
-func runWithInvalidConfig(t *testing.T, c *cli.App) {
+func runWithInvalidConfig(t *testing.T, c *cli.Command) {
 	t.Helper()
-	err := c.RunContext(t.Context(), []string{"func-e", "run"})
+	err := c.Run(t.Context(), []string{"func-e", "run"})
 	var exitErr *exec.ExitError
 	require.ErrorAs(t, err, &exitErr)
 	require.Equal(t, 1, exitErr.ExitCode())
@@ -149,7 +149,7 @@ func TestFuncERun_ValidatesHomeVersion(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(o.ConfigHome, "envoy-version"), []byte("a.a.a"), 0o600))
 
 	c, _, _ := newApp(o)
-	err := c.RunContext(t.Context(), []string{"func-e", "run"})
+	err := c.Run(t.Context(), []string{"func-e", "run"})
 
 	// Verify the command failed with the expected error
 	expectedErr := fmt.Sprintf(`invalid version in "$FUNC_E_CONFIG_HOME/envoy-version": "a.a.a" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
@@ -166,7 +166,7 @@ func TestFuncERun_ValidatesWorkingVersion(t *testing.T) {
 	require.NoError(t, os.WriteFile(".envoy-version", []byte("b.b.b"), 0o600))
 
 	c, _, _ := newApp(o)
-	err := c.RunContext(t.Context(), []string{"func-e", "run"})
+	err := c.Run(t.Context(), []string{"func-e", "run"})
 
 	// Verify the command failed with the expected error
 	expectedErr := fmt.Sprintf(`invalid version in "$PWD/.envoy-version": "b.b.b" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor)
@@ -185,7 +185,7 @@ func TestFuncERun_ErrsWhenVersionsServerDown(t *testing.T) {
 		Out:              new(bytes.Buffer),
 	}
 	c, _, _ := newApp(o)
-	err := c.RunContext(t.Context(), []string{"func-e", "run"})
+	err := c.Run(t.Context(), []string{"func-e", "run"})
 
 	require.Contains(t, o.Out.(*bytes.Buffer).String(), "looking up the latest Envoy version")
 	require.Contains(t, err.Error(), `couldn't lookup the latest Envoy version from `+o.EnvoyVersionsURL)
