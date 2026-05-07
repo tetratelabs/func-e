@@ -4,7 +4,6 @@
 package cmd_test
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -14,7 +13,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	rootcmd "github.com/tetratelabs/func-e/internal/cmd"
 	"github.com/tetratelabs/func-e/internal/envoy"
 	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/version"
@@ -23,24 +21,38 @@ import (
 func TestFuncEUse_VersionValidates(t *testing.T) {
 	o := setupTest(t)
 
-	// The empty case is enforced by Kong before dispatch, so we exercise the
-	// underlying validator directly. The non-empty case still flows through DoMain.
-	_, err := version.NewVersion("[version] argument", "")
-	require.EqualError(t, err, "missing [version] argument")
+	tests := []struct{ name, version, expectedErr string }{
+		{
+			name:        "version empty",
+			expectedErr: "missing [version] argument",
+		},
+		{
+			name:        "version invalid",
+			version:     "a.b.c",
+			expectedErr: fmt.Sprintf(`invalid [version] argument: "a.b.c" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor),
+		},
+	}
 
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
-	err = rootcmd.DoMain(t.Context(), stdout, stderr, []string{"use", "a.b.c"}, o, "test")
-	require.EqualError(t, err, fmt.Sprintf(`invalid [version] argument: "a.b.c" should look like %q or %q`, version.LastKnownEnvoy, version.LastKnownEnvoyMinor))
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			c, stdout, stderr := newApp(o)
+			err := c.RunContext(t.Context(), []string{"func-e", "use", tc.version})
+
+			// Verify the command failed with the expected error
+			require.EqualError(t, err, tc.expectedErr)
+			// func-e handles logging of errors, so we expect nothing in stdout or stderr
+			require.Empty(t, stdout)
+			require.Empty(t, stderr)
+		})
+	}
 }
 
 func TestFuncEUse_InstallsAndWritesHomeVersion(t *testing.T) {
 	o := setupTest(t)
 	evs := o.EnvoyVersion.String()
 
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
-	require.NoError(t, rootcmd.DoMain(t.Context(), stdout, stderr, []string{"use", evs}, o, "test"))
+	c, _, _ := newApp(o)
+	require.NoError(t, c.RunContext(t.Context(), []string{"func-e", "use", evs}))
 
 	// The binary was installed
 	require.FileExists(t, filepath.Join(o.DataHome, "envoy-versions", evs, "bin", "envoy"+""))
@@ -53,6 +65,8 @@ func TestFuncEUse_InstallsAndWritesHomeVersion(t *testing.T) {
 
 // TODO: everything from here down in this file needs to be rewritten
 func TestFuncEUse_InstallMinorVersion(t *testing.T) {
+	o := setupTest(t)
+
 	type testCase struct {
 		name           string
 		firstVersions  availableVersions
@@ -89,45 +103,40 @@ func TestFuncEUse_InstallMinorVersion(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			o := setupTest(t)
 			var err error
 			o.GetEnvoyVersions, err = newFuncEVersionsTester(t.Context(), o, tc.firstVersions)
 			require.NoError(t, err)
 
-			stdout := new(bytes.Buffer)
-			stderr := new(bytes.Buffer)
-			require.NoError(t, rootcmd.DoMain(t.Context(), stdout, stderr, []string{"use", tc.minorVersion}, o, "test"))
+			c, _, _ := newApp(o)
+			require.NoError(t, c.RunContext(t.Context(), []string{"func-e", "use", tc.minorVersion}))
 			f, err := os.ReadFile(filepath.Join(o.ConfigHome, "envoy-version"))
 			require.NoError(t, err)
 			require.Equal(t, tc.minorVersion, string(f))
 
 			// Set o.EnvoyVersion to empty string so the logic for ensuring installed Envoy version works.
 			o.EnvoyVersion = ""
-			stdout.Reset()
-			stderr.Reset()
-			require.NoError(t, rootcmd.DoMain(t.Context(), stdout, stderr, []string{"which"}, o, "test"))
+			c, stdout, stderr := newApp(o)
+			require.NoError(t, c.RunContext(t.Context(), []string{"func-e", "which"}))
 			envoyPath := filepath.Join(o.DataHome, "envoy-versions", tc.minorVersion+"."+tc.firstVersions.latestPatch, "bin", "envoy"+"")
 			require.Equal(t, envoyPath+"\n", stdout.String())
-			require.Empty(t, stderr.String())
+			require.Empty(t, stderr)
 
 			// Update the map returned by Get.
 			o.GetEnvoyVersions, err = newFuncEVersionsTester(t.Context(), o, tc.secondVersions)
 			require.NoError(t, err)
-			stdout.Reset()
-			stderr.Reset()
-			require.NoError(t, rootcmd.DoMain(t.Context(), stdout, stderr, []string{"use", tc.minorVersion}, o, "test"))
+			c, _, _ = newApp(o)
+			require.NoError(t, c.RunContext(t.Context(), []string{"func-e", "use", tc.minorVersion}))
 			f, err = os.ReadFile(filepath.Join(o.ConfigHome, "envoy-version"))
 			require.NoError(t, err)
 			require.Equal(t, tc.minorVersion, string(f))
 
 			// Set o.EnvoyVersion to empty string so the logic for ensuring installed Envoy version works.
 			o.EnvoyVersion = ""
-			stdout.Reset()
-			stderr.Reset()
-			require.NoError(t, rootcmd.DoMain(t.Context(), stdout, stderr, []string{"which"}, o, "test"))
+			c, stdout, stderr = newApp(o)
+			require.NoError(t, c.RunContext(t.Context(), []string{"func-e", "which"}))
 			envoyPath = filepath.Join(o.DataHome, "envoy-versions", tc.minorVersion+"."+tc.secondVersions.latestPatch, "bin", "envoy"+"")
 			require.Equal(t, envoyPath+"\n", stdout.String())
-			require.Empty(t, stderr.String())
+			require.Empty(t, stderr)
 		})
 	}
 }
@@ -147,40 +156,36 @@ func TestFuncEUse_InstallMinorVersionCheckLatestPatchFailed(t *testing.T) {
 	o.GetEnvoyVersions, err = newFuncEVersionsTester(t.Context(), o, initial)
 	require.NoError(t, err)
 
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
-	require.NoError(t, rootcmd.DoMain(t.Context(), stdout, stderr, []string{"use", minorVersion}, o, "test"))
+	c, _, _ := newApp(o)
+	require.NoError(t, c.RunContext(t.Context(), []string{"func-e", "use", minorVersion}))
 	f, err := os.ReadFile(filepath.Join(o.ConfigHome, "envoy-version"))
 	require.NoError(t, err)
 	require.Equal(t, minorVersion, string(f))
 
 	o.EnvoyVersion = ""
-	stdout.Reset()
-	stderr.Reset()
-	require.NoError(t, rootcmd.DoMain(t.Context(), stdout, stderr, []string{"which"}, o, "test"))
+	c, stdout, stderr := newApp(o)
+	require.NoError(t, c.RunContext(t.Context(), []string{"func-e", "which"}))
 	envoyPath := filepath.Join(o.DataHome, "envoy-versions", minorVersion+"."+latestPatch, "bin", "envoy"+"")
 	require.Equal(t, envoyPath+"\n", stdout.String())
-	require.Empty(t, stderr.String())
+	require.Empty(t, stderr)
 
 	o.GetEnvoyVersions = func(_ context.Context) (*version.ReleaseVersions, error) {
 		return nil, errors.New("ice cream")
 	}
-	stdout.Reset()
-	stderr.Reset()
-	require.NoError(t, rootcmd.DoMain(t.Context(), stdout, stderr, []string{"use", minorVersion}, o, "test"))
+	c, _, _ = newApp(o)
+	require.NoError(t, c.RunContext(t.Context(), []string{"func-e", "use", minorVersion}))
 	f, err = os.ReadFile(filepath.Join(o.ConfigHome, "envoy-version"))
 	require.NoError(t, err)
 	require.Equal(t, minorVersion, string(f))
 
 	o.EnvoyVersion = ""
-	stdout.Reset()
-	stderr.Reset()
-	require.NoError(t, rootcmd.DoMain(t.Context(), stdout, stderr, []string{"which"}, o, "test"))
+	c, stdout, stderr = newApp(o)
+	require.NoError(t, c.RunContext(t.Context(), []string{"func-e", "which"}))
 	// The path points to the latest installed version.
 	envoyPath = filepath.Join(o.DataHome, "envoy-versions", minorVersion+"."+latestPatch, "bin", "envoy"+"")
 	t.Log(stdout.String())
 	require.Equal(t, envoyPath+"\n", stdout.String())
-	require.Empty(t, stderr.String())
+	require.Empty(t, stderr)
 }
 
 type availableVersions struct {

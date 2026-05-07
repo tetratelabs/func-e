@@ -187,7 +187,7 @@ func TestAddAvailableVersions_Validates(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			err := addAvailableVersions(&[]versionReleaseDate{}, tc.update, "darwin/amd64")
 			require.Error(t, err)
-			require.ErrorContains(t, err, `invalid releaseDate of version "1.14.7" for platform "darwin/amd64":`)
+			require.Contains(t, err.Error(), `invalid releaseDate of version "1.14.7" for platform "darwin/amd64":`)
 		})
 	}
 }

@@ -35,9 +35,8 @@ func setupTestServer(t *testing.T, handler http.Handler) *adminClient {
 	t.Helper()
 	client, err := NewAdminClientForURL("http://"+ServerAddr, httptest.HandlerFactory(handler))
 	require.NoError(t, err)
-	actual, ok := client.(*adminClient)
-	require.True(t, ok)
-	return actual
+	require.IsType(t, (*adminClient)(nil), client)
+	return client.(*adminClient)
 }
 
 func TestPollEnvoyPidAndAdminAddressPathForPort(t *testing.T) {

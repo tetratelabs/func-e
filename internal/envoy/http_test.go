@@ -146,8 +146,8 @@ func TestHttpGet_RetryDecisions(t *testing.T) {
 					w.WriteHeader(http.StatusOK)
 				}))
 				client := ts.Client()
-				transport, ok := client.Transport.(*http.Transport)
-				require.True(t, ok)
+				require.IsType(t, (*http.Transport)(nil), client.Transport)
+				transport := client.Transport.(*http.Transport)
 				dialContext := transport.DialContext
 
 				dials := 0

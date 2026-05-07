@@ -31,6 +31,7 @@ such as glibc. This value must be constant within a `$FUNC_E_DATA_HOME`.
 
 | Name | Usage |
 | ---- | ----- |
+| help | Shows how to use a [command] |
 | run | Run Envoy with the given [arguments...] until interrupted |
 | versions | List Envoy versions |
 | use | Sets the current [version] used by the "run" command |

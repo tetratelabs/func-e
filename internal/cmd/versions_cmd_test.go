@@ -4,7 +4,6 @@
 package cmd_test
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,7 +11,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	rootcmd "github.com/tetratelabs/func-e/internal/cmd"
 	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/test/morerequire"
 	"github.com/tetratelabs/func-e/internal/version"
@@ -21,40 +19,39 @@ import (
 func TestFuncEVersions_NothingYet(t *testing.T) {
 	o := setupTest(t)
 
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
-	err := rootcmd.DoMain(t.Context(), stdout, stderr, []string{"versions"}, o, "test")
+	c, stdout, stderr := newApp(o)
+	err := c.RunContext(t.Context(), []string{"func-e", "versions"})
 
 	require.NoError(t, err)
-	require.Empty(t, stdout.String()) // allows consistent parsing even when nothing yet installed
-	require.Empty(t, stderr.String())
+	require.Empty(t, stdout) // allows consistent parsing even when nothing yet installed
+	require.Empty(t, stderr)
 }
 
 func TestFuncEVersions_NoCurrentVersion(t *testing.T) {
 	o := setupTestVersions(t)
 	require.NoError(t, os.Remove(filepath.Join(o.ConfigHome, "envoy-version")))
 
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
-	err := rootcmd.DoMain(t.Context(), stdout, stderr, []string{"versions"}, o, "test")
+	c, stdout, stderr := newApp(o)
+	err := c.RunContext(t.Context(), []string{"func-e", "versions"})
 
 	require.NoError(t, err)
 	require.Equal(t, `  1.2.2 2021-01-31
   1.1.2 2021-01-31
   1.2.1 2021-01-30
 `, stdout.String())
-	require.Empty(t, stderr.String())
+	require.Empty(t, stderr)
 }
 
-// TestFuncEVersions_CurrentVersion tests depend on prior state, so execute sequentially.
+// TestFuncEVersions_CurrentVersion tests depend on prior state, so execute sequentially. This doesn't use a matrix
+// to improve readability
 func TestFuncEVersions_CurrentVersion(t *testing.T) {
+	o := setupTestVersions(t)
+
 	t.Run("no current version", func(t *testing.T) {
-		o := setupTestVersions(t)
 		require.NoError(t, os.Remove(filepath.Join(o.ConfigHome, "envoy-version")))
 
-		stdout := new(bytes.Buffer)
-		stderr := new(bytes.Buffer)
-		require.NoError(t, rootcmd.DoMain(t.Context(), stdout, stderr, []string{"versions"}, o, "test"))
+		c, stdout, _ := newApp(o)
+		require.NoError(t, c.RunContext(t.Context(), []string{"func-e", "versions"}))
 		require.Equal(t, `  1.2.2 2021-01-31
   1.1.2 2021-01-31
   1.2.1 2021-01-30
@@ -62,12 +59,10 @@ func TestFuncEVersions_CurrentVersion(t *testing.T) {
 	})
 
 	t.Run("set by $FUNC_E_CONFIG_HOME/envoy-version", func(t *testing.T) {
-		o := setupTestVersions(t)
 		require.NoError(t, os.WriteFile(filepath.Join(o.ConfigHome, "envoy-version"), []byte("1.1.2"), 0o600))
 
-		stdout := new(bytes.Buffer)
-		stderr := new(bytes.Buffer)
-		require.NoError(t, rootcmd.DoMain(t.Context(), stdout, stderr, []string{"versions"}, o, "test"))
+		c, stdout, _ := newApp(o)
+		require.NoError(t, c.RunContext(t.Context(), []string{"func-e", "versions"}))
 		require.Equal(t, `  1.2.2 2021-01-31
 * 1.1.2 2021-01-31 (set by $FUNC_E_CONFIG_HOME/envoy-version)
   1.2.1 2021-01-30
@@ -75,13 +70,11 @@ func TestFuncEVersions_CurrentVersion(t *testing.T) {
 	})
 
 	t.Run("set by $PWD/.envoy-version", func(t *testing.T) {
-		o := setupTestVersions(t)
 		t.Chdir(t.TempDir())
 		require.NoError(t, os.WriteFile(".envoy-version", []byte("1.2.2"), 0o600))
 
-		stdout := new(bytes.Buffer)
-		stderr := new(bytes.Buffer)
-		require.NoError(t, rootcmd.DoMain(t.Context(), stdout, stderr, []string{"versions"}, o, "test"))
+		c, stdout, _ := newApp(o)
+		require.NoError(t, c.RunContext(t.Context(), []string{"func-e", "versions"}))
 		require.Equal(t, `* 1.2.2 2021-01-31 (set by $PWD/.envoy-version)
   1.1.2 2021-01-31
   1.2.1 2021-01-30
@@ -89,12 +82,10 @@ func TestFuncEVersions_CurrentVersion(t *testing.T) {
 	})
 
 	t.Run("set by $ENVOY_VERSION", func(t *testing.T) {
-		o := setupTestVersions(t)
 		t.Setenv("ENVOY_VERSION", "1.2.1")
 
-		stdout := new(bytes.Buffer)
-		stderr := new(bytes.Buffer)
-		require.NoError(t, rootcmd.DoMain(t.Context(), stdout, stderr, []string{"versions"}, o, "test"))
+		c, stdout, _ := newApp(o)
+		require.NoError(t, c.RunContext(t.Context(), []string{"func-e", "versions"}))
 		require.Equal(t, `  1.2.2 2021-01-31
   1.1.2 2021-01-31
 * 1.2.1 2021-01-30 (set by $ENVOY_VERSION)
@@ -105,28 +96,26 @@ func TestFuncEVersions_CurrentVersion(t *testing.T) {
 func TestFuncEVersions_Sorted(t *testing.T) {
 	o := setupTestVersions(t)
 
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
-	err := rootcmd.DoMain(t.Context(), stdout, stderr, []string{"versions"}, o, "test")
+	c, stdout, stderr := newApp(o)
+	err := c.RunContext(t.Context(), []string{"func-e", "versions"})
 
 	require.NoError(t, err)
 	require.Equal(t, `  1.2.2 2021-01-31
   1.1.2 2021-01-31
 * 1.2.1 2021-01-30 (set by $FUNC_E_CONFIG_HOME/envoy-version)
 `, stdout.String())
-	require.Empty(t, stderr.String())
+	require.Empty(t, stderr)
 }
 
 func TestFuncEVersions_All_OnlyRemote(t *testing.T) {
 	o := setupTest(t)
 
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
-	err := rootcmd.DoMain(t.Context(), stdout, stderr, []string{"versions", "-a"}, o, "test")
+	c, stdout, stderr := newApp(o)
+	err := c.RunContext(t.Context(), []string{"func-e", "versions", "-a"})
 
 	require.NoError(t, err)
 	require.Equal(t, fmt.Sprintf("  %s 2020-12-31\n", version.LastKnownEnvoy), stdout.String())
-	require.Empty(t, stderr.String())
+	require.Empty(t, stderr)
 }
 
 func TestFuncEVersions_All_RemoteIsCurrent(t *testing.T) {
@@ -140,21 +129,19 @@ func TestFuncEVersions_All_RemoteIsCurrent(t *testing.T) {
 
 	expected := fmt.Sprintf("* %s 2020-12-31 (set by $FUNC_E_CONFIG_HOME/envoy-version)\n", v)
 
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
-	err := rootcmd.DoMain(t.Context(), stdout, stderr, []string{"versions", "-a"}, o, "test")
+	c, stdout, stderr := newApp(o)
+	err := c.RunContext(t.Context(), []string{"func-e", "versions", "-a"})
 
 	require.NoError(t, err)
 	require.Equal(t, expected, stdout.String())
-	require.Empty(t, stderr.String())
+	require.Empty(t, stderr)
 }
 
 func TestFuncEVersions_All_Mixed(t *testing.T) {
 	o := setupTestVersions(t)
 
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
-	err := rootcmd.DoMain(t.Context(), stdout, stderr, []string{"versions", "-a"}, o, "test")
+	c, stdout, stderr := newApp(o)
+	err := c.RunContext(t.Context(), []string{"func-e", "versions", "-a"})
 
 	require.NoError(t, err)
 	require.Equal(t, fmt.Sprintf(`  1.2.2 2021-01-31
@@ -162,7 +149,7 @@ func TestFuncEVersions_All_Mixed(t *testing.T) {
 * 1.2.1 2021-01-30 (set by $FUNC_E_CONFIG_HOME/envoy-version)
   %s 2020-12-31
 `, version.LastKnownEnvoy), stdout.String())
-	require.Empty(t, stderr.String())
+	require.Empty(t, stderr)
 }
 
 func setupTestVersions(t *testing.T) (o *globals.GlobalOpts) {

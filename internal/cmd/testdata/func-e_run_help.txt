@@ -1,28 +1,20 @@
-Usage: func-e run [<args> ...] [flags]
+NAME:
+   func-e run - Run Envoy with the given [arguments...] until interrupted
 
-Run Envoy with the given [arguments...] until interrupted
+USAGE:
+   func-e run [arguments...]
 
-Arguments:
-  [<args> ...]    Arguments passed through to Envoy
+DESCRIPTION:
+   To run Envoy, execute `func-e run -c your_envoy_config.yaml`.
 
-Flags:
-  -h, --help                      Show context-sensitive help.
-      --home-dir=STRING           (deprecated) func-e home directory - use
-                                  --config-home, --data-home, --state-home or
-                                  --runtime-dir instead ($FUNC_E_HOME)
-      --config-home=PATH          directory for configuration files
-                                  ($FUNC_E_CONFIG_HOME)
-      --data-home=PATH            directory for Envoy binaries
-                                  ($FUNC_E_DATA_HOME)
-      --state-home=PATH           directory for logs (used by run command)
-                                  ($FUNC_E_STATE_HOME)
-      --runtime-dir=PATH          directory for temporary files (used by run
-                                  command) ($FUNC_E_RUNTIME_DIR)
-      --run-id=ID                 custom run identifier for logs/runtime
-                                  directories (used by run command)
-                                  ($FUNC_E_RUN_ID)
-      --envoy-versions-url=URL    URL of Envoy versions JSON
-                                  ($ENVOY_VERSIONS_URL)
-      --platform=OS/ARCH          the host OS and architecture of Envoy
-                                  binaries. Ex. darwin/arm64 ($FUNC_E_PLATFORM)
-  -v, --version                   Print the version of func-e
+   The first version in the below is run, controllable by the "use" command:
+   ```
+   $ENVOY_VERSION, $PWD/.envoy-version, $FUNC_E_CONFIG_HOME/envoy-version
+   ```
+   The version to use is downloaded and installed, if necessary.
+
+   Envoy interprets the '[arguments...]' and runs in the current working
+   directory (aka $PWD) until func-e is interrupted (ex Ctrl+C, Ctrl+Break).
+
+   Envoy's console output writes to "stdout.log" and "stderr.log" in the run directory
+   (`${HOME}/.local/state/func-e`/envoy-logs/{runID}).

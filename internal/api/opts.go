@@ -1,6 +1,8 @@
 // Copyright func-e contributors
 // SPDX-License-Identifier: Apache-2.0
 
+// Package opts holds shared configuration types for func-e options.
+// This is internal and not intended for direct use by external packages.
 package api
 
 import (

@@ -48,9 +48,8 @@ func TestWithRunMiddleware(t *testing.T) {
 			actual := middleware.WithRunMiddleware(testCtx, tt.input)
 			if tt.expected {
 				val := actual.Value(internalmiddleware.RunMiddlewareKey{})
-				mw, ok := val.(func(api.RunFunc) api.RunFunc)
-				require.NotNil(t, mw)
-				require.True(t, ok)
+				require.NotNil(t, val)
+				require.IsType(t, (func(api.RunFunc) api.RunFunc)(nil), val)
 			} else {
 				require.Equal(t, testCtx, actual)
 			}
