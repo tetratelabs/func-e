@@ -73,7 +73,7 @@ func TestUntarEnvoyError(t *testing.T) {
 			dst := filepath.Join(t.TempDir(), "dst")
 			url := version.TarballURL("http://" + admin.ServerAddr + "/file.tar.gz")
 
-			err := untarEnvoy(t.Context(), httptest.HandlerFactory(tt.handler), dst, url, tt.sha256Sum, globals.DefaultDevUserAgent)
+			err := untarEnvoy(t.Context(), httptest.HTTPClient(tt.handler), dst, url, tt.sha256Sum, globals.DefaultDevUserAgent)
 			expectedErr := strings.ReplaceAll(tt.expectedErr, "$URL", string(url))
 			require.EqualError(t, err, expectedErr)
 		})
@@ -91,7 +91,7 @@ func TestUntarEnvoy(t *testing.T) {
 		written, _ = w.Write(tarball)
 	})
 
-	err := untarEnvoy(t.Context(), httptest.HandlerFactory(handler), tempDir, version.TarballURL("http://"+admin.ServerAddr), tarballSHA256sum, globals.DefaultDevUserAgent)
+	err := untarEnvoy(t.Context(), httptest.HTTPClient(handler), tempDir, version.TarballURL("http://"+admin.ServerAddr), tarballSHA256sum, globals.DefaultDevUserAgent)
 	require.NoError(t, err)
 	require.Equal(t, len(tarball), written)
 	require.FileExists(t, filepath.Join(tempDir, binEnvoy))
@@ -101,7 +101,7 @@ func TestInstallIfNeeded_ErrorOnIncorrectURL(t *testing.T) {
 	o := setupInstallTest(t)
 
 	o.EnvoyVersionsURL += "/varsionz.json"
-	o.GetEnvoyVersions = NewGetVersions(o.HTTPClientFunc, o.EnvoyVersionsURL, o.UserAgent)
+	o.GetEnvoyVersions = NewGetVersions(o.HTTPClient, o.EnvoyVersionsURL, o.UserAgent)
 	o.EnvoyVersion = version.LastKnownEnvoy
 	_, err := InstallIfNeeded(o.ctx, &o.GlobalOpts)
 	require.EqualError(t, err, "received 404 status code from "+o.EnvoyVersionsURL)
@@ -233,11 +233,11 @@ func setupInstallTest(t *testing.T) *installTest {
 			Out:              new(bytes.Buffer),
 			Platform:         globals.DefaultPlatform,
 			RunOpts: globals.RunOpts{
-				EnvoyPath:      filepath.Join(homeDir, "envoy-versions", version.LastKnownEnvoy.String(), binEnvoy),
-				HTTPClientFunc: httptest.HandlerFactory(handler),
+				EnvoyPath:  filepath.Join(homeDir, "envoy-versions", version.LastKnownEnvoy.String(), binEnvoy),
+				HTTPClient: httptest.HTTPClient(handler),
 			},
 		},
 	}
-	setup.GetEnvoyVersions = NewGetVersions(setup.HTTPClientFunc, setup.EnvoyVersionsURL, setup.UserAgent)
+	setup.GetEnvoyVersions = NewGetVersions(setup.HTTPClient, setup.EnvoyVersionsURL, setup.UserAgent)
 	return setup
 }

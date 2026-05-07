@@ -166,7 +166,7 @@ func TestCollectConfigDump(t *testing.T) {
 
 			actualPath := ""
 			actualQuery := ""
-			client, err := admin.NewAdminClientForURL("http://"+admin.ServerAddr, httptest.HandlerFactory(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			client, err := admin.NewAdminClientForURL("http://"+admin.ServerAddr, httptest.HTTPClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				actualPath = r.URL.Path
 				actualQuery = r.URL.RawQuery
 				tt.handler(w, r)
@@ -248,12 +248,12 @@ func TestCopyURLToFile(t *testing.T) {
 			}
 
 			actualMethod := ""
-			clientFn := httptest.HandlerFactory(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			client := httptest.HTTPClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				actualMethod = r.Method
 				tt.handler(w, r)
 			}))
 			url := "http://" + admin.ServerAddr
-			err := copyURLToFile(ctx, clientFn, url, filePath)
+			err := copyURLToFile(ctx, client, url, filePath)
 
 			if tt.expectedErr != "" {
 				require.Error(t, err)
@@ -279,7 +279,7 @@ func TestCopyURLToFile_InvalidURL(t *testing.T) {
 	tempDir := t.TempDir()
 	filePath := filepath.Join(tempDir, "test.txt")
 
-	err := copyURLToFile(t.Context(), httptest.HandlerFactory(http.NotFoundHandler()), "://invalid-url", filePath)
+	err := copyURLToFile(t.Context(), httptest.HTTPClient(http.NotFoundHandler()), "://invalid-url", filePath)
 	require.Error(t, err)
 	require.EqualError(t, err, "could not create request ://invalid-url: parse \"://invalid-url\": missing protocol scheme")
 }

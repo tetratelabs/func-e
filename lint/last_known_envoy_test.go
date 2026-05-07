@@ -4,12 +4,12 @@
 package lint
 
 import (
+	"net/http"
 	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	publicapi "github.com/tetratelabs/func-e/api"
 	"github.com/tetratelabs/func-e/internal/envoy"
 	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/version"
@@ -24,7 +24,7 @@ const lastKnownEnvoyFile = "../internal/version/last_known_envoy.txt"
 // This issues a remote call to the version server, so shouldn't be a normal unit test (as they must pass offline).
 // This is invoked via `make lint`.
 func TestLastKnownEnvoyAvailableOnAllPlatforms(t *testing.T) {
-	getEnvoyVersions := envoy.NewGetVersions(publicapi.DefaultHTTPClient, globals.DefaultEnvoyVersionsURL, globals.DefaultDevUserAgent)
+	getEnvoyVersions := envoy.NewGetVersions(http.DefaultClient, globals.DefaultEnvoyVersionsURL, globals.DefaultDevUserAgent)
 	evs, err := getEnvoyVersions(t.Context())
 	require.NoError(t, err)
 

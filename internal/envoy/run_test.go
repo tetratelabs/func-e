@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,7 +18,6 @@ import (
 	"github.com/shirou/gopsutil/v4/process"
 	"github.com/stretchr/testify/require"
 
-	publicapi "github.com/tetratelabs/func-e/api"
 	"github.com/tetratelabs/func-e/internal/admin"
 	internalapi "github.com/tetratelabs/func-e/internal/api"
 	"github.com/tetratelabs/func-e/internal/globals"
@@ -35,10 +35,10 @@ func TestRuntime_Run_EnvoyError(t *testing.T) {
 		stdout.WriteString(fmt.Sprintf(format, args...) + "\n")
 	}
 	r := NewRuntime(&globals.RunOpts{
-		EnvoyPath:      fakeEnvoyBin,
-		HTTPClientFunc: publicapi.DefaultHTTPClient,
-		RunDir:         runDir,
-		TempDir:        runDir,
+		EnvoyPath:  fakeEnvoyBin,
+		HTTPClient: http.DefaultClient,
+		RunDir:     runDir,
+		TempDir:    runDir,
 	}, logToOutput)
 	r.Out, r.Err = stdout, stderr
 
@@ -129,10 +129,10 @@ func TestRuntime_Run_StartupHook(t *testing.T) {
 
 			// Create runtime with custom startup hook
 			r := NewRuntime(&globals.RunOpts{
-				EnvoyPath:      fakeEnvoyBin,
-				HTTPClientFunc: publicapi.DefaultHTTPClient,
-				RunDir:         runDir,
-				TempDir:        runDir,
+				EnvoyPath:  fakeEnvoyBin,
+				HTTPClient: http.DefaultClient,
+				RunDir:     runDir,
+				TempDir:    runDir,
 			}, logToOutput)
 			r.Out, r.Err = new(bytes.Buffer), new(bytes.Buffer)
 

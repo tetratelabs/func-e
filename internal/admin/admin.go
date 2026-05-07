@@ -29,18 +29,18 @@ const (
 
 // NewAdminClient creates an AdminClient by polling for the admin port at
 // adminAddressPath.
-func NewAdminClient(ctx context.Context, clientFn internalapi.HTTPClientFunc, adminAddressPath string) (internalapi.AdminClient, error) {
+func NewAdminClient(ctx context.Context, client *http.Client, adminAddressPath string) (internalapi.AdminClient, error) {
 	// Envoy writes its admin address after startup, so this blocks until the
 	// port is available or the caller's context is done.
 	port, err := pollAdminAddressPathForPort(ctx, adminAddressPath)
 	if err != nil {
 		return nil, err
 	}
-	return newAdminClient(clientFn, fmt.Sprintf("http://127.0.0.1:%d", port), port), nil
+	return newAdminClient(client, fmt.Sprintf("http://127.0.0.1:%d", port), port), nil
 }
 
 // NewAdminClientForURL creates an AdminClient for the given base URL and HTTP client factory.
-func NewAdminClientForURL(baseURL string, clientFn internalapi.HTTPClientFunc) (internalapi.AdminClient, error) {
+func NewAdminClientForURL(baseURL string, client *http.Client) (internalapi.AdminClient, error) {
 	baseURL = strings.TrimRight(baseURL, "/")
 	u, err := url.Parse(baseURL)
 	if err != nil {
@@ -50,13 +50,13 @@ func NewAdminClientForURL(baseURL string, clientFn internalapi.HTTPClientFunc) (
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse Envoy admin port: %w", err)
 	}
-	return newAdminClient(clientFn, baseURL, port), nil
+	return newAdminClient(client, baseURL, port), nil
 }
 
-func newAdminClient(clientFn internalapi.HTTPClientFunc, baseURL string, port int) *adminClient {
+func newAdminClient(client *http.Client, baseURL string, port int) *adminClient {
 	return &adminClient{
 		baseURL:    baseURL,
-		httpClient: clientFn(),
+		httpClient: client,
 		port:       port,
 	}
 }

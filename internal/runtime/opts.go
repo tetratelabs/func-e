@@ -83,7 +83,7 @@ func InitializeGlobalOpts(o *globals.GlobalOpts, envoyVersionsURL, homeDir, conf
 		}
 	}
 	if o.GetEnvoyVersions == nil { // not overridden for tests
-		o.GetEnvoyVersions = envoy.NewGetVersions(o.HTTPClientFunc, o.EnvoyVersionsURL, o.UserAgent)
+		o.GetEnvoyVersions = envoy.NewGetVersions(o.HTTPClient, o.EnvoyVersionsURL, o.UserAgent)
 	}
 
 	// Create base XDG directories now that all paths are configured

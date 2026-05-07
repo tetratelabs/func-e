@@ -102,7 +102,7 @@ func (f *fakeFuncE) OnStart(ctx context.Context) (internalapi.AdminClient, error
 		return nil, err
 	}
 	f.envoyPid = envoyPid
-	adminClient, err := internaladmin.NewAdminClient(ctx, f.o.HTTPClientFunc, adminAddressPath)
+	adminClient, err := internaladmin.NewAdminClient(ctx, f.o.HTTPClient, adminAddressPath)
 	if err == nil {
 		err = adminClient.AwaitReady(ctx, 100*time.Millisecond)
 	}

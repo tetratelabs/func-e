@@ -126,16 +126,16 @@ func EnvoyErr(w io.Writer) RunOption {
 	}
 }
 
-// HTTPClientFunc creates HTTP clients used during a run.
-type HTTPClientFunc = api.HTTPClientFunc
+// HTTPTransportFunc creates the HTTP client transport used during a run.
+type HTTPTransportFunc = api.HTTPTransportFunc
 
-// DefaultHTTPClient returns http.DefaultClient.
-func DefaultHTTPClient() *http.Client { return http.DefaultClient }
+// DefaultHTTPTransport returns http.DefaultTransport.
+func DefaultHTTPTransport() http.RoundTripper { return http.DefaultTransport }
 
-// HTTPClient sets the factory used to create HTTP clients for a run.
-func HTTPClient(clientFunc HTTPClientFunc) RunOption {
+// HTTPTransport sets used to create the HTTP client transport for a run.
+func HTTPTransport(transportFn HTTPTransportFunc) RunOption {
 	return func(o *api.RunOpts) {
-		o.HTTPClientFunc = clientFunc
+		o.HTTPTransportFunc = transportFn
 	}
 }
 

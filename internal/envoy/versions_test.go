@@ -18,7 +18,7 @@ import (
 func TestNewGetVersions(t *testing.T) {
 	baseURL := "http://" + admin.ServerAddr
 	handler := test.NewEnvoyVersionsHandler(t, baseURL, version.LastKnownEnvoy)
-	gv := NewGetVersions(httptest.HandlerFactory(handler), baseURL+"/envoy-versions.json", globals.DefaultDevUserAgent)
+	gv := NewGetVersions(httptest.HTTPClient(handler), baseURL+"/envoy-versions.json", globals.DefaultDevUserAgent)
 
 	evs, err := gv(t.Context())
 	require.NoError(t, err)

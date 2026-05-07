@@ -395,8 +395,8 @@ func setupTest(t *testing.T) *globals.GlobalOpts {
 
 	baseURL := "http://" + admin.ServerAddr
 	handler := test.NewEnvoyVersionsHandler(t, baseURL, version.LastKnownEnvoy)
-	result.HTTPClientFunc = httptest.HandlerFactory(handler)
+	result.HTTPClient = httptest.HTTPClient(handler)
 	result.EnvoyVersionsURL = baseURL + "/envoy-versions.json"
-	result.GetEnvoyVersions = envoy.NewGetVersions(result.HTTPClientFunc, result.EnvoyVersionsURL, result.UserAgent)
+	result.GetEnvoyVersions = envoy.NewGetVersions(result.HTTPClient, result.EnvoyVersionsURL, result.UserAgent)
 	return &result
 }

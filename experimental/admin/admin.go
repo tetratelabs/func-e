@@ -5,6 +5,7 @@ package admin
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/tetratelabs/func-e/api"
 	"github.com/tetratelabs/func-e/internal/admin"
@@ -23,7 +24,7 @@ func NewAdminClient(ctx context.Context, funcEPid int) (AdminClient, error) {
 	if err != nil {
 		return nil, err
 	}
-	return admin.NewAdminClient(ctx, api.DefaultHTTPClient, adminAddressPath)
+	return admin.NewAdminClient(ctx, http.DefaultClient, adminAddressPath)
 }
 
 // StartupHook runs once the Envoy admin server is ready. Configure this

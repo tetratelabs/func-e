@@ -194,7 +194,7 @@ type availableVersions struct {
 }
 
 func newFuncEVersionsTester(ctx context.Context, o *globals.GlobalOpts, av availableVersions) (version.GetReleaseVersions, error) {
-	feV := envoy.NewGetVersions(o.HTTPClientFunc, o.EnvoyVersionsURL, o.UserAgent)
+	feV := envoy.NewGetVersions(o.HTTPClient, o.EnvoyVersionsURL, o.UserAgent)
 	ev, err := feV(ctx)
 	if err != nil {
 		return nil, err

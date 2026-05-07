@@ -58,7 +58,7 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 		}()
 
 		var err error
-		adminClient, err := admin.NewAdminClient(monitorCtx, r.o.HTTPClientFunc, adminAddressPath)
+		adminClient, err := admin.NewAdminClient(monitorCtx, r.o.HTTPClient, adminAddressPath)
 		if err != nil {
 			// If we can't create the admin client, it likely means Envoy failed to start
 			// Don't log or return error here - let cmd.Wait() handle the exit error

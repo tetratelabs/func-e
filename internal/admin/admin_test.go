@@ -33,7 +33,7 @@ func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 
 func setupTestServer(t *testing.T, handler http.Handler) *adminClient {
 	t.Helper()
-	client, err := NewAdminClientForURL("http://"+ServerAddr, httptest.HandlerFactory(handler))
+	client, err := NewAdminClientForURL("http://"+ServerAddr, httptest.HTTPClient(handler))
 	require.NoError(t, err)
 	require.IsType(t, (*adminClient)(nil), client)
 	return client.(*adminClient)
@@ -226,11 +226,10 @@ func TestAdminClient_get(t *testing.T) {
 	}
 
 	t.Run("returns error on connection failure", func(t *testing.T) {
-		client := newAdminClient(func() *http.Client {
-			return &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
-				return nil, errors.New("connection refused")
-			})}
-		}, "http://127.0.0.1:1", 1)
+		transport := roundTripFunc(func(*http.Request) (*http.Response, error) {
+			return nil, errors.New("connection refused")
+		})
+		client := newAdminClient(&http.Client{Transport: transport}, "http://127.0.0.1:1", 1)
 		_, err := client.Get(t.Context(), "/test")
 		require.EqualError(t, err, "error Envoy admin URL http://127.0.0.1:1/test: Get \"http://127.0.0.1:1/test\": connection refused")
 	})
@@ -470,7 +469,7 @@ func TestNewAdminClient(t *testing.T) {
 				if tt.setup != nil {
 					tt.setup(t, adminAddressPath)
 				}
-				client, err := NewAdminClient(tt.ctx(t), httptest.HandlerFactory(http.NotFoundHandler()), adminAddressPath)
+				client, err := NewAdminClient(tt.ctx(t), httptest.HTTPClient(http.NotFoundHandler()), adminAddressPath)
 				if tt.expectedErr != "" {
 					expectedErr := strings.ReplaceAll(tt.expectedErr, "$ADMIN_ADDRESS_PATH", adminAddressPath)
 					require.EqualError(t, err, expectedErr)

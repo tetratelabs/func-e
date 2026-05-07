@@ -22,12 +22,12 @@ import (
 
 func TestHttpGet_AddsUserAgent(t *testing.T) {
 	actualUserAgent := ""
-	clientFn := httptest.HandlerFactory(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	client := httptest.HTTPClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		actualUserAgent = r.Header.Get(userAgentHeader)
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	res, err := httpGet(t.Context(), clientFn, "http://"+admin.ServerAddr+"/", globals.DefaultDevUserAgent)
+	res, err := httpGet(t.Context(), client, "http://"+admin.ServerAddr+"/", globals.DefaultDevUserAgent)
 	require.NoError(t, err)
 	defer res.Body.Close()
 
@@ -68,32 +68,6 @@ func TestHttpGet_RetryDecisions(t *testing.T) {
 			expectedDials:    2,
 			expectedRequests: 1,
 			expectedElapsed:  time.Second,
-		},
-		{
-			name: "deadline retries with shorter delay",
-			ctx: func(t *testing.T) context.Context {
-				t.Helper()
-				ctx, cancel := context.WithTimeout(t.Context(), 500*time.Millisecond)
-				t.Cleanup(cancel)
-				return ctx
-			},
-			dialErr:          netError{err: errors.New("connection refused")},
-			expectedDials:    2,
-			expectedRequests: 1,
-			expectedElapsed:  250 * time.Millisecond,
-		},
-		{
-			name: "nearly expired deadline retries quickly",
-			ctx: func(t *testing.T) context.Context {
-				t.Helper()
-				ctx, cancel := context.WithTimeout(t.Context(), time.Millisecond)
-				t.Cleanup(cancel)
-				return ctx
-			},
-			dialErr:          netError{err: errors.New("connection refused")},
-			expectedDials:    2,
-			expectedRequests: 1,
-			expectedElapsed:  500 * time.Microsecond,
 		},
 		{
 			name: "cancel during retry sleep",
@@ -140,17 +114,18 @@ func TestHttpGet_RetryDecisions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			synctest.Test(t, func(t *testing.T) {
+				// Count requests that reach the server (past the dial stage).
 				requests := 0
 				ts := httptest.NewServer(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 					requests++
 					w.WriteHeader(http.StatusOK)
 				}))
+
+				// Swap the client context with one that fails on the first dial.
+				dials := 0
 				client := ts.Client()
-				require.IsType(t, (*http.Transport)(nil), client.Transport)
 				transport := client.Transport.(*http.Transport)
 				dialContext := transport.DialContext
-
-				dials := 0
 				transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
 					dials++
 					if dials == 1 && tt.dialErr != nil {
@@ -159,8 +134,9 @@ func TestHttpGet_RetryDecisions(t *testing.T) {
 					return dialContext(ctx, network, addr)
 				}
 
+				// Execute the request and verify the outcome.
 				start := time.Now()
-				res, err := httpGet(tt.ctx(t), ts.Client, ts.URL, globals.DefaultDevUserAgent)
+				res, err := httpGet(tt.ctx(t), client, ts.URL, globals.DefaultDevUserAgent)
 				if tt.expectedErr != "" {
 					expectedErr := strings.ReplaceAll(tt.expectedErr, "$URL", ts.URL)
 					require.EqualError(t, err, expectedErr)

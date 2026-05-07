@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,7 +18,6 @@ import (
 	"testing"
 	"time"
 
-	publicapi "github.com/tetratelabs/func-e/api"
 	"github.com/tetratelabs/func-e/experimental/admin"
 	internaladmin "github.com/tetratelabs/func-e/internal/admin"
 	"github.com/tetratelabs/func-e/internal/test/build"
@@ -110,7 +110,7 @@ func (a *funcE) OnStart(ctx context.Context) (admin.AdminClient, error) {
 	}
 	a.envoyPid = envoyPid
 
-	adminClient, err := internaladmin.NewAdminClient(ctx, publicapi.DefaultHTTPClient, adminAddressPath)
+	adminClient, err := internaladmin.NewAdminClient(ctx, http.DefaultClient, adminAddressPath)
 	if err == nil {
 		err = adminClient.AwaitReady(ctx, 100*time.Millisecond)
 	}

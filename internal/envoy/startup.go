@@ -63,7 +63,7 @@ func collectConfigDump(ctx context.Context, adminClient internalapi.AdminClient,
 	return os.WriteFile(file, body, 0o600)
 }
 
-func copyURLToFile(ctx context.Context, clientFn internalapi.HTTPClientFunc, url, fullPath string) error {
+func copyURLToFile(ctx context.Context, client *http.Client, url, fullPath string) error {
 	// #nosec -> runDir is allowed to be anywhere
 	f, err := os.OpenFile(fullPath, os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {
@@ -76,7 +76,7 @@ func copyURLToFile(ctx context.Context, clientFn internalapi.HTTPClientFunc, url
 	if err != nil {
 		return fmt.Errorf("could not create request %v: %w", url, err)
 	}
-	res, err := clientFn().Do(req)
+	res, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("could not read %v: %w", url, err)
 	}

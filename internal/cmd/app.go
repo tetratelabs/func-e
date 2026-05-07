@@ -6,10 +6,10 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/urfave/cli/v3"
 
-	publicapi "github.com/tetratelabs/func-e/api"
 	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/runtime"
 	"github.com/tetratelabs/func-e/internal/version"
@@ -18,8 +18,8 @@ import (
 // NewApp create a new root command. The globals.GlobalOpts parameter allows tests to scope overrides, which avoids
 // having to define a flag for everything needed in tests.
 func NewApp(o *globals.GlobalOpts) *cli.Command {
-	if o.HTTPClientFunc == nil {
-		o.HTTPClientFunc = publicapi.DefaultHTTPClient
+	if o.HTTPClient == nil {
+		o.HTTPClient = http.DefaultClient
 	}
 
 	var envoyVersionsURL, homeDir, configHome, dataHome, stateHome, runtimeDir, platform, runID string

@@ -6,12 +6,12 @@ package globals
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"runtime"
 	"strings"
 
 	"github.com/tetratelabs/func-e/experimental/admin"
-	internalapi "github.com/tetratelabs/func-e/internal/api"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
@@ -23,8 +23,8 @@ type RunOpts struct {
 	EnvoyOut io.Writer
 	// EnvoyErr is where to write Envoy's stderr.
 	EnvoyErr io.Writer
-	// HTTPClientFunc creates the HTTP clients used during a run (admin polling, downloads).
-	HTTPClientFunc internalapi.HTTPClientFunc
+	// HTTPClient is the HTTP client used during a run (admin polling, downloads).
+	HTTPClient *http.Client
 	// RunDir is the per-run directory for logs. Generated from StateHome + runID.
 	RunDir string
 	// TempDir is the per-run directory for ephemeral files. Generated from RuntimeDir + runID.

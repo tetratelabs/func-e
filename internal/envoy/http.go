@@ -10,17 +10,13 @@ import (
 	"net/http"
 	neturl "net/url"
 	"time"
-
-	internalapi "github.com/tetratelabs/func-e/internal/api"
 )
 
 const userAgentHeader = "User-Agent"
 
-// httpGet GETs rawURL with a User-Agent header and one retry on transient
-// network errors.
-func httpGet(ctx context.Context, clientFn internalapi.HTTPClientFunc, rawURL, ua string) (*http.Response, error) {
-	client := clientFn()
-
+// httpGet GETs rawURL with a User-Agent header and one retry on transient network error.
+func httpGet(ctx context.Context, client *http.Client, rawURL, ua string) (*http.Response, error) {
+	// A loop avoids duplicating the request setup when a retry is needed.
 	for attempt := 0; ; attempt++ {
 		// #nosec -> url can be anywhere by design
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, http.NoBody)
@@ -31,26 +27,16 @@ func httpGet(ctx context.Context, clientFn internalapi.HTTPClientFunc, rawURL, u
 
 		resp, err := client.Do(req)
 
+		// Return unless this is the first attempt and it hit a transient network error.
 		if resp != nil || err == nil || ctx.Err() != nil || !isNetError(err) || attempt > 0 {
 			return resp, err
 		}
 
-		// Budget the retry delay from the remaining deadline to avoid wasting
-		// it on sleep (capped at 1s when there's no deadline).
-		delay := time.Second
-		if deadline, ok := ctx.Deadline(); ok {
-			if half := time.Until(deadline) / 2; half < delay {
-				delay = half
-			}
-		}
-		if delay <= 0 {
-			return resp, err
-		}
-
+		// Wait up to 1s before retrying, or bail if the context is canceled.
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
-		case <-time.After(delay):
+		case <-time.After(time.Second):
 		}
 	}
 }

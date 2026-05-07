@@ -11,8 +11,6 @@ import (
 	"net/http/httptest"
 	"sync"
 	"testing"
-
-	internalapi "github.com/tetratelabs/func-e/internal/api"
 )
 
 // Server is re-exported so callers importing this package don't also need to
@@ -38,12 +36,9 @@ func NewServer(t *testing.T, handler http.Handler) *httptest.Server {
 	return ts
 }
 
-// HandlerFactory returns a factory for a client that serves requests through
-// handler in the caller's goroutine.
-func HandlerFactory(handler http.Handler) internalapi.HTTPClientFunc {
-	return func() *http.Client {
-		return &http.Client{Transport: handlerTransport{handler: handler}}
-	}
+// HTTPClient returns a client that serves requests through handler in the caller's goroutine.
+func HTTPClient(handler http.Handler) *http.Client {
+	return &http.Client{Transport: handlerTransport{handler: handler}}
 }
 
 type memoryListener struct {

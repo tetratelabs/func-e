@@ -10,16 +10,15 @@ import (
 	"io"
 	"net/http"
 
-	internalapi "github.com/tetratelabs/func-e/internal/api"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
 // NewGetVersions creates a new Envoy versions fetcher.
 // TODO: validate the data before returning it!
-func NewGetVersions(clientFn internalapi.HTTPClientFunc, envoyVersionsURL, ua string) version.GetReleaseVersions {
+func NewGetVersions(client *http.Client, envoyVersionsURL, ua string) version.GetReleaseVersions {
 	return func(ctx context.Context) (*version.ReleaseVersions, error) {
 		// #nosec => This is by design, users can call out to wherever they like!
-		resp, err := httpGet(ctx, clientFn, envoyVersionsURL, ua)
+		resp, err := httpGet(ctx, client, envoyVersionsURL, ua)
 		if err != nil {
 			return nil, err
 		}
