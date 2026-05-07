@@ -15,14 +15,14 @@ import (
 
 // NewGetVersions creates a new Envoy versions fetcher.
 // TODO: validate the data before returning it!
-func NewGetVersions(envoyVersionsURL string, p version.Platform, v string) version.GetReleaseVersions {
+func NewGetVersions(client *http.Client, envoyVersionsURL, ua string) version.GetReleaseVersions {
 	return func(ctx context.Context) (*version.ReleaseVersions, error) {
 		// #nosec => This is by design, users can call out to wherever they like!
-		resp, err := httpGet(ctx, http.DefaultClient, envoyVersionsURL, p, v)
+		resp, err := httpGet(ctx, client, envoyVersionsURL, ua)
 		if err != nil {
 			return nil, err
 		}
-		defer resp.Body.Close() //nolint
+		defer resp.Body.Close() //nolint:errcheck // body fully read below
 
 		if resp.StatusCode != http.StatusOK {
 			return nil, fmt.Errorf("received %v status code from %v", resp.StatusCode, envoyVersionsURL)

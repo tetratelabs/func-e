@@ -1,67 +1,81 @@
-# This is built using - https://github.com/golangci/golangci-lint/blob/main/.golangci.reference.yml
-# To fix false positives see -https://github.com/golangci/golangci-lint/blob/f6b5aa31704fbfe1845f0453de142fc8f0e303db/docs/src/docs/usage/false-positives.mdx#L4
 version: 2
 
 run:
-  # Increase timeout for large codebase analysis
-  deadline: 5m
-
-  # Prevent go.mod changes during linting in CI
-  modules-download-mode: readonly
+  timeout: 5m
+  modules-download-mode: readonly # prevent go.mod changes during CI
 
 linters:
-  # Enable additional linters beyond defaults for better code quality
+  # defaults: errcheck, govet, ineffassign, staticcheck, unused
   enable:
-    - bodyclose        # Ensures response bodies are closed
-    - dupl             # Reports code clones
-    - goconst          # Finds repeated strings that could be constants
-    - gocritic         # The most opinionated Go source code linter
-    - gocyclo          # Checks cyclomatic complexity
-    - misspell         # Finds commonly misspelled English words
-    - nakedret         # Finds naked returns in functions greater than a specified function length
-    - prealloc         # Suggests preallocating slices when their capacity is known
-    - unconvert        # Removes unnecessary type conversions
-    - unparam          # Reports unused function parameters
-    - gomoddirectives  # Manages the use of 'replace', 'retract', and 'exclude' directives in go.mod
-    - copyloopvar      # Detects places where loop variables are copied (new in v2.x)
-    - durationcheck    # Check for two durations multiplied together (new in v2.x)
-    - errorlint        # Finds code that will cause problems with Go 1.13+ error wrapping (new in v2.x)
-    - grouper          # Analyze expression groups (new in v2.x)
-    - maintidx         # Measures the maintainability index of each function (new in v2.x)
-    - makezero         # Finds slice declarations with non-zero initial length (new in v2.x)
-    - predeclared      # Find code that shadows Go's predeclared identifiers (new in v2.x)
-    - usestdlibvars    # Detect possibility to use variables/constants from Go standard library (new in v2.x)
-    - whitespace       # Checks for unnecessary newlines (new in v2.x)
+    - bodyclose      # unclosed HTTP response bodies leak connections
+    - copyloopvar    # catches stale loop variable captures
+    - dupl           # flags copy-pasted code blocks
+    - durationcheck  # catches duration*duration mistakes
+    - errorlint      # enforces Go 1.13+ error wrapping
+    - goconst        # repeated string literals that should be constants
+    - gocritic       # broad diagnostic, style, and performance checks
+    - gocyclo        # rejects functions that are too complex to follow
+    - gomoddirectives # prevents stray replace/retract directives
+    - gosec          # security-oriented static analysis
+    - makezero       # catches append-to-nonzero-length slice bugs
+    - misspell       # catches typos in comments and strings
+    - modernize      # suggests modern Go idioms (range-over-int, min/max)
+    - nakedret       # bans bare returns in non-trivial functions
+    - nolintlint     # enforces well-formed nolint directives
+    - perfsprint     # flags fmt.Sprintf where string ops suffice
+    - predeclared    # catches shadowing of builtins
+    - prealloc       # suggests slice preallocation when capacity is known
+    - revive         # broad Go style and correctness checks
+    - testifylint    # enforces testify best practices
+    - thelper         # enforces t.Helper() in test helpers
+    - unconvert      # removes unnecessary type conversions
+    - unparam        # flags unused function parameters
+    - usestdlibvars  # flags hand-rolled constants available in stdlib
+    - usetesting     # flags os/context calls that should use testing equivalents
+    - whitespace     # removes unnecessary blank lines in functions
 
-  # Disable linters that are too strict or cause false positives
-  disable:
-    - godot            # Disabled because trailing periods in comments are not our style
-    - exhaustruct      # Requires setting all struct fields explicitly, which is very invasive
-    - paralleltest     # Can cause race conditions and test interference in complex test suites
-    - nlreturn         # Requires adding newlines before all returns, which is very invasive
+  settings:
+    errcheck:
+      check-blank: true           # _ = f() should not hide errors
+      check-type-assertions: true # unchecked type assertions can panic
+      exclude-functions:          # console-style writers whose errors don't matter
+        - fmt.Print
+        - fmt.Printf
+        - fmt.Println
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - (io.Writer).Write
+        - (net/http.ResponseWriter).Write
+        - (*bytes.Buffer).Write
+        - (*bytes.Buffer).WriteString
+        - (*os.File).WriteString
+    misspell:
+      locale: US
+    gocritic:
+      enabled-tags: # default is diagnostic only
+        - diagnostic
+        - style
+        - performance
+    revive:
+      enable-default-rules: true
+      rules:
+        # Keep revive's checks, but don't require comments that only restate
+        # exported helper names or package declarations.
+        - name: exported
+          disabled: true
+        - name: package-comments
+          disabled: true
 
-linters-settings:
-  dupl:
-    threshold: 100 # < 150 for better clone detection
-  misspell:
-    locale: US
-  lll:
-    line-length: 120  # > 80
-  gocritic:
-    enabled-tags: # more tags than default
-      - diagnostic
-      - style
-      - performance
-  funlen:
-    lines: 100  # > 60
-    statements: 50  # > 40
-
-issues:
   exclusions:
     rules:
-      # Exclude some linters from running on test files to reduce noise
-      - path: _test\.go
+      - path: (_test\.go|internal/test/|e2e/)
         linters:
-          - gocyclo     # Test functions often have higher complexity
-          - dupl        # Test code often has similar patterns
-          - gosec       # Security issues in test files are less critical
+          - errcheck # cleanup errors are deliberately ignored in tests
+          - goconst  # repeated fixture literals are clearer inline
+          - gosec    # tests use predictable perms and controlled fixtures
+      # Tests keep //nolint directives bare; non-test code must justify them.
+      - path: (_test\.go|internal/test/|e2e/)
+        text: "include an explanation for nolint directive"
+        linters:
+          - gocritic

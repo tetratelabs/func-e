@@ -23,7 +23,7 @@ The defaults are `~/.local/share/func-e`, `~/.local/state/func-e` and `/tmp/func
 FUNC_E_DATA_HOME=/tmp/test FUNC_E_STATE_HOME=/tmp/test FUNC_E_RUNTIME_DIR=/tmp/test make e2e
 ```
 
-Note: The deprecated `FUNC_E_HOME` environment variable is still supported for backwards compatibility.
+Note: The `FUNC_E_HOME` environment variable is still supported for backwards compatibility.
 
 ## Envoy version list
 If the `func-e` version is a snapshot and "envoy-versions.json" exists, tests run against the local. This allows local

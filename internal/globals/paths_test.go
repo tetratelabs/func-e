@@ -4,7 +4,6 @@
 package globals
 
 import (
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -130,14 +129,14 @@ func TestEnvoyRuntimeDir(t *testing.T) {
 			runtimeDir: "/tmp/func-e-1000",
 			homeDir:    "",
 			runID:      "20250115_123456_000",
-			expected:   filepath.Join("/tmp/func-e-1000", "20250115_123456_000"),
+			expected:   "/tmp/func-e-1000/20250115_123456_000",
 		},
 		{
 			name:       "legacy mode",
 			runtimeDir: "/home/user/func-e",
 			homeDir:    "/home/user/func-e",
 			runID:      "1619574747231823000",
-			expected:   filepath.Join("/home/user/func-e/runs", "1619574747231823000"),
+			expected:   "/home/user/func-e/runs/1619574747231823000",
 		},
 	}
 

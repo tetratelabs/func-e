@@ -5,23 +5,23 @@ package cmd_test
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"os/user"
 	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 
+	"github.com/tetratelabs/func-e/internal/admin"
 	rootcmd "github.com/tetratelabs/func-e/internal/cmd"
 	"github.com/tetratelabs/func-e/internal/envoy"
 	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/test"
+	"github.com/tetratelabs/func-e/internal/test/httptest"
 	"github.com/tetratelabs/func-e/internal/version"
 )
-
-const deprecationWarning = "WARNING: $FUNC_E_HOME (--home-dir) is deprecated and will be removed in a future version.\n" +
-	"Please use --config-home, --data-home, --state-home or --runtime-dir instead.\n"
 
 func TestFuncEValidateArgs(t *testing.T) {
 	tests := []struct {
@@ -46,11 +46,10 @@ func TestFuncEValidateArgs(t *testing.T) {
 
 func TestHomeDir(t *testing.T) {
 	type testCase struct {
-		name           string
-		args           []string
-		setup          func()
-		expected       string
-		expectedStderr string
+		name     string
+		args     []string
+		setup    func()
+		expected string
 	}
 
 	u, err := user.Current()
@@ -63,7 +62,7 @@ func TestHomeDir(t *testing.T) {
 		{
 			name:     "default",
 			args:     []string{"func-e"},
-			expected: filepath.Join(u.HomeDir, ".local/share/func-e"),
+			expected: filepath.Join(u.HomeDir, ".local", "share", "func-e"),
 		},
 		{
 			name: "FUNC_E_HOME env (legacy mode)",
@@ -71,14 +70,12 @@ func TestHomeDir(t *testing.T) {
 			setup: func() {
 				t.Setenv("FUNC_E_HOME", alt1)
 			},
-			expected:       alt1,
-			expectedStderr: deprecationWarning,
+			expected: alt1,
 		},
 		{
-			name:           "--home-dir arg (legacy mode)",
-			args:           []string{"func-e", "--home-dir", alt1},
-			expected:       alt1,
-			expectedStderr: deprecationWarning,
+			name:     "--home-dir arg (legacy mode)",
+			args:     []string{"func-e", "--home-dir", alt1},
+			expected: alt1,
 		},
 		{
 			name: "prioritizes --home-dir arg over FUNC_E_HOME env",
@@ -86,8 +83,7 @@ func TestHomeDir(t *testing.T) {
 			setup: func() {
 				t.Setenv("FUNC_E_HOME", alt2)
 			},
-			expected:       alt1,
-			expectedStderr: deprecationWarning,
+			expected: alt1,
 		},
 	}
 
@@ -99,17 +95,17 @@ func TestHomeDir(t *testing.T) {
 
 			o := &globals.GlobalOpts{}
 			c, _, stderr := newApp(o)
-			c.Commands = append(c.Commands, &cli.Command{Name: "test", Action: func(_ *cli.Context) error {
+			c.Commands = append(c.Commands, &cli.Command{Name: "test", Action: func(_ context.Context, _ *cli.Command) error {
 				return nil
 			}})
 
-			err := c.Run(append(tc.args, "test"))
+			err := c.Run(t.Context(), append(tc.args, "test"))
 
 			require.NoError(t, err)
 			// In legacy mode, all three directories point to the same location
 			require.Equal(t, tc.expected, o.DataHome)
 
-			require.Equal(t, tc.expectedStderr, stderr.String())
+			require.Empty(t, stderr)
 		})
 	}
 }
@@ -122,7 +118,7 @@ func TestDataHome(t *testing.T) {
 		envVar:      "FUNC_E_DATA_HOME",
 		flag:        "--data-home",
 		suffix:      "data",
-		defaultPath: filepath.Join(u.HomeDir, ".local/share/func-e"),
+		defaultPath: filepath.Join(u.HomeDir, ".local", "share", "func-e"),
 		accessor:    func(o *globals.GlobalOpts) string { return o.DataHome },
 	})
 }
@@ -135,7 +131,7 @@ func TestStateHome(t *testing.T) {
 		envVar:      "FUNC_E_STATE_HOME",
 		flag:        "--state-home",
 		suffix:      "state",
-		defaultPath: filepath.Join(u.HomeDir, ".local/state/func-e"),
+		defaultPath: filepath.Join(u.HomeDir, ".local", "state", "func-e"),
 		accessor:    func(o *globals.GlobalOpts) string { return o.StateHome },
 	})
 }
@@ -149,6 +145,7 @@ type dirConfigTest struct {
 }
 
 func testDirConfig(t *testing.T, cfg dirConfigTest) {
+	t.Helper()
 	type testCase struct {
 		name     string
 		args     []string
@@ -353,7 +350,7 @@ func TestEnvoyVersionsURL(t *testing.T) {
 }
 
 // newApp initializes a command with buffers for stdout and stderr.
-func newApp(o *globals.GlobalOpts) (c *cli.App, stdout, stderr *bytes.Buffer) {
+func newApp(o *globals.GlobalOpts) (c *cli.Command, stdout, stderr *bytes.Buffer) {
 	stdout = new(bytes.Buffer)
 	stderr = new(bytes.Buffer)
 	c = rootcmd.NewApp(o)
@@ -365,12 +362,13 @@ func newApp(o *globals.GlobalOpts) (c *cli.App, stdout, stderr *bytes.Buffer) {
 }
 
 func runTestCommand(t *testing.T, o *globals.GlobalOpts, args []string) error {
+	t.Helper()
 	c, stdout, stderr := newApp(o)
-	c.Commands = append(c.Commands, &cli.Command{Name: "test", Action: func(_ *cli.Context) error {
+	c.Commands = append(c.Commands, &cli.Command{Name: "test", Action: func(_ context.Context, _ *cli.Command) error {
 		return nil
 	}})
 
-	err := c.Run(append(args, "test"))
+	err := c.Run(t.Context(), append(args, "test"))
 
 	// Main handles logging of errors, so we expect nothing in stdout or stderr even in error case
 	require.Empty(t, stdout)
@@ -381,6 +379,7 @@ func runTestCommand(t *testing.T, o *globals.GlobalOpts, args []string) error {
 // setupTest returns globals.GlobalOpts and a tear-down function.
 // The tear-down functions reverts side-effects such as temp directories and a fake Envoy versions server.
 func setupTest(t *testing.T) *globals.GlobalOpts {
+	t.Helper()
 	result := globals.GlobalOpts{}
 	result.EnvoyVersion = version.LastKnownEnvoy
 	result.Platform = globals.DefaultPlatform
@@ -394,10 +393,10 @@ func setupTest(t *testing.T) *globals.GlobalOpts {
 	result.StateHome = t.TempDir()
 	result.RuntimeDir = t.TempDir()
 
-	versionsServer := test.RequireEnvoyVersionsTestServer(t, version.LastKnownEnvoy)
-	result.EnvoyVersionsURL = versionsServer.URL + "/envoy-versions.json"
-	result.GetEnvoyVersions = envoy.NewGetVersions(result.EnvoyVersionsURL, result.Platform, result.Version)
-
-	t.Cleanup(versionsServer.Close)
+	baseURL := "http://" + admin.ServerAddr
+	handler := test.NewEnvoyVersionsHandler(t, baseURL, version.LastKnownEnvoy)
+	result.HTTPClient = httptest.HTTPClient(handler)
+	result.EnvoyVersionsURL = baseURL + "/envoy-versions.json"
+	result.GetEnvoyVersions = envoy.NewGetVersions(result.HTTPClient, result.EnvoyVersionsURL, result.UserAgent)
 	return &result
 }

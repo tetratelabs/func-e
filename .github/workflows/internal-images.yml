@@ -29,13 +29,13 @@ jobs:
         include:
           - parent_image: quay.io/centos/centos:stream9  # Envoy requires CentOS >=9.
             image_tag: centos-9
-          - parent_image: ubuntu:20.04  # Always match runs-on!
+          - parent_image: ubuntu:24.04  # Always match runs-on!
             image_tag: ubuntu-24.04
 
     steps:
       # Same as doing this locally: echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_TOKEN}" --password-stdin
       - name: "Login into GitHub Container Registry"
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
@@ -47,12 +47,11 @@ jobs:
           password: ${{ secrets.GHCR_TOKEN }}
 
       # We need QEMU and Buildx for multi-platform (amd64+arm64) image push.
-      # Note: arm64 is run only by Travis. See RATIONALE.md
       - name: "Setup QEMU"
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
 
       - name: "Setup Buildx"
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: "Checkout"
         uses: actions/checkout@v6

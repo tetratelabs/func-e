@@ -5,34 +5,51 @@ package envoy
 
 import (
 	"context"
-	"fmt"
+	"errors"
+	"net"
 	"net/http"
-	"strings"
-
-	"github.com/tetratelabs/func-e/internal/version"
+	neturl "net/url"
+	"time"
 )
 
-// httpGet adds the userAgent header to the request, so that we can tell what is a dev build vs release.
-func httpGet(ctx context.Context, client *http.Client, url string, p version.Platform, v string) (*http.Response, error) {
+const userAgentHeader = "User-Agent"
+
+// httpGet GETs rawURL with a User-Agent header and one retry on transient network error.
+func httpGet(ctx context.Context, client *http.Client, rawURL, ua string) (*http.Response, error) {
 	// #nosec -> url can be anywhere by design
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
+	get := func() (*http.Response, error) {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, http.NoBody)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Add(userAgentHeader, ua)
+		return client.Do(req)
 	}
-	req.Header.Add("User-Agent", userAgent(p, v))
-	return client.Do(req)
+
+	resp, err := get()
+
+	// Return unless this hit a transient network error worth retrying.
+	if resp != nil || err == nil || ctx.Err() != nil || !isNetError(err) {
+		return resp, err
+	}
+
+	// Wait up to 1s before retrying, or bail if the context is canceled.
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case <-time.After(time.Second):
+	}
+
+	return get()
 }
 
-// userAgent returns the 'User-Agent' header value used in HTTP requests. This is useful in log, metrics, analytics, or
-// request filtering. As this is a CLI, the best 'User-Agent' is the binary version including platform.
-//
-// The returned value limits cardinality to formal release * platform or one value for all non-releases.
-//
-// Note: Analytics may not work out-of-box. For example, Netlify does not support server-side analytics on 'User-Agent',
-// and even its 'Referer' analytics are limited to requests to HTML resources.
-func userAgent(p version.Platform, v string) string {
-	if !strings.HasPrefix(v, "v") || strings.Contains(v, "SNAPSHOT") {
-		return "func-e/dev"
+// isNetError unwraps url.Error so transient dial/TLS failures are retried
+// while HTTP-level errors (4xx, 5xx) are not.
+func isNetError(err error) bool {
+	if urlErr, ok := errors.AsType[*neturl.Error](err); ok {
+		err = urlErr.Err
 	}
-	return fmt.Sprintf("func-e/%s (%s)", v, p)
+
+	netErr, ok := errors.AsType[net.Error](err)
+	return ok && netErr != nil
 }

@@ -7,10 +7,10 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -19,6 +19,7 @@ import (
 	"github.com/tetratelabs/func-e/internal/globals"
 )
 
+// LogFunc is a printf-style logger used to surface runtime status and errors.
 type LogFunc func(format string, a ...any)
 
 const (
@@ -38,8 +39,8 @@ func NewRuntime(opts *globals.RunOpts, logf LogFunc) *Runtime {
 		// Capture runDir in closure for config_dump collection
 		runDir := opts.RunDir
 		safeHook := &safeStartupHook{
-			delegate: func(ctx context.Context, adminClient internalapi.AdminClient, runID string) error {
-				return collectConfigDump(ctx, http.DefaultClient, adminClient, runDir)
+			delegate: func(ctx context.Context, adminClient internalapi.AdminClient, _ string) error {
+				return collectConfigDump(ctx, adminClient, runDir)
 			},
 			logf:    logf,
 			timeout: 3 * time.Second,
@@ -81,14 +82,14 @@ func (r *Runtime) String() string {
 //
 // Note: If adminAddressPathFlag is backfilled, it will be to the
 // globals.RunOpts RunDir, which is mutable.
-func ensureAdminAddress(logf LogFunc, runDir string, argsIn []string) (string, []string, error) {
-	args := argsIn
+func ensureAdminAddress(logf LogFunc, runDir string, argsIn []string) (adminAddressPath string, args []string, err error) {
+	args = argsIn
 	var hasConfig bool
-	var adminAddressPath string
 ARGS:
 	for i := 0; i < len(args); i++ {
-		switch args[i] {
-		case "-c", "--config-path", configYamlFlag:
+		arg := args[i]
+		switch {
+		case arg == "-c" || arg == "--config-path" || arg == configYamlFlag:
 			i++
 			if i < len(args) {
 				if args[i] != "" {
@@ -97,12 +98,30 @@ ARGS:
 				}
 			}
 			break ARGS
-		case adminAddressPathFlag:
+		case strings.HasPrefix(arg, "--config-path="):
+			if strings.TrimPrefix(arg, "--config-path=") != "" {
+				hasConfig = true
+				continue
+			}
+			break ARGS
+		case strings.HasPrefix(arg, configYamlFlag+"="):
+			if strings.TrimPrefix(arg, configYamlFlag+"=") != "" {
+				hasConfig = true
+				continue
+			}
+			break ARGS
+		case arg == adminAddressPathFlag:
 			i++
 			if i >= len(args) || args[i] == "" {
 				return "", args, fmt.Errorf("missing value to argument %q", adminAddressPathFlag)
 			}
 			adminAddressPath = args[i]
+			continue
+		case strings.HasPrefix(arg, adminAddressPathFlag+"="):
+			adminAddressPath = strings.TrimPrefix(arg, adminAddressPathFlag+"=")
+			if adminAddressPath == "" {
+				return "", args, fmt.Errorf("missing value to argument %q", adminAddressPathFlag)
+			}
 			continue
 		}
 	}

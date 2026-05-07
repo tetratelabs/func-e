@@ -11,6 +11,7 @@ import (
 	internalapi "github.com/tetratelabs/func-e/internal/api"
 )
 
+// FuncEFactory creates FuncE instances under test.
 type FuncEFactory interface {
 	New(ctx context.Context, t *testing.T, stdout, stderr io.Writer) (FuncE, error)
 }

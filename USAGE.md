@@ -42,7 +42,7 @@ such as glibc. This value must be constant within a `$FUNC_E_DATA_HOME`.
 
 | Name | Usage | Default |
 | ---- | ----- | ------- |
-| FUNC_E_HOME | (deprecated) func-e home directory - use --config-home, --data-home, --state-home or --runtime-dir instead |  |
+| FUNC_E_HOME | func-e home directory |  |
 | FUNC_E_CONFIG_HOME | directory for configuration files | ${HOME}/.config/func-e |
 | FUNC_E_DATA_HOME | directory for Envoy binaries | ${HOME}/.local/share/func-e |
 | FUNC_E_STATE_HOME | directory for logs (used by run command) | ${HOME}/.local/state/func-e |

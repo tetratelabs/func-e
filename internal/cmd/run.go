@@ -4,9 +4,10 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 
 	"github.com/tetratelabs/func-e/internal/envoy"
 	"github.com/tetratelabs/func-e/internal/globals"
@@ -15,11 +16,13 @@ import (
 
 // NewRunCmd create a command responsible for starting an Envoy process
 func NewRunCmd(o *globals.GlobalOpts) *cli.Command {
+	stopOnFirstArg := 0
 	cmd := &cli.Command{
-		Name:            "run",
-		Usage:           "Run Envoy with the given [arguments...] until interrupted",
-		ArgsUsage:       "[arguments...]",
-		SkipFlagParsing: true,
+		Name:         "run",
+		Usage:        "Run Envoy with the given [arguments...] until interrupted",
+		ArgsUsage:    "[arguments...]",
+		StopOnNthArg: &stopOnFirstArg,
+		HideHelp:     true,
 		Description: `To run Envoy, execute ` + "`func-e run -c your_envoy_config.yaml`" + `.
 
 The first version in the below is run, controllable by the "use" command:
@@ -31,18 +34,17 @@ directory (aka $PWD) until func-e is interrupted (ex Ctrl+C, Ctrl+Break).
 
 Envoy's console output writes to "stdout.log" and "stderr.log" in the run directory
 (` + fmt.Sprintf("`%s`", globals.DefaultStateHome) + `/envoy-logs/{runID}).`,
-		Before: func(c *cli.Context) error {
-			if err := runtime.EnsureEnvoyVersion(c.Context, o); err != nil {
-				return NewValidationError(err.Error())
+		Before: func(ctx context.Context, _ *cli.Command) (context.Context, error) {
+			if err := runtime.EnsureEnvoyVersion(ctx, o); err != nil {
+				return ctx, NewValidationError(err.Error())
 			}
-			return nil
+			return ctx, nil
 		},
-		Action: func(c *cli.Context) error {
-			o.EnvoyOut = c.App.Writer
-			o.EnvoyErr = c.App.ErrWriter
-			return runtime.Run(c.Context, o, c.Args().Slice())
+		Action: func(ctx context.Context, c *cli.Command) error {
+			o.EnvoyOut = c.Root().Writer
+			o.EnvoyErr = c.Root().ErrWriter
+			return runtime.Run(ctx, o, c.Args().Slice())
 		},
-		CustomHelpTemplate: cli.CommandHelpTemplate,
 	}
 	return cmd
 }

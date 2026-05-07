@@ -12,7 +12,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 
 	"github.com/tetratelabs/func-e/internal/cmd"
 	"github.com/tetratelabs/func-e/internal/globals"
@@ -32,25 +32,24 @@ func run(stdout, stderr io.Writer, args []string) int {
 	app := cmd.NewApp(&globals.GlobalOpts{Version: version, Out: stdout})
 	app.Writer = stdout
 	app.ErrWriter = stderr
-	app.Action = func(c *cli.Context) error {
+	app.Action = func(_ context.Context, c *cli.Command) error {
 		command := c.Args().First()
 		if command == "" { // Show help by default
 			return cli.ShowSubcommandHelp(c)
 		}
 		return cmd.NewValidationError(fmt.Sprintf("unknown command %q", command))
 	}
-	app.OnUsageError = func(c *cli.Context, err error, isSub bool) error {
+	app.OnUsageError = func(_ context.Context, _ *cli.Command, err error, _ bool) error {
 		return cmd.NewValidationError(err.Error())
 	}
 	sigCtx, sigCancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer sigCancel()
-	if err := app.RunContext(sigCtx, args); err != nil {
-		var validationErr *cmd.ValidationError
-		if errors.As(err, &validationErr) {
-			fmt.Fprintf(stderr, "%s\n", err) //nolint:errcheck
+	if err := app.Run(sigCtx, args); err != nil {
+		if validationErr, ok := errors.AsType[*cmd.ValidationError](err); ok && validationErr != nil {
+			_, _ = fmt.Fprintf(stderr, "%s\n", err)
 			logUsageError(app.Name, stderr)
 		} else {
-			fmt.Fprintf(stderr, "error: %s\n", err) //nolint:errcheck
+			_, _ = fmt.Fprintf(stderr, "error: %s\n", err)
 		}
 		return 1
 	}
@@ -58,5 +57,5 @@ func run(stdout, stderr io.Writer, args []string) int {
 }
 
 func logUsageError(name string, stderr io.Writer) {
-	fmt.Fprintf(stderr, "show usage with: %s help\n", name) //nolint:errcheck
+	_, _ = fmt.Fprintf(stderr, "show usage with: %s help\n", name)
 }

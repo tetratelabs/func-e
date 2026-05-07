@@ -27,7 +27,7 @@ var LastKnownEnvoy = NewPatchVersion(lastKnownEnvoy)
 var (
 	// LastKnownEnvoyMinor is a convenience constant
 	LastKnownEnvoyMinor = LastKnownEnvoy.ToMinor()
-	versionPattern      = regexp.MustCompile(`^([1-9][0-9]*\.[0-9]+)(\.[0-9]+)?(` + debugSuffix + `)?$`)
+	versionPattern      = regexp.MustCompile(`^([1-9]\d*\.\d+)(\.\d+)?(` + debugSuffix + `)?$`)
 )
 
 // debugSuffix is used to implement PatchVersion.ToMinor
@@ -111,7 +111,7 @@ func (v PatchVersion) Patch() int {
 	if matched == nil {
 		return 0 // impossible if created via NewVersion or NewPatchVersion
 	}
-	i, _ := strconv.Atoi(matched[2][1:]) // matched[2] will look like .1 or .10
+	i, _ := strconv.Atoi(matched[2][1:]) //nolint:errcheck // versionPattern guarantees the suffix is numeric
 	return i
 }
 

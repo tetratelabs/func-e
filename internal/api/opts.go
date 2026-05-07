@@ -7,7 +7,11 @@ package api
 
 import (
 	"io"
+	"net/http"
 )
+
+// HTTPTransport creates the HTTP client transport used during a run.
+type HTTPTransport func() http.RoundTripper
 
 // RunOpts holds the configuration set by RunOptions.
 type RunOpts struct {
@@ -21,6 +25,7 @@ type RunOpts struct {
 	Out              io.Writer
 	EnvoyOut         io.Writer
 	EnvoyErr         io.Writer
+	HTTPTransport    http.RoundTripper
 	EnvoyPath        string      // Internal: path to the Envoy binary (for tests).
 	StartupHook      StartupHook // Experimental: custom startup hook
 }

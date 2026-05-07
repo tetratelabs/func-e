@@ -119,10 +119,11 @@ func fprintf(w io.Writer, format string, args ...interface{}) {
 // parseArgs processes command-line arguments, collecting config-related flags and detecting admin path.
 func parseArgs() (adminAddressPath, configPath, configYaml string) {
 	for i := 1; i < len(os.Args); i++ {
-		switch os.Args[i] {
-		case "run": // Prevent uber bug
+		arg := os.Args[i]
+		switch {
+		case arg == "run": // Prevent uber bug
 			exit(1, "run -- Couldn't find match for argument")
-		case "-c", "--config-path":
+		case arg == "-c" || arg == "--config-path":
 			if configPath != "" {
 				exit(1, "-c (--config-path) -- Argument already set!")
 			}
@@ -130,7 +131,12 @@ func parseArgs() (adminAddressPath, configPath, configYaml string) {
 				i++
 				configPath = os.Args[i]
 			}
-		case "--config-yaml":
+		case strings.HasPrefix(arg, "--config-path="):
+			if configPath != "" {
+				exit(1, "-c (--config-path) -- Argument already set!")
+			}
+			configPath = strings.TrimPrefix(arg, "--config-path=")
+		case arg == "--config-yaml":
 			if configYaml != "" {
 				exit(1, "(--config-yaml) -- Argument already set!")
 			}
@@ -138,7 +144,12 @@ func parseArgs() (adminAddressPath, configPath, configYaml string) {
 				i++
 				configYaml = os.Args[i]
 			}
-		case "--admin-address-path":
+		case strings.HasPrefix(arg, "--config-yaml="):
+			if configYaml != "" {
+				exit(1, "(--config-yaml) -- Argument already set!")
+			}
+			configYaml = strings.TrimPrefix(arg, "--config-yaml=")
+		case arg == "--admin-address-path":
 			if adminAddressPath != "" {
 				exit(1, "(--admin-address-path) -- Argument already set!")
 			}
@@ -146,7 +157,12 @@ func parseArgs() (adminAddressPath, configPath, configYaml string) {
 				i++
 				adminAddressPath = os.Args[i]
 			}
-		case "-l", "--log-level":
+		case strings.HasPrefix(arg, "--admin-address-path="):
+			if adminAddressPath != "" {
+				exit(1, "(--admin-address-path) -- Argument already set!")
+			}
+			adminAddressPath = strings.TrimPrefix(arg, "--admin-address-path=")
+		case arg == "-l" || arg == "--log-level":
 			if currentLogLevel != logLevelInfo {
 				exit(1, "-l (--log-level) -- Argument already set!")
 			}
@@ -154,6 +170,11 @@ func parseArgs() (adminAddressPath, configPath, configYaml string) {
 				i++
 				currentLogLevel = parseLogLevel(os.Args[i])
 			}
+		case strings.HasPrefix(arg, "--log-level="):
+			if currentLogLevel != logLevelInfo {
+				exit(1, "-l (--log-level) -- Argument already set!")
+			}
+			currentLogLevel = parseLogLevel(strings.TrimPrefix(arg, "--log-level="))
 		}
 	}
 	return adminAddressPath, configPath, configYaml
@@ -228,11 +249,9 @@ func startStaticListeners(cfg *config.Config, wg *sync.WaitGroup, servers *[]*ht
 		*servers = append(*servers, server)
 		*listeners = append(*listeners, ln)
 
-		wg.Add(1)
-		go func(srv *http.Server, ln net.Listener) {
-			defer wg.Done()
-			_ = srv.Serve(ln)
-		}(server, ln)
+		wg.Go(func() {
+			_ = server.Serve(ln)
+		})
 	}
 }
 
@@ -255,12 +274,10 @@ func startAdminServer(adminAddress, adminAddressPath string, wg *sync.WaitGroup,
 	*servers = append(*servers, adminServer)
 	*listeners = append(*listeners, ln)
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		close(serverReady)
 		_ = adminServer.Serve(ln)
-	}()
+	})
 
 	<-serverReady
 	fprintf(os.Stderr, "admin address: %s\n", addr)

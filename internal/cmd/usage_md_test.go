@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/urfave/cli/v2"
+	docs "github.com/urfave/cli-docs/v3"
 
 	"github.com/tetratelabs/func-e/internal/globals"
 )
@@ -18,16 +18,16 @@ const siteMarkdownFile = "../../USAGE.md"
 // TestUsageMarkdownMatchesCommands is in the "cmd" package because changes here will drift siteMarkdownFile.
 func TestUsageMarkdownMatchesCommands(t *testing.T) {
 	// Use a custom markdown template
-	old := cli.MarkdownDocTemplate
-	defer func() { cli.MarkdownDocTemplate = old }()
-	cli.MarkdownDocTemplate = `# func-e Overview
-{{ .App.UsageText }}
+	old := docs.MarkdownDocTemplate
+	defer func() { docs.MarkdownDocTemplate = old }()
+	docs.MarkdownDocTemplate = `# func-e Overview
+{{ .Command.UsageText }}
 
 # Commands
 
 | Name | Usage |
 | ---- | ----- |
-{{range $index, $cmd := .App.VisibleCommands}}{{if $index}}
+{{range $index, $cmd := .Command.Commands}}{{if $index}}
 {{end}}| {{$cmd.Name}} | {{$cmd.Usage}} |{{end}}
 | --version, -v | Print the version of func-e |
 
@@ -35,11 +35,11 @@ func TestUsageMarkdownMatchesCommands(t *testing.T) {
 
 | Name | Usage | Default |
 | ---- | ----- | ------- |
-{{range $index, $option := .App.VisibleFlags}}{{if $index}}
-{{end}}| {{index $option.EnvVars 0}} | {{$option.Usage}} | {{$option.DefaultText}} |{{end}}
+{{range $index, $option := .Command.VisibleFlags}}{{if $index}}
+{{end}}| {{index $option.GetEnvVars 0}} | {{$option.GetUsage}} | {{$option.GetDefaultText}} |{{end}}
 `
 	a := NewApp(&globals.GlobalOpts{})
-	expected, err := a.ToMarkdown()
+	expected, err := docs.ToMarkdown(a)
 	require.NoError(t, err)
 
 	actual, err := os.ReadFile(siteMarkdownFile)

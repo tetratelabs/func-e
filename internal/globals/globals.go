@@ -6,6 +6,7 @@ package globals
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"runtime"
 	"strings"
@@ -22,6 +23,8 @@ type RunOpts struct {
 	EnvoyOut io.Writer
 	// EnvoyErr is where to write Envoy's stderr.
 	EnvoyErr io.Writer
+	// HTTPClient is the HTTP client used during a run (admin polling, downloads).
+	HTTPClient *http.Client
 	// RunDir is the per-run directory for logs. Generated from StateHome + runID.
 	RunDir string
 	// TempDir is the per-run directory for ephemeral files. Generated from RuntimeDir + runID.
@@ -60,7 +63,7 @@ type GlobalOpts struct {
 	StateHome string
 	// RuntimeDir is the directory for ephemeral runtime files. Defaults to DefaultRuntimeDir
 	RuntimeDir string
-	// HomeDir is the deprecated FUNC_E_HOME directory. When set, legacy paths are used.
+	// HomeDir is the FUNC_E_HOME directory. When set, legacy paths are used.
 	HomeDir string
 	// Quiet means don't Logf to Out
 	Quiet bool
@@ -68,12 +71,16 @@ type GlobalOpts struct {
 	Out io.Writer
 	// The platform to target for the Envoy install.
 	Platform version.Platform
+	// UserAgent is the User-Agent header for HTTP requests. Limits cardinality
+	// to formal `release * platform` or one value for all non-releases, useful
+	// in log/metrics/request filtering.
+	UserAgent string
 	// GetEnvoyVersions returns Envoy release versions from EnvoyVersionsURL.
 	GetEnvoyVersions version.GetReleaseVersions
 }
 
 // Logf is used for shared functions that log conditionally on GlobalOpts.Quiet
-func (o *GlobalOpts) Logf(format string, a ...interface{}) {
+func (o *GlobalOpts) Logf(format string, a ...any) {
 	if o.Quiet { // TODO: we may want to do scoped logging via a Context property, if this becomes common.
 		return
 	}
@@ -81,7 +88,7 @@ func (o *GlobalOpts) Logf(format string, a ...interface{}) {
 	if !strings.HasSuffix(format, "\n") {
 		format += "\n"
 	}
-	fmt.Fprintf(o.Out, format, a...) //nolint:errcheck
+	fmt.Fprintf(o.Out, format, a...)
 }
 
 // Mkdirs creates XDG Base Directory directories needed by func-e.
@@ -103,7 +110,8 @@ func (o *GlobalOpts) Mkdirs() error {
 	// Per-run directories (only when actually running Envoy)
 	// os.MkdirAll creates intermediate directories automatically
 	if o.RunDir != "" {
-		dirs = append(dirs,
+		dirs = append(
+			dirs,
 			struct {
 				path string
 				perm os.FileMode
@@ -128,6 +136,8 @@ const (
 	DefaultEnvoyVersionsURL = "https://archive.tetratelabs.io/envoy/envoy-versions.json"
 	// DefaultEnvoyVersionsSchemaURL is the JSON schema used to validate GlobalOpts.EnvoyVersionsURL
 	DefaultEnvoyVersionsSchemaURL = "https://archive.tetratelabs.io/release-versions-schema.json"
+	// DefaultDevUserAgent is the User-Agent for non-release builds
+	DefaultDevUserAgent = "func-e/dev"
 	// DefaultPlatform is the current platform of the host machine
 	DefaultPlatform = version.Platform(runtime.GOOS + "/" + runtime.GOARCH)
 )

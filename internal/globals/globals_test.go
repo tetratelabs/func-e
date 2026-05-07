@@ -14,17 +14,17 @@ import (
 
 func TestGlobalOpts_Mkdirs(t *testing.T) {
 	testCases := []struct {
-		name          string
-		initialDirs   map[string]fs.FileMode // directories to create before calling Mkdirs (empty means create none)
-		runID         string                 // empty means no per-run directories
-		expectedError string
-		expectedDirs  map[string]fs.FileMode // directories that should exist with correct perms after Mkdirs
+		name         string
+		initialDirs  map[string]fs.FileMode // directories to create before calling Mkdirs (empty means create none)
+		runID        string                 // empty means no per-run directories
+		expectedErr  string
+		expectedDirs map[string]fs.FileMode // directories that should exist with correct perms after Mkdirs
 	}{
 		{
-			name:          "creates only base directories when no runID",
-			initialDirs:   map[string]fs.FileMode{}, // nothing exists
-			runID:         "",                       // no per-run directories
-			expectedError: "",
+			name:        "creates only base directories when no runID",
+			initialDirs: map[string]fs.FileMode{}, // nothing exists
+			runID:       "",                       // no per-run directories
+			expectedErr: "",
 			expectedDirs: map[string]fs.FileMode{
 				"config":              0o750,
 				"data":                0o750,
@@ -38,8 +38,8 @@ func TestGlobalOpts_Mkdirs(t *testing.T) {
 				"config": 0o755,
 				"data":   0o755,
 			},
-			runID:         "",
-			expectedError: "",
+			runID:       "",
+			expectedErr: "",
 			expectedDirs: map[string]fs.FileMode{
 				"data/envoy-versions": 0o750,
 			},
@@ -51,15 +51,15 @@ func TestGlobalOpts_Mkdirs(t *testing.T) {
 				"data":                0o755,
 				"data/envoy-versions": 0o755,
 			},
-			runID:         "",
-			expectedError: "",
-			expectedDirs:  map[string]fs.FileMode{}, // All pre-exist, just verify no errors
+			runID:        "",
+			expectedErr:  "",
+			expectedDirs: map[string]fs.FileMode{}, // All pre-exist, just verify no errors
 		},
 		{
-			name:          "creates per-run directories when runID is set",
-			initialDirs:   map[string]fs.FileMode{},
-			runID:         "20250413_123045_001",
-			expectedError: "",
+			name:        "creates per-run directories when runID is set",
+			initialDirs: map[string]fs.FileMode{},
+			runID:       "20250413_123045_001",
+			expectedErr: "",
 			expectedDirs: map[string]fs.FileMode{
 				"config":                               0o750,
 				"data":                                 0o750,
@@ -73,8 +73,8 @@ func TestGlobalOpts_Mkdirs(t *testing.T) {
 			initialDirs: map[string]fs.FileMode{
 				"config": 0o755,
 			},
-			runID:         "20250413_123045_002",
-			expectedError: "",
+			runID:       "20250413_123045_002",
+			expectedErr: "",
 			expectedDirs: map[string]fs.FileMode{
 				"data":                                 0o750,
 				"data/envoy-versions":                  0o750,
@@ -119,9 +119,9 @@ func TestGlobalOpts_Mkdirs(t *testing.T) {
 			err := o.Mkdirs()
 
 			// Check error expectation
-			if tc.expectedError != "" {
+			if tc.expectedErr != "" {
 				require.Error(t, err)
-				require.EqualError(t, err, tc.expectedError)
+				require.EqualError(t, err, tc.expectedErr)
 				return
 			}
 			require.NoError(t, err)

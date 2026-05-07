@@ -5,6 +5,7 @@ package run
 
 import (
 	"context"
+	"net/http"
 	"os"
 
 	"github.com/tetratelabs/func-e/api"
@@ -46,9 +47,10 @@ func runImpl(ctx context.Context, args []string, options ...api.RunOption) error
 
 func initOpts(ctx context.Context, options ...api.RunOption) (*globals.GlobalOpts, error) {
 	ro := &internalapi.RunOpts{
-		Out:      os.Stdout,
-		EnvoyOut: os.Stdout,
-		EnvoyErr: os.Stderr,
+		Out:           os.Stdout,
+		EnvoyOut:      os.Stdout,
+		EnvoyErr:      os.Stderr,
+		HTTPTransport: http.DefaultTransport,
 	}
 	for _, option := range options {
 		option(ro)
@@ -65,6 +67,7 @@ func initOpts(ctx context.Context, options ...api.RunOption) (*globals.GlobalOpt
 			EnvoyPath:   ro.EnvoyPath,
 			EnvoyOut:    ro.EnvoyOut,
 			EnvoyErr:    ro.EnvoyErr,
+			HTTPClient:  &http.Client{Transport: ro.HTTPTransport},
 			StartupHook: ro.StartupHook,
 			// TempDir is set later in initializeRunOpts via EnvoyRuntimeDir(runID)
 		},

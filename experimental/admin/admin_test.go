@@ -25,7 +25,7 @@ func TestWithStartupHook(t *testing.T) {
 	var actualRunID string
 
 	// Inject startup hook that captures the adminPort and runID
-	startupHook := func(ctx context.Context, adminClient admin.AdminClient, runID string) error {
+	startupHook := func(_ context.Context, adminClient admin.AdminClient, runID string) error {
 		actualAdminPort = adminClient.Port()
 		actualRunID = runID
 		// Cancel immediately to stop Envoy and complete test quickly
@@ -33,23 +33,17 @@ func TestWithStartupHook(t *testing.T) {
 		return nil
 	}
 
-	// Set up fake envoy versions server
 	versionsServer := test.RequireEnvoyVersionsTestServer(t, version.LastKnownEnvoy)
 	defer versionsServer.Close()
-
-	// Use temp directories to isolate test from real system
-	tempDir := t.TempDir()
 
 	opts := []api.RunOption{
 		api.EnvoyOut(io.Discard),
 		api.EnvoyErr(io.Discard),
-		api.ConfigHome(tempDir),
-		api.DataHome(tempDir),
-		api.StateHome(tempDir),
-		api.RuntimeDir(tempDir),
+		api.HomeDir(t.TempDir()),
 		api.EnvoyVersionsURL(versionsServer.URL + "/envoy-versions.json"),
 		admin.WithStartupHook(startupHook),
 	}
+
 	// Run with minimal Envoy config
 	err := func_e.Run(ctx, []string{
 		"--config-yaml",

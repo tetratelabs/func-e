@@ -42,7 +42,7 @@ func TestFuncEUse(t *testing.T) {
 		stdout, stderr, err := funcEExec(t.Context(), "--config-home", configHome, "--data-home", dataHome, "use", version.LastKnownEnvoy.String())
 
 		require.NoError(t, err)
-		require.Equal(t, fmt.Sprintf("%s is already downloaded\n", version.LastKnownEnvoy.String()), stdout)
+		require.Equal(t, version.LastKnownEnvoy.String()+" is already downloaded\n", stdout)
 		require.Empty(t, stderr)
 	})
 }
@@ -143,7 +143,7 @@ func TestFuncEUse_MinorVersion(t *testing.T) {
 	t.Run("which upgraded version", func(t *testing.T) {
 		stdout, stderr, err := funcEExec(t.Context(), "--config-home", configHome, "--data-home", dataHome, "which")
 		relativeEnvoyBin := filepath.Join("envoy-versions", upgradedVersion, "bin", "envoy"+"")
-		require.Contains(t, stdout, fmt.Sprintf("%s\n", relativeEnvoyBin))
+		require.Contains(t, stdout, relativeEnvoyBin+"\n")
 		require.Empty(t, stderr)
 		require.NoError(t, err)
 	})

@@ -4,49 +4,33 @@
 package func_e_test
 
 import (
-	"bytes"
-	"fmt"
-	"os"
-	"os/exec"
+	"net/http"
+	"net/url"
 	"testing"
+	"testing/synctest"
 
 	"github.com/stretchr/testify/require"
 
 	func_e "github.com/tetratelabs/func-e"
 	"github.com/tetratelabs/func-e/api"
-	"github.com/tetratelabs/func-e/internal"
-	"github.com/tetratelabs/func-e/internal/run"
-	"github.com/tetratelabs/func-e/internal/test/build"
+	"github.com/tetratelabs/func-e/internal/test/httptest"
 )
 
-// TestFuncERun_InvalidConfig takes care to not duplicate test/e2e/testrun.go,
-// but still give some coverage.
-func TestFuncERun_InvalidConfig(t *testing.T) {
-	var stdout, stderr bytes.Buffer
-	err := func_e.Run(t.Context(), []string{},
-		api.EnvoyVersion("1.0.0"), // intentional invalid to avoid a runtime lookup
-		api.HomeDir(t.TempDir()),  //nolint:staticcheck // intentional use of deprecated API for legacy mode testing
-		run.EnvoyPath(fakeEnvoyBin),
-		api.Out(&stdout),
-		api.EnvoyOut(&stdout),
-		api.EnvoyErr(&stderr))
+// TestRun shows func-e works inside synctest.Test without real network I/O.
+func TestRun(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		// Pipe-backed server keeps all I/O in-process, compatible with synctest.
+		var actualURL *url.URL
+		ts := httptest.NewServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			actualURL = r.URL
+			w.WriteHeader(http.StatusNotFound)
+		}))
 
-	var exitErr *exec.ExitError
-	require.ErrorAs(t, err, &exitErr)
-	require.Equal(t, 1, exitErr.ExitCode())
-
-	require.Contains(t, stdout.String(), fakeEnvoyBin)
-	require.Contains(t, stderr.String(), "At least one of --config-path or --config-yaml")
-}
-
-// fakeEnvoyBin holds a path to the compiled internal.FakeEnvoySrcPath
-var fakeEnvoyBin string
-
-func TestMain(m *testing.M) {
-	var err error
-	if fakeEnvoyBin, err = build.GoBuild(internal.FakeEnvoySrcPath, os.TempDir()); err != nil {
-		fmt.Fprintf(os.Stderr, `failed to start api tests due to build error: %v\n`, err) //nolint:errcheck
-		os.Exit(1)
-	}
-	os.Exit(m.Run())
+		// Route func-e's HTTP traffic through the test server via its transport.
+		versionsURL := ts.URL + "/envoy-versions.json"
+		err := func_e.Run(t.Context(), []string{"--config-yaml", "foo"},
+			api.HomeDir(t.TempDir()), api.EnvoyVersionsURL(versionsURL), api.HTTPTransport(ts.Client().Transport))
+		require.Error(t, err)
+		require.Equal(t, "/envoy-versions.json", actualURL.String())
+	})
 }

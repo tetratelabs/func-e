@@ -21,7 +21,7 @@ const (
 
 // WriteCurrentVersion writes the version to CurrentVersionWorkingDirFile or version file depending on
 // if the former is present.
-func WriteCurrentVersion(v version.Version, configHome, versionFilePath string) error {
+func WriteCurrentVersion(v version.Version, _, versionFilePath string) error {
 	if _, err := os.Stat(".envoy-version"); os.IsNotExist(err) {
 		return os.WriteFile(versionFilePath, []byte(v.String()), 0o600)
 	} else if err != nil {
@@ -35,7 +35,7 @@ func WriteCurrentVersion(v version.Version, configHome, versionFilePath string) 
 // In the case no version was found, the version returned will be nil, not an error.
 // versionFileSource is the display string for the version file (e.g. "$FUNC_E_HOME/version" in legacy mode,
 // "$FUNC_E_DATA_HOME/envoy-version" otherwise).
-func CurrentVersion(dataHome, versionFilePath, versionFileSource string) (v version.Version, source string, err error) {
+func CurrentVersion(_, versionFilePath, versionFileSource string) (v version.Version, source string, err error) {
 	s, source, err := getCurrentVersion(versionFilePath, versionFileSource)
 	v, err = verifyVersion(s, source, versionFileSource, err)
 	return v, source, err
@@ -76,7 +76,7 @@ func getCurrentVersion(versionFilePath, versionFileSource string) (v, source str
 
 func getDataVersion(versionFilePath string) (v string, err error) {
 	var data []byte
-	if data, err = os.ReadFile(versionFilePath); err == nil { //nolint:gosec
+	if data, err = os.ReadFile(versionFilePath); err == nil { //nolint:gosec // versionFilePath is the user's configured XDG data path
 		v = strings.TrimSpace(string(data))
 	} else if os.IsNotExist(err) {
 		err = nil // ok on file-not-found

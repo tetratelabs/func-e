@@ -35,7 +35,7 @@ func GoBuild(src, outDir string) (string, error) {
 	// Use the same naming convention for the out file as its source directory
 	baseName := filepath.Base(filepath.Dir(src))
 	out := filepath.Join(outDir, baseName)
-	fmt.Fprintf(os.Stderr, "Building %s...\n", out) //nolint:errcheck
+	fmt.Fprintf(os.Stderr, "Building %s...\n", out)
 	// Build from the project root directory
 	buildCmd := exec.Command(goBin, "build",
 		"-ldflags", "-s -w -X main.version=dev",
@@ -57,18 +57,19 @@ func findGoBin() (string, error) {
 	goBin := filepath.Join(os.Getenv("GOROOT"), "bin", binName)
 	if _, err := os.Stat(goBin); err == nil {
 		return goBin, nil
-	} else if goBin, err = exec.LookPath(binName); err != nil {
-		return "", fmt.Errorf("could not find %s in GOROOT or PATH: %w", binName, err)
-	} else {
-		return goBin, nil
 	}
+	goBin, err := exec.LookPath(binName)
+	if err != nil {
+		return "", fmt.Errorf("could not find %s in GOROOT or PATH: %w", binName, err)
+	}
+	return goBin, nil
 }
 
 // findGoModRoot walks up the directory tree to find the directory containing go.mod
 func findGoModRoot() (string, error) {
 	_, file, _, ok := runtime.Caller(0)
 	if !ok {
-		return "", fmt.Errorf("could not determine current file path")
+		return "", errors.New("could not determine current file path")
 	}
 	dir := filepath.Dir(file)
 
@@ -79,7 +80,7 @@ func findGoModRoot() (string, error) {
 
 		parent := filepath.Dir(dir)
 		if parent == dir {
-			return "", fmt.Errorf("no go.mod found in any parent directory")
+			return "", errors.New("no go.mod found in any parent directory")
 		}
 		dir = parent
 	}

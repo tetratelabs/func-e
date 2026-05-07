@@ -8,11 +8,9 @@
 # installs more packages for the `check` and `dist` targets.
 # To run RPM tests on CentOS, you must build them first on Ubuntu.
 #
-# This build is intended for use in a matrix, testing all major Linux platforms
-# supported by Envoy: Ubuntu and CentOS * amd64 and arm64. Notably, this adds
-# CentOS and arm64 which aren't available natively on GitHub Actions. It is
-# intended to run arm64 with Travis (as opposed to via emulation). In any case,
-# all matrixes should be pushed for local debugging.
+# Used in a matrix testing Envoy-supported Linux platforms: Ubuntu and CentOS
+# * amd64 and arm64. CentOS has no GitHub-hosted runner image, so we ship one
+# as a container.
 #
 # e.g. Build the images:
 # ```bash

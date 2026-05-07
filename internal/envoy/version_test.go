@@ -11,7 +11,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tetratelabs/func-e/internal/test/morerequire"
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
@@ -46,8 +45,7 @@ func TestWriteCurrentVersion_OverwritesWorkingDirVersion(t *testing.T) {
 	homeVersionFile := filepath.Join(homeDir, "version")
 	require.NoError(t, os.WriteFile(homeVersionFile, []byte("1.1.1"), 0o600))
 
-	revertWd := morerequire.RequireChdir(t, t.TempDir())
-	defer revertWd()
+	t.Chdir(t.TempDir())
 	require.NoError(t, os.WriteFile(".envoy-version", []byte("2.2.2"), 0o600))
 
 	require.NoError(t, WriteCurrentVersion(version.PatchVersion("3.3.3"), homeDir, homeVersionFile))
@@ -83,8 +81,7 @@ func TestCurrentVersion(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	revertWd := morerequire.RequireChdir(t, t.TempDir())
-	defer revertWd()
+	t.Chdir(t.TempDir())
 	require.NoError(t, os.WriteFile(".envoy-version", []byte("2.2.2"), 0o600))
 
 	t.Run("prefers $PWD/.envoy-version over home version", func(t *testing.T) {
@@ -116,8 +113,7 @@ func TestCurrentVersion_Validates(t *testing.T) {
 		require.EqualError(t, err, expectedErr)
 	})
 
-	revertWd := morerequire.RequireChdir(t, t.TempDir())
-	defer revertWd()
+	t.Chdir(t.TempDir())
 	require.NoError(t, os.WriteFile(".envoy-version", []byte("b.b.b"), 0o600))
 
 	t.Run("validates $PWD/.envoy-version", func(t *testing.T) {
@@ -132,7 +128,7 @@ func TestCurrentVersion_Validates(t *testing.T) {
 	t.Run("shows error reading $PWD/.envoy-version", func(t *testing.T) {
 		_, _, err := CurrentVersion(homeDir, versionFile, CurrentVersionConfigFile)
 		expectedErr := "couldn't read version from $PWD/.envoy-version"
-		require.Contains(t, err.Error(), expectedErr)
+		require.ErrorContains(t, err, expectedErr)
 	})
 
 	t.Setenv("ENVOY_VERSION", "c.c.c")

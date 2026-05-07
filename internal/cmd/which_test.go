@@ -4,7 +4,6 @@
 package cmd_test
 
 import (
-	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -17,8 +16,8 @@ func TestFuncEWhich(t *testing.T) {
 
 	c, stdout, stderr := newApp(o)
 
-	require.NoError(t, c.Run([]string{"func-e", "which"}))
+	require.NoError(t, c.Run(t.Context(), []string{"func-e", "which"}))
 	envoyPath := filepath.Join(o.DataHome, "envoy-versions", o.EnvoyVersion.String(), "bin", "envoy")
-	require.Equal(t, fmt.Sprintf("%s\n", envoyPath), stdout.String())
+	require.Equal(t, envoyPath+"\n", stdout.String())
 	require.Empty(t, stderr)
 }

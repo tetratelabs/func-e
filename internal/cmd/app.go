@@ -4,9 +4,11 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"net/http"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 
 	"github.com/tetratelabs/func-e/internal/globals"
 	"github.com/tetratelabs/func-e/internal/runtime"
@@ -15,16 +17,19 @@ import (
 
 // NewApp create a new root command. The globals.GlobalOpts parameter allows tests to scope overrides, which avoids
 // having to define a flag for everything needed in tests.
-func NewApp(o *globals.GlobalOpts) *cli.App {
+func NewApp(o *globals.GlobalOpts) *cli.Command {
+	if o.HTTPClient == nil {
+		o.HTTPClient = http.DefaultClient
+	}
+
 	var envoyVersionsURL, homeDir, configHome, dataHome, stateHome, runtimeDir, platform, runID string
 	lastKnownEnvoyPath := fmt.Sprintf("`$FUNC_E_DATA_HOME/envoy-versions/%s`", version.LastKnownEnvoy)
 
-	app := cli.NewApp()
-	app.Name = "func-e"
-	app.HelpName = "func-e"
-	app.Usage = `Install and run Envoy`
-	// Keep lines at 77 to address leading indent of 3 in help statements
-	app.UsageText = `To run Envoy, execute ` + "`func-e run -c your_envoy_config.yaml`" + `. This
+	app := &cli.Command{
+		Name:  "func-e",
+		Usage: `Install and run Envoy`,
+		// Keep lines at 77 to address leading indent of 3 in help statements
+		UsageText: `To run Envoy, execute ` + "`func-e run -c your_envoy_config.yaml`" + `. This
 downloads and installs the latest version of Envoy for you.
 
 To list versions of Envoy you can use, execute ` + "`func-e versions -a`" + `. To
@@ -50,86 +55,86 @@ Advanced:
 ` + "`FUNC_E_PLATFORM`" + ` overrides the host OS and architecture of Envoy binaries.
 This is used when emulating another platform, e.g. x86 on Apple Silicon M1.
 Note: Changing the OS value can cause problems as Envoy has dependencies,
-such as glibc. This value must be constant within a ` + "`$FUNC_E_DATA_HOME`" + `.`
-	app.Version = o.Version
-	app.Flags = []cli.Flag{
-		&cli.StringFlag{
-			Name:        "home-dir",
-			Usage:       "(deprecated) func-e home directory - use --config-home, --data-home, --state-home or --runtime-dir instead",
-			Destination: &homeDir,
-			EnvVars:     []string{"FUNC_E_HOME"},
+such as glibc. This value must be constant within a ` + "`$FUNC_E_DATA_HOME`" + `.`,
+		Version: o.Version,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:        "home-dir",
+				Usage:       "func-e home directory",
+				Destination: &homeDir,
+				Local:       true,
+				Sources:     cli.EnvVars("FUNC_E_HOME"),
+			},
+			&cli.StringFlag{
+				Name:        "config-home",
+				Usage:       "directory for configuration files",
+				DefaultText: globals.DefaultConfigHome,
+				Destination: &configHome,
+				Local:       true,
+				Sources:     cli.EnvVars("FUNC_E_CONFIG_HOME"),
+			},
+			&cli.StringFlag{
+				Name:        "data-home",
+				Usage:       "directory for Envoy binaries",
+				DefaultText: globals.DefaultDataHome,
+				Destination: &dataHome,
+				Local:       true,
+				Sources:     cli.EnvVars("FUNC_E_DATA_HOME"),
+			},
+			&cli.StringFlag{
+				Name:        "state-home",
+				Usage:       "directory for logs (used by run command)",
+				DefaultText: globals.DefaultStateHome,
+				Destination: &stateHome,
+				Local:       true,
+				Sources:     cli.EnvVars("FUNC_E_STATE_HOME"),
+			},
+			&cli.StringFlag{
+				Name:        "runtime-dir",
+				Usage:       "directory for temporary files (used by run command)",
+				DefaultText: globals.DefaultRuntimeDir,
+				Destination: &runtimeDir,
+				Local:       true,
+				Sources:     cli.EnvVars("FUNC_E_RUNTIME_DIR"),
+			},
+			&cli.StringFlag{
+				Name:        "run-id",
+				Usage:       "custom run identifier for logs/runtime directories (used by run command)",
+				DefaultText: "auto-generated timestamp",
+				Destination: &runID,
+				Local:       true,
+				Sources:     cli.EnvVars("FUNC_E_RUN_ID"),
+			},
+			&cli.StringFlag{
+				Name:        "envoy-versions-url",
+				Usage:       "URL of Envoy versions JSON",
+				DefaultText: globals.DefaultEnvoyVersionsURL,
+				Destination: &envoyVersionsURL,
+				Local:       true,
+				Sources:     cli.EnvVars("ENVOY_VERSIONS_URL"),
+			},
+			&cli.StringFlag{
+				Name:        "platform",
+				Usage:       "the host OS and architecture of Envoy binaries. Ex. darwin/arm64",
+				DefaultText: "$GOOS/$GOARCH",
+				Destination: &platform,
+				Local:       true,
+				Sources:     cli.EnvVars("FUNC_E_PLATFORM"),
+			},
 		},
-		&cli.StringFlag{
-			Name:        "config-home",
-			Usage:       "directory for configuration files",
-			DefaultText: globals.DefaultConfigHome,
-			Destination: &configHome,
-			EnvVars:     []string{"FUNC_E_CONFIG_HOME"},
+		Before: func(ctx context.Context, _ *cli.Command) (context.Context, error) {
+			if err := runtime.InitializeGlobalOpts(o, envoyVersionsURL, homeDir, configHome, dataHome, stateHome, runtimeDir, platform, runID); err != nil {
+				return ctx, NewValidationError(err.Error())
+			}
+			return ctx, nil
 		},
-		&cli.StringFlag{
-			Name:        "data-home",
-			Usage:       "directory for Envoy binaries",
-			DefaultText: globals.DefaultDataHome,
-			Destination: &dataHome,
-			EnvVars:     []string{"FUNC_E_DATA_HOME"},
+		Commands: []*cli.Command{
+			helpCommand,
+			NewRunCmd(o),
+			NewVersionsCmd(o),
+			NewUseCmd(o),
+			NewWhichCmd(o),
 		},
-		&cli.StringFlag{
-			Name:        "state-home",
-			Usage:       "directory for logs (used by run command)",
-			DefaultText: globals.DefaultStateHome,
-			Destination: &stateHome,
-			EnvVars:     []string{"FUNC_E_STATE_HOME"},
-		},
-		&cli.StringFlag{
-			Name:        "runtime-dir",
-			Usage:       "directory for temporary files (used by run command)",
-			DefaultText: globals.DefaultRuntimeDir,
-			Destination: &runtimeDir,
-			EnvVars:     []string{"FUNC_E_RUNTIME_DIR"},
-		},
-		&cli.StringFlag{
-			Name:        "run-id",
-			Usage:       "custom run identifier for logs/runtime directories (used by run command)",
-			DefaultText: "auto-generated timestamp",
-			Destination: &runID,
-			EnvVars:     []string{"FUNC_E_RUN_ID"},
-		},
-		&cli.StringFlag{
-			Name:        "envoy-versions-url",
-			Usage:       "URL of Envoy versions JSON",
-			DefaultText: globals.DefaultEnvoyVersionsURL,
-			Destination: &envoyVersionsURL,
-			EnvVars:     []string{"ENVOY_VERSIONS_URL"},
-		},
-		&cli.StringFlag{
-			Name:        "platform",
-			Usage:       "the host OS and architecture of Envoy binaries. Ex. darwin/arm64",
-			DefaultText: "$GOOS/$GOARCH",
-			Destination: &platform,
-			EnvVars:     []string{"FUNC_E_PLATFORM"},
-		},
-	}
-	app.Before = func(c *cli.Context) error {
-		// Emit deprecation warning if $FUNC_E_HOME is set
-		if homeDir != "" {
-			fmt.Fprintln(c.App.ErrWriter, "WARNING: $FUNC_E_HOME (--home-dir) is deprecated and will be removed in a future version.") //nolint:errcheck
-			fmt.Fprintln(c.App.ErrWriter, "Please use --config-home, --data-home, --state-home or --runtime-dir instead.")             //nolint:errcheck
-		}
-
-		if err := runtime.InitializeGlobalOpts(o, envoyVersionsURL, homeDir, configHome, dataHome, stateHome, runtimeDir, platform, runID); err != nil {
-			return NewValidationError(err.Error())
-		}
-		return nil
-	}
-
-	app.CustomAppHelpTemplate = cli.AppHelpTemplate
-	cli.VersionPrinter = printVersion
-	app.Commands = []*cli.Command{
-		helpCommand,
-		NewRunCmd(o),
-		NewVersionsCmd(o),
-		NewUseCmd(o),
-		NewWhichCmd(o),
 	}
 	return app
 }
@@ -139,21 +144,11 @@ var helpCommand = &cli.Command{
 	Name:      "help",
 	Usage:     "Shows how to use a [command]",
 	ArgsUsage: "[command]",
-	Action: func(c *cli.Context) error {
+	Action: func(ctx context.Context, c *cli.Command) error {
 		args := c.Args()
 		if args.Present() {
-			for _, cmd := range c.App.Commands {
-				if cmd.Name == args.First() {
-					cli.HelpPrinter(c.App.Writer, cmd.CustomHelpTemplate, cmd)
-					return nil
-				}
-			}
-			return fmt.Errorf("unknown command: %q", args.First())
+			return cli.ShowCommandHelp(ctx, c.Root(), args.First())
 		}
-		return cli.ShowAppHelp(c)
+		return cli.ShowRootCommandHelp(c.Root())
 	},
-}
-
-func printVersion(c *cli.Context) {
-	fmt.Fprintf(c.App.Writer, "%v version %v\n", c.App.Name, c.App.Version) //nolint:errcheck
 }

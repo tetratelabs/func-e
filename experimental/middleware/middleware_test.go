@@ -48,9 +48,8 @@ func TestWithRunMiddleware(t *testing.T) {
 			actual := middleware.WithRunMiddleware(testCtx, tt.input)
 			if tt.expected {
 				val := actual.Value(internalmiddleware.RunMiddlewareKey{})
-				mw, ok := val.(func(api.RunFunc) api.RunFunc)
-				require.NotNil(t, mw)
-				require.True(t, ok)
+				require.NotNil(t, val)
+				require.IsType(t, (func(api.RunFunc) api.RunFunc)(nil), val)
 			} else {
 				require.Equal(t, testCtx, actual)
 			}
@@ -64,7 +63,8 @@ func TestWithRunMiddleware_E2E(t *testing.T) {
 	testMiddleware := func(next api.RunFunc) api.RunFunc {
 		return func(ctx context.Context, args []string, options ...api.RunOption) error {
 			// Override options to prove we override them
-			options = append(options,
+			options = append(
+				options,
 				api.Out(io.Discard),
 				api.EnvoyOut(io.Discard),
 				api.EnvoyErr(&stderr),

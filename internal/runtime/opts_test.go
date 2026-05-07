@@ -20,9 +20,9 @@ func TestInitializeGlobalOpts(t *testing.T) {
 	require.NoError(t, err)
 
 	alt1 := filepath.Join(u.HomeDir, "alt1")
-	defaultConfigHome := filepath.Join(u.HomeDir, ".config/func-e")
-	defaultDataHome := filepath.Join(u.HomeDir, ".local/share/func-e")
-	defaultStateHome := filepath.Join(u.HomeDir, ".local/state/func-e")
+	defaultConfigHome := filepath.Join(u.HomeDir, ".config", "func-e")
+	defaultDataHome := filepath.Join(u.HomeDir, ".local", "share", "func-e")
+	defaultStateHome := filepath.Join(u.HomeDir, ".local", "state", "func-e")
 	defaultRuntimeDir := "/tmp/func-e-" + u.Uid
 	defaultPlatform := globals.DefaultPlatform
 	defaultVersionsURL := globals.DefaultEnvoyVersionsURL

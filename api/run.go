@@ -8,12 +8,13 @@ package api
 import (
 	"context"
 	"io"
+	"net/http"
 
 	"github.com/tetratelabs/func-e/internal/api"
 )
 
-// Deprecated: Use ConfigHome, DataHome, StateHome or RuntimeDir instead.
-// This function will be removed in a future version.
+// HomeDir sets all of ConfigHome, DataHome, StateHome and RuntimeDir to the
+// given directory.
 func HomeDir(homeDir string) RunOption {
 	return func(o *api.RunOpts) {
 		o.ConfigHome = homeDir
@@ -122,6 +123,16 @@ func EnvoyOut(w io.Writer) RunOption {
 func EnvoyErr(w io.Writer) RunOption {
 	return func(o *api.RunOpts) {
 		o.EnvoyErr = w
+	}
+}
+
+// HTTPTransport is used for all func-e HTTP calls, including downloading
+// versions and fetching the admin API. Defaults to http.DefaultTransport.
+//
+// You can override this for tests or observability.
+func HTTPTransport(transport http.RoundTripper) RunOption {
+	return func(o *api.RunOpts) {
+		o.HTTPTransport = transport
 	}
 }
 

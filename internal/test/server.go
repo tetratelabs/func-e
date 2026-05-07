@@ -34,23 +34,23 @@ const (
 	versionsPath  = "/versions/"
 )
 
+// NewEnvoyVersionsHandler serves "/envoy-versions.json" and fake Envoy
+// archives from the given base URL.
+func NewEnvoyVersionsHandler(t *testing.T, baseURL string, v version.PatchVersion) http.Handler {
+	t.Helper()
+	s := &server{t: t}
+	s.init(baseURL, v)
+	return s
+}
+
 // RequireEnvoyVersionsTestServer serves "/envoy-versions.json", containing download links a fake Envoy archive.
 func RequireEnvoyVersionsTestServer(t *testing.T, v version.PatchVersion) *httptest.Server {
+	t.Helper()
 	s := &server{t: t}
+	// NOTE: Real TCP, not the pipe-backed one. Callers exec the fake binary, so can't run in synctest.
 	h := httptest.NewServer(s)
-	s.versions = version.ReleaseVersions{
-		Versions: map[version.PatchVersion]version.Release{ // hard-code date so that tests don't drift
-			v: {ReleaseDate: FakeReleaseDate, Tarballs: map[version.Platform]version.TarballURL{
-				version.Platform("linux" + "/" + runtime.GOARCH):  TarballURL(h.URL, "linux", runtime.GOARCH, v),
-				version.Platform("darwin" + "/" + runtime.GOARCH): TarballURL(h.URL, "darwin", runtime.GOARCH, v),
-			}}},
-		SHA256Sums: map[version.Tarball]version.SHA256Sum{},
-	}
-	fakeEnvoyTarGz, sha256Sum := RequireFakeEnvoyTarGz(s.t, v)
-	s.fakeEnvoyTarGz = fakeEnvoyTarGz
-	for _, u := range s.versions.Versions[v].Tarballs {
-		s.versions.SHA256Sums[version.Tarball(path.Base(string(u)))] = sha256Sum
-	}
+	t.Cleanup(h.Close)
+	s.init(h.URL, v)
 	return h
 }
 
@@ -67,58 +67,72 @@ func TarballURL(baseURL, goos, goarch string, v version.PatchVersion) version.Ta
 type server struct {
 	t              *testing.T
 	versions       version.ReleaseVersions
+	versionsJSON   []byte
 	fakeEnvoyTarGz []byte
+}
+
+func (s *server) init(baseURL string, v version.PatchVersion) {
+	s.versions = version.ReleaseVersions{
+		Versions: map[version.PatchVersion]version.Release{ // hard-code date so that tests don't drift
+			v: {ReleaseDate: FakeReleaseDate, Tarballs: map[version.Platform]version.TarballURL{
+				version.Platform("linux" + "/" + runtime.GOARCH):  TarballURL(baseURL, "linux", runtime.GOARCH, v),
+				version.Platform("darwin" + "/" + runtime.GOARCH): TarballURL(baseURL, "darwin", runtime.GOARCH, v),
+			}}},
+		SHA256Sums: map[version.Tarball]version.SHA256Sum{},
+	}
+	fakeEnvoyTarGz, sha256Sum := RequireFakeEnvoyTarGz(s.t, v)
+	s.fakeEnvoyTarGz = fakeEnvoyTarGz
+	for _, u := range s.versions.Versions[v].Tarballs {
+		s.versions.SHA256Sums[version.Tarball(path.Base(string(u)))] = sha256Sum
+	}
+	versionsJSON, err := json.Marshal(s.versions)
+	require.NoError(s.t, err)
+	s.versionsJSON = versionsJSON
 }
 
 func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch {
-	case r.RequestURI == "/envoy-versions.json":
+	case r.URL.Path == "/envoy-versions.json":
 		w.WriteHeader(http.StatusOK)
-		_, err := w.Write(s.funcEVersions())
-		require.NoError(s.t, err)
-	case strings.HasPrefix(r.RequestURI, versionsPath):
-		subpath := r.RequestURI[len(versionsPath):]
-		require.True(s.t, strings.HasSuffix(subpath, archiveFormat), "unexpected uri %q: expected archive suffix %q", subpath, archiveFormat)
+		_, _ = w.Write(s.versionsJSON)
+	case strings.HasPrefix(r.URL.Path, versionsPath):
+		subpath := r.URL.Path[len(versionsPath):]
+		if !strings.HasSuffix(subpath, archiveFormat) {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
 
 		v := strings.Split(subpath, "/")[0]
-		require.NotNil(s.t, version.NewPatchVersion(v), "unsupported version in uri %q", subpath)
+		if version.NewPatchVersion(v) == "" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
 
 		w.WriteHeader(http.StatusOK)
-		_, err := w.Write(s.fakeEnvoyTarGz)
-		require.NoError(s.t, err)
+		_, _ = w.Write(s.fakeEnvoyTarGz)
 	default:
 		w.WriteHeader(http.StatusNotFound)
 	}
 }
 
-func (s *server) funcEVersions() []byte {
-	data, err := json.Marshal(s.versions)
-	require.NoError(s.t, err)
-	return data
-}
-
-// RequireFakeEnvoyTarGz makes a fake envoy.tar.gz
+// RequireFakeEnvoyTarGz builds a fake Envoy archive.
 func RequireFakeEnvoyTarGz(t *testing.T, v version.PatchVersion) ([]byte, version.SHA256Sum) {
-	tempDir := t.TempDir()
+	t.Helper()
+	tempDir := t.ArtifactDir()
 
-	// construct the platform directory based on the input version
 	installDir := filepath.Join(tempDir, v.String())
 	require.NoError(t, os.MkdirAll(filepath.Join(installDir, "bin"), 0o700))
 	fakeEnvoyBin, err := build.GoBuild(internal.FakeEnvoySrcPath, tempDir)
 	require.NoError(t, err)
-	// Move the binary to the installDir/bin
-	err = os.Rename(fakeEnvoyBin, filepath.Join(installDir, "bin", "envoy"))
-	require.NoError(t, err)
+	require.NoError(t, os.Rename(fakeEnvoyBin, filepath.Join(installDir, "bin", "envoy")))
 
-	// tar.gz the platform dir
 	tempGz := filepath.Join(tempDir, "envoy.tar.gz")
-	err = tar.TarGz(tempGz, installDir)
-	require.NoError(t, err)
+	require.NoError(t, tar.TarGz(tempGz, installDir))
 
-	// Read the tar.gz into a byte array. This allows the mock server to set content length correctly
+	// Keep the body in memory so test servers can set Content-Length.
 	f, err := os.Open(tempGz)
 	require.NoError(t, err)
-	defer f.Close() //nolint
+	defer f.Close()
 	b, err := io.ReadAll(f)
 	require.NoError(t, err)
 	return b, version.SHA256Sum(fmt.Sprintf("%x", sha256.Sum256(b)))

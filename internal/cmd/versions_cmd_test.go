@@ -20,7 +20,7 @@ func TestFuncEVersions_NothingYet(t *testing.T) {
 	o := setupTest(t)
 
 	c, stdout, stderr := newApp(o)
-	err := c.Run([]string{"func-e", "versions"})
+	err := c.Run(t.Context(), []string{"func-e", "versions"})
 
 	require.NoError(t, err)
 	require.Empty(t, stdout) // allows consistent parsing even when nothing yet installed
@@ -32,7 +32,7 @@ func TestFuncEVersions_NoCurrentVersion(t *testing.T) {
 	require.NoError(t, os.Remove(filepath.Join(o.ConfigHome, "envoy-version")))
 
 	c, stdout, stderr := newApp(o)
-	err := c.Run([]string{"func-e", "versions"})
+	err := c.Run(t.Context(), []string{"func-e", "versions"})
 
 	require.NoError(t, err)
 	require.Equal(t, `  1.2.2 2021-01-31
@@ -51,7 +51,7 @@ func TestFuncEVersions_CurrentVersion(t *testing.T) {
 		require.NoError(t, os.Remove(filepath.Join(o.ConfigHome, "envoy-version")))
 
 		c, stdout, _ := newApp(o)
-		require.NoError(t, c.Run([]string{"func-e", "versions"}))
+		require.NoError(t, c.Run(t.Context(), []string{"func-e", "versions"}))
 		require.Equal(t, `  1.2.2 2021-01-31
   1.1.2 2021-01-31
   1.2.1 2021-01-30
@@ -62,7 +62,7 @@ func TestFuncEVersions_CurrentVersion(t *testing.T) {
 		require.NoError(t, os.WriteFile(filepath.Join(o.ConfigHome, "envoy-version"), []byte("1.1.2"), 0o600))
 
 		c, stdout, _ := newApp(o)
-		require.NoError(t, c.Run([]string{"func-e", "versions"}))
+		require.NoError(t, c.Run(t.Context(), []string{"func-e", "versions"}))
 		require.Equal(t, `  1.2.2 2021-01-31
 * 1.1.2 2021-01-31 (set by $FUNC_E_CONFIG_HOME/envoy-version)
   1.2.1 2021-01-30
@@ -70,12 +70,11 @@ func TestFuncEVersions_CurrentVersion(t *testing.T) {
 	})
 
 	t.Run("set by $PWD/.envoy-version", func(t *testing.T) {
-		revertWd := morerequire.RequireChdir(t, t.TempDir())
-		defer revertWd()
+		t.Chdir(t.TempDir())
 		require.NoError(t, os.WriteFile(".envoy-version", []byte("1.2.2"), 0o600))
 
 		c, stdout, _ := newApp(o)
-		require.NoError(t, c.Run([]string{"func-e", "versions"}))
+		require.NoError(t, c.Run(t.Context(), []string{"func-e", "versions"}))
 		require.Equal(t, `* 1.2.2 2021-01-31 (set by $PWD/.envoy-version)
   1.1.2 2021-01-31
   1.2.1 2021-01-30
@@ -86,7 +85,7 @@ func TestFuncEVersions_CurrentVersion(t *testing.T) {
 		t.Setenv("ENVOY_VERSION", "1.2.1")
 
 		c, stdout, _ := newApp(o)
-		require.NoError(t, c.Run([]string{"func-e", "versions"}))
+		require.NoError(t, c.Run(t.Context(), []string{"func-e", "versions"}))
 		require.Equal(t, `  1.2.2 2021-01-31
   1.1.2 2021-01-31
 * 1.2.1 2021-01-30 (set by $ENVOY_VERSION)
@@ -98,7 +97,7 @@ func TestFuncEVersions_Sorted(t *testing.T) {
 	o := setupTestVersions(t)
 
 	c, stdout, stderr := newApp(o)
-	err := c.Run([]string{"func-e", "versions"})
+	err := c.Run(t.Context(), []string{"func-e", "versions"})
 
 	require.NoError(t, err)
 	require.Equal(t, `  1.2.2 2021-01-31
@@ -112,7 +111,7 @@ func TestFuncEVersions_All_OnlyRemote(t *testing.T) {
 	o := setupTest(t)
 
 	c, stdout, stderr := newApp(o)
-	err := c.Run([]string{"func-e", "versions", "-a"})
+	err := c.Run(t.Context(), []string{"func-e", "versions", "-a"})
 
 	require.NoError(t, err)
 	require.Equal(t, fmt.Sprintf("  %s 2020-12-31\n", version.LastKnownEnvoy), stdout.String())
@@ -131,7 +130,7 @@ func TestFuncEVersions_All_RemoteIsCurrent(t *testing.T) {
 	expected := fmt.Sprintf("* %s 2020-12-31 (set by $FUNC_E_CONFIG_HOME/envoy-version)\n", v)
 
 	c, stdout, stderr := newApp(o)
-	err := c.Run([]string{"func-e", "versions", "-a"})
+	err := c.Run(t.Context(), []string{"func-e", "versions", "-a"})
 
 	require.NoError(t, err)
 	require.Equal(t, expected, stdout.String())
@@ -142,7 +141,7 @@ func TestFuncEVersions_All_Mixed(t *testing.T) {
 	o := setupTestVersions(t)
 
 	c, stdout, stderr := newApp(o)
-	err := c.Run([]string{"func-e", "versions", "-a"})
+	err := c.Run(t.Context(), []string{"func-e", "versions", "-a"})
 
 	require.NoError(t, err)
 	require.Equal(t, fmt.Sprintf(`  1.2.2 2021-01-31
@@ -154,6 +153,7 @@ func TestFuncEVersions_All_Mixed(t *testing.T) {
 }
 
 func setupTestVersions(t *testing.T) (o *globals.GlobalOpts) {
+	t.Helper()
 	o = setupTest(t)
 
 	oneOneTwo := filepath.Join(o.DataHome, "envoy-versions", "1.1.2")
