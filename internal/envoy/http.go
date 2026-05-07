@@ -16,29 +16,31 @@ const userAgentHeader = "User-Agent"
 
 // httpGet GETs rawURL with a User-Agent header and one retry on transient network error.
 func httpGet(ctx context.Context, client *http.Client, rawURL, ua string) (*http.Response, error) {
-	// A loop avoids duplicating the request setup when a retry is needed.
-	for attempt := 0; ; attempt++ {
-		// #nosec -> url can be anywhere by design
+	// #nosec -> url can be anywhere by design
+	get := func() (*http.Response, error) {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, http.NoBody)
 		if err != nil {
 			return nil, err
 		}
 		req.Header.Add(userAgentHeader, ua)
-
-		resp, err := client.Do(req)
-
-		// Return unless this is the first attempt and it hit a transient network error.
-		if resp != nil || err == nil || ctx.Err() != nil || !isNetError(err) || attempt > 0 {
-			return resp, err
-		}
-
-		// Wait up to 1s before retrying, or bail if the context is canceled.
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case <-time.After(time.Second):
-		}
+		return client.Do(req)
 	}
+
+	resp, err := get()
+
+	// Return unless this hit a transient network error worth retrying.
+	if resp != nil || err == nil || ctx.Err() != nil || !isNetError(err) {
+		return resp, err
+	}
+
+	// Wait up to 1s before retrying, or bail if the context is canceled.
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case <-time.After(time.Second):
+	}
+
+	return get()
 }
 
 // isNetError unwraps url.Error so transient dial/TLS failures are retried
