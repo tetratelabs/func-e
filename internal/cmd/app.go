@@ -22,7 +22,7 @@ func NewApp(o *globals.GlobalOpts) *cli.Command {
 		o.HTTPClient = http.DefaultClient
 	}
 
-	var envoyVersionsURL, homeDir, configHome, dataHome, stateHome, runtimeDir, platform, runID string
+	var envoyVersionsURL, envoyPath, homeDir, configHome, dataHome, stateHome, runtimeDir, platform, runID string
 	lastKnownEnvoyPath := fmt.Sprintf("`$FUNC_E_DATA_HOME/envoy-versions/%s`", version.LastKnownEnvoy)
 
 	app := &cli.Command{
@@ -36,6 +36,10 @@ To list versions of Envoy you can use, execute ` + "`func-e versions -a`" + `. T
 choose one, invoke ` + fmt.Sprintf("`func-e use %s`", version.LastKnownEnvoy) + `. This installs into
 ` + lastKnownEnvoyPath + `, if not already present. You may
 also use minor version, such as ` + fmt.Sprintf("`func-e use %s`", version.LastKnownEnvoyMinor) + `.
+
+` + "`$ENVOY_PATH`" + ` runs a custom Envoy binary, skipping version
+resolution and download. This is useful for validating pre-release
+or feature branch builds.
 
 You may want to override ` + "`$ENVOY_VERSIONS_URL`" + ` to supply custom builds or
 otherwise control the source of Envoy binaries. When overriding, validate
@@ -114,6 +118,13 @@ such as glibc. This value must be constant within a ` + "`$FUNC_E_DATA_HOME`" + 
 				Sources:     cli.EnvVars("ENVOY_VERSIONS_URL"),
 			},
 			&cli.StringFlag{
+				Name:        "envoy-path",
+				Usage:       "path to a custom Envoy binary, bypassing download",
+				Destination: &envoyPath,
+				Local:       true,
+				Sources:     cli.EnvVars("ENVOY_PATH"),
+			},
+			&cli.StringFlag{
 				Name:        "platform",
 				Usage:       "the host OS and architecture of Envoy binaries. Ex. darwin/arm64",
 				DefaultText: "$GOOS/$GOARCH",
@@ -123,7 +134,7 @@ such as glibc. This value must be constant within a ` + "`$FUNC_E_DATA_HOME`" + 
 			},
 		},
 		Before: func(ctx context.Context, _ *cli.Command) (context.Context, error) {
-			if err := runtime.InitializeGlobalOpts(o, envoyVersionsURL, homeDir, configHome, dataHome, stateHome, runtimeDir, platform, runID); err != nil {
+			if err := runtime.InitializeGlobalOpts(o, envoyVersionsURL, envoyPath, homeDir, configHome, dataHome, stateHome, runtimeDir, platform, runID); err != nil {
 				return ctx, NewValidationError(err.Error())
 			}
 			return ctx, nil

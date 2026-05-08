@@ -105,6 +105,13 @@ func EnvoyVersion(envoyVersion string) RunOption {
 	}
 }
 
+// EnvoyPath overrides the path to the Envoy binary, bypassing download.
+func EnvoyPath(envoyPath string) RunOption {
+	return func(o *api.RunOpts) {
+		o.EnvoyPath = envoyPath
+	}
+}
+
 // Out is where status messages are written. Defaults to os.Stdout
 func Out(out io.Writer) RunOption {
 	return func(o *api.RunOpts) {

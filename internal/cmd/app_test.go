@@ -297,6 +297,15 @@ func TestPlatformArg(t *testing.T) {
 	}
 }
 
+func TestEnvoyPath(t *testing.T) {
+	testDirConfig(t, dirConfigTest{
+		envVar:   "ENVOY_PATH",
+		flag:     "--envoy-path",
+		suffix:   "envoy-path",
+		accessor: func(o *globals.GlobalOpts) string { return o.EnvoyPath },
+	})
+}
+
 func TestEnvoyVersionsURL(t *testing.T) {
 	type testCase struct {
 		name     string

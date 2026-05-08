@@ -29,6 +29,6 @@ type RunOpts struct {
 	EnvoyOut         io.Writer
 	EnvoyErr         io.Writer
 	HTTPTransport    http.RoundTripper
-	EnvoyPath        string      // Internal: path to the Envoy binary (for tests).
+	EnvoyPath        string      // Path to a custom Envoy binary, bypassing download.
 	StartupHook      StartupHook // Experimental: custom startup hook
 }
