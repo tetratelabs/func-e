@@ -15,13 +15,6 @@ import (
 	"github.com/tetratelabs/func-e/internal/version"
 )
 
-// EnvoyPath overrides the path to the Envoy binary. Used for testing with a fake binary.
-func EnvoyPath(envoyPath string) api.RunOption {
-	return func(o *internalapi.RunOpts) {
-		o.EnvoyPath = envoyPath
-	}
-}
-
 // Run implements api.RunFunc
 func Run(ctx context.Context, args []string, options ...api.RunOption) error {
 	// Check if middleware is set in context
@@ -78,12 +71,14 @@ func initOpts(ctx context.Context, options ...api.RunOption) (*globals.GlobalOpt
 	if ro.ConfigHome != "" && ro.ConfigHome == ro.DataHome && ro.DataHome == ro.StateHome && ro.StateHome == ro.RuntimeDir {
 		homeDir = ro.ConfigHome // Legacy mode
 	}
-	if err := runtime.InitializeGlobalOpts(o, ro.EnvoyVersionsURL, homeDir, ro.ConfigHome, ro.DataHome, ro.StateHome, ro.RuntimeDir, "", ro.RunID); err != nil {
+	if err := runtime.InitializeGlobalOpts(o, ro.EnvoyVersionsURL, ro.EnvoyPath, homeDir, ro.ConfigHome, ro.DataHome, ro.StateHome, ro.RuntimeDir, "", ro.RunID); err != nil {
 		return nil, err
 	}
 
-	if err := runtime.EnsureEnvoyVersion(ctx, o); err != nil {
-		return nil, err
+	if o.EnvoyPath == "" {
+		if err := runtime.EnsureEnvoyVersion(ctx, o); err != nil {
+			return nil, err
+		}
 	}
 	return o, nil
 }

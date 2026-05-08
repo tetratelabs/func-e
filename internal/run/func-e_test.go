@@ -61,7 +61,7 @@ func (f fakeFuncEFactory) New(ctx context.Context, t *testing.T, stdout, stderr 
 	}
 
 	opts = append(opts,
-		EnvoyPath(fakeEnvoyBin),
+		api.EnvoyPath(fakeEnvoyBin),
 		api.Out(stdout),
 		api.EnvoyOut(stdout),
 		api.EnvoyErr(stderr))

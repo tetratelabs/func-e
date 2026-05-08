@@ -30,6 +30,7 @@ func TestInitializeGlobalOpts(t *testing.T) {
 	tests := []struct {
 		name             string
 		envoyVersionsURL string
+		envoyPath        string
 		homeDir          string
 		configHome       string
 		dataHome         string
@@ -63,6 +64,11 @@ func TestInitializeGlobalOpts(t *testing.T) {
 			name:             "--envoy-versions-url flag",
 			envoyVersionsURL: "http://versions/arg",
 			expected:         globals.GlobalOpts{ConfigHome: defaultConfigHome, DataHome: defaultDataHome, StateHome: defaultStateHome, RuntimeDir: defaultRuntimeDir, Platform: defaultPlatform, EnvoyVersionsURL: "http://versions/arg"},
+		},
+		{
+			name:      "--envoy-path flag",
+			envoyPath: "/opt/envoy/bin/envoy",
+			expected:  globals.GlobalOpts{RunOpts: globals.RunOpts{EnvoyPath: "/opt/envoy/bin/envoy"}, ConfigHome: defaultConfigHome, DataHome: defaultDataHome, StateHome: defaultStateHome, RuntimeDir: defaultRuntimeDir, Platform: defaultPlatform, EnvoyVersionsURL: defaultVersionsURL},
 		},
 		{
 			name:       "--config-home only",
@@ -117,7 +123,7 @@ func TestInitializeGlobalOpts(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			o := &globals.GlobalOpts{}
-			err := runtime.InitializeGlobalOpts(o, tc.envoyVersionsURL, tc.homeDir, tc.configHome, tc.dataHome, tc.stateHome, tc.runtimeDir, tc.platform, tc.runID)
+			err := runtime.InitializeGlobalOpts(o, tc.envoyVersionsURL, tc.envoyPath, tc.homeDir, tc.configHome, tc.dataHome, tc.stateHome, tc.runtimeDir, tc.platform, tc.runID)
 
 			if tc.expectedErr != "" {
 				require.EqualError(t, err, tc.expectedErr)
@@ -132,6 +138,7 @@ func TestInitializeGlobalOpts(t *testing.T) {
 			require.Equal(t, tc.expected.RuntimeDir, o.RuntimeDir)
 			require.Equal(t, tc.expected.Platform, o.Platform)
 			require.Equal(t, tc.expected.EnvoyVersionsURL, o.EnvoyVersionsURL)
+			require.Equal(t, tc.expected.EnvoyPath, o.EnvoyPath)
 
 			if tc.runID != "" {
 				require.Equal(t, tc.runID, o.RunID, "Custom RunID should be used")

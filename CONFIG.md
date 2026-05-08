@@ -20,6 +20,7 @@ Gateway to define their own home directories under an XDG base convention.
 | `FUNC_E_STATE_HOME`   | `~/.local/state/func-e` | `api.StateHome()`   |
 | `FUNC_E_RUNTIME_DIR`  | `/tmp/func-e-${UID}`    | `api.RuntimeDir()`  |
 | `FUNC_E_RUN_ID`       | auto-generated          | `api.RunID()`       |
+| `ENVOY_PATH`          |                         | `api.EnvoyPath()`   |
 
 | File Type              | Purpose                                      | Default Path                                                                     |
 |------------------------|----------------------------------------------|----------------------------------------------------------------------------------|

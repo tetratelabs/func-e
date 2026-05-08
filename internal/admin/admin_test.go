@@ -378,38 +378,58 @@ func TestAdminClient_NewListenerRequest(t *testing.T) {
 	}
 }
 
-func TestExtractAdminAddressPath(t *testing.T) {
-	tmpDir := t.TempDir()
-	tmpFile := filepath.Join(tmpDir, "admin-address.txt")
-	pathWithSpaces := filepath.Join(tmpDir, "admin address.txt")
-
+func TestScanFlag(t *testing.T) {
 	tests := []struct {
-		name        string
-		cmdline     []string
-		expected    string
-		expectedErr string
+		name           string
+		args           []string
+		flag           string
+		afterEnvoyArgs bool
+		expected       string
 	}{
-		{"reads value form before Envoy ignore-rest", []string{"envoy", AddressPathFlag, tmpDir}, tmpDir, ""},
-		{"preserves spaces in direct argv value", []string{"envoy", AddressPathFlag, pathWithSpaces}, pathWithSpaces, ""},
-		{"reads equals form before Envoy ignore-rest", []string{"envoy", AddressPathFlag + "=" + tmpFile}, tmpFile, ""},
-		{"finds value after other Envoy-owned args", []string{"--config", "/etc/envoy.yaml", AddressPathFlag, tmpDir}, tmpDir, ""},
-		{"flag not present", []string{"envoy", "--config", "/etc/envoy.yaml"}, "", AddressPathFlag + " not found in command line"},
-		{"flag present but no value", []string{"envoy", AddressPathFlag}, "", AddressPathFlag + " not found in command line"},
-		{"empty cmdline", []string{}, "", AddressPathFlag + " not found in command line"},
-		{"ignores value form hidden behind Envoy ignore-rest", []string{"envoy", "--", AddressPathFlag, tmpDir}, "", AddressPathFlag + " not found in command line"},
-		{"keeps earlier equals form when later value is hidden", []string{"envoy", AddressPathFlag + "=" + tmpFile, "--", AddressPathFlag, tmpDir}, tmpFile, ""},
-		{"accepts ignore-rest token as the flag value", []string{"envoy", AddressPathFlag, "--"}, "--", ""},
-		{"reads value form from shell-wrapped command", []string{"sh", "-c", fmt.Sprintf("sleep 30 && echo %s %s", AddressPathFlag, tmpDir)}, tmpDir, ""},
-		{"reads value form from shell wrapper with extra args", []string{"sh", "-c", fmt.Sprintf("envoy %s %s --other-flag", AddressPathFlag, tmpDir)}, tmpDir, ""},
-		{"reads equals form from shell-wrapped command", []string{"sh", "-c", fmt.Sprintf("envoy %s=%s --other-flag", AddressPathFlag, tmpFile)}, tmpFile, ""},
-		{"ignores shell-wrapped value hidden behind Envoy ignore-rest", []string{"sh", "-c", fmt.Sprintf("envoy -- %s %s", AddressPathFlag, tmpDir)}, "", AddressPathFlag + " not found in command line"},
-		{"keeps shell-wrapped equals form before ignore-rest", []string{"sh", "-c", fmt.Sprintf("envoy %s=%s -- %s %s", AddressPathFlag, tmpFile, AddressPathFlag, tmpDir)}, tmpFile, ""},
-		{"accepts ignore-rest token as shell-wrapped value", []string{"sh", "-c", fmt.Sprintf("envoy %s --", AddressPathFlag)}, "--", ""},
+		{"admin address path", []string{"envoy", AddressPathFlag, "/tmp/admin.txt"}, AddressPathFlag, false, "/tmp/admin.txt"},
+		{"admin address path equals form", []string{"envoy", AddressPathFlag + "=/tmp/admin.txt"}, AddressPathFlag, false, "/tmp/admin.txt"},
+		{"admin address path with other flags", []string{"envoy", "-c", "envoy.yaml", AddressPathFlag, "/tmp/admin.txt", "--log-level", "info"}, AddressPathFlag, false, "/tmp/admin.txt"},
+		{"empty value is not matched", []string{"envoy", AddressPathFlag, ""}, AddressPathFlag, false, ""},
+		{"empty equals value is not matched", []string{"envoy", AddressPathFlag + "="}, AddressPathFlag, false, ""},
+		{"flag not present", []string{"envoy", "-c", "envoy.yaml"}, AddressPathFlag, false, ""},
+		{"empty args", []string{}, AddressPathFlag, false, ""},
+		{"last-wins", []string{"envoy", AddressPathFlag, "/first", AddressPathFlag, "/second"}, AddressPathFlag, false, "/second"},
+		{"admin path hidden after marker", []string{"envoy", AddressPathFlag, "/tmp/admin.txt", "--", AddressPathFlag, "/hidden"}, AddressPathFlag, false, "/tmp/admin.txt"},
+		{"no admin path before marker", []string{"envoy", "-c", "envoy.yaml", "--", AddressPathFlag, "/hidden"}, AddressPathFlag, false, ""},
+		{"run-id after marker", []string{"envoy", "-c", "envoy.yaml", "--", runIDFlag, "run-1"}, runIDFlag, true, "run-1"},
+		{"run-id before marker is ignored", []string{"envoy", runIDFlag, "before", "--", runIDFlag, "after"}, runIDFlag, true, "after"},
+		{"no marker scans everything for envoy flags", []string{"envoy", AddressPathFlag, "/tmp/admin.txt"}, AddressPathFlag, false, "/tmp/admin.txt"},
+		{"no marker means nothing is after it", []string{"envoy", runIDFlag, "run-1"}, runIDFlag, true, ""},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			actual, err := extractAdminAddressPath(tt.cmdline)
+			require.Equal(t, tt.expected, scanFlag(tt.args, tt.flag, tt.afterEnvoyArgs))
+		})
+	}
+}
+
+func TestFlagValue(t *testing.T) {
+	tests := []struct {
+		name           string
+		cmdline        []string
+		flag           string
+		afterEnvoyArgs bool
+		expected       string
+		expectedErr    string
+	}{
+		{"direct args", []string{"envoy", "--flag", "val"}, "--flag", false, "val", ""},
+		{"shell-wrapped value form", []string{"sh", "-c", "envoy --flag val"}, "--flag", false, "val", ""},
+		{"shell-wrapped equals form", []string{"sh", "-c", "envoy --flag=val"}, "--flag", false, "val", ""},
+		{"shell-wrapped respects sentinel", []string{"sh", "-c", "envoy -- --flag hidden"}, "--flag", false, "", "--flag not found in command line"},
+		{"shell-wrapped after sentinel", []string{"sh", "-c", "envoy -- --flag val"}, "--flag", true, "val", ""},
+		{"prefers direct args over shell fallback", []string{"envoy", "--flag", "direct"}, "--flag", false, "direct", ""},
+		{"not found", []string{"envoy"}, "--flag", false, "", "--flag not found in command line"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actual, err := flagValue(tt.cmdline, tt.flag, tt.afterEnvoyArgs)
 			if tt.expectedErr != "" {
 				require.EqualError(t, err, tt.expectedErr)
 			} else {
@@ -420,33 +440,22 @@ func TestExtractAdminAddressPath(t *testing.T) {
 	}
 }
 
-func TestExtractRunID(t *testing.T) {
-	tests := []struct {
-		name        string
-		cmdline     []string
-		expected    string
-		expectedErr string
-	}{
-		{"finds func-e marker after Envoy ignore-rest", []string{"envoy", "--", runIDFlag, "run-1"}, "run-1", ""},
-		{"finds equals-form func-e marker after Envoy ignore-rest", []string{"envoy", "--", runIDFlag + "=run-1"}, "run-1", ""},
-		{"finds func-e marker in shell-wrapped command", []string{"sh", "-c", "envoy -- --run-id run-1"}, "run-1", ""},
-		{"finds shell-wrapped equals-form func-e marker", []string{"sh", "-c", "envoy -- --run-id=run-1"}, "run-1", ""},
-		{"uses appended func-e marker over Envoy-owned value", []string{"envoy", runIDFlag, "ignored", "--", runIDFlag, "run-2"}, "run-2", ""},
-		{"uses shell-wrapped appended marker over Envoy-owned value", []string{"sh", "-c", "envoy --run-id ignored -- --run-id run-2"}, "run-2", ""},
-		{"requires func-e marker for process matching", []string{"envoy", "--", "--other", "value"}, "", runIDFlag + " not found in command line"},
-	}
+func TestExtractAdminAddressPath(t *testing.T) {
+	adminPath, err := extractAdminAddressPath([]string{"envoy", AddressPathFlag, "/tmp/admin.txt", "--", runIDFlag, "run-1"})
+	require.NoError(t, err)
+	require.Equal(t, "/tmp/admin.txt", adminPath)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			actual, err := extractRunID(tt.cmdline)
-			if tt.expectedErr != "" {
-				require.EqualError(t, err, tt.expectedErr)
-			} else {
-				require.NoError(t, err)
-				require.Equal(t, tt.expected, actual)
-			}
-		})
-	}
+	_, err = extractAdminAddressPath([]string{"envoy", "--", AddressPathFlag, "/tmp/admin.txt"})
+	require.EqualError(t, err, AddressPathFlag+" not found in command line")
+}
+
+func TestExtractRunID(t *testing.T) {
+	id, err := extractRunID([]string{"envoy", "--", runIDFlag, "run-1"})
+	require.NoError(t, err)
+	require.Equal(t, "run-1", id)
+
+	_, err = extractRunID([]string{"envoy", runIDFlag, "before-sentinel"})
+	require.EqualError(t, err, runIDFlag+" not found in command line")
 }
 
 func TestSelectEnvoyProcess(t *testing.T) {

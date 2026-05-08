@@ -7,6 +7,10 @@ choose one, invoke `func-e use 1.38.0`. This installs into
 `$FUNC_E_DATA_HOME/envoy-versions/1.38.0`, if not already present. You may
 also use minor version, such as `func-e use 1.38`.
 
+`$ENVOY_PATH` runs a custom Envoy binary, skipping version
+resolution and download. This is useful for validating pre-release
+or feature branch builds.
+
 You may want to override `$ENVOY_VERSIONS_URL` to supply custom builds or
 otherwise control the source of Envoy binaries. When overriding, validate
 your JSON first: https://archive.tetratelabs.io/release-versions-schema.json
@@ -49,4 +53,5 @@ such as glibc. This value must be constant within a `$FUNC_E_DATA_HOME`.
 | FUNC_E_RUNTIME_DIR | directory for temporary files (used by run command) | /tmp/func-e-${UID} |
 | FUNC_E_RUN_ID | custom run identifier for logs/runtime directories (used by run command) | auto-generated timestamp |
 | ENVOY_VERSIONS_URL | URL of Envoy versions JSON | https://archive.tetratelabs.io/envoy/envoy-versions.json |
+| ENVOY_PATH | path to a custom Envoy binary, bypassing download |  |
 | FUNC_E_PLATFORM | the host OS and architecture of Envoy binaries. Ex. darwin/arm64 | $GOOS/$GOARCH |

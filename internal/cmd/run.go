@@ -35,6 +35,9 @@ directory (aka $PWD) until func-e is interrupted (ex Ctrl+C, Ctrl+Break).
 Envoy's console output writes to "stdout.log" and "stderr.log" in the run directory
 (` + fmt.Sprintf("`%s`", globals.DefaultStateHome) + `/envoy-logs/{runID}).`,
 		Before: func(ctx context.Context, _ *cli.Command) (context.Context, error) {
+			if o.EnvoyPath != "" { // custom binary, skip version resolution
+				return ctx, nil
+			}
 			if err := runtime.EnsureEnvoyVersion(ctx, o); err != nil {
 				return ctx, NewValidationError(err.Error())
 			}

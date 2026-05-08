@@ -71,6 +71,18 @@ func TestFuncERun(t *testing.T) {
 	require.True(t, matched, "Didn't find %s in Envoy stderr: %s", pattern, stderr)
 }
 
+func TestFuncERun_EnvoyPathSkipsVersionResolution(t *testing.T) {
+	o := setupTest(t)
+	o.EnvoyPath = fakeEnvoyBin
+	o.EnvoyVersion = "" // no version set
+	o.Out = new(bytes.Buffer)
+
+	c, _, _ := newApp(o)
+	runWithInvalidConfig(t, c)
+
+	require.NotContains(t, o.Out.(*bytes.Buffer).String(), "looking up")
+}
+
 func TestFuncERun_TeesConsoleToLogs(t *testing.T) {
 	o := setupTest(t)
 

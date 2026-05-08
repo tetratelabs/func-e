@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -242,85 +243,65 @@ func parseAdminPort(addr string) (int, error) {
 	return port, nil
 }
 
-// extractAdminAddressPath returns the first match before [internalapi.ArgsIgnoreRest].
-func extractAdminAddressPath(cmdline []string) (string, error) {
-	for i := range len(cmdline) {
-		arg := cmdline[i]
-		if arg == internalapi.ArgsIgnoreRest {
-			break
-		}
-		switch {
-		case arg == AddressPathFlag && i+1 < len(cmdline) && cmdline[i+1] != "":
-			return cmdline[i+1], nil
-		case strings.HasPrefix(arg, AddressPathFlag+"="):
-			if value := strings.TrimPrefix(arg, AddressPathFlag+"="); value != "" {
-				return value, nil
-			}
-		}
+// flagValue parses a flag from a process command line, e.g.:
+//
+//	["envoy", "--flag", "value"]            → "value"
+//	["envoy", "--flag=value"]               → "value"
+//	["/bin/sh", "-c", "envoy --flag value"] → "value"
+//
+// afterEnvoyArgs controls which side of `--` to scan,
+// so Envoy-native flags and func-e-appended flags are found in the right region.
+func flagValue(cmdline []string, flag string, afterEnvoyArgs bool) (string, error) {
+	value := scanFlag(cmdline, flag, afterEnvoyArgs)
+
+	// /bin/sh -c "envoy ..." packs all args into cmdline[2], so re-scan there.
+	if value == "" && len(cmdline) >= 3 && cmdline[1] == "-c" {
+		value = scanFlag(strings.Fields(cmdline[2]), flag, afterEnvoyArgs)
 	}
 
-	// Shell wrappers expose the wrapped command as one argv entry. Keep this
-	// fallback after the argv-preserving scan so direct args can contain spaces.
-	if len(cmdline) >= 3 && cmdline[1] == "-c" {
-		fields := strings.Fields(cmdline[2])
-		for i := range len(fields) {
-			arg := fields[i]
-			if arg == internalapi.ArgsIgnoreRest {
-				break
-			}
-			switch {
-			case arg == AddressPathFlag && i+1 < len(fields) && fields[i+1] != "":
-				return fields[i+1], nil
-			case strings.HasPrefix(arg, AddressPathFlag+"="):
-				if value := strings.TrimPrefix(arg, AddressPathFlag+"="); value != "" {
-					return value, nil
-				}
-			}
-		}
+	if value == "" {
+		return "", fmt.Errorf("%s not found in command line", flag)
 	}
-
-	return "", fmt.Errorf("%s not found in command line", AddressPathFlag)
+	return value, nil
 }
 
-// extractRunID returns the last match, so the func-e-appended value after [internalapi.ArgsIgnoreRest] wins.
-func extractRunID(cmdline []string) (string, error) {
-	var runID string
-	for i := 0; i < len(cmdline); i++ {
-		arg := cmdline[i]
-		switch {
-		case arg == runIDFlag && i+1 < len(cmdline) && cmdline[i+1] != "":
-			runID = cmdline[i+1]
-			i++
-		case strings.HasPrefix(arg, runIDFlag+"="):
-			if value := strings.TrimPrefix(arg, runIDFlag+"="); value != "" {
-				runID = value
-			}
+// scanFlag returns the last match of flag in the region selected by afterEnvoyArgs.
+// Last-wins matches TCLAP (Envoy's CLI parser) which silently accepts duplicate flags.
+func scanFlag(args []string, flag string, afterEnvoyArgs bool) string {
+	if i := slices.Index(args, "--"); i >= 0 {
+		if afterEnvoyArgs {
+			args = args[i+1:]
+		} else {
+			args = args[:i]
 		}
-	}
-	if runID != "" {
-		return runID, nil
+	} else if afterEnvoyArgs {
+		return "" // without the marker, there is no "after" to scan
 	}
 
-	if len(cmdline) >= 3 && cmdline[1] == "-c" {
-		fields := strings.Fields(cmdline[2])
-		for i := 0; i < len(fields); i++ {
-			arg := fields[i]
-			switch {
-			case arg == runIDFlag && i+1 < len(fields) && fields[i+1] != "":
-				runID = fields[i+1]
+	var result string
+	for i := 0; i < len(args); i++ {
+		// --flag value
+		if args[i] == flag {
+			if i+1 < len(args) && args[i+1] != "" {
+				result = args[i+1]
 				i++
-			case strings.HasPrefix(arg, runIDFlag+"="):
-				if value := strings.TrimPrefix(arg, runIDFlag+"="); value != "" {
-					runID = value
-				}
 			}
+			continue
+		}
+		// --flag=value
+		if v, ok := strings.CutPrefix(args[i], flag+"="); ok && v != "" {
+			result = v
 		}
 	}
-	if runID != "" {
-		return runID, nil
-	}
+	return result
+}
 
-	return "", fmt.Errorf("%s not found in command line", runIDFlag)
+func extractAdminAddressPath(cmdline []string) (string, error) {
+	return flagValue(cmdline, AddressPathFlag, false)
+}
+
+func extractRunID(cmdline []string) (string, error) {
+	return flagValue(cmdline, runIDFlag, true)
 }
 
 type envoyProcessCandidate struct {
