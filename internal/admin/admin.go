@@ -249,7 +249,7 @@ func parseAdminPort(addr string) (int, error) {
 //	["envoy", "--flag=value"]               → "value"
 //	["/bin/sh", "-c", "envoy --flag value"] → "value"
 //
-// afterEnvoyArgs controls which side of [internalapi.EndOfEnvoyArgs] to scan,
+// afterEnvoyArgs controls which side of `--` to scan,
 // so Envoy-native flags and func-e-appended flags are found in the right region.
 func flagValue(cmdline []string, flag string, afterEnvoyArgs bool) (string, error) {
 	value := scanFlag(cmdline, flag, afterEnvoyArgs)
