@@ -104,7 +104,7 @@ func (a *funcE) OnStart(ctx context.Context) (admin.AdminClient, error) {
 	funcEPid := a.cmd.Process.Pid
 
 	// Poll for the admin address path from the Envoy process command line
-	envoyPid, adminAddressPath, err := internaladmin.PollEnvoyPidAndAdminAddressPath(ctx, funcEPid)
+	envoyPid, adminAddressPath, err := internaladmin.PollEnvoyPidAndAdminAddressPath(ctx, funcEPid, "")
 	if err != nil {
 		return nil, err
 	}

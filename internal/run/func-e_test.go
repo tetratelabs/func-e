@@ -97,7 +97,7 @@ func (f *fakeFuncE) Interrupt(context.Context) error {
 // OnStart creates an admin client using the run directory and waits for Envoy to be ready.
 func (f *fakeFuncE) OnStart(ctx context.Context) (internalapi.AdminClient, error) {
 	// Poll for the admin address path from the Envoy process command line
-	envoyPid, adminAddressPath, err := internaladmin.PollEnvoyPidAndAdminAddressPath(ctx, os.Getpid())
+	envoyPid, adminAddressPath, err := internaladmin.PollEnvoyPidAndAdminAddressPath(ctx, os.Getpid(), f.o.RunID)
 	if err != nil {
 		return nil, err
 	}

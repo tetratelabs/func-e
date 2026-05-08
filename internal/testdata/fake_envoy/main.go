@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/tetratelabs/func-e/internal"
+	internalapi "github.com/tetratelabs/func-e/internal/api"
 	"github.com/tetratelabs/func-e/internal/envoy/config"
 )
 
@@ -121,6 +122,8 @@ func parseArgs() (adminAddressPath, configPath, configYaml string) {
 	for i := 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
 		switch {
+		case arg == internalapi.ArgsIgnoreRest:
+			return
 		case arg == "run": // Prevent uber bug
 			exit(1, "run -- Couldn't find match for argument")
 		case arg == "-c" || arg == "--config-path":
@@ -262,6 +265,8 @@ func startAdminServer(adminAddress, adminAddressPath string, wg *sync.WaitGroup,
 		exit(1, err.Error())
 	}
 
+	// Envoy writes socket_->connectionInfoProvider().localAddress()->asString()
+	// e.g. 127.0.0.1:9901 for IPv4, [::1]:9901 for IPv6
 	addr := ln.Addr().String()
 	if adminAddressPath != "" {
 		if err := os.WriteFile(adminAddressPath, []byte(addr), 0o600); err != nil {

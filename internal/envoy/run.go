@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/tetratelabs/func-e/internal/admin"
+	internalapi "github.com/tetratelabs/func-e/internal/api"
 )
 
 // Run execs the Envoy binary at the path with the args passed.
@@ -28,6 +29,9 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 
 	// Ensure a re-run in the same directory has no stale admin-address file
 	os.RemoveAll(adminAddressPath) //nolint:errcheck,gosec // missing path is the desired state
+
+	// Tag the process so NewAdminClient can find it among sibling processes.
+	args = append(args, internalapi.ArgsIgnoreRest, "--run-id", r.o.RunID)
 
 	cmd := exec.CommandContext(ctx, r.o.EnvoyPath, args...) // #nosec -> users can run whatever binary they like!
 	cmd.Stdout = r.Out

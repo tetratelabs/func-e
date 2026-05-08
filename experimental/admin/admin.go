@@ -18,13 +18,26 @@ import (
 type AdminClient = internalapi.AdminClient
 
 // NewAdminClient returns an AdminClient if `funcEPid` has a child envoy process.
-func NewAdminClient(ctx context.Context, funcEPid int) (AdminClient, error) {
-	// Poll for the admin address path from the Envoy process command line
-	_, adminAddressPath, err := admin.PollEnvoyPidAndAdminAddressPath(ctx, funcEPid)
+//
+// Supported api.RunOption values:
+// - api.RunID - use when funcEPid launched multiple envoys
+// - api.HTTPTransport - use in testing or observability.
+func NewAdminClient(ctx context.Context, funcEPid int, options ...api.RunOption) (AdminClient, error) {
+	var opts internalapi.RunOpts
+	for _, o := range options {
+		o(&opts)
+	}
+
+	_, adminAddressPath, err := admin.PollEnvoyPidAndAdminAddressPath(ctx, funcEPid, opts.RunID)
 	if err != nil {
 		return nil, err
 	}
-	return admin.NewAdminClient(ctx, http.DefaultClient, adminAddressPath)
+
+	transport := opts.HTTPTransport
+	if transport == nil {
+		transport = http.DefaultTransport
+	}
+	return admin.NewAdminClient(ctx, &http.Client{Transport: transport}, adminAddressPath)
 }
 
 // StartupHook runs once the Envoy admin server is ready. Configure this

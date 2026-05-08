@@ -88,7 +88,7 @@ func TestPollEnvoyPidAndAdminAddressPathForPort(t *testing.T) {
 				require.NoError(t, os.WriteFile(path, []byte("invalid-address"), 0o600))
 			},
 			ctx:         func(t *testing.T) context.Context { t.Helper(); return t.Context() },
-			expectedErr: "failed to parse Envoy's admin port: strconv.Atoi: parsing \"\": invalid syntax",
+			expectedErr: "failed to parse Envoy's admin address: address invalid-address: missing port in address",
 		},
 	}
 
@@ -155,6 +155,33 @@ func TestPollAdminAddressPathForPort_PollsOnTickerBoundary(t *testing.T) {
 		require.NoError(t, res.err)
 		require.Equal(t, 9901, res.port)
 	})
+}
+
+func TestParseAdminPort(t *testing.T) {
+	tests := []struct {
+		name        string
+		address     string
+		expected    int
+		expectedErr string
+	}{
+		{"ipv4", "127.0.0.1:9901", 9901, ""},
+		{"hostname", "localhost:9901", 9901, ""},
+		{"ipv6", "[::1]:9901", 9901, ""},
+		{"missing port", "invalid-address", 0, "failed to parse Envoy's admin address: address invalid-address: missing port in address"},
+		{"invalid port", "127.0.0.1:not-a-number", 0, "failed to parse Envoy's admin port: strconv.Atoi: parsing \"not-a-number\": invalid syntax"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actual, err := parseAdminPort(tt.address)
+			if tt.expectedErr != "" {
+				require.EqualError(t, err, tt.expectedErr)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.expected, actual)
+		})
+	}
 }
 
 func TestAdminClient_get(t *testing.T) {
@@ -351,34 +378,38 @@ func TestAdminClient_NewListenerRequest(t *testing.T) {
 	}
 }
 
-func TestExtractFlagValue(t *testing.T) {
+func TestExtractAdminAddressPath(t *testing.T) {
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "admin-address.txt")
 	pathWithSpaces := filepath.Join(tmpDir, "admin address.txt")
 
 	tests := []struct {
 		name        string
-		flag        string
 		cmdline     []string
 		expected    string
 		expectedErr string
 	}{
-		{"valid flag with path", AddressPathFlag, []string{"envoy", AddressPathFlag, tmpDir}, tmpDir, ""},
-		{"valid flag with path containing spaces", AddressPathFlag, []string{"envoy", AddressPathFlag, pathWithSpaces}, pathWithSpaces, ""},
-		{"valid equals flag", AddressPathFlag, []string{"envoy", AddressPathFlag + "=" + tmpFile}, tmpFile, ""},
-		{"flag at end with path", AddressPathFlag, []string{"--config", "/etc/envoy.yaml", AddressPathFlag, tmpDir}, tmpDir, ""},
-		{"flag not present", AddressPathFlag, []string{"envoy", "--config", "/etc/envoy.yaml"}, "", AddressPathFlag + " not found in command line"},
-		{"flag present but no value", AddressPathFlag, []string{"envoy", AddressPathFlag}, "", AddressPathFlag + " not found in command line"},
-		{"empty cmdline", AddressPathFlag, []string{}, "", AddressPathFlag + " not found in command line"},
-		{"sh -c wrapped command", AddressPathFlag, []string{"sh", "-c", fmt.Sprintf("sleep 30 && echo %s %s", AddressPathFlag, tmpDir)}, tmpDir, ""},
-		{"sh -c with multiple spaces", AddressPathFlag, []string{"sh", "-c", fmt.Sprintf("envoy %s %s --other-flag", AddressPathFlag, tmpDir)}, tmpDir, ""},
-		{"sh -c with equals flag", AddressPathFlag, []string{"sh", "-c", fmt.Sprintf("envoy %s=%s --other-flag", AddressPathFlag, tmpFile)}, tmpFile, ""},
-		{"admin address path flag", AddressPathFlag, []string{"envoy", AddressPathFlag, tmpFile}, tmpFile, ""},
+		{"reads value form before Envoy ignore-rest", []string{"envoy", AddressPathFlag, tmpDir}, tmpDir, ""},
+		{"preserves spaces in direct argv value", []string{"envoy", AddressPathFlag, pathWithSpaces}, pathWithSpaces, ""},
+		{"reads equals form before Envoy ignore-rest", []string{"envoy", AddressPathFlag + "=" + tmpFile}, tmpFile, ""},
+		{"finds value after other Envoy-owned args", []string{"--config", "/etc/envoy.yaml", AddressPathFlag, tmpDir}, tmpDir, ""},
+		{"flag not present", []string{"envoy", "--config", "/etc/envoy.yaml"}, "", AddressPathFlag + " not found in command line"},
+		{"flag present but no value", []string{"envoy", AddressPathFlag}, "", AddressPathFlag + " not found in command line"},
+		{"empty cmdline", []string{}, "", AddressPathFlag + " not found in command line"},
+		{"ignores value form hidden behind Envoy ignore-rest", []string{"envoy", "--", AddressPathFlag, tmpDir}, "", AddressPathFlag + " not found in command line"},
+		{"keeps earlier equals form when later value is hidden", []string{"envoy", AddressPathFlag + "=" + tmpFile, "--", AddressPathFlag, tmpDir}, tmpFile, ""},
+		{"accepts ignore-rest token as the flag value", []string{"envoy", AddressPathFlag, "--"}, "--", ""},
+		{"reads value form from shell-wrapped command", []string{"sh", "-c", fmt.Sprintf("sleep 30 && echo %s %s", AddressPathFlag, tmpDir)}, tmpDir, ""},
+		{"reads value form from shell wrapper with extra args", []string{"sh", "-c", fmt.Sprintf("envoy %s %s --other-flag", AddressPathFlag, tmpDir)}, tmpDir, ""},
+		{"reads equals form from shell-wrapped command", []string{"sh", "-c", fmt.Sprintf("envoy %s=%s --other-flag", AddressPathFlag, tmpFile)}, tmpFile, ""},
+		{"ignores shell-wrapped value hidden behind Envoy ignore-rest", []string{"sh", "-c", fmt.Sprintf("envoy -- %s %s", AddressPathFlag, tmpDir)}, "", AddressPathFlag + " not found in command line"},
+		{"keeps shell-wrapped equals form before ignore-rest", []string{"sh", "-c", fmt.Sprintf("envoy %s=%s -- %s %s", AddressPathFlag, tmpFile, AddressPathFlag, tmpDir)}, tmpFile, ""},
+		{"accepts ignore-rest token as shell-wrapped value", []string{"sh", "-c", fmt.Sprintf("envoy %s --", AddressPathFlag)}, "--", ""},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			actual, err := extractFlagValue(tt.flag, tt.cmdline)
+			actual, err := extractAdminAddressPath(tt.cmdline)
 			if tt.expectedErr != "" {
 				require.EqualError(t, err, tt.expectedErr)
 			} else {
@@ -389,15 +420,173 @@ func TestExtractFlagValue(t *testing.T) {
 	}
 }
 
+func TestExtractRunID(t *testing.T) {
+	tests := []struct {
+		name        string
+		cmdline     []string
+		expected    string
+		expectedErr string
+	}{
+		{"finds func-e marker after Envoy ignore-rest", []string{"envoy", "--", runIDFlag, "run-1"}, "run-1", ""},
+		{"finds equals-form func-e marker after Envoy ignore-rest", []string{"envoy", "--", runIDFlag + "=run-1"}, "run-1", ""},
+		{"finds func-e marker in shell-wrapped command", []string{"sh", "-c", "envoy -- --run-id run-1"}, "run-1", ""},
+		{"finds shell-wrapped equals-form func-e marker", []string{"sh", "-c", "envoy -- --run-id=run-1"}, "run-1", ""},
+		{"uses appended func-e marker over Envoy-owned value", []string{"envoy", runIDFlag, "ignored", "--", runIDFlag, "run-2"}, "run-2", ""},
+		{"uses shell-wrapped appended marker over Envoy-owned value", []string{"sh", "-c", "envoy --run-id ignored -- --run-id run-2"}, "run-2", ""},
+		{"requires func-e marker for process matching", []string{"envoy", "--", "--other", "value"}, "", runIDFlag + " not found in command line"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actual, err := extractRunID(tt.cmdline)
+			if tt.expectedErr != "" {
+				require.EqualError(t, err, tt.expectedErr)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tt.expected, actual)
+			}
+		})
+	}
+}
+
+func TestSelectEnvoyProcess(t *testing.T) {
+	tests := []struct {
+		name         string
+		candidates   []envoyProcessCandidate
+		runID        string
+		expectedPID  int
+		expectedPath string
+		expectedErr  string
+	}{
+		{
+			name: "explicit run id selects the matching func-e-launched Envoy",
+			candidates: []envoyProcessCandidate{
+				{pid: 1, cmdline: []string{"envoy", AddressPathFlag, "/tmp/admin-1.txt", "--", runIDFlag, "run-1"}},
+				{pid: 2, cmdline: []string{"envoy", AddressPathFlag, "/tmp/admin-2.txt", "--", runIDFlag, "run-2"}},
+			},
+			runID:        "run-2",
+			expectedPID:  2,
+			expectedPath: "/tmp/admin-2.txt",
+		},
+		{
+			name: "explicit run id does not trust Envoy flags hidden behind ignore-rest",
+			candidates: []envoyProcessCandidate{
+				{pid: 1, cmdline: []string{"envoy", "--", AddressPathFlag, "/tmp/admin-1.txt", runIDFlag, "run-1"}},
+			},
+			runID:       "run-1",
+			expectedErr: AddressPathFlag + " not found in command line",
+		},
+		{
+			name: "fallback skips BOE ext_proc sibling because it has no func-e marker",
+			candidates: []envoyProcessCandidate{
+				{pid: 1, cmdline: []string{"/var/boe/data/extensions/extproc/example-ext-proc/0.1.0/ext_proc-server", "--port", "50051"}},
+				{pid: 2, cmdline: []string{"envoy", AddressPathFlag, "/tmp/admin-2.txt", "--", runIDFlag, "run-2"}},
+			},
+			expectedPID:  2,
+			expectedPath: "/tmp/admin-2.txt",
+		},
+		{
+			name: "fallback does not identify Envoy by admin flag alone",
+			candidates: []envoyProcessCandidate{
+				{pid: 1, cmdline: []string{"envoy", AddressPathFlag, "/tmp/admin-1.txt"}},
+			},
+			expectedErr: "no child with " + runIDFlag,
+		},
+		{
+			name: "fallback refuses to guess between multiple func-e-launched Envoys",
+			candidates: []envoyProcessCandidate{
+				{pid: 1, cmdline: []string{"envoy", AddressPathFlag, "/tmp/admin-1.txt", "--", runIDFlag, "run-1"}},
+				{pid: 2, cmdline: []string{"envoy", AddressPathFlag, "/tmp/admin-2.txt", "--", runIDFlag, "run-2"}},
+			},
+			expectedErr: errMultipleEnvoyProcesses.Error(),
+		},
+		{
+			name: "fallback still applies Envoy ignore-rest before reading admin path",
+			candidates: []envoyProcessCandidate{
+				{pid: 1, cmdline: []string{"envoy", "--", AddressPathFlag, "/tmp/ignored.txt", runIDFlag, "run-1"}},
+			},
+			expectedErr: "no child with " + AddressPathFlag,
+		},
+		{
+			name: "explicit run id fails when no child has the matching marker",
+			candidates: []envoyProcessCandidate{
+				{pid: 1, cmdline: []string{"envoy", AddressPathFlag, "/tmp/admin-1.txt", "--", runIDFlag, "run-1"}},
+			},
+			runID:       "run-2",
+			expectedErr: "no child with " + runIDFlag + " run-2",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actualPID, actualPath, err := selectEnvoyProcess(tt.candidates, tt.runID)
+			if tt.expectedErr != "" {
+				require.EqualError(t, err, tt.expectedErr)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.expectedPID, actualPID)
+			require.Equal(t, tt.expectedPath, actualPath)
+		})
+	}
+}
+
 func TestPollEnvoyPidAndAdminAddressPath(t *testing.T) {
-	t.Run("success - finds envoy PID and defaults admin address path", func(t *testing.T) {
+	t.Run("uses run id to choose between live child processes", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(t.Context())
 		t.Cleanup(cancel)
 
-		adminAddressPath := path.Join(t.TempDir(), "admin-address.txt")
+		path1 := path.Join(t.TempDir(), "admin-1.txt")
+		path2 := path.Join(t.TempDir(), "admin-2.txt")
 
-		cmdStr := "sleep 30 && echo --admin-address-path " + adminAddressPath
-		cmd := exec.CommandContext(ctx, "sh", "-c", cmdStr)
+		cmd1 := exec.CommandContext(ctx, "sh", "-c",
+			fmt.Sprintf("sleep 30 && echo %s %s -- --run-id run-1", AddressPathFlag, path1))
+		cmd2 := exec.CommandContext(ctx, "sh", "-c",
+			fmt.Sprintf("sleep 30 && echo %s %s -- --run-id run-2", AddressPathFlag, path2))
+		require.NoError(t, cmd1.Start())
+		require.NoError(t, cmd2.Start())
+		t.Cleanup(func() {
+			cmd1.Process.Kill()
+			cmd1.Process.Wait()
+			cmd2.Process.Kill()
+			cmd2.Process.Wait()
+		})
+
+		time.Sleep(100 * time.Millisecond)
+
+		tests := []struct {
+			name        string
+			runID       string
+			expectedPID int
+			expected    string
+			expectedErr string
+		}{
+			{"selects first marked Envoy", "run-1", cmd1.Process.Pid, path1, ""},
+			{"selects second marked Envoy", "run-2", cmd2.Process.Pid, path2, ""},
+			{"requires run id when multiple marked Envoys are live", "", 0, "", "multiple Envoy processes found; set --run-id to disambiguate"},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				actualEnvoyPid, actualAdminAddressPath, err := PollEnvoyPidAndAdminAddressPath(t.Context(), os.Getpid(), tt.runID)
+				if tt.expectedErr != "" {
+					require.EqualError(t, err, tt.expectedErr)
+					return
+				}
+				require.NoError(t, err)
+				require.Equal(t, tt.expectedPID, actualEnvoyPid)
+				require.Equal(t, tt.expected, actualAdminAddressPath)
+			})
+		}
+	})
+
+	t.Run("fallback selects the only marked live Envoy", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(t.Context())
+		t.Cleanup(cancel)
+
+		adminAddressPath := path.Join(t.TempDir(), "admin.txt")
+		cmd := exec.CommandContext(ctx, "sh", "-c",
+			fmt.Sprintf("sleep 30 && echo %s %s -- --run-id ignored", AddressPathFlag, adminAddressPath))
 		require.NoError(t, cmd.Start())
 		t.Cleanup(func() {
 			cmd.Process.Kill()
@@ -406,17 +595,17 @@ func TestPollEnvoyPidAndAdminAddressPath(t *testing.T) {
 
 		time.Sleep(100 * time.Millisecond)
 
-		actualEnvoyPid, actualAdminAddressPath, err := PollEnvoyPidAndAdminAddressPath(t.Context(), os.Getpid())
+		actualEnvoyPid, actualAdminAddressPath, err := PollEnvoyPidAndAdminAddressPath(t.Context(), os.Getpid(), "")
 		require.NoError(t, err)
 		require.Equal(t, cmd.Process.Pid, actualEnvoyPid)
 		require.Equal(t, adminAddressPath, actualAdminAddressPath)
 	})
 
-	t.Run("failure - timeout waiting for Envoy process", func(t *testing.T) {
+	t.Run("times out when no child process is available", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), 200*time.Millisecond)
 		t.Cleanup(cancel)
 
-		_, _, err := PollEnvoyPidAndAdminAddressPath(ctx, os.Getpid())
+		_, _, err := PollEnvoyPidAndAdminAddressPath(ctx, os.Getpid(), "")
 		require.EqualError(t, err, "timeout waiting for Envoy process: no Envoy process found")
 	})
 }
@@ -448,7 +637,7 @@ func TestNewAdminClient(t *testing.T) {
 				require.NoError(t, os.WriteFile(adminAddressPath, []byte("not-a-number"), 0o600))
 			},
 			ctx:         func(t *testing.T) context.Context { t.Helper(); return t.Context() },
-			expectedErr: "failed to parse Envoy's admin port: strconv.Atoi: parsing \"\": invalid syntax",
+			expectedErr: "failed to parse Envoy's admin address: address not-a-number: missing port in address",
 		},
 		{
 			name: "returns error when admin address file never appears",
