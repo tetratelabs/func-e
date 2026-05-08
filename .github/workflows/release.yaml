@@ -74,6 +74,11 @@ jobs:
       - name: "Checkout"
         uses: actions/checkout@v6
 
+      - uses: actions/setup-go@v6
+        with:
+          cache: false
+          go-version-file: go.mod
+
       - name: "Extract `func-e` binary from GitHub release assets"
         id: download  # allows variables like ${{ steps.download.outputs.X }}
         run: |
