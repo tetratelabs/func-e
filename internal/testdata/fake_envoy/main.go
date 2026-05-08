@@ -19,7 +19,6 @@ import (
 	"time"
 
 	"github.com/tetratelabs/func-e/internal"
-	internalapi "github.com/tetratelabs/func-e/internal/api"
 	"github.com/tetratelabs/func-e/internal/envoy/config"
 )
 
@@ -122,7 +121,7 @@ func parseArgs() (adminAddressPath, configPath, configYaml string) {
 	for i := 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
 		switch {
-		case arg == internalapi.ArgsIgnoreRest:
+		case arg == "--":
 			return
 		case arg == "run": // Prevent uber bug
 			exit(1, "run -- Couldn't find match for argument")

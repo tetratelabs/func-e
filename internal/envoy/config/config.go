@@ -9,8 +9,6 @@ import (
 	"strings"
 
 	"gopkg.in/yaml.v3"
-
-	internalapi "github.com/tetratelabs/func-e/internal/api"
 )
 
 type config struct {
@@ -143,7 +141,7 @@ func FindAdminAddressFromArgs(args []string) (string, error) {
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		switch {
-		case arg == internalapi.ArgsIgnoreRest:
+		case arg == "--":
 			return FindAdminAddress(configPath, configYaml)
 		case arg == "-c" || arg == "--config-path":
 			if i+1 < len(args) {

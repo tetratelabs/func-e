@@ -10,9 +10,6 @@ import (
 	"net/http"
 )
 
-// ArgsIgnoreRest is Envoy's CLI separator: args after this are not parsed.
-const ArgsIgnoreRest = "--"
-
 // HTTPTransport creates the HTTP client transport used during a run.
 type HTTPTransport func() http.RoundTripper
 

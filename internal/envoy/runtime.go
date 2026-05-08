@@ -91,7 +91,7 @@ ARGS:
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		switch {
-		case arg == internalapi.ArgsIgnoreRest:
+		case arg == "--":
 			insertAt = i
 			break ARGS
 		case arg == "-c" || arg == "--config-path" || arg == configYamlFlag:

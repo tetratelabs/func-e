@@ -75,7 +75,7 @@ func initOpts(ctx context.Context, options ...api.RunOption) (*globals.GlobalOpt
 		return nil, err
 	}
 
-	if o.EnvoyPath == "" { // no custom binary, resolve version
+	if o.EnvoyPath == "" {
 		if err := runtime.EnsureEnvoyVersion(ctx, o); err != nil {
 			return nil, err
 		}

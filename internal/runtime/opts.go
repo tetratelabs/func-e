@@ -19,7 +19,7 @@ import (
 
 // InitializeGlobalOpts ensures the global options are initialized.
 func InitializeGlobalOpts(o *globals.GlobalOpts, envoyVersionsURL, envoyPath, homeDir, configHome, dataHome, stateHome, runtimeDir, platform, runID string) error {
-	if envoyPath != "" {
+	if envoyPath != "" { // not overridden for tests
 		o.EnvoyPath = envoyPath
 	}
 	if o.Platform == "" { // not overridden for tests
