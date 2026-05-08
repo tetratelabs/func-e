@@ -42,6 +42,31 @@ Another wrinkle is [Go rejects `-modfile` in workspace mode][go-work-modfile].
 To use `-modfile=tools/go.mod`, we have to set `GOWORK=off`. This causes cruft
 in the root Makefile.
 
+## Why internal/test/httptest?
+
+Go's `net/http/httptest.NewServer` listens on loopback TCP. Network I/O is
+[not durably blocking][synctest-blocking], so goroutines stuck on TCP prevent
+a [synctest][synctest-pkg] bubble from becoming idle. The fake clock never
+advances, and any `time.After` or `time.Sleep` in the code under test hangs.
+
+Our `httptest.NewServer` replaces the TCP listener with `net.Pipe`, following
+the pattern in Go's own [synctest documentation][synctest-example]. Pipe
+operations block on channels, which are durably blocking, so synctest can
+see when the bubble is idle and advance the clock. Go's stdlib HTTP tests
+use the same `net.Pipe` technique inside synctest
+([export_test.go][go-export], [serve_test.go][go-serve],
+[transport_test.go][go-transport]).
+
+We also provide `httptest.HTTPClient`, which runs a handler synchronously in
+the caller's goroutine with no I/O at all. Tests who need `*http.Client`, but
+don't need a real server can use this instead.
+
 ---
 [xdg]: https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html
 [go-work-modfile]: https://go.dev/issue/59996
+[synctest-pkg]: https://pkg.go.dev/testing/synctest
+[synctest-blocking]: https://github.com/golang/go/blob/master/src/testing/synctest/synctest.go#L86-L93
+[synctest-example]: https://github.com/golang/go/blob/master/src/testing/synctest/synctest.go#L205-L208
+[go-export]: https://github.com/golang/go/blob/master/src/net/http/export_test.go#L183
+[go-serve]: https://github.com/golang/go/blob/master/src/net/http/serve_test.go#L1767
+[go-transport]: https://github.com/golang/go/blob/master/src/net/http/transport_test.go#L3079
