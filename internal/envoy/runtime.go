@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"syscall"
 	"time"
@@ -85,10 +86,14 @@ func (r *Runtime) String() string {
 func ensureAdminAddress(logf LogFunc, runDir string, argsIn []string) (adminAddressPath string, args []string, err error) {
 	args = argsIn
 	var hasConfig bool
+	insertAt := len(args)
 ARGS:
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		switch {
+		case arg == internalapi.ArgsIgnoreRest:
+			insertAt = i
+			break ARGS
 		case arg == "-c" || arg == "--config-path" || arg == configYamlFlag:
 			i++
 			if i < len(args) {
@@ -134,13 +139,14 @@ ARGS:
 		logf("failed to find admin address: %s", err)
 	} else if adminAddress == "" {
 		logf("configuring ephemeral admin server")
-		args = append(args, configYamlFlag, adminEphemeralConfig)
+		args = slices.Insert(args, insertAt, configYamlFlag, adminEphemeralConfig)
+		insertAt += 2
 	}
 
 	if adminAddressPath == "" {
 		// Envoy's run directory is mutable, so it is fine to write the admin address there.
 		adminAddressPath = filepath.Join(runDir, "admin-address.txt")
-		args = append(args, adminAddressPathFlag, adminAddressPath)
+		args = slices.Insert(args, insertAt, adminAddressPathFlag, adminAddressPath)
 	}
 	return adminAddressPath, args, nil
 }

@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -24,8 +25,12 @@ import (
 const (
 	ServerAddr      = "127.0.0.1:9901"
 	AddressPathFlag = "--admin-address-path"
+	runIDFlag       = "--run-id"
 	live            = "live"
+	pollInterval    = 50 * time.Millisecond
 )
+
+var errMultipleEnvoyProcesses = fmt.Errorf("multiple Envoy processes found; set %s to disambiguate", runIDFlag)
 
 // NewAdminClient creates an AdminClient by polling for the admin port at
 // adminAddressPath.
@@ -192,7 +197,7 @@ func (c *adminClient) Get(ctx context.Context, path string) ([]byte, error) {
 // pollAdminAddressPathForPort polls for the admin-address.txt file.
 // It returns the admin port number or an error if the timeout is reached.
 func pollAdminAddressPathForPort(ctx context.Context, adminAddressPath string) (int, error) {
-	ticker := time.NewTicker(50 * time.Millisecond)
+	ticker := time.NewTicker(pollInterval)
 	defer ticker.Stop()
 
 	var adminAddr string
@@ -221,29 +226,36 @@ LOOP:
 		}
 	}
 
-	// Parse as a URL so hostnames, IPv4, and bracketed IPv6 addresses share
-	// one port extraction path.
-	u, err := url.Parse("http://" + adminAddr)
+	return parseAdminPort(adminAddr)
+}
+
+func parseAdminPort(addr string) (int, error) {
+	_, portStr, err := net.SplitHostPort(addr)
 	if err != nil {
 		return 0, fmt.Errorf("failed to parse Envoy's admin address: %w", err)
 	}
 
-	port, err := strconv.Atoi(u.Port())
+	port, err := strconv.Atoi(portStr)
 	if err != nil {
 		return 0, fmt.Errorf("failed to parse Envoy's admin port: %w", err)
 	}
-
 	return port, nil
 }
 
-// extractFlagValue parses a flag value from command line arguments.
-func extractFlagValue(flag string, cmdline []string) (string, error) {
-	for i, arg := range cmdline {
-		if arg == flag && i+1 < len(cmdline) && cmdline[i+1] != "" {
-			return cmdline[i+1], nil
+// extractAdminAddressPath returns the first match before [internalapi.ArgsIgnoreRest].
+func extractAdminAddressPath(cmdline []string) (string, error) {
+	for i := range len(cmdline) {
+		arg := cmdline[i]
+		if arg == internalapi.ArgsIgnoreRest {
+			break
 		}
-		if value, ok := strings.CutPrefix(arg, flag+"="); ok && value != "" {
-			return value, nil
+		switch {
+		case arg == AddressPathFlag && i+1 < len(cmdline) && cmdline[i+1] != "":
+			return cmdline[i+1], nil
+		case strings.HasPrefix(arg, AddressPathFlag+"="):
+			if value := strings.TrimPrefix(arg, AddressPathFlag+"="); value != "" {
+				return value, nil
+			}
 		}
 	}
 
@@ -251,35 +263,129 @@ func extractFlagValue(flag string, cmdline []string) (string, error) {
 	// fallback after the argv-preserving scan so direct args can contain spaces.
 	if len(cmdline) >= 3 && cmdline[1] == "-c" {
 		fields := strings.Fields(cmdline[2])
-		for i, arg := range fields {
-			if arg == flag && i+1 < len(fields) && fields[i+1] != "" {
-				return fields[i+1], nil
+		for i := range len(fields) {
+			arg := fields[i]
+			if arg == internalapi.ArgsIgnoreRest {
+				break
 			}
-			if value, ok := strings.CutPrefix(arg, flag+"="); ok && value != "" {
-				return value, nil
+			switch {
+			case arg == AddressPathFlag && i+1 < len(fields) && fields[i+1] != "":
+				return fields[i+1], nil
+			case strings.HasPrefix(arg, AddressPathFlag+"="):
+				if value := strings.TrimPrefix(arg, AddressPathFlag+"="); value != "" {
+					return value, nil
+				}
 			}
 		}
 	}
 
-	return "", fmt.Errorf("%s not found in command line", flag)
+	return "", fmt.Errorf("%s not found in command line", AddressPathFlag)
 }
 
-// PollEnvoyPidAndAdminAddressPath polls for the Envoy child process and
-// extracts its pid and admin address path from its command line.
+// extractRunID returns the last match, so the func-e-appended value after [internalapi.ArgsIgnoreRest] wins.
+func extractRunID(cmdline []string) (string, error) {
+	var runID string
+	for i := 0; i < len(cmdline); i++ {
+		arg := cmdline[i]
+		switch {
+		case arg == runIDFlag && i+1 < len(cmdline) && cmdline[i+1] != "":
+			runID = cmdline[i+1]
+			i++
+		case strings.HasPrefix(arg, runIDFlag+"="):
+			if value := strings.TrimPrefix(arg, runIDFlag+"="); value != "" {
+				runID = value
+			}
+		}
+	}
+	if runID != "" {
+		return runID, nil
+	}
+
+	if len(cmdline) >= 3 && cmdline[1] == "-c" {
+		fields := strings.Fields(cmdline[2])
+		for i := 0; i < len(fields); i++ {
+			arg := fields[i]
+			switch {
+			case arg == runIDFlag && i+1 < len(fields) && fields[i+1] != "":
+				runID = fields[i+1]
+				i++
+			case strings.HasPrefix(arg, runIDFlag+"="):
+				if value := strings.TrimPrefix(arg, runIDFlag+"="); value != "" {
+					runID = value
+				}
+			}
+		}
+	}
+	if runID != "" {
+		return runID, nil
+	}
+
+	return "", fmt.Errorf("%s not found in command line", runIDFlag)
+}
+
+type envoyProcessCandidate struct {
+	pid     int
+	cmdline []string
+}
+
+func selectEnvoyProcess(candidates []envoyProcessCandidate, runID string) (envoyPid int, adminAddressPath string, err error) {
+	if runID == "" {
+		// Without an explicit runID, skip children that lack the func-e marker.
+		foundRunID := false
+		for _, candidate := range candidates {
+			if _, err := extractRunID(candidate.cmdline); err != nil {
+				continue
+			}
+			foundRunID = true
+
+			path, err := extractAdminAddressPath(candidate.cmdline)
+			if err != nil {
+				continue
+			}
+			// Keep scanning past the first match to detect ambiguity.
+			if adminAddressPath != "" {
+				return 0, "", errMultipleEnvoyProcesses
+			}
+			envoyPid = candidate.pid
+			adminAddressPath = path
+		}
+		if adminAddressPath != "" {
+			return envoyPid, adminAddressPath, nil
+		}
+		if !foundRunID {
+			return 0, "", fmt.Errorf("no child with %s", runIDFlag)
+		}
+		return 0, "", fmt.Errorf("no child with %s", AddressPathFlag)
+	}
+
+	for _, candidate := range candidates {
+		id, err := extractRunID(candidate.cmdline)
+		if err != nil || id != runID {
+			continue
+		}
+		adminAddressPath, err := extractAdminAddressPath(candidate.cmdline)
+		if err != nil {
+			return 0, "", err
+		}
+		return candidate.pid, adminAddressPath, nil
+	}
+	return 0, "", fmt.Errorf("no child with %s %s", runIDFlag, runID)
+}
+
+// PollEnvoyPidAndAdminAddressPath polls for a child process tagged with
+// runID and extracts its pid and admin address path from its command line.
 //
-// This polls as the goroutine may be called prior to the Envoy subprocess.
-func PollEnvoyPidAndAdminAddressPath(ctx context.Context, funcEPid int) (envoyPid int, adminAddressPath string, err error) {
+// This polls because the child may not exist yet when the caller starts.
+func PollEnvoyPidAndAdminAddressPath(ctx context.Context, funcEPid int, runID string) (envoyPid int, adminAddressPath string, err error) {
 	funcEProc, err := process.NewProcessWithContext(ctx, int32(funcEPid)) //nolint:gosec // funcEPid never overflows int32
 	if err != nil {
 		return 0, "", fmt.Errorf("failed to get func-e process: %w", err)
 	}
 
-	ticker := time.NewTicker(50 * time.Millisecond)
+	ticker := time.NewTicker(pollInterval)
 	defer ticker.Stop()
 
-	var envoyProc *process.Process
 	var lastErr error
-LOOP:
 	for {
 		select {
 		case <-ctx.Done():
@@ -299,22 +405,27 @@ LOOP:
 				continue
 			}
 
-			// func-e starts one Envoy child process.
-			envoyProc = children[0]
-			envoyPid = int(envoyProc.Pid)
-			break LOOP
+			candidates := make([]envoyProcessCandidate, 0, len(children))
+			for _, child := range children {
+				cmdline, err := child.CmdlineSliceWithContext(ctx)
+				if err != nil {
+					continue
+				}
+				candidates = append(candidates, envoyProcessCandidate{
+					pid:     int(child.Pid),
+					cmdline: cmdline,
+				})
+			}
+
+			envoyPid, adminAddressPath, err = selectEnvoyProcess(candidates, runID)
+			if err == nil {
+				return envoyPid, adminAddressPath, nil
+			}
+			// Ambiguity won't resolve with more polling; the caller needs a runID.
+			if errors.Is(err, errMultipleEnvoyProcesses) {
+				return 0, "", err
+			}
+			lastErr = err
 		}
 	}
-
-	envoyCmdline, err := envoyProc.CmdlineSliceWithContext(ctx)
-	if err != nil {
-		return 0, "", fmt.Errorf("failed to get command line of Envoy: %w", err)
-	}
-
-	adminAddressPath, err = extractFlagValue(AddressPathFlag, envoyCmdline)
-	if err != nil {
-		return 0, "", err
-	}
-
-	return envoyPid, adminAddressPath, nil
 }

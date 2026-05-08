@@ -39,6 +39,7 @@ func TestRuntime_Run_EnvoyError(t *testing.T) {
 		HTTPClient: http.DefaultClient,
 		RunDir:     runDir,
 		TempDir:    runDir,
+		RunID:      "test-run-id",
 	}, logToOutput)
 	r.Out, r.Err = stdout, stderr
 
@@ -54,6 +55,7 @@ func TestRuntime_Run_EnvoyError(t *testing.T) {
 			"--config-yaml", "invalid.yaml",
 			// test we added additional arguments
 			admin.AddressPathFlag, filepath.Join(runDir, "admin-address.txt"),
+			"--", "--run-id", "test-run-id",
 		}, r.cmd.Args, "command arguments mismatch")
 		require.Empty(t, r.cmd.Dir, "working directory should be empty")
 	})
@@ -80,7 +82,7 @@ func TestRuntime_Run_StartupHook(t *testing.T) {
 		name        string
 		startupHook internalapi.StartupHook
 		expectedErr string
-		expectLog   string
+		expectedLog string
 		envoyArgs   []string
 	}{
 		{
@@ -89,7 +91,7 @@ func TestRuntime_Run_StartupHook(t *testing.T) {
 				return errors.New("database connection failed")
 			},
 			expectedErr: "database connection failed",
-			expectLog:   "database connection failed",
+			expectedLog: "database connection failed",
 			envoyArgs: []string{
 				"--config-yaml", "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 0}}}",
 			},
@@ -100,7 +102,7 @@ func TestRuntime_Run_StartupHook(t *testing.T) {
 				panic("nil pointer dereference")
 			},
 			expectedErr: "startup hook panicked: nil pointer dereference",
-			expectLog:   "startup hook panicked: nil pointer dereference",
+			expectedLog: "startup hook panicked: nil pointer dereference",
 			envoyArgs: []string{
 				"--config-yaml", "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 0}}}",
 			},
@@ -111,7 +113,7 @@ func TestRuntime_Run_StartupHook(t *testing.T) {
 				logToOutput("startup hook executed successfully")
 				return nil
 			},
-			expectLog: "startup hook executed successfully",
+			expectedLog: "startup hook executed successfully",
 			envoyArgs: []string{
 				"--config-yaml", "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 0}}}",
 			},
@@ -158,8 +160,8 @@ func TestRuntime_Run_StartupHook(t *testing.T) {
 			}
 
 			// Check log output
-			if tt.expectLog != "" {
-				require.Contains(t, logBuf.String(), tt.expectLog)
+			if tt.expectedLog != "" {
+				require.Contains(t, logBuf.String(), tt.expectedLog)
 			}
 
 			// Verify the process is dead

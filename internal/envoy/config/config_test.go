@@ -4,6 +4,7 @@
 package config
 
 import (
+	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
@@ -36,13 +37,13 @@ func TestParseListeners(t *testing.T) {
 		name        string
 		configPath  string
 		configYaml  string
-		expect      *Config
+		expected    *Config
 		expectedErr string
 	}{
 		{
 			name:       "admin_localhost",
 			configPath: adminLocalhostPath,
-			expect: &Config{
+			expected: &Config{
 				Admin: admin.ServerAddr,
 				StaticListeners: []Listener{{
 					Name:    "test_listener",
@@ -53,7 +54,7 @@ func TestParseListeners(t *testing.T) {
 		{
 			name:       "admin_ephemeral",
 			configPath: adminEphemeralPath,
-			expect: &Config{
+			expected: &Config{
 				Admin: "127.0.0.1:0",
 				StaticListeners: []Listener{{
 					Name:    "test_listener",
@@ -64,7 +65,7 @@ func TestParseListeners(t *testing.T) {
 		{
 			name:       "no_admin",
 			configPath: noAdminPath,
-			expect: &Config{
+			expected: &Config{
 				Admin: "",
 				StaticListeners: []Listener{{
 					Name:    "test_listener",
@@ -75,7 +76,7 @@ func TestParseListeners(t *testing.T) {
 		{
 			name:       "access_log",
 			configPath: accessLogPath,
-			expect: &Config{
+			expected: &Config{
 				Admin: "127.0.0.1:0",
 				StaticListeners: []Listener{{
 					Name:    "main",
@@ -113,7 +114,7 @@ http_filters:
 		{
 			name:       "static_file",
 			configPath: staticFilePath,
-			expect: &Config{
+			expected: &Config{
 				Admin: "",
 				StaticListeners: []Listener{{
 					Name:    "main",
@@ -135,7 +136,7 @@ http_filters:
 			name:       "mixed_config_path_and_yaml_last_wins",
 			configPath: adminLocalhostPath,
 			configYaml: `admin: {address: {socket_address: {address: "127.0.0.3", port_value: 9903}}}`,
-			expect: &Config{
+			expected: &Config{
 				Admin: "127.0.0.3:9903",
 				StaticListeners: []Listener{{
 					Name:    "test_listener",
@@ -147,7 +148,7 @@ http_filters:
 			name:       "mixed_config_path_and_yaml_yaml_always_wins",
 			configPath: adminEphemeralPath,
 			configYaml: `admin: {address: {socket_address: {address: "127.0.0.3", port_value: 9903}}}`,
-			expect: &Config{
+			expected: &Config{
 				Admin: "127.0.0.3:9903",
 				StaticListeners: []Listener{{
 					Name:    "test_listener",
@@ -158,7 +159,7 @@ http_filters:
 		{
 			name:       "udp_proxy",
 			configPath: udpProxyPath,
-			expect: &Config{
+			expected: &Config{
 				Admin: "",
 				StaticListeners: []Listener{{
 					Name:     "udp_listener",
@@ -190,7 +191,7 @@ matcher:
 				require.EqualError(t, err, tt.expectedErr)
 			} else {
 				require.NoError(t, err)
-				require.Equal(t, tt.expect, result)
+				require.Equal(t, tt.expected, result)
 			}
 		})
 	}
@@ -206,28 +207,28 @@ func TestFindAdminAddress(t *testing.T) {
 		name        string
 		configPath  string
 		configYaml  string
-		expect      string
+		expected    string
 		expectedErr string
 	}{
 		{
 			name:       "file_with_admin",
 			configPath: adminLocalhostPath,
-			expect:     admin.ServerAddr,
+			expected:   admin.ServerAddr,
 		},
 		{
 			name:       "file_without_admin",
 			configPath: noAdminPath,
-			expect:     "",
+			expected:   "",
 		},
 		{
 			name:       "config_with_admin",
 			configYaml: `admin: {address: {socket_address: {address: "127.0.0.1", port_value: 9901}}}`,
-			expect:     admin.ServerAddr,
+			expected:   admin.ServerAddr,
 		},
 		{
 			name:       "config_without_admin",
 			configYaml: `static_resources: {listeners: [{name: test_listener}]}`,
-			expect:     "",
+			expected:   "",
 		},
 	}
 
@@ -238,7 +239,7 @@ func TestFindAdminAddress(t *testing.T) {
 				require.EqualError(t, err, tt.expectedErr)
 			} else {
 				require.NoError(t, err)
-				require.Equal(t, tt.expect, hostPort)
+				require.Equal(t, tt.expected, hostPort)
 			}
 		})
 	}
@@ -249,31 +250,42 @@ func TestFindAdminAddressFromArgs(t *testing.T) {
 
 	adminLocalhostPath := filepath.Join(testdataDir, "admin_localhost.yaml")
 	adminYaml := `admin: {address: {socket_address: {address: "127.0.0.3", port_value: 9903}}}`
+	ignoredAdminYaml := `admin: {address: {socket_address: {address: "127.0.0.4", port_value: 9904}}}`
 
 	tests := []struct {
-		name   string
-		args   []string
-		expect string
+		name     string
+		args     []string
+		expected string
 	}{
 		{
-			name:   "config path value",
-			args:   []string{"--config-path", adminLocalhostPath},
-			expect: admin.ServerAddr,
+			name:     "reads admin from config path value",
+			args:     []string{"--config-path", adminLocalhostPath},
+			expected: admin.ServerAddr,
 		},
 		{
-			name:   "config path equals",
-			args:   []string{"--config-path=" + adminLocalhostPath},
-			expect: admin.ServerAddr,
+			name:     "reads admin from config path equals form",
+			args:     []string{"--config-path=" + adminLocalhostPath},
+			expected: admin.ServerAddr,
 		},
 		{
-			name:   "config yaml value",
-			args:   []string{"--config-yaml", adminYaml},
-			expect: "127.0.0.3:9903",
+			name:     "reads admin from config yaml value",
+			args:     []string{"--config-yaml", adminYaml},
+			expected: "127.0.0.3:9903",
 		},
 		{
-			name:   "config yaml equals",
-			args:   []string{"--config-yaml=" + adminYaml},
-			expect: "127.0.0.3:9903",
+			name:     "reads admin from config yaml equals form",
+			args:     []string{"--config-yaml=" + adminYaml},
+			expected: "127.0.0.3:9903",
+		},
+		{
+			name:     "ignores config hidden behind Envoy ignore-rest",
+			args:     []string{"--", "--config-yaml", adminYaml},
+			expected: "",
+		},
+		{
+			name:     "uses config before Envoy ignore-rest when later config is hidden",
+			args:     []string{"--config-yaml=" + adminYaml, "--", "--config-yaml", ignoredAdminYaml},
+			expected: "127.0.0.3:9903",
 		},
 	}
 
@@ -281,7 +293,17 @@ func TestFindAdminAddressFromArgs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			hostPort, err := FindAdminAddressFromArgs(tt.args)
 			require.NoError(t, err)
-			require.Equal(t, tt.expect, hostPort)
+			require.Equal(t, tt.expected, hostPort)
 		})
 	}
+
+	t.Run("accepts ignore-rest token as config path value", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "--"), []byte(adminYaml), 0o600))
+		t.Chdir(tmpDir)
+
+		hostPort, err := FindAdminAddressFromArgs([]string{"--config-path", "--"})
+		require.NoError(t, err)
+		require.Equal(t, "127.0.0.3:9903", hostPort)
+	})
 }

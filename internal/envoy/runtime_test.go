@@ -19,59 +19,79 @@ func TestEnsureAdminAddress(t *testing.T) {
 	runDir := t.TempDir()
 
 	runAdminAddressPath := filepath.Join(runDir, "admin-address.txt")
+	adminYaml := "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 9901}}}"
+	noAdminYaml := "static_resources: {}"
 	tests := []struct {
-		name                   string
-		args                   []string
-		expectAdminAddressPath string
-		expectArgs             []string
-		expectLogs             string
+		name                     string
+		args                     []string
+		expectedAdminAddressPath string
+		expectedArgs             []string
+		expectedLogs             string
 	}{
 		{
-			name:       "no args", // allows envoy to fail properly if no args are provided
-			args:       []string{"envoy"},
-			expectArgs: []string{"envoy"},
-			expectLogs: "",
+			name:         "leaves missing config unchanged for Envoy to report",
+			args:         []string{"envoy"},
+			expectedArgs: []string{"envoy"},
+			expectedLogs: "",
 		},
 		{
-			name:       "empty config arg", // allows envoy to fail properly if no args are provided
-			args:       []string{"-c", ""},
-			expectArgs: []string{"-c", ""},
-			expectLogs: "",
+			name:         "leaves empty config value unchanged for Envoy to report",
+			args:         []string{"-c", ""},
+			expectedArgs: []string{"-c", ""},
+			expectedLogs: "",
 		},
 		{
-			name:                   "args",
-			args:                   []string{"-c", "/tmp/google_com_proxy.v2.yaml"},
-			expectAdminAddressPath: runAdminAddressPath,
-			expectArgs:             []string{"-c", "/tmp/google_com_proxy.v2.yaml", "--admin-address-path", runAdminAddressPath},
-			expectLogs:             "failed to find admin address: failed to read config file /tmp/google_com_proxy.v2.yaml: open /tmp/google_com_proxy.v2.yaml: no such file or directory\n",
+			name:                     "adds admin path when bootstrap file cannot be inspected",
+			args:                     []string{"-c", "/tmp/google_com_proxy.v2.yaml"},
+			expectedAdminAddressPath: runAdminAddressPath,
+			expectedArgs:             []string{"-c", "/tmp/google_com_proxy.v2.yaml", "--admin-address-path", runAdminAddressPath},
+			expectedLogs:             "failed to find admin address: failed to read config file /tmp/google_com_proxy.v2.yaml: open /tmp/google_com_proxy.v2.yaml: no such file or directory\n",
 		},
 		{
-			name:                   "config path equals",
-			args:                   []string{"--config-path=/tmp/google_com_proxy.v2.yaml"},
-			expectAdminAddressPath: runAdminAddressPath,
-			expectArgs:             []string{"--config-path=/tmp/google_com_proxy.v2.yaml", "--admin-address-path", runAdminAddressPath},
-			expectLogs:             "failed to find admin address: failed to read config file /tmp/google_com_proxy.v2.yaml: open /tmp/google_com_proxy.v2.yaml: no such file or directory\n",
+			name:                     "adds admin path for equals-form config path",
+			args:                     []string{"--config-path=/tmp/google_com_proxy.v2.yaml"},
+			expectedAdminAddressPath: runAdminAddressPath,
+			expectedArgs:             []string{"--config-path=/tmp/google_com_proxy.v2.yaml", "--admin-address-path", runAdminAddressPath},
+			expectedLogs:             "failed to find admin address: failed to read config file /tmp/google_com_proxy.v2.yaml: open /tmp/google_com_proxy.v2.yaml: no such file or directory\n",
 		},
 		{
-			name:                   "config yaml equals",
-			args:                   []string{"--config-yaml=admin: {address: {socket_address: {address: '127.0.0.1', port_value: 9901}}}"},
-			expectAdminAddressPath: runAdminAddressPath,
-			expectArgs:             []string{"--config-yaml=admin: {address: {socket_address: {address: '127.0.0.1', port_value: 9901}}}", "--admin-address-path", runAdminAddressPath},
-			expectLogs:             "",
+			name:                     "adds admin path when config already has admin server",
+			args:                     []string{"--config-yaml=" + adminYaml},
+			expectedAdminAddressPath: runAdminAddressPath,
+			expectedArgs:             []string{"--config-yaml=" + adminYaml, "--admin-address-path", runAdminAddressPath},
+			expectedLogs:             "",
 		},
 		{
-			name:                   "already",
-			args:                   []string{"--admin-address-path", "/tmp/admin.txt", "-c", "/tmp/google_com_proxy.v2.yaml"},
-			expectAdminAddressPath: "/tmp/admin.txt",
-			expectArgs:             []string{"--admin-address-path", "/tmp/admin.txt", "-c", "/tmp/google_com_proxy.v2.yaml"},
-			expectLogs:             "failed to find admin address: failed to read config file /tmp/google_com_proxy.v2.yaml: open /tmp/google_com_proxy.v2.yaml: no such file or directory\n",
+			name:         "does not backfill from config hidden behind ignore-rest",
+			args:         []string{"--", "--config-yaml", adminYaml},
+			expectedArgs: []string{"--", "--config-yaml", adminYaml},
 		},
 		{
-			name:                   "already equals",
-			args:                   []string{"--admin-address-path=/tmp/admin.txt", "--config-path=/tmp/google_com_proxy.v2.yaml"},
-			expectAdminAddressPath: "/tmp/admin.txt",
-			expectArgs:             []string{"--admin-address-path=/tmp/admin.txt", "--config-path=/tmp/google_com_proxy.v2.yaml"},
-			expectLogs:             "failed to find admin address: failed to read config file /tmp/google_com_proxy.v2.yaml: open /tmp/google_com_proxy.v2.yaml: no such file or directory\n",
+			name:                     "does not trust admin path hidden behind ignore-rest",
+			args:                     []string{"--config-yaml=" + adminYaml, "--", "--admin-address-path", "/tmp/ignored-admin.txt"},
+			expectedAdminAddressPath: runAdminAddressPath,
+			expectedArgs:             []string{"--config-yaml=" + adminYaml, "--admin-address-path", runAdminAddressPath, "--", "--admin-address-path", "/tmp/ignored-admin.txt"},
+		},
+		{
+			name:                     "inserts generated admin args before ignore-rest",
+			args:                     []string{"--config-yaml", noAdminYaml, "--", "--log-level", "debug"},
+			expectedAdminAddressPath: runAdminAddressPath,
+			expectedArgs:             []string{"--config-yaml", noAdminYaml, "--config-yaml", adminEphemeralConfig, "--admin-address-path", runAdminAddressPath, "--", "--log-level", "debug"},
+			expectedLogs:             "configuring ephemeral admin server\n",
+		},
+		{
+			name:                     "keeps caller-provided admin path value",
+			args:                     []string{"--admin-address-path", "/tmp/admin.txt", "-c", "/tmp/google_com_proxy.v2.yaml"},
+			expectedAdminAddressPath: "/tmp/admin.txt",
+			expectedArgs:             []string{"--admin-address-path", "/tmp/admin.txt", "-c", "/tmp/google_com_proxy.v2.yaml"},
+			expectedLogs:             "failed to find admin address: failed to read config file /tmp/google_com_proxy.v2.yaml: open /tmp/google_com_proxy.v2.yaml: no such file or directory\n",
+		},
+		{
+			name:                     "keeps caller-provided admin path equals form",
+			args:                     []string{"--admin-address-path=/tmp/admin.txt", "--config-path=/tmp/google_com_proxy.v2.yaml"},
+			expectedAdminAddressPath: "/tmp/admin.txt",
+			expectedArgs:             []string{"--admin-address-path=/tmp/admin.txt", "--config-path=/tmp/google_com_proxy.v2.yaml"},
+			expectedLogs:             "failed to find admin address: failed to read config file /tmp/google_com_proxy.v2.yaml: open /tmp/google_com_proxy.v2.yaml: no such file or directory\n",
 		},
 	}
 
@@ -85,9 +105,9 @@ func TestEnsureAdminAddress(t *testing.T) {
 			adminAddressPath, args, err := ensureAdminAddress(logf, runDir, tt.args)
 			require.NoError(t, err)
 
-			require.Equal(t, tt.expectAdminAddressPath, adminAddressPath)
-			require.Equal(t, tt.expectArgs, args)
-			require.Equal(t, tt.expectLogs, logBuf.String())
+			require.Equal(t, tt.expectedAdminAddressPath, adminAddressPath)
+			require.Equal(t, tt.expectedArgs, args)
+			require.Equal(t, tt.expectedLogs, logBuf.String())
 		})
 	}
 }
