@@ -42,11 +42,19 @@ func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 				return err
 			}
 
+			var dev *version.DevRelease
 			if c.Bool("all") {
-				if evs, err := o.GetEnvoyVersions(ctx); err != nil {
+				evs, err := o.GetEnvoyVersions(ctx)
+				if err != nil {
 					return err
-				} else if err := addAvailableVersions(&rows, evs.Versions, o.Platform); err != nil {
+				}
+				if err := addAvailableVersions(&rows, evs.Versions, o.Platform); err != nil {
 					return err
+				}
+				if evs.Dev != nil {
+					if _, ok := evs.Dev.Tarballs[o.Platform]; ok {
+						dev = evs.Dev
+					}
 				}
 			}
 
@@ -60,6 +68,9 @@ func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 
 			// We use a tab writer to ensure we can format the current version
 			w := tabwriter.NewWriter(c.Root().Writer, 0, 0, 1, ' ', tabwriter.AlignRight)
+			if dev != nil {
+				_, _ = fmt.Fprintf(w, "  dev %s (%s)\n", dev.ReleaseDate, dev.CommitSha[:8])
+			}
 			for _, vr := range rows { //nolint:gocritic
 				// TODO: handle when currentVersion is a MinorVersion
 				pv, ok := currentVersion.(version.PatchVersion)

@@ -66,10 +66,22 @@ func NewPatchVersion(input string) PatchVersion {
 	return ""
 }
 
+// Dev is the version string for dev builds.
+const Dev = PatchVersion("dev")
+
+// DevLatest is a pseudo-version that always refreshes the dev cache.
+const DevLatest = PatchVersion("dev-latest")
+
 // NewVersion returns a valid input or an error
 func NewVersion(tag, input string) (Version, error) {
 	if input == "" {
 		return nil, fmt.Errorf("missing %s", tag)
+	}
+	if input == "dev" {
+		return Dev, nil
+	}
+	if input == "dev-latest" {
+		return DevLatest, nil
 	}
 	if pv := NewPatchVersion(input); pv != "" {
 		return pv, nil
@@ -159,6 +171,15 @@ type ReleaseVersions struct {
 	Versions map[PatchVersion]Release `json:"versions"`
 	// SHA256Sums maps a Tarball to its SHA256Sum
 	SHA256Sums map[Tarball]SHA256Sum `json:"sha256sums"`
+	// Dev is the dev build, if present in the versions JSON
+	Dev *DevRelease `json:"dev,omitempty"`
+}
+
+// DevRelease describes a dev build
+type DevRelease struct {
+	ReleaseDate ReleaseDate             `json:"releaseDate"`
+	CommitSha   string                  `json:"commitSha"`
+	Tarballs    map[Platform]TarballURL `json:"tarballs,omitempty"`
 }
 
 // Platform encodes 'runtime.GOOS/runtime.GOARCH'. Ex "darwin/amd64"

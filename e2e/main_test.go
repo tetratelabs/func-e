@@ -6,20 +6,9 @@ package e2e
 import (
 	"context"
 	"fmt"
-	"io"
-	"net/http"
-	"net/http/httptest"
 	"os"
-	"strings"
 	"testing"
 )
-
-const (
-	envoyVersionsURLEnvKey = "ENVOY_VERSIONS_URL"
-	envoyVersionsJSON      = "envoy-versions.json"
-)
-
-var expectedMockHeaders = map[string]string{"User-Agent": "func-e/dev"}
 
 // TestMain ensures the "func-e" binary is valid.
 func TestMain(m *testing.M) {
@@ -29,19 +18,8 @@ func TestMain(m *testing.M) {
 	}
 
 	// pre-flight check the binary is usable
-	versionLine, _, err := funcEExec(context.Background(), "--version")
-	if err != nil {
+	if _, _, err := funcEExec(context.Background(), "--version"); err != nil {
 		exitOnInvalidBinary(err)
-	}
-
-	// Allow local file override when a SNAPSHOT version
-	if _, err := os.Stat(envoyVersionsJSON); err == nil && strings.Contains(versionLine, "SNAPSHOT") {
-		s, err := mockEnvoyVersionsServer() // no defer s.Close() because os.Exit() subverts it
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to serve %s: %v\n", envoyVersionsJSON, err)
-			os.Exit(1)
-		}
-		os.Setenv(envoyVersionsURLEnvKey, s.URL)
 	}
 	os.Exit(m.Run())
 }
@@ -49,35 +27,4 @@ func TestMain(m *testing.M) {
 func exitOnInvalidBinary(err error) {
 	fmt.Fprintf(os.Stderr, `failed to start e2e tests due to an invalid "func-e" binary: %v\n`, err)
 	os.Exit(1)
-}
-
-// mockEnvoyVersionsServer ensures envoyVersionsURLEnvKey is set appropriately, so that non-release versions can see
-// changes to local envoyVersionsJSON.
-func mockEnvoyVersionsServer() (*httptest.Server, error) {
-	f, err := os.Open(envoyVersionsJSON)
-	if err != nil {
-		return nil, err
-	}
-
-	defer f.Close()
-	b, err := io.ReadAll(f)
-	if err != nil {
-		return nil, err
-	}
-
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Ensure e2e tests won't eventually interfere with analytics when run against a release version
-		for k, v := range expectedMockHeaders {
-			h := r.Header.Get(k)
-			if h != v {
-				w.WriteHeader(http.StatusInternalServerError)
-				fmt.Fprintf(w, "invalid %q: %s != %s\n", k, h, v)
-				return
-			}
-		}
-		w.Header().Add("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write(b)
-	}))
-	return ts, nil
 }

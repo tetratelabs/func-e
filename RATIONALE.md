@@ -61,7 +61,22 @@ We also provide `httptest.HTTPClient`, which runs a handler synchronously in
 the caller's goroutine with no I/O at all. Tests who need `*http.Client`, but
 don't need a real server can use this instead.
 
+## Why "dev-latest" instead of a flag?
+
+func-e is embedded in CI systems and tools like [Envoy AI Gateway][ai-gw]
+that may only allow version overrides, not flags. A version string works
+everywhere `ENVOY_VERSION` is accepted, including the Go API.
+
+`dev` installs on demand like all other versions. Once pulled, it stays
+put. This keeps CI runs stable and reproducible without network access on
+every invocation.
+
+`dev-latest` is the explicit refresh trigger. Without it, a cached `dev`
+install would never update. CI pipelines and tools that re-warm caches
+need a way to pull the latest build without manual intervention.
+
 ---
+[ai-gw]: https://github.com/envoyproxy/ai-gateway
 [xdg]: https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html
 [go-work-modfile]: https://go.dev/issue/59996
 [synctest-pkg]: https://pkg.go.dev/testing/synctest

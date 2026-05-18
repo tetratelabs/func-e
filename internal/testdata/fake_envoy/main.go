@@ -20,6 +20,7 @@ import (
 
 	"github.com/tetratelabs/func-e/internal"
 	"github.com/tetratelabs/func-e/internal/envoy/config"
+	"github.com/tetratelabs/func-e/internal/version"
 )
 
 const (
@@ -333,21 +334,34 @@ func adminEndpoints(w http.ResponseWriter, r *http.Request) {
 		// Support query parameters like ?include_eds
 		// Check if include_eds is present as a query parameter (with or without value)
 		if _, ok := r.URL.Query()["include_eds"]; ok {
-			_, _ = w.Write([]byte(`{"configs": [{"@type": "type.googleapis.com/envoy.admin.v3.EndpointsConfigDump"}]}`))
+			w.Write([]byte(`{"configs": [{"@type": "type.googleapis.com/envoy.admin.v3.EndpointsConfigDump"}]}`))
 		} else {
-			_, _ = w.Write([]byte(`{"configs": []}`))
+			w.Write([]byte(`{"configs": []}`))
 		}
 	case "/ready":
 		w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("LIVE" + lf))
+		w.Write([]byte("LIVE" + lf))
 	case "/listeners":
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusOK)
 		b, _ := json.Marshal(struct {
 			ListenerStatuses []listenerStatus `json:"listener_statuses"`
 		}{ListenerStatuses: listenerStatuses})
-		_, _ = w.Write(b)
+		w.Write(b)
+	case "/server_info":
+		v := version.LastKnownEnvoy.String()
+		if os.Getenv("ENVOY_VERSION") == "dev" {
+			v += "-dev"
+		}
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, `{
+ "version": "cafebabecafebabecafebabecafebabecafebabe/%s/Clean/RELEASE/BoringSSL",
+ "state": "LIVE",
+ "hot_restart_version": "disabled"
+}
+`, v)
 	default:
 		w.WriteHeader(http.StatusNotFound)
 	}
@@ -362,7 +376,7 @@ func accessLogHandler(w http.ResponseWriter, r *http.Request) {
 	// status code will be.
 	response := []byte("Hello, World!")
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(response)
+	w.Write(response)
 
 	duration := time.Since(startTime).Milliseconds()
 	fprintf(os.Stdout, "[%s] \"%s %s %s\" %d - 0 %d %dms - \"-\" \"%s\" \"-\" \"%s\" \"-\"%s",
@@ -384,11 +398,11 @@ func staticFileHandler(w http.ResponseWriter, r *http.Request) {
 		data, err := os.ReadFile("response.txt")
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			_, _ = w.Write([]byte("error: " + err.Error()))
+			w.Write([]byte("error: " + err.Error()))
 			return
 		}
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write(data)
+		w.Write(data)
 	} else {
 		w.WriteHeader(http.StatusNotFound)
 	}

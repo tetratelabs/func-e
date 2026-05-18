@@ -44,3 +44,7 @@ func TestRun_CtrlCs(t *testing.T) {
 func TestRun_LegacyHomeDir(t *testing.T) {
 	e2e.TestRunLegacyHomeDir(t.Context(), t, funcEFactory{})
 }
+
+func TestRun_Dev(t *testing.T) {
+	e2e.TestRunDev(t.Context(), t, funcEFactory{})
+}

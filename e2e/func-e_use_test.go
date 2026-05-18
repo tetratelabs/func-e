@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -40,9 +41,34 @@ func TestFuncEUse(t *testing.T) {
 
 	t.Run("already installed", func(t *testing.T) {
 		stdout, stderr, err := funcEExec(t.Context(), "--config-home", configHome, "--data-home", dataHome, "use", version.LastKnownEnvoy.String())
-
 		require.NoError(t, err)
 		require.Equal(t, version.LastKnownEnvoy.String()+" is already downloaded\n", stdout)
+		require.Empty(t, stderr)
+	})
+}
+
+func TestFuncEUse_DevLatest(t *testing.T) {
+	configHome := t.TempDir()
+	dataHome := t.TempDir()
+
+	// Install dev
+	_, _, err := funcEExec(t.Context(), "--config-home", configHome, "--data-home", dataHome, "use", "dev")
+	require.NoError(t, err)
+
+	t.Run("up to date", func(t *testing.T) {
+		stdout, stderr, err := funcEExec(t.Context(), "--config-home", configHome, "--data-home", dataHome, "use", "dev-latest")
+		require.NoError(t, err)
+		require.Empty(t, stdout)
+		require.Empty(t, stderr)
+	})
+
+	t.Run("out of date", func(t *testing.T) {
+		stale := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+		require.NoError(t, os.Chtimes(filepath.Join(dataHome, "envoy-versions", "dev"), stale, stale))
+
+		stdout, stderr, err := funcEExec(t.Context(), "--config-home", configHome, "--data-home", dataHome, "use", "dev-latest")
+		require.NoError(t, err)
+		require.Regexp(t, `^downloading https:.*tar.*z\r?\n$`, stdout)
 		require.Empty(t, stderr)
 	})
 }

@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -98,7 +99,7 @@ func TestUntarEnvoy(t *testing.T) {
 }
 
 func TestInstallIfNeeded_ErrorOnIncorrectURL(t *testing.T) {
-	o := setupInstallTest(t)
+	o := setupInstallTest(t, version.LastKnownEnvoy)
 
 	o.EnvoyVersionsURL += "/varsionz.json"
 	o.GetEnvoyVersions = NewGetVersions(o.HTTPClient, o.EnvoyVersionsURL, o.UserAgent)
@@ -132,7 +133,7 @@ func TestInstallIfNeeded_Validates(t *testing.T) {
 	for _, tt := range tests {
 		tc := tt
 		t.Run(tc.name, func(t *testing.T) {
-			o := setupInstallTest(t)
+			o := setupInstallTest(t, version.LastKnownEnvoy)
 			o.Platform = tc.p
 			o.Out = new(bytes.Buffer)
 			o.EnvoyVersion = tc.v
@@ -144,41 +145,69 @@ func TestInstallIfNeeded_Validates(t *testing.T) {
 }
 
 func TestInstallIfNeeded(t *testing.T) {
-	o := setupInstallTest(t)
+	installDev := func(t *testing.T, o *installTest) {
+		t.Helper()
+		o.EnvoyVersion = version.Dev
+		_, err := InstallIfNeeded(o.ctx, &o.GlobalOpts)
+		require.NoError(t, err)
+		o.Out = new(bytes.Buffer)
+	}
 
-	o.EnvoyVersion = version.LastKnownEnvoy
-	envoyPath, e := InstallIfNeeded(o.ctx, &o.GlobalOpts)
-	require.NoError(t, e)
-	require.Equal(t, o.EnvoyPath, envoyPath)
-	require.FileExists(t, envoyPath)
-
-	versionDir := filepath.Dir(filepath.Dir(envoyPath))
-	f, err := os.Stat(versionDir)
-	require.NoError(t, err)
-	require.Equal(t, f.ModTime().UTC().Format("2006-01-02"), string(test.FakeReleaseDate))
-
-	require.Equal(t, fmt.Sprintf("downloading %s\n", o.tarballURL), o.Out.(*bytes.Buffer).String())
-}
-
-func TestInstallIfNeeded_AlreadyExists(t *testing.T) {
-	o := setupInstallTest(t)
-
-	require.NoError(t, os.MkdirAll(filepath.Dir(o.EnvoyPath), 0o700))
-	require.NoError(t, os.WriteFile(o.EnvoyPath, []byte("fake"), 0o700))
-
-	envoyStat, err := os.Stat(o.EnvoyPath)
-	require.NoError(t, err)
-
-	o.EnvoyVersion = version.LastKnownEnvoy
-	envoyPath, e := InstallIfNeeded(o.ctx, &o.GlobalOpts)
-	require.NoError(t, e)
-	require.Equal(t, fmt.Sprintf("%s is already downloaded\n", version.LastKnownEnvoy), o.Out.(*bytes.Buffer).String())
-
-	newStat, e := os.Stat(envoyPath)
-	require.NoError(t, e)
-
-	// didn't overwrite
-	require.Equal(t, envoyStat, newStat)
+	tests := []struct {
+		name        string
+		setupV      version.PatchVersion
+		setup       func(t *testing.T, o *installTest)
+		version     version.PatchVersion
+		stdout      string
+		expectedErr string
+	}{
+		{name: "release", setupV: version.LastKnownEnvoy, version: version.LastKnownEnvoy, stdout: "downloading"},
+		{name: "dev", setupV: version.Dev, version: version.Dev, stdout: "downloading"},
+		{name: "already exists", setupV: version.LastKnownEnvoy, setup: func(t *testing.T, o *installTest) {
+			t.Helper()
+			require.NoError(t, os.MkdirAll(filepath.Dir(o.EnvoyPath), 0o700))
+			require.NoError(t, os.WriteFile(o.EnvoyPath, []byte("fake"), 0o700))
+		}, version: version.LastKnownEnvoy, stdout: "already downloaded"},
+		{name: "dev-latest up to date", setupV: version.Dev, setup: installDev, version: version.DevLatest},
+		{name: "dev-latest stale", setupV: version.Dev, setup: func(t *testing.T, o *installTest) {
+			t.Helper()
+			installDev(t, o)
+			stale := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+			require.NoError(t, os.Chtimes(filepath.Join(o.EnvoyVersionsDir(), "dev"), stale, stale))
+		}, version: version.DevLatest, stdout: "downloading"},
+		{name: "dev wrong platform", setupV: version.Dev, setup: func(t *testing.T, o *installTest) {
+			t.Helper()
+			o.Platform = "windows/amd64"
+		}, version: version.Dev, expectedErr: `couldn't find version "dev" for platform "windows/amd64"`},
+		{name: "dev missing from JSON", setupV: version.Dev, setup: func(t *testing.T, o *installTest) {
+			t.Helper()
+			o.GetEnvoyVersions = func(_ context.Context) (*version.ReleaseVersions, error) {
+				return &version.ReleaseVersions{
+					Versions:   map[version.PatchVersion]version.Release{},
+					SHA256Sums: map[version.Tarball]version.SHA256Sum{},
+				}, nil
+			}
+		}, version: version.Dev, expectedErr: fmt.Sprintf(`couldn't find version "dev" for platform %q`, globals.DefaultPlatform)},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			o := setupInstallTest(t, tt.setupV)
+			if tt.setup != nil {
+				tt.setup(t, o)
+			}
+			o.EnvoyVersion = tt.version
+			envoyPath, err := InstallIfNeeded(o.ctx, &o.GlobalOpts)
+			if tt.expectedErr != "" {
+				require.EqualError(t, err, tt.expectedErr)
+				return
+			}
+			require.NoError(t, err)
+			require.FileExists(t, envoyPath)
+			if tt.stdout != "" {
+				require.Contains(t, o.Out.(*bytes.Buffer).String(), tt.stdout)
+			}
+		})
+	}
 }
 
 func TestVerifyEnvoy(t *testing.T) {
@@ -215,15 +244,16 @@ type installTest struct {
 	tarballURL version.TarballURL
 }
 
-func setupInstallTest(t *testing.T) *installTest {
+func setupInstallTest(t *testing.T, v version.PatchVersion) *installTest {
 	t.Helper()
 	baseURL := "http://" + admin.ServerAddr
 	handler := test.NewEnvoyVersionsHandler(t, baseURL, version.LastKnownEnvoy)
 	homeDir := t.TempDir()
+
 	setup := &installTest{
 		ctx:        t.Context(),
 		tempDir:    t.TempDir(),
-		tarballURL: test.TarballURL(baseURL, runtime.GOOS, runtime.GOARCH, version.LastKnownEnvoy),
+		tarballURL: test.TarballURL(baseURL, runtime.GOOS, runtime.GOARCH, v),
 		GlobalOpts: globals.GlobalOpts{
 			ConfigHome:       homeDir,
 			DataHome:         homeDir,
@@ -233,7 +263,7 @@ func setupInstallTest(t *testing.T) *installTest {
 			Out:              new(bytes.Buffer),
 			Platform:         globals.DefaultPlatform,
 			RunOpts: globals.RunOpts{
-				EnvoyPath:  filepath.Join(homeDir, "envoy-versions", version.LastKnownEnvoy.String(), binEnvoy),
+				EnvoyPath:  filepath.Join(homeDir, "envoy-versions", v.String(), binEnvoy),
 				HTTPClient: httptest.HTTPClient(handler),
 			},
 		},

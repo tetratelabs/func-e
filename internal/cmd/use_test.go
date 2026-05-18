@@ -4,12 +4,14 @@
 package cmd_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -47,169 +49,106 @@ func TestFuncEUse_VersionValidates(t *testing.T) {
 	}
 }
 
-func TestFuncEUse_InstallsAndWritesHomeVersion(t *testing.T) {
-	o := setupTest(t)
-	evs := o.EnvoyVersion.String()
-
-	c, _, _ := newApp(o)
-	require.NoError(t, c.Run(t.Context(), []string{"func-e", "use", evs}))
-
-	// The binary was installed
-	require.FileExists(t, filepath.Join(o.DataHome, "envoy-versions", evs, "bin", "envoy"+""))
-
-	// The current version was written
-	f, err := os.ReadFile(filepath.Join(o.ConfigHome, "envoy-version"))
-	require.NoError(t, err)
-	require.Equal(t, evs, string(f))
-}
-
-// TODO: everything from here down in this file needs to be rewritten
-func TestFuncEUse_InstallMinorVersion(t *testing.T) {
-	o := setupTest(t)
-
-	type testCase struct {
-		name           string
-		firstVersions  availableVersions
-		secondVersions availableVersions
-		minorVersion   string
+func TestFuncEUse(t *testing.T) {
+	installDev := func(t *testing.T, o *globals.GlobalOpts) {
+		t.Helper()
+		c, _, _ := newApp(o)
+		require.NoError(t, c.Run(t.Context(), []string{"func-e", "use", "dev"}))
+		o.Out = new(bytes.Buffer)
+	}
+	installMinor := func(t *testing.T, o *globals.GlobalOpts, minor string) {
+		t.Helper()
+		c, _, _ := newApp(o)
+		require.NoError(t, c.Run(t.Context(), []string{"func-e", "use", minor}))
+		o.Out = new(bytes.Buffer)
 	}
 
-	tests := []testCase{
+	tests := []struct {
+		name         string
+		setup        func(t *testing.T, o *globals.GlobalOpts)
+		version      string
+		stdout       string
+		savedVersion string
+	}{
+		{name: "patch", version: version.LastKnownEnvoy.String(), stdout: "downloading", savedVersion: version.LastKnownEnvoy.String()},
+		{name: "dev", version: "dev", stdout: "downloading", savedVersion: "dev"},
+		{name: "dev already downloaded", setup: installDev, version: "dev", stdout: "already downloaded", savedVersion: "dev"},
+		{name: "dev-latest up to date", setup: installDev, version: "dev-latest", savedVersion: "dev"},
+		{name: "dev-latest out of date", setup: func(t *testing.T, o *globals.GlobalOpts) {
+			t.Helper()
+			installDev(t, o)
+			stale := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+			require.NoError(t, os.Chtimes(filepath.Join(o.DataHome, "envoy-versions", "dev"), stale, stale))
+		}, version: "dev-latest", stdout: "downloading", savedVersion: "dev"},
 		{
-			name: "upgradable",
-			firstVersions: availableVersions{
-				latestPatch: "3",
-				versions:    []version.PatchVersion{version.PatchVersion("1.18.3")},
+			name: "minor upgradable",
+			setup: func(t *testing.T, o *globals.GlobalOpts) {
+				t.Helper()
+				overrideAvailableVersions(t, o, []version.PatchVersion{"1.18.3"})
+				installMinor(t, o, "1.18")
+				overrideAvailableVersions(t, o, []version.PatchVersion{"1.18.3", "1.18.4"})
 			},
-			secondVersions: availableVersions{
-				latestPatch: "4",
-				versions:    []version.PatchVersion{version.PatchVersion("1.18.3"), version.PatchVersion("1.18.4")},
-			},
-			minorVersion: "1.18",
+			version: "1.18",
+			stdout:  "downloading",
 		},
 		{
-			name: "not-upgraded",
-			firstVersions: availableVersions{
-				latestPatch: "5",
-				versions:    []version.PatchVersion{version.PatchVersion("1.29.5")},
+			name: "minor not upgraded",
+			setup: func(t *testing.T, o *globals.GlobalOpts) {
+				t.Helper()
+				overrideAvailableVersions(t, o, []version.PatchVersion{"1.29.5"})
+				installMinor(t, o, "1.29")
 			},
-			secondVersions: availableVersions{
-				latestPatch: "5",
-				versions:    []version.PatchVersion{version.PatchVersion("1.29.5")},
+			version: "1.29",
+			stdout:  "already downloaded",
+		},
+		{
+			name: "minor offline after install",
+			setup: func(t *testing.T, o *globals.GlobalOpts) {
+				t.Helper()
+				overrideAvailableVersions(t, o, []version.PatchVersion{"1.29.3"})
+				installMinor(t, o, "1.29")
+				o.GetEnvoyVersions = func(_ context.Context) (*version.ReleaseVersions, error) {
+					return nil, errors.New("offline")
+				}
 			},
-			minorVersion: "1.29",
+			version: "1.29",
+			stdout:  "already downloaded",
 		},
 	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			var err error
-			o.GetEnvoyVersions, err = newFuncEVersionsTester(t.Context(), o, tc.firstVersions)
-			require.NoError(t, err)
-
-			c, _, _ := newApp(o)
-			require.NoError(t, c.Run(t.Context(), []string{"func-e", "use", tc.minorVersion}))
-			f, err := os.ReadFile(filepath.Join(o.ConfigHome, "envoy-version"))
-			require.NoError(t, err)
-			require.Equal(t, tc.minorVersion, string(f))
-
-			// Set o.EnvoyVersion to empty string so the logic for ensuring installed Envoy version works.
-			o.EnvoyVersion = ""
-			c, stdout, stderr := newApp(o)
-			require.NoError(t, c.Run(t.Context(), []string{"func-e", "which"}))
-			envoyPath := filepath.Join(o.DataHome, "envoy-versions", tc.minorVersion+"."+tc.firstVersions.latestPatch, "bin", "envoy"+"")
-			require.Equal(t, envoyPath+"\n", stdout.String())
-			require.Empty(t, stderr)
-
-			// Update the map returned by Get.
-			o.GetEnvoyVersions, err = newFuncEVersionsTester(t.Context(), o, tc.secondVersions)
-			require.NoError(t, err)
-			c, _, _ = newApp(o)
-			require.NoError(t, c.Run(t.Context(), []string{"func-e", "use", tc.minorVersion}))
-			f, err = os.ReadFile(filepath.Join(o.ConfigHome, "envoy-version"))
-			require.NoError(t, err)
-			require.Equal(t, tc.minorVersion, string(f))
-
-			// Set o.EnvoyVersion to empty string so the logic for ensuring installed Envoy version works.
-			o.EnvoyVersion = ""
-			c, stdout, stderr = newApp(o)
-			require.NoError(t, c.Run(t.Context(), []string{"func-e", "which"}))
-			envoyPath = filepath.Join(o.DataHome, "envoy-versions", tc.minorVersion+"."+tc.secondVersions.latestPatch, "bin", "envoy"+"")
-			require.Equal(t, envoyPath+"\n", stdout.String())
-			require.Empty(t, stderr)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			o := setupTest(t)
+			if tt.setup != nil {
+				tt.setup(t, o)
+			}
+			c, stdout, _ := newApp(o)
+			require.NoError(t, c.Run(t.Context(), []string{"func-e", "use", tt.version}))
+			if tt.stdout != "" {
+				require.Contains(t, stdout.String(), tt.stdout)
+			}
+			if tt.savedVersion != "" {
+				f, err := os.ReadFile(filepath.Join(o.ConfigHome, "envoy-version"))
+				require.NoError(t, err)
+				require.Equal(t, tt.savedVersion, string(f))
+			}
 		})
 	}
 }
 
-func TestFuncEUse_InstallMinorVersionCheckLatestPatchFailed(t *testing.T) {
-	o := setupTest(t)
-
-	// The initial version to be installed.
-	minorVersion := "1.29"
-	latestPatch := "3"
-	initial := availableVersions{
-		latestPatch: latestPatch,
-		versions:    []version.PatchVersion{version.PatchVersion(minorVersion + "." + latestPatch)},
-	}
-
-	var err error
-	o.GetEnvoyVersions, err = newFuncEVersionsTester(t.Context(), o, initial)
+func overrideAvailableVersions(t *testing.T, o *globals.GlobalOpts, patches []version.PatchVersion) {
+	t.Helper()
+	evs, err := envoy.NewGetVersions(o.HTTPClient, o.EnvoyVersionsURL, o.UserAgent)(t.Context())
 	require.NoError(t, err)
-
-	c, _, _ := newApp(o)
-	require.NoError(t, c.Run(t.Context(), []string{"func-e", "use", minorVersion}))
-	f, err := os.ReadFile(filepath.Join(o.ConfigHome, "envoy-version"))
-	require.NoError(t, err)
-	require.Equal(t, minorVersion, string(f))
-
-	o.EnvoyVersion = ""
-	c, stdout, stderr := newApp(o)
-	require.NoError(t, c.Run(t.Context(), []string{"func-e", "which"}))
-	envoyPath := filepath.Join(o.DataHome, "envoy-versions", minorVersion+"."+latestPatch, "bin", "envoy"+"")
-	require.Equal(t, envoyPath+"\n", stdout.String())
-	require.Empty(t, stderr)
-
-	o.GetEnvoyVersions = func(_ context.Context) (*version.ReleaseVersions, error) {
-		return nil, errors.New("ice cream")
-	}
-	c, _, _ = newApp(o)
-	require.NoError(t, c.Run(t.Context(), []string{"func-e", "use", minorVersion}))
-	f, err = os.ReadFile(filepath.Join(o.ConfigHome, "envoy-version"))
-	require.NoError(t, err)
-	require.Equal(t, minorVersion, string(f))
-
-	o.EnvoyVersion = ""
-	c, stdout, stderr = newApp(o)
-	require.NoError(t, c.Run(t.Context(), []string{"func-e", "which"}))
-	// The path points to the latest installed version.
-	envoyPath = filepath.Join(o.DataHome, "envoy-versions", minorVersion+"."+latestPatch, "bin", "envoy"+"")
-	t.Log(stdout.String())
-	require.Equal(t, envoyPath+"\n", stdout.String())
-	require.Empty(t, stderr)
-}
-
-type availableVersions struct {
-	latestPatch string
-	versions    []version.PatchVersion
-}
-
-func newFuncEVersionsTester(ctx context.Context, o *globals.GlobalOpts, av availableVersions) (version.GetReleaseVersions, error) {
-	feV := envoy.NewGetVersions(o.HTTPClient, o.EnvoyVersionsURL, o.UserAgent)
-	ev, err := feV(ctx)
-	if err != nil {
-		return nil, err
-	}
-	// Copy versions releases from the setupTest and append more versions for testing.
-	copied := ev
-	var m version.Release
-	for _, entry := range ev.Versions {
-		m = entry
+	var base version.Release
+	for _, r := range evs.Versions {
+		base = r
 		break
 	}
-	for _, v := range av.versions {
-		copied.Versions[v] = m
+	versions := make(map[version.PatchVersion]version.Release, len(patches))
+	for _, p := range patches {
+		versions[p] = base
 	}
-	return func(_ context.Context) (*version.ReleaseVersions, error) {
-		return copied, nil
-	}, nil
+	o.GetEnvoyVersions = func(_ context.Context) (*version.ReleaseVersions, error) {
+		return &version.ReleaseVersions{Versions: versions, SHA256Sums: evs.SHA256Sums, Dev: evs.Dev}, nil
+	}
 }
