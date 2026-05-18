@@ -228,6 +228,19 @@ func TestRunLegacyHomeDir(ctx context.Context, t *testing.T, factory FuncEFactor
 	})
 }
 
+// TestRunDev tests "func-e run" resolves and runs a dev build.
+func TestRunDev(ctx context.Context, t *testing.T, factory FuncEFactory) {
+	t.Setenv("ENVOY_VERSION", "dev")
+	executeRunTest(ctx, t, factory, RunTestOptions{
+		Args: []string{"--config-yaml", "admin: {address: {socket_address: {address: '127.0.0.1', port_value: 0}}}"},
+		TestFunc: func(ctx context.Context, _ func(context.Context) error, adminClient internalapi.AdminClient) {
+			info, err := adminClient.Get(ctx, "/server_info")
+			require.NoError(t, err)
+			require.Contains(t, string(info), "-dev")
+		},
+	})
+}
+
 // setupTestFiles writes the given files to the current directory for test setup.
 func setupTestFiles(t *testing.T, files map[string][]byte) {
 	t.Helper()

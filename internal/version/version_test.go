@@ -4,11 +4,41 @@
 package version
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
+
+func TestReleaseVersions(t *testing.T) {
+	tests := []struct {
+		name string
+		data string
+		dev  *DevRelease
+	}{
+		{
+			name: "dev present",
+			data: `{"versions":{"1.38.0":{"releaseDate":"2025-01-15"}},"sha256sums":{},"dev":{"releaseDate":"2025-01-20","commitSha":"92c6cb58","tarballs":{"linux/amd64":"https://example.com/dev.tar.xz"}}}`,
+			dev: &DevRelease{
+				ReleaseDate: "2025-01-20",
+				CommitSha:   "92c6cb58",
+				Tarballs:    map[Platform]TarballURL{"linux/amd64": "https://example.com/dev.tar.xz"},
+			},
+		},
+		{
+			name: "dev absent",
+			data: `{"versions":{"1.38.0":{"releaseDate":"2025-01-15"}},"sha256sums":{}}`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var rv ReleaseVersions
+			require.NoError(t, json.Unmarshal([]byte(tt.data), &rv))
+			require.Equal(t, tt.dev, rv.Dev)
+		})
+	}
+}
 
 func TestNewVersion(t *testing.T) {
 	tests := []struct {
@@ -16,6 +46,14 @@ func TestNewVersion(t *testing.T) {
 		expected    Version
 		expectedErr string
 	}{
+		{
+			input:    "dev",
+			expected: Dev,
+		},
+		{
+			input:    "dev-latest",
+			expected: DevLatest,
+		},
 		{
 			input:    "1.19",
 			expected: MinorVersion("1.19"),

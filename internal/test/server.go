@@ -27,7 +27,8 @@ import (
 
 const (
 	// FakeReleaseDate helps us make sure main code doesn't accidentally write the system time instead of the expected.
-	FakeReleaseDate = version.ReleaseDate("2020-12-31")
+	FakeReleaseDate  = version.ReleaseDate("2020-12-31")
+	FakeDevCommitSha = "92c6cb5831fc0faccbf6707bfc156458d5c5932f"
 	// Even though currently binaries are compressed with "xz" more than "gz", using "gz" in tests allows us to re-use
 	// tar.TarGz instead of complicating internal utilities or adding dependencies only for tests.
 	archiveFormat = ".tar.gz"
@@ -78,11 +79,22 @@ func (s *server) init(baseURL string, v version.PatchVersion) {
 				version.Platform("linux" + "/" + runtime.GOARCH):  TarballURL(baseURL, "linux", runtime.GOARCH, v),
 				version.Platform("darwin" + "/" + runtime.GOARCH): TarballURL(baseURL, "darwin", runtime.GOARCH, v),
 			}}},
+		Dev: &version.DevRelease{
+			ReleaseDate: FakeReleaseDate,
+			CommitSha:   FakeDevCommitSha,
+			Tarballs: map[version.Platform]version.TarballURL{
+				version.Platform("linux/" + runtime.GOARCH):  TarballURL(baseURL, "linux", runtime.GOARCH, version.Dev),
+				version.Platform("darwin/" + runtime.GOARCH): TarballURL(baseURL, "darwin", runtime.GOARCH, version.Dev),
+			},
+		},
 		SHA256Sums: map[version.Tarball]version.SHA256Sum{},
 	}
 	fakeEnvoyTarGz, sha256Sum := RequireFakeEnvoyTarGz(s.t, v)
 	s.fakeEnvoyTarGz = fakeEnvoyTarGz
 	for _, u := range s.versions.Versions[v].Tarballs {
+		s.versions.SHA256Sums[version.Tarball(path.Base(string(u)))] = sha256Sum
+	}
+	for _, u := range s.versions.Dev.Tarballs {
 		s.versions.SHA256Sums[version.Tarball(path.Base(string(u)))] = sha256Sum
 	}
 	versionsJSON, err := json.Marshal(s.versions)
@@ -103,7 +115,7 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		v := strings.Split(subpath, "/")[0]
-		if version.NewPatchVersion(v) == "" {
+		if v != "dev" && version.NewPatchVersion(v) == "" {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}

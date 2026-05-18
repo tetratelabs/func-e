@@ -47,3 +47,7 @@ func TestRun_LegacyHomeDir(t *testing.T) {
 	t.Setenv("FUNC_E_HOME", homeDir)
 	e2e.TestRunLegacyHomeDir(t.Context(), t, fakeFuncEFactory{})
 }
+
+func TestRun_Dev(t *testing.T) {
+	e2e.TestRunDev(t.Context(), t, fakeFuncEFactory{})
+}

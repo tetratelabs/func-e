@@ -59,6 +59,9 @@ $ func-e use %s`, currentVersionWorkingDirFile, currentVersionConfigFile, versio
 			if _, err = envoy.InstallIfNeeded(ctx, o); err != nil {
 				return err
 			}
+			if v == version.DevLatest {
+				v = version.Dev
+			}
 			// Persist the input precision. This allows those specifying a MinorVersion to always get the latest patch.
 			return envoy.WriteCurrentVersion(v, o.ConfigHome, o.EnvoyVersionFile())
 		},

@@ -22,19 +22,53 @@ var binEnvoy = filepath.Join("bin", "envoy")
 // InstallIfNeeded downloads an Envoy binary corresponding to globals.GlobalOpts and returns a path to it or an error.
 func InstallIfNeeded(ctx context.Context, o *globals.GlobalOpts) (string, error) {
 	v := o.EnvoyVersion
+	devLatest := v == version.DevLatest
+	if devLatest {
+		v = version.Dev
+	}
 	installPath := filepath.Join(o.EnvoyVersionsDir(), v.String())
 	envoyPath := filepath.Join(installPath, binEnvoy)
 	_, err := os.Stat(envoyPath)
-	switch {
-	case os.IsNotExist(err):
-		var evs *version.ReleaseVersions // Get version metadata for what we will install
+
+	var evs *version.ReleaseVersions // Get version metadata for what we will install
+
+	if devLatest && err == nil {
 		evs, err = o.GetEnvoyVersions(ctx)
 		if err != nil {
 			return "", err
 		}
+		if evs.Dev != nil { // Skip re-download if the local install matches the remote release date
+			remoteMtime, parseErr := time.Parse("2006-01-02", string(evs.Dev.ReleaseDate))
+			stat, statErr := os.Stat(installPath)
+			if parseErr == nil && statErr == nil && stat.ModTime().UTC().Truncate(24*time.Hour).Equal(remoteMtime) {
+				return verifyEnvoy(installPath)
+			}
+		}
+		err = os.ErrNotExist // force the download branch
+	}
 
-		tarballURL := evs.Versions[v].Tarballs[o.Platform] // Ensure there is a version for this platform
-		if tarballURL == "" {
+	switch {
+	case os.IsNotExist(err):
+		if evs == nil {
+			evs, err = o.GetEnvoyVersions(ctx)
+			if err != nil {
+				return "", err
+			}
+		}
+
+		var tarballURL version.TarballURL
+		var releaseDate version.ReleaseDate
+		if v == version.Dev {
+			if evs.Dev != nil {
+				tarballURL = evs.Dev.Tarballs[o.Platform]
+				releaseDate = evs.Dev.ReleaseDate
+			}
+		} else {
+			r := evs.Versions[v]
+			tarballURL = r.Tarballs[o.Platform]
+			releaseDate = r.ReleaseDate
+		}
+		if tarballURL == "" { // Ensure there is a version for this platform
 			return "", fmt.Errorf("couldn't find version %q for platform %q", v, o.Platform)
 		}
 
@@ -45,7 +79,7 @@ func InstallIfNeeded(ctx context.Context, o *globals.GlobalOpts) (string, error)
 		}
 
 		var mtime time.Time // Create a directory for the version, preserving the release date as its mtime
-		if mtime, err = time.Parse("2006-01-02", string(evs.Versions[v].ReleaseDate)); err != nil {
+		if mtime, err = time.Parse("2006-01-02", string(releaseDate)); err != nil {
 			return "", fmt.Errorf("couldn't find releaseDate of version %q for platform %q: %w", v, o.Platform, err)
 		}
 		if err = os.MkdirAll(installPath, 0o750); err != nil {
