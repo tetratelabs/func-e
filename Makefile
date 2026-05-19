@@ -221,6 +221,6 @@ endef
 define nfpm-pkg
 	@printf "$(ansi_format_dark)" nfpm "packaging $3"
 	@mkdir -p $(dir $3)
-	@PKG_ARCH=$(call pkg_arch,$1) PKG_VERSION=$(pkg_version) $(go) run $(nfpm) pkg -f $(pkg_config) --packager $2 --target $3
+	@export PKG_ARCH=$(call pkg_arch,$1) && export PKG_VERSION=$(pkg_version) && $(go) run $(nfpm) pkg -f $(pkg_config) --packager $2 --target $3
 	@printf "$(ansi_format_bright)" nfpm "ok"
 endef
