@@ -116,15 +116,9 @@ dist/func-e_$(VERSION)_%.zip: build/func-e_%/func-e.exe.signed
 	@printf "$(ansi_format_bright)" zip "ok"
 
 # Default to a dummy version, which is always lower than a real release
-nfpm_version=v$(VERSION:dev=0.0.1)
+pkg_version := v$(VERSION:dev=0.0.1)
 
-# It is not precise to put the func-e binary here, but it is easier because the arch pattern matches
-# whereas in RPM it won't.
-# Note: we are only generating this because the file isn't parameterized.
-# See https://github.com/goreleaser/nfpm/issues/362
-build/func-e_linux_%/nfpm.yaml: packaging/nfpm/nfpm.yaml build/func-e_linux_%/func-e
-	@mkdir -p $(@D)
-	@sed -e 's/amd64/$(*)/g' -e 's/v0.0.1/$(nfpm_version)/g' $< > $@
+pkg_config := packaging/nfpm/nfpm.yaml
 
 # We can't use a pattern (%) rule because in RPM amd64 -> x86_64, arm64 -> aarch64
 rpm_x86_64  := dist/func-e_$(VERSION)_linux_x86_64.rpm
@@ -132,15 +126,19 @@ rpm_aarch64 := dist/func-e_$(VERSION)_linux_aarch64.rpm
 rpms        := $(rpm_x86_64) $(rpm_aarch64)
 
 man_page := packaging/nfpm/func-e.8
+pkg_inputs := $(pkg_config) $(man_page)
 
-$(rpm_x86_64): build/func-e_linux_amd64/nfpm.yaml $(man_page)
+pkg_binary = build/func-e_linux_$1/func-e
+pkg_arch   = $(patsubst build/func-e_linux_%/func-e,%,$1)
+
+$(rpm_x86_64): $(call pkg_binary,amd64) $(pkg_inputs)
 	$(call nfpm-pkg,$<,"rpm",$@)
 
-$(rpm_aarch64): build/func-e_linux_arm64/nfpm.yaml $(man_page)
+$(rpm_aarch64): $(call pkg_binary,arm64) $(pkg_inputs)
 	$(call nfpm-pkg,$<,"rpm",$@)
 
 # Debian architectures map goarch for amd64 and arm64
-dist/func-e_$(VERSION)_linux_%.deb: build/func-e_linux_%/nfpm.yaml $(man_page)
+dist/func-e_$(VERSION)_linux_%.deb: $(call pkg_binary,%) $(pkg_inputs)
 	$(call nfpm-pkg,$<,"deb",$@)
 
 # msi-arch is a macro so we can detect it based on the file naming convention
@@ -226,6 +224,6 @@ endef
 define nfpm-pkg
 	@printf "$(ansi_format_dark)" nfpm "packaging $3"
 	@mkdir -p $(dir $3)
-	@$(gotool) nfpm pkg -f $1 --packager $2 --target $3
+	@PKG_ARCH=$(call pkg_arch,$1) PKG_VERSION=$(pkg_version) $(gotool) nfpm pkg -f $(pkg_config) --packager $2 --target $3
 	@printf "$(ansi_format_bright)" nfpm "ok"
 endef
