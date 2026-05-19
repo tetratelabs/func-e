@@ -1,0 +1,86 @@
+# `name` value will appear "as is" in the badge.
+# See https://docs.github.com/en/actions/configuring-and-managing-workflows/configuring-a-workflow#adding-a-workflow-status-badge-to-your-repository
+# yamllint --format github .github/workflows/bump-envoy.yaml
+---
+name: "bump-envoy"
+
+on:  # yamllint disable-line rule:truthy
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: bump-envoy
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  bump:
+    name: "Check and bump Envoy version"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: "Check for new Envoy version"
+        id: check
+        run: |
+          current=$(cat internal/version/last_known_envoy.txt)
+          latest=$(curl -sSf https://archive.tetratelabs.io/envoy/envoy-versions.json | jq -r '.latestVersion')
+
+          if [ -z "${latest}" ] || [ "${latest}" = "null" ]; then
+            echo "::error::Could not read latestVersion from envoy-versions.json"
+            exit 1
+          fi
+
+          # Never go backwards: numeric comparison of each component.
+          higher=$(printf '%s\n' "${current}" "${latest}" | sort -t. -k1,1n -k2,2n -k3,3n | tail -1)
+          if [ "${higher}" = "${current}" ]; then
+            echo "No update needed (current=${current}, latest=${latest})"
+            exit 0
+          fi
+
+          echo "current=${current}" >> "$GITHUB_OUTPUT"
+          echo "latest=${latest}" >> "$GITHUB_OUTPUT"
+          echo "current_minor=${current%.*}" >> "$GITHUB_OUTPUT"
+          echo "latest_minor=${latest%.*}" >> "$GITHUB_OUTPUT"
+
+      - name: "Update version files"
+        if: steps.check.outputs.latest
+        env:
+          CURRENT: ${{ steps.check.outputs.current }}
+          LATEST: ${{ steps.check.outputs.latest }}
+          CURRENT_MINOR: ${{ steps.check.outputs.current_minor }}
+          LATEST_MINOR: ${{ steps.check.outputs.latest_minor }}
+        run: |
+          printf '%s' "${LATEST}" > internal/version/last_known_envoy.txt
+
+          for f in USAGE.md internal/cmd/testdata/func-e_help.txt \
+                   internal/cmd/testdata/func-e_use_help.txt packaging/nfpm/func-e.8; do
+            sed -i "s/${CURRENT}/${LATEST}/g" "${f}"
+            if [ "${CURRENT_MINOR}" != "${LATEST_MINOR}" ]; then
+              sed -i "s/${CURRENT_MINOR}/${LATEST_MINOR}/g" "${f}"
+            fi
+          done
+
+      - name: "Create pull request"
+        if: steps.check.outputs.latest
+        uses: peter-evans/create-pull-request@v8
+        with:
+          branch: envoy-version-bump
+          delete-branch: true
+          signoff: true
+          title: "Bump envoy latest version to ${{ steps.check.outputs.latest }}"
+          body: |
+            Updates last known Envoy from ${{ steps.check.outputs.current }} to ${{ steps.check.outputs.latest }}.
+
+            Source: https://archive.tetratelabs.io/envoy/envoy-versions.json
+          commit-message: "Bump envoy latest version to ${{ steps.check.outputs.latest }}"
+          labels: dependencies
