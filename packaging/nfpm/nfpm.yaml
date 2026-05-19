@@ -1,8 +1,8 @@
 # check https://nfpm.goreleaser.com/configuration/ for detailed usage
 name: func-e
-arch: amd64
+arch: ${PKG_ARCH}
 platform: linux
-version: v0.0.1
+version: ${PKG_VERSION}
 section: default
 maintainer: Tetrate Labs <tetratelabs@tetrate.io>
 vendor: Tetrate
@@ -12,7 +12,8 @@ license: Apache-2.0
 provides:
   - func-e
 contents:
-  - src: build/func-e_linux_amd64/func-e
+  - src: build/func-e_linux_${PKG_ARCH}/func-e
     dst: /usr/bin/func-e
+    expand: true
   - src: packaging/nfpm/func-e.8
     dst: /usr/local/share/man/man8/func-e.8
