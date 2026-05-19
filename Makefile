@@ -107,12 +107,6 @@ dist/func-e_$(VERSION)_%.tar.gz: build/func-e_%/func-e
 	@tar -C $(<D) -cpzf $@ $(<F)
 	@printf "$(ansi_format_bright)" tar.gz "ok"
 
-dist/func-e_$(VERSION)_%.zip: build/func-e_%/func-e.exe.signed
-	@printf "$(ansi_format_dark)" zip "zipping $@"
-	@mkdir -p $(@D)
-	@zip -qj $@ $(<:.signed=)
-	@printf "$(ansi_format_bright)" zip "ok"
-
 # Default to a dummy version, which is always lower than a real release
 pkg_version := v$(VERSION:dev=0.0.1)
 
@@ -139,14 +133,8 @@ $(rpm_aarch64): $(call pkg_binary,arm64) $(pkg_inputs)
 dist/func-e_$(VERSION)_linux_%.deb: $(call pkg_binary,%) $(pkg_inputs)
 	$(call nfpm-pkg,$<,"deb",$@)
 
-# msi-arch is a macro so we can detect it based on the file naming convention
-msi-arch     = $(if $(findstring amd64,$1),x64,arm64)
-# Default to a dummy version, which is always lower than a real release
-msi_version := $(VERSION:dev=0.0.1)
-
 # Archives are tar.gz,
 all_archives  := $(all_platforms:%=dist/func-e_$(VERSION)_%.tar.gz)
-archives  := $(all_platforms:%=dist/func-e_$(VERSION)_%.tar.gz)
 checksums := dist/func-e_$(VERSION)_checksums.txt
 
 # Darwin doesn't have sha256sum. See https://github.com/actions/virtual-environments/issues/90

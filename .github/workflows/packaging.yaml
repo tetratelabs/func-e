@@ -10,7 +10,6 @@ on:
     branches: master
     paths:
       - 'packaging/nfpm/*'
-      - 'packaging/icon@48w.ico'
       - '.github/workflows/packaging.yaml'
       - 'Makefile'
       - 'Tools.mk'
@@ -18,7 +17,6 @@ on:
     branches: master
     paths:
       - 'packaging/nfpm/*'
-      - 'packaging/icon@48w.ico'
       - '.github/workflows/packaging.yaml'
       - 'Makefile'
       - 'Tools.mk'
