@@ -8,7 +8,7 @@ configuration you would use in production. Each time you end a run, a snapshot o
 your behalf. This makes knowledge sharing and troubleshooting easier, especially when upgrading. Try it out!
 
 ```sh
-curl https://func-e.io/install.sh | bash -s -- -b /usr/local/bin
+curl -fsSL https://func-e.io/install.sh | sh
 func-e run -c /path/to/envoy.yaml
 ```
 
