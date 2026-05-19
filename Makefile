@@ -68,7 +68,7 @@ build: $(current_binary) ## Build the func-e binary
 
 test: ## Run all unit tests
 	@printf "$(ansi_format_dark)" test "running unit tests"
-	@$(go) test $(main_packages)
+	@$(go) test -race $(main_packages)
 	@printf "$(ansi_format_bright)" test "ok"
 
 # replace spaces with commas

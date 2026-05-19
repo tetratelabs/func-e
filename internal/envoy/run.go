@@ -55,8 +55,8 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 	go func() {
 		defer func() {
 			if p := recover(); p != nil {
-				hookErrCh <- fmt.Errorf("startup hook panicked: %v", p)
 				r.logf("startup hook panicked: %v", p)
+				hookErrCh <- fmt.Errorf("startup hook panicked: %v", p)
 			}
 		}()
 
