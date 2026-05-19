@@ -25,22 +25,20 @@ their own directories and co-mingle its configuration and logs with those
 of func-e when it runs Envoy (the gateway process). It also allows Docker to
 export `FUNC_E_RUN_ID=0` to aid in location of key files.
 
-## Why tools/go.mod?
+## Why Tools.mk?
 
-`go tool` lets us run things like linters and hugo without a platform install.
-We keep them in `tools/go.mod` instead of the main `go.mod` because func-e is
-also imported as a library; tool dependencies should not leak into that graph.
+`Tools.mk` lists Go tools (linters, hugo, nfpm) with pinned versions so `make`
+can run them via `go run package@version` without a platform-specific install.
+Tool deps stay out of `go.mod`, which matters because func-e is imported as a
+library.
 
-This replaces the former `go run package@version` process, where versions
-lived in Makefile commands instead of a normal checked-in module graph.
+We previously used `go tool` with a separate `tools/go.mod`, but ran into two
+problems. First, all tools share one dependency graph, so hugo, golangci-lint,
+and nfpm can revlock each other. Second, [Go rejects `-modfile` in workspace
+mode][go-work-modfile], forcing `GOWORK=off` into every tool invocation.
 
-The biggest tradeoff from our old process is tools are not isolated from each
-other. Hugo, golangci-lint, nfpm, etc. share one dependency graph and can
-revlock each other in the future.
-
-Another wrinkle is [Go rejects `-modfile` in workspace mode][go-work-modfile].
-To use `-modfile=tools/go.mod`, we have to set `GOWORK=off`. This causes cruft
-in the root Makefile.
+`go run` resolves each tool independently, avoiding both problems. The tradeoff
+is no `go.sum` lock for tool versions and only working with make.
 
 ## Why internal/test/httptest?
 

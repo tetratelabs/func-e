@@ -2,6 +2,9 @@
 # Please see GNU make's documentation if unfamiliar: https://www.gnu.org/software/make/manual/html_node/
 .PHONY: test build e2e dist clean format lint check site
 
+# Include versions of tools we build on-demand
+include Tools.mk
+
 # This should be driven by automation and result in N.N.N, not vN.N.N
 VERSION ?= dev
 
@@ -18,7 +21,6 @@ github_goroot_name  := GOROOT_$(subst .,_,$(go_release))_$(github_runner_arch)
 github_goroot_val   := $(value $(github_goroot_name))
 goroot_path         := $(shell go env GOROOT 2>/dev/null)
 goroot              := $(firstword $(GOROOT) $(github_goroot_val) $(goroot_path))
-reporoot		    := $(dir $(abspath $(firstword $(MAKEFILE_LIST))))
 
 ifndef goroot
 $(error could not determine GOROOT)
@@ -31,11 +33,7 @@ endif
 # We may be using a very old version of Make (ex. 3.81 on macOS). This means we
 # can't re-set GOROOT or PATH via 'export' or use '.ONESHELL' to persist
 # variables across lines. Hence, we set variables on one-line.
-goenv  := PATH="$(goroot)/bin:$${PATH}" GOROOT="$(goroot)"
-go     := $(goenv) go
-# go tool uses -modfile for tools/go.mod, which Go rejects in workspace mode.
-toolgo := GOWORK=off $(goenv) go
-gotool := $(toolgo) tool -modfile=$(reporoot)tools/go.mod
+go := export PATH="$(goroot)/bin:$${PATH}" && export GOROOT="$(goroot)" && go
 
 # Set variables corresponding to the selected goroot and the current host.
 goarch := $(shell $(go) env GOARCH)
@@ -171,11 +169,10 @@ clean: ## Ensure a clean build
 # format is a PHONY target, so always runs. This allows skipping when sources didn't change.
 build/format: go.mod $(all_sources)
 	@$(go) mod tidy
-	@$(toolgo) -C tools mod tidy
-	@$(gotool) nwa add --mute -t .licenseheader -T raw "**/*.go"
-	@$(gotool) gofumpt -l -w .
+	@$(go) run $(nwa) add --mute -t .licenseheader -T raw "**/*.go"
+	@$(go) run $(gofumpt) -l -w .
 	@# gofumpt organizes imports, but does not handle local grouping.
-	@$(gotool) gosimports -local github.com/tetratelabs/ -w $(shell find . -name '*.go' -type f)
+	@$(go) run $(gosimports) -local github.com/tetratelabs/ -w $(shell find . -name '*.go' -type f)
 	@mkdir -p $(@D) && touch $@
 
 format:
@@ -185,7 +182,7 @@ format:
 
 # lint is a PHONY target, so always runs. This allows skipping when sources didn't change.
 build/lint: .golangci.yml $(all_sources)
-	@$(gotool) golangci-lint run --timeout 5m --config $< ./...
+	@$(go) run $(golangci_lint) run --timeout 5m --config $< ./...
 	@$(go) test ./lint/...
 	@mkdir -p $(@D) && touch $@
 
@@ -207,7 +204,7 @@ check: ## Verify contents of last commit
 
 site: ## Serve website content
 	@git submodule update --init
-	@cd site && $(gotool) hugo server --minify --disableFastRender --baseURL http://localhost:1313 --cleanDestinationDir -D
+	@cd site && $(go) run $(hugo) server --minify --disableFastRender --baseURL http://localhost:1313 --cleanDestinationDir -D
 
 # define macros for multi-platform builds. these parse the filename being built
 go-arch = $(if $(findstring amd64,$1),amd64,arm64)
@@ -224,6 +221,6 @@ endef
 define nfpm-pkg
 	@printf "$(ansi_format_dark)" nfpm "packaging $3"
 	@mkdir -p $(dir $3)
-	@PKG_ARCH=$(call pkg_arch,$1) PKG_VERSION=$(pkg_version) $(gotool) nfpm pkg -f $(pkg_config) --packager $2 --target $3
+	@export PKG_ARCH=$(call pkg_arch,$1) && export PKG_VERSION=$(pkg_version) && $(go) run $(nfpm) pkg -f $(pkg_config) --packager $2 --target $3
 	@printf "$(ansi_format_bright)" nfpm "ok"
 endef
