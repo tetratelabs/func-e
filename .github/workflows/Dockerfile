@@ -55,11 +55,9 @@ ARG arch_lc=arm64
 
 FROM base-${TARGETARCH}
 
-# While it is possible to build osslsigncode on CentOS, msitools can't due to
-# missing libgcab1-devel package. The workaround is to `make dist` with Ubuntu.
 ARG centos_packages="make sudo"
 # Ubuntu runs check, dist, and e2e, so needs more packages.
-ARG ubuntu_packages="make sudo curl git zip osslsigncode"
+ARG ubuntu_packages="make sudo curl git"
 RUN if [ -f /etc/centos-release ]; then \
     # Use Dandified YUM on CentOS >=8.
     dnf="dnf -qy" && ${dnf} install ${centos_packages} && ${dnf} clean all; \
