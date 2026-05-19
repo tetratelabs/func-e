@@ -137,26 +137,29 @@ func FindAdminAddress(configPath, configYaml string) (string, error) {
 
 // FindAdminAddressFromArgs extracts config sources from args and returns the admin address.
 func FindAdminAddressFromArgs(args []string) (string, error) {
+	const flagConfigPath = "--config-path"
+	const flagConfigYaml = "--config-yaml"
+
 	var configPath, configYaml string
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		switch {
 		case arg == "--":
 			return FindAdminAddress(configPath, configYaml)
-		case arg == "-c" || arg == "--config-path":
+		case arg == "-c" || arg == flagConfigPath:
 			if i+1 < len(args) {
 				configPath = args[i+1]
 				i++
 			}
-		case strings.HasPrefix(arg, "--config-path="):
-			configPath = strings.TrimPrefix(arg, "--config-path=")
-		case arg == "--config-yaml":
+		case strings.HasPrefix(arg, flagConfigPath+"="):
+			configPath, _ = strings.CutPrefix(arg, flagConfigPath+"=")
+		case arg == flagConfigYaml:
 			if i+1 < len(args) {
 				configYaml = args[i+1]
 				i++
 			}
-		case strings.HasPrefix(arg, "--config-yaml="):
-			configYaml = strings.TrimPrefix(arg, "--config-yaml=")
+		case strings.HasPrefix(arg, flagConfigYaml+"="):
+			configYaml, _ = strings.CutPrefix(arg, flagConfigYaml+"=")
 		}
 	}
 	return FindAdminAddress(configPath, configYaml)
