@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"testing/synctest"
 	"time"
@@ -801,11 +802,11 @@ func TestAdminClient_AwaitReady_ReturnsLastErrorOnTimeout(t *testing.T) {
 
 func TestAdminClient_AwaitReady_FirstPollOnFirstTick(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-		callCount := 0
+		var callCount atomic.Int32
 		actualMethod := ""
 		actualPath := ""
 		client := setupTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			callCount++
+			callCount.Add(1)
 			actualMethod = r.Method
 			actualPath = r.URL.Path
 			w.WriteHeader(http.StatusOK)
@@ -818,7 +819,7 @@ func TestAdminClient_AwaitReady_FirstPollOnFirstTick(t *testing.T) {
 		}()
 
 		synctest.Wait()
-		require.Zero(t, callCount)
+		require.Zero(t, callCount.Load())
 		select {
 		case err := <-errCh:
 			t.Fatalf("AwaitReady returned before first tick: %v", err)
@@ -827,7 +828,7 @@ func TestAdminClient_AwaitReady_FirstPollOnFirstTick(t *testing.T) {
 
 		time.Sleep(time.Second - time.Nanosecond)
 		synctest.Wait()
-		require.Zero(t, callCount)
+		require.Zero(t, callCount.Load())
 		select {
 		case err := <-errCh:
 			t.Fatalf("AwaitReady returned before first tick: %v", err)
@@ -836,9 +837,9 @@ func TestAdminClient_AwaitReady_FirstPollOnFirstTick(t *testing.T) {
 
 		time.Sleep(1 * time.Nanosecond)
 		synctest.Wait()
-		require.Equal(t, 1, callCount)
+		require.EqualValues(t, 1, callCount.Load())
+		require.NoError(t, <-errCh)
 		require.Equal(t, http.MethodGet, actualMethod)
 		require.Equal(t, readyPath, actualPath)
-		require.NoError(t, <-errCh)
 	})
 }
