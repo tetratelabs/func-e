@@ -13,8 +13,7 @@ on:
       - 'packaging/icon@48w.ico'
       - '.github/workflows/packaging.yaml'
       - 'Makefile'
-      - 'tools/go.mod'
-      - 'tools/go.sum'
+      - 'Tools.mk'
   pull_request:  # We also run tests on pull requests targeted at the master branch
     branches: master
     paths:
@@ -22,8 +21,7 @@ on:
       - 'packaging/icon@48w.ico'
       - '.github/workflows/packaging.yaml'
       - 'Makefile'
-      - 'tools/go.mod'
-      - 'tools/go.sum'
+      - 'Tools.mk'
   # workflow_dispatch will let us manually trigger the workflow from GitHub actions dashboard.
   # For example, you can try to build a branch without raising a pull request.
   # See https://docs.github.com/en/free-pro-team@latest/actions/managing-workflow-runs/manually-running-a-workflow
@@ -45,8 +43,8 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/go/pkg/mod
-          # go.mod for Go release version, go.sum for modules used, and tools/go.* for tool dependencies
-          key: test-${{ runner.os }}-${{ runner.arch }}-go-${{ hashFiles('go.mod', 'go.sum', 'tools/go.mod', 'tools/go.sum') }}
+          # go.mod for go release version, go.sum for modules used, and Tools.mk for 'go run' tools
+          key: test-${{ runner.os }}-${{ runner.arch }}-go-${{ hashFiles('go.mod', 'go.sum', 'Tools.mk') }}
           restore-keys: test-${{ runner.os }}-${{ runner.arch }}-go-
 
       - name: "Build packages (Installer, Debian, RPM)"
