@@ -10,7 +10,7 @@ usage() {
 $this: download go binaries for tetratelabs/func-e
 
 Usage: $this [-b] bindir [-d] [tag]
-  -b sets bindir or installation directory, Defaults to ./bin
+  -b sets bindir or installation directory, Defaults to \$HOME/.local/bin
   -d turns on debug logging
    [tag] is a tag from
    https://github.com/tetratelabs/func-e/releases
@@ -24,10 +24,10 @@ EOF
 }
 
 parse_args() {
-  #BINDIR is ./bin unless set be ENV
+  #BINDIR is $HOME/.local/bin unless set by ENV
   # over-ridden by flag below
 
-  BINDIR=${BINDIR:-./bin}
+  BINDIR=${BINDIR:-$HOME/.local/bin}
   while getopts "b:dh?x" arg; do
     case "$arg" in
       b) BINDIR="$OPTARG" ;;
@@ -60,6 +60,11 @@ execute() {
     log_info "installed ${BINDIR}/${binexe}"
   done
   rm -rf "${tmpdir}"
+  case ":${PATH}:" in
+    *:"${BINDIR}":*) ;;
+    *) log_info "To use func-e, add ${BINDIR} to your \$PATH:"
+       log_info "  export PATH=\"${BINDIR}:\$PATH\"" ;;
+  esac
 }
 get_binaries() {
   case "$PLATFORM" in
@@ -88,19 +93,6 @@ tag_to_version() {
   TAG="$REALTAG"
   VERSION=${TAG#v}
 }
-adjust_format() {
-  # change format (tar.gz or zip) based on OS
-  true
-}
-adjust_os() {
-  # adjust archive name based on OS
-  true
-}
-adjust_arch() {
-  # adjust archive name based on ARCH
-  true
-}
-
 cat /dev/null <<EOF
 ------------------------------------------------------------------------
 https://github.com/client9/shlib - portable posix shell functions
@@ -185,39 +177,18 @@ uname_os_check() {
   os=$(uname_os)
   case "$os" in
     darwin) return 0 ;;
-    dragonfly) return 0 ;;
-    freebsd) return 0 ;;
     linux) return 0 ;;
-    android) return 0 ;;
-    nacl) return 0 ;;
-    netbsd) return 0 ;;
-    openbsd) return 0 ;;
-    plan9) return 0 ;;
-    solaris) return 0 ;;
-    windows) return 0 ;;
   esac
-  log_crit "uname_os_check '$(uname -s)' got converted to '$os' which is not a GOOS value. Please file bug at https://github.com/client9/shlib"
+  log_crit "uname_os_check '$(uname -s)' got converted to '$os' which is not supported. Supported: darwin, linux"
   return 1
 }
 uname_arch_check() {
   arch=$(uname_arch)
   case "$arch" in
-    386) return 0 ;;
     amd64) return 0 ;;
     arm64) return 0 ;;
-    armv5) return 0 ;;
-    armv6) return 0 ;;
-    armv7) return 0 ;;
-    ppc64) return 0 ;;
-    ppc64le) return 0 ;;
-    mips) return 0 ;;
-    mipsle) return 0 ;;
-    mips64) return 0 ;;
-    mips64le) return 0 ;;
-    s390x) return 0 ;;
-    amd64p32) return 0 ;;
   esac
-  log_crit "uname_arch_check '$(uname -m)' got converted to '$arch' which is not a GOARCH value.  Please file bug report at https://github.com/client9/shlib"
+  log_crit "uname_arch_check '$(uname -m)' got converted to '$arch' which is not supported. Supported: amd64, arm64"
   return 1
 }
 untar() {
@@ -299,8 +270,8 @@ hash_sha256() {
     hash=$(shasum -a 256 "$TARGET" 2>/dev/null) || return 1
     echo "$hash" | cut -d ' ' -f 1
   elif is_command openssl; then
-    hash=$(openssl -dst openssl dgst -sha256 "$TARGET") || return 1
-    echo "$hash" | cut -d ' ' -f a
+    hash=$(openssl dgst -sha256 "$TARGET") || return 1
+    echo "$hash" | cut -d ' ' -f 2
   else
     log_crit "hash_sha256 unable to find command to compute sha-256 hash"
     return 1
@@ -355,12 +326,6 @@ parse_args "$@"
 get_binaries
 
 tag_to_version
-
-adjust_format
-
-adjust_os
-
-adjust_arch
 
 log_info "found version: ${VERSION} for ${TAG}/${OS}/${ARCH}"
 
