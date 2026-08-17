@@ -82,15 +82,35 @@ func InstallIfNeeded(ctx context.Context, o *globals.GlobalOpts) (string, error)
 		if mtime, err = time.Parse("2006-01-02", string(releaseDate)); err != nil {
 			return "", fmt.Errorf("couldn't find releaseDate of version %q for platform %q: %w", v, o.Platform, err)
 		}
-		if err = os.MkdirAll(installPath, 0o750); err != nil {
-			return "", fmt.Errorf("unable to create directory %q: %w", installPath, err)
+		// Unarchive into a staging directory next to the install path, and only move it into place
+		// once the SHA-256 sum matches. Otherwise an interrupted download leaves a partial binary
+		// at the install path, which later runs treat as already downloaded and never repair.
+		versionsDir := o.EnvoyVersionsDir()
+		if err = os.MkdirAll(versionsDir, 0o750); err != nil {
+			return "", fmt.Errorf("unable to create directory %q: %w", versionsDir, err)
 		}
+		// The staging directory shares a filesystem with the install path, so the move is atomic,
+		// and its name is not a version, so "func-e versions" ignores it if anything is left behind.
+		stageDir, err := os.MkdirTemp(versionsDir, ".download-")
+		if err != nil {
+			return "", fmt.Errorf("unable to create directory in %q: %w", versionsDir, err)
+		}
+		defer os.RemoveAll(stageDir) //nolint:errcheck // best effort cleanup of a partial download
+		stagePath := filepath.Join(stageDir, v.String())
+
 		o.Logf("downloading %s\n", tarballURL)
-		if err := untarEnvoy(ctx, o.HTTPClient, installPath, tarballURL, sha256Sum, o.UserAgent); err != nil {
+		if err := untarEnvoy(ctx, o.HTTPClient, stagePath, tarballURL, sha256Sum, o.UserAgent); err != nil {
 			return "", err
 		}
-		if err = os.Chtimes(installPath, mtime, mtime); err != nil { // overwrite the mtime to preserve it in the list
-			return "", fmt.Errorf("unable to set date of directory %q: %w", installPath, err)
+		if err = os.Chtimes(stagePath, mtime, mtime); err != nil { // overwrite the mtime to preserve it in the list
+			return "", fmt.Errorf("unable to set date of directory %q: %w", stagePath, err)
+		}
+		// A re-download of "dev" has an existing directory in the way of the move.
+		if err = os.RemoveAll(installPath); err != nil {
+			return "", fmt.Errorf("unable to remove directory %q: %w", installPath, err)
+		}
+		if err = os.Rename(stagePath, installPath); err != nil {
+			return "", fmt.Errorf("unable to move directory %q to %q: %w", stagePath, installPath, err)
 		}
 	case err == nil:
 		o.Logf("%s is already downloaded\n", v)

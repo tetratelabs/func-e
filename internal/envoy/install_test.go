@@ -271,3 +271,54 @@ func setupInstallTest(t *testing.T, v version.PatchVersion) *installTest {
 	setup.GetEnvoyVersions = NewGetVersions(setup.HTTPClient, setup.EnvoyVersionsURL, setup.UserAgent)
 	return setup
 }
+
+// An interrupted download must leave nothing at the install path: a partial binary there
+// makes every later run report "already downloaded" and reuse it, with no way to self-heal.
+func TestInstallIfNeeded_InterruptedDownload(t *testing.T) {
+	o := setupInstallTest(t, version.LastKnownEnvoy)
+	o.EnvoyVersion = version.LastKnownEnvoy
+	tarball, _ := test.RequireFakeEnvoyTarGz(t, version.LastKnownEnvoy)
+
+	// Serve a truncated tarball to simulate the connection dropping mid-download.
+	versionsHandler := test.NewEnvoyVersionsHandler(t, "http://"+admin.ServerAddr, version.LastKnownEnvoy)
+	o.HTTPClient = httptest.HTTPClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if filepath.Ext(r.URL.Path) == ".json" {
+			versionsHandler.ServeHTTP(w, r)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write(tarball[:len(tarball)/2])
+	}))
+	o.GetEnvoyVersions = NewGetVersions(o.HTTPClient, o.EnvoyVersionsURL, o.UserAgent)
+
+	_, err := InstallIfNeeded(o.ctx, &o.GlobalOpts)
+	require.ErrorContains(t, err, "error untarring")
+
+	installPath := filepath.Join(o.EnvoyVersionsDir(), version.LastKnownEnvoy.String())
+	require.NoDirExists(t, installPath, "a failed download must not leave a partial install")
+	staged, err := filepath.Glob(filepath.Join(o.EnvoyVersionsDir(), ".download-*"))
+	require.NoError(t, err)
+	require.Empty(t, staged, "the staging directory must be removed on failure")
+
+	// With a healthy upstream, the retry must download instead of reusing a partial install.
+	o.HTTPClient = httptest.HTTPClient(versionsHandler)
+	o.GetEnvoyVersions = NewGetVersions(o.HTTPClient, o.EnvoyVersionsURL, o.UserAgent)
+	o.Out = new(bytes.Buffer)
+	envoyPath, err := InstallIfNeeded(o.ctx, &o.GlobalOpts)
+	require.NoError(t, err)
+	require.FileExists(t, envoyPath)
+	require.Contains(t, o.Out.(*bytes.Buffer).String(), "downloading")
+}
+
+func TestInstallIfNeeded_InstallDirectoryMode(t *testing.T) {
+	o := setupInstallTest(t, version.LastKnownEnvoy)
+	o.EnvoyVersion = version.LastKnownEnvoy
+
+	_, err := InstallIfNeeded(o.ctx, &o.GlobalOpts)
+	require.NoError(t, err)
+
+	installPath := filepath.Join(o.EnvoyVersionsDir(), version.LastKnownEnvoy.String())
+	stat, err := os.Stat(installPath)
+	require.NoError(t, err)
+	require.Equal(t, os.FileMode(0o750), stat.Mode().Perm())
+}
