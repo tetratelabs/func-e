@@ -44,6 +44,11 @@ func UntarAndVerify(dst string, src io.Reader, sha256Sum version.SHA256Sum) erro
 	if err := Untar(dst, &d); err != nil {
 		return err
 	}
+	// Untar stops once the tar end-of-archive is reached, which can leave trailing
+	// bytes (ex the xz index and footer) unread. Drain them so the digest covers the whole stream.
+	if _, err := io.Copy(io.Discard, &d); err != nil {
+		return err
+	}
 	sum := version.SHA256Sum(hex.EncodeToString(d.h.Sum(nil)))
 	if sum != sha256Sum {
 		return fmt.Errorf("expected SHA-256 sum %q, but have %q", sha256Sum, sum)

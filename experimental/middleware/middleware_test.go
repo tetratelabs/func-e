@@ -65,7 +65,7 @@ func TestWithRunMiddleware_E2E(t *testing.T) {
 			// Override options to prove we override them
 			options = append(
 				options,
-				// api.Out(io.Discard),
+				api.Out(io.Discard),
 				api.EnvoyOut(io.Discard),
 				api.EnvoyErr(&stderr),
 			)
