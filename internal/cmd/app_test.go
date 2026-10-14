@@ -389,18 +389,19 @@ func runTestCommand(t *testing.T, o *globals.GlobalOpts, args []string) error {
 // The tear-down functions reverts side-effects such as temp directories and a fake Envoy versions server.
 func setupTest(t *testing.T) *globals.GlobalOpts {
 	t.Helper()
-	result := globals.GlobalOpts{}
-	result.EnvoyVersion = version.LastKnownEnvoy
-	result.Platform = globals.DefaultPlatform
-	result.Out = io.Discard // ignore logging by default
-	result.EnvoyOut = io.Discard
-	result.EnvoyErr = io.Discard
+	result := globals.GlobalOpts{
+		EnvoyVersion: version.LastKnownEnvoy,
+		Platform:     globals.DefaultPlatform,
+		Out:          io.Discard, // ignore logging by default
+		EnvoyOut:     io.Discard,
+		EnvoyErr:     io.Discard,
 
-	// Use separate temp directories for XDG convention
-	result.ConfigHome = t.TempDir()
-	result.DataHome = t.TempDir()
-	result.StateHome = t.TempDir()
-	result.RuntimeDir = t.TempDir()
+		// Use separate temp directories for XDG convention
+		ConfigHome: t.TempDir(),
+		DataHome:   t.TempDir(),
+		StateHome:  t.TempDir(),
+		RuntimeDir: t.TempDir(),
+	}
 
 	baseURL := "http://" + admin.ServerAddr
 	handler := test.NewEnvoyVersionsHandler(t, baseURL, version.LastKnownEnvoy)

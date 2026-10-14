@@ -1,6 +1,6 @@
 # See RATIONALE.md for why not `go tool`
 
-golangci_lint := github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2
+golangci_lint := github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
 gofumpt       := mvdan.cc/gofumpt@v0.10.0
 gosimports    := github.com/rinchsan/gosimports/cmd/gosimports@v0.3.8
 # sync this with netlify.toml!

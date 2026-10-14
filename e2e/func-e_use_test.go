@@ -180,7 +180,7 @@ func getVersionsRange(stdout, minor string) (first, latest string) {
 	s := bufio.NewScanner(strings.NewReader(stdout))
 	for s.Scan() {
 		// Ex. "  1.20.0 2021-10-05" or "* 1.20.0 2021-10-05" -> "1.20.0"
-		v := strings.Split(s.Text()[2:], " ")[0]
+		v, _, _ := strings.Cut(s.Text()[2:], " ")
 		if strings.HasPrefix(v, minor+".") {
 			// "func-e versions" returns in descending order
 			if latest == "" {
