@@ -114,7 +114,7 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		v := strings.Split(subpath, "/")[0]
+		v, _, _ := strings.Cut(subpath, "/")
 		if v != "dev" && version.NewPatchVersion(v) == "" {
 			w.WriteHeader(http.StatusNotFound)
 			return
