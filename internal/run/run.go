@@ -56,14 +56,11 @@ func initOpts(ctx context.Context, options ...api.RunOption) (*globals.GlobalOpt
 		DataHome:     ro.DataHome,
 		StateHome:    ro.StateHome,
 		RuntimeDir:   ro.RuntimeDir,
-		RunOpts: globals.RunOpts{
-			EnvoyPath:   ro.EnvoyPath,
-			EnvoyOut:    ro.EnvoyOut,
-			EnvoyErr:    ro.EnvoyErr,
-			HTTPClient:  &http.Client{Transport: ro.HTTPTransport},
-			StartupHook: ro.StartupHook,
-			// TempDir is set later in initializeRunOpts via EnvoyRuntimeDir(runID)
-		},
+		EnvoyPath:    ro.EnvoyPath,
+		EnvoyOut:     ro.EnvoyOut,
+		EnvoyErr:     ro.EnvoyErr,
+		HTTPClient:   &http.Client{Transport: ro.HTTPTransport},
+		StartupHook:  ro.StartupHook,
 	}
 	// Note: api.HomeDir() sets ConfigHome, DataHome, StateHome, RuntimeDir to same value (legacy mode)
 	// Legacy detection happens in InitializeGlobalOpts when all four match
