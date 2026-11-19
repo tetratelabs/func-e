@@ -251,22 +251,18 @@ func setupInstallTest(t *testing.T, v version.PatchVersion) *installTest {
 	homeDir := t.TempDir()
 
 	setup := &installTest{
-		ctx:        t.Context(),
-		tempDir:    t.TempDir(),
-		tarballURL: test.TarballURL(baseURL, runtime.GOOS, runtime.GOARCH, v),
-		GlobalOpts: globals.GlobalOpts{
-			ConfigHome:       homeDir,
-			DataHome:         homeDir,
-			StateHome:        homeDir,
-			RuntimeDir:       homeDir,
-			EnvoyVersionsURL: baseURL + "/envoy-versions.json",
-			Out:              new(bytes.Buffer),
-			Platform:         globals.DefaultPlatform,
-			RunOpts: globals.RunOpts{
-				EnvoyPath:  filepath.Join(homeDir, "envoy-versions", v.String(), binEnvoy),
-				HTTPClient: httptest.HTTPClient(handler),
-			},
-		},
+		ctx:              t.Context(),
+		tempDir:          t.TempDir(),
+		tarballURL:       test.TarballURL(baseURL, runtime.GOOS, runtime.GOARCH, v),
+		ConfigHome:       homeDir,
+		DataHome:         homeDir,
+		StateHome:        homeDir,
+		RuntimeDir:       homeDir,
+		EnvoyVersionsURL: baseURL + "/envoy-versions.json",
+		Out:              new(bytes.Buffer),
+		Platform:         globals.DefaultPlatform,
+		EnvoyPath:        filepath.Join(homeDir, "envoy-versions", v.String(), binEnvoy),
+		HTTPClient:       httptest.HTTPClient(handler),
 	}
 	setup.GetEnvoyVersions = NewGetVersions(setup.HTTPClient, setup.EnvoyVersionsURL, setup.UserAgent)
 	return setup

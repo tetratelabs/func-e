@@ -4,10 +4,11 @@
 package cmd
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"os"
-	"sort"
+	"slices"
 	"text/tabwriter"
 	"time"
 
@@ -59,11 +60,11 @@ func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 			}
 
 			// Sort so that new release dates appear first and on conflict choosing the higher version
-			sort.Slice(rows, func(i, j int) bool {
-				if rows[i].releaseDate == rows[j].releaseDate {
-					return rows[i].version > rows[j].version
+			slices.SortFunc(rows, func(a, b versionReleaseDate) int {
+				if c := cmp.Compare(b.releaseDate, a.releaseDate); c != 0 {
+					return c
 				}
-				return rows[i].releaseDate > rows[j].releaseDate
+				return cmp.Compare(b.version, a.version)
 			})
 
 			// We use a tab writer to ensure we can format the current version
