@@ -68,7 +68,7 @@ func TestInitializeGlobalOpts(t *testing.T) {
 		{
 			name:      "--envoy-path flag",
 			envoyPath: "/opt/envoy/bin/envoy",
-			expected:  globals.GlobalOpts{RunOpts: globals.RunOpts{EnvoyPath: "/opt/envoy/bin/envoy"}, ConfigHome: defaultConfigHome, DataHome: defaultDataHome, StateHome: defaultStateHome, RuntimeDir: defaultRuntimeDir, Platform: defaultPlatform, EnvoyVersionsURL: defaultVersionsURL},
+			expected:  globals.GlobalOpts{EnvoyPath: "/opt/envoy/bin/envoy", ConfigHome: defaultConfigHome, DataHome: defaultDataHome, StateHome: defaultStateHome, RuntimeDir: defaultRuntimeDir, Platform: defaultPlatform, EnvoyVersionsURL: defaultVersionsURL},
 		},
 		{
 			name:       "--config-home only",

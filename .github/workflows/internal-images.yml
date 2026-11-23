@@ -54,7 +54,7 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: "Checkout"
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       # This finds the last two GOROOT variables and parses them into Docker
       # build args, so that the resulting image has them at the same location.

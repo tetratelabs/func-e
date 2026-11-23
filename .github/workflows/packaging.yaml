@@ -35,10 +35,10 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: "Checkout"
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: "Cache Go"
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/go/pkg/mod
           # go.mod for go release version, go.sum for modules used, and Tools.mk for 'go run' tools
@@ -52,7 +52,7 @@ jobs:
       # The reason is that upload-artifacts are not globally consistent and sometimes pre_release_test won't be able to
       # find the artifacts uploaded here. See https://github.com/actions/upload-artifact/issues/21 for more context.
       # Downside of this is extra cache pressure per repository, but these per-run caches expire automatically.
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         id: cache
         with:
           # Use share the cache containing archives across OSes.
@@ -73,9 +73,9 @@ jobs:
         os: [ubuntu-24.04, ubuntu-24.04-arm, macos-26]
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
-    - uses: actions/cache@v5
+    - uses: actions/cache@v6
       id: cache
       with:
         # We need this cache to run tests.
