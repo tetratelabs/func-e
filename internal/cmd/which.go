@@ -35,7 +35,7 @@ func NewWhichCmd(o *globals.GlobalOpts) *cli.Command {
 			if err != nil {
 				return err
 			}
-			_, _ = fmt.Fprintf(o.Out, "%s\n", ev)
+			fmt.Fprintf(o.Out, "%s\n", ev)
 			return nil
 		},
 	}

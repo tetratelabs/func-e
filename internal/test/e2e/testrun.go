@@ -256,8 +256,8 @@ func executeRunTest(ctx context.Context, t *testing.T, factory FuncEFactory, opt
 
 	t.Cleanup(func() {
 		if t.Failed() {
-			_, _ = os.Stdout.WriteString(stdoutBuf.String())
-			_, _ = os.Stderr.WriteString(stderr.String())
+			os.Stdout.WriteString(stdoutBuf.String())
+			os.Stderr.WriteString(stderr.String())
 		}
 	})
 

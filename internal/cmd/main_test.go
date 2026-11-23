@@ -18,7 +18,7 @@ var fakeEnvoyBin string
 func TestMain(m *testing.M) {
 	var err error
 	if fakeEnvoyBin, err = build.GoBuild(internal.FakeEnvoySrcPath, os.TempDir()); err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, `failed to start cmd tests due to build error: %v\n`, err)
+		fmt.Fprintf(os.Stderr, `failed to start cmd tests due to build error: %v\n`, err)
 		os.Exit(1)
 	}
 	os.Exit(m.Run())

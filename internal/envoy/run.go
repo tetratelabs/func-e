@@ -27,7 +27,7 @@ func (r *Runtime) Run(ctx context.Context, args []string) error {
 	}
 
 	// Ensure a re-run in the same directory has no stale admin-address file
-	os.RemoveAll(adminAddressPath) //nolint:errcheck,gosec // missing path is the desired state
+	os.RemoveAll(adminAddressPath) //nolint:gosec // missing path is the desired state
 
 	// Tag the process so NewAdminClient can find it among sibling processes.
 	args = append(args, "--", "--run-id", r.o.RunID)

@@ -69,7 +69,16 @@ func copyURLToFile(ctx context.Context, client *http.Client, url, fullPath strin
 	if err != nil {
 		return fmt.Errorf("could not open %q: %w", fullPath, err)
 	}
-	defer f.Close() //nolint:errcheck // io.Copy below reports write errors
+	return copyURLTo(ctx, client, url, f)
+}
+
+// copyURLTo GETs url into dst, then closes dst.
+func copyURLTo(ctx context.Context, client *http.Client, url string, dst io.WriteCloser) (err error) {
+	defer func() {
+		if closeErr := dst.Close(); err == nil {
+			err = closeErr
+		}
+	}()
 
 	// #nosec -> adminAddress is written by Envoy and the paths are hard-coded
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
@@ -80,12 +89,12 @@ func copyURLToFile(ctx context.Context, client *http.Client, url, fullPath strin
 	if err != nil {
 		return fmt.Errorf("could not read %v: %w", url, err)
 	}
-	defer res.Body.Close() //nolint:errcheck // body copied to file below
+	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("received %v from %v", res.StatusCode, url)
 	}
-	if _, err := io.Copy(f, res.Body); err != nil {
+	if _, err := io.Copy(dst, res.Body); err != nil {
 		return fmt.Errorf("could not write response body of %v: %w", url, err)
 	}
 	return nil

@@ -70,15 +70,15 @@ func NewVersionsCmd(o *globals.GlobalOpts) *cli.Command {
 			// We use a tab writer to ensure we can format the current version
 			w := tabwriter.NewWriter(c.Root().Writer, 0, 0, 1, ' ', tabwriter.AlignRight)
 			if dev != nil {
-				_, _ = fmt.Fprintf(w, "  dev %s (%s)\n", dev.ReleaseDate, dev.CommitSha[:8])
+				fmt.Fprintf(w, "  dev %s (%s)\n", dev.ReleaseDate, dev.CommitSha[:8])
 			}
 			for _, vr := range rows { //nolint:gocritic
 				// TODO: handle when currentVersion is a MinorVersion
 				pv, ok := currentVersion.(version.PatchVersion)
 				if ok && vr.version == pv {
-					_, _ = fmt.Fprintf(w, "* %s %s (set by %s)\n", vr.version, vr.releaseDate, currentVersionSource)
+					fmt.Fprintf(w, "* %s %s (set by %s)\n", vr.version, vr.releaseDate, currentVersionSource)
 				} else {
-					_, _ = fmt.Fprintf(w, "  %s %s\n", vr.version, vr.releaseDate)
+					fmt.Fprintf(w, "  %s %s\n", vr.version, vr.releaseDate)
 				}
 			}
 			return w.Flush()

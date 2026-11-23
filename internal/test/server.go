@@ -106,7 +106,7 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case r.URL.Path == "/envoy-versions.json":
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write(s.versionsJSON)
+		w.Write(s.versionsJSON)
 	case strings.HasPrefix(r.URL.Path, versionsPath):
 		subpath := r.URL.Path[len(versionsPath):]
 		if !strings.HasSuffix(subpath, archiveFormat) {
@@ -121,7 +121,7 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write(s.fakeEnvoyTarGz)
+		w.Write(s.fakeEnvoyTarGz)
 	default:
 		w.WriteHeader(http.StatusNotFound)
 	}

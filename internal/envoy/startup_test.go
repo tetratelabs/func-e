@@ -4,9 +4,11 @@
 package envoy
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -131,7 +133,7 @@ func TestCollectConfigDump(t *testing.T) {
 		{
 			name: "successful config dump",
 			handler: func(w http.ResponseWriter, _ *http.Request) {
-				_, _ = w.Write([]byte(`{"configs": [{"@type": "type.googleapis.com/envoy.admin.v3.EndpointsConfigDump"}]}`))
+				w.Write([]byte(`{"configs": [{"@type": "type.googleapis.com/envoy.admin.v3.EndpointsConfigDump"}]}`))
 			},
 		},
 		{
@@ -194,53 +196,28 @@ func TestCopyURLToFile(t *testing.T) {
 	tests := []struct {
 		name        string
 		handler     http.HandlerFunc
-		ctx         func(*testing.T) context.Context
 		invalidPath bool
 		expectedErr string
 	}{
 		{
 			name: "successful copy",
 			handler: func(w http.ResponseWriter, _ *http.Request) {
-				_, _ = w.Write([]byte("test content"))
+				w.Write([]byte("test content"))
 			},
-		},
-		{
-			name: "http error",
-			handler: func(w http.ResponseWriter, _ *http.Request) {
-				http.Error(w, "server error", http.StatusInternalServerError)
-			},
-			expectedErr: "received 500 from $URL",
 		},
 		{
 			name:        "invalid file path",
 			invalidPath: true,
 			expectedErr: `could not open "/invalid\x00path/test.txt": open /invalid` + "\x00" + `path/test.txt: invalid argument`,
 			handler: func(w http.ResponseWriter, _ *http.Request) {
-				_, _ = w.Write([]byte("test content"))
+				w.Write([]byte("test content"))
 			},
-		},
-		{
-			name: "context canceled",
-			ctx: func(t *testing.T) context.Context {
-				t.Helper()
-				ctx, cancel := context.WithCancel(t.Context())
-				cancel()
-				return ctx
-			},
-			handler: func(_ http.ResponseWriter, r *http.Request) {
-				<-r.Context().Done()
-			},
-			expectedErr: `could not read $URL: Get "$URL": context canceled`,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tempDir := t.TempDir()
-			ctx := t.Context()
-			if tt.ctx != nil {
-				ctx = tt.ctx(t)
-			}
 
 			filePath := filepath.Join(tempDir, "test.txt")
 			if tt.invalidPath {
@@ -253,12 +230,10 @@ func TestCopyURLToFile(t *testing.T) {
 				tt.handler(w, r)
 			}))
 			url := "http://" + admin.ServerAddr
-			err := copyURLToFile(ctx, client, url, filePath)
+			err := copyURLToFile(t.Context(), client, url, filePath)
 
 			if tt.expectedErr != "" {
-				require.Error(t, err)
-				expectedErr := strings.ReplaceAll(tt.expectedErr, "$URL", url)
-				require.EqualError(t, err, expectedErr)
+				require.EqualError(t, err, tt.expectedErr)
 			} else {
 				require.NoError(t, err)
 				content, err := os.ReadFile(filePath)
@@ -282,4 +257,90 @@ func TestCopyURLToFile_InvalidURL(t *testing.T) {
 	err := copyURLToFile(t.Context(), httptest.HTTPClient(http.NotFoundHandler()), "://invalid-url", filePath)
 	require.Error(t, err)
 	require.EqualError(t, err, "could not create request ://invalid-url: parse \"://invalid-url\": missing protocol scheme")
+}
+
+var _ io.WriteCloser = (*errCloser)(nil)
+
+type errCloser struct {
+	io.Writer
+	err error
+}
+
+func (e *errCloser) Close() error {
+	return e.err
+}
+
+func TestCopyURLTo(t *testing.T) {
+	url := "http://" + admin.ServerAddr
+
+	tests := []struct {
+		name        string
+		handler     http.HandlerFunc
+		ctx         func(*testing.T) context.Context
+		closeErr    error
+		expectedErr string
+		expected    string
+	}{
+		{
+			name: "copies response body",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				w.Write([]byte("test content"))
+			},
+			expected: "test content",
+		},
+		{
+			name: "returns error on non-200 status",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				http.Error(w, "server error", http.StatusInternalServerError)
+			},
+			expectedErr: "received 500 from " + url,
+		},
+		{
+			name: "returns error on canceled context",
+			ctx: func(t *testing.T) context.Context {
+				t.Helper()
+				ctx, cancel := context.WithCancel(t.Context())
+				cancel()
+				return ctx
+			},
+			handler:     func(_ http.ResponseWriter, _ *http.Request) {},
+			expectedErr: `could not read ` + url + `: Get "` + url + `": context canceled`,
+		},
+		{
+			name: "returns close error on successful write",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				w.Write([]byte("content"))
+			},
+			closeErr:    errors.New("close failed"),
+			expectedErr: "close failed",
+		},
+		{
+			name: "http error masks close error",
+			handler: func(w http.ResponseWriter, _ *http.Request) {
+				http.Error(w, "server error", http.StatusInternalServerError)
+			},
+			closeErr:    errors.New("close failed"),
+			expectedErr: "received 500 from " + url,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := t.Context()
+			if tt.ctx != nil {
+				ctx = tt.ctx(t)
+			}
+			var buf bytes.Buffer
+			dst := &errCloser{Writer: &buf, err: tt.closeErr}
+			client := httptest.HTTPClient(tt.handler)
+
+			err := copyURLTo(ctx, client, url, dst)
+			if tt.expectedErr != "" {
+				require.EqualError(t, err, tt.expectedErr)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tt.expected, buf.String())
+			}
+		})
+	}
 }

@@ -65,7 +65,7 @@ func Run(ctx context.Context, o *globals.GlobalOpts, args []string) error {
 	if err != nil {
 		return fmt.Errorf("couldn't create stdout log file: %w", err)
 	}
-	defer stdoutLog.Close() //nolint:errcheck // log used post-mortem only
+	defer stdoutLog.Close()
 	r.OutFile = stdoutLog
 	r.Out = io.MultiWriter(o.EnvoyOut, stdoutLog)
 
@@ -73,7 +73,7 @@ func Run(ctx context.Context, o *globals.GlobalOpts, args []string) error {
 	if err != nil {
 		return fmt.Errorf("couldn't create stderr log file: %w", err)
 	}
-	defer stderrLog.Close() //nolint:errcheck // log used post-mortem only
+	defer stderrLog.Close()
 	r.ErrFile = stderrLog
 	r.Err = io.MultiWriter(o.EnvoyErr, stderrLog)
 

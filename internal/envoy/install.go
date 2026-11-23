@@ -95,7 +95,7 @@ func InstallIfNeeded(ctx context.Context, o *globals.GlobalOpts) (string, error)
 		if err != nil {
 			return "", fmt.Errorf("unable to create directory in %q: %w", versionsDir, err)
 		}
-		defer os.RemoveAll(stageDir) //nolint:errcheck // best effort cleanup of a partial download
+		defer os.RemoveAll(stageDir)
 		stagePath := filepath.Join(stageDir, v.String())
 
 		o.Logf("downloading %s\n", tarballURL)
@@ -140,7 +140,7 @@ func untarEnvoy(ctx context.Context, client *http.Client, dst string, src versio
 	if err != nil {
 		return err
 	}
-	defer res.Body.Close() //nolint:errcheck // body untarred below
+	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("received %v status code from %s", res.StatusCode, src)
