@@ -2,7 +2,10 @@ module github.com/tetratelabs/func-e
 
 // Before updating minor check compatibility with Envoy Gateway.
 // See https://github.com/envoyproxy/gateway/blob/main/go.mod#L3
-go 1.27.4
+// .0 per library convention; the toolchain directive pins the build version.
+go 1.27.0
+
+toolchain go1.27.4
 
 require (
 	github.com/shirou/gopsutil/v4 v4.26.10
