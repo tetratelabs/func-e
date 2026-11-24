@@ -62,7 +62,7 @@ linters:
 
   exclusions:
     presets:
-      # Pragmatic errcheck overlay that ignores Close, Flush, fmt prints, os.Remove(All), os.(Un)Setenv and stdout/stderr writes.
+      # Pragmatic rules in https://golangci-lint.run/docs/linters/false-positives/#preset-std-error-handling
       - std-error-handling
     rules:
       - path: (_test\.go|internal/test/|e2e/)
