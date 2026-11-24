@@ -154,22 +154,23 @@ func extractFile(dst *os.Root, name string, src io.Reader, perm os.FileMode) (er
 //
 // This is used to compress the working directory of Envoy after it is stopped.
 func TarGz(dst, src string) error {
-	srcFS := os.DirFS(filepath.Dir(src))
-	basePath := filepath.Base(src)
-
-	// create the tar.gz file
 	file, err := os.OpenFile(dst, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600) //nolint:gosec // dst is the caller-provided archive path
 	if err != nil {
 		return err
 	}
-	defer file.Close() //nolint:errcheck // archive errors surface via WalkDir
-	gzw := gzip.NewWriter(file)
-	defer gzw.Close() //nolint:errcheck // gzip footer; WalkDir reports archive errors
+	return tarGzTo(file, src)
+}
+
+// tarGzTo tars and gzips src into dst, then closes dst.
+func tarGzTo(dst io.WriteCloser, src string) (err error) {
+	srcFS := os.DirFS(filepath.Dir(src))
+	basePath := filepath.Base(src)
+
+	gzw := gzip.NewWriter(dst)
 	tw := tar.NewWriter(gzw)
-	defer tw.Close() //nolint:errcheck // tar trailer; WalkDir reports archive errors
 
 	// Recurse through the path including all files and directories
-	return fs.WalkDir(srcFS, basePath, func(path string, d os.DirEntry, err error) error {
+	err = fs.WalkDir(srcFS, basePath, func(path string, d os.DirEntry, err error) error {
 		path = filepath.ToSlash(path) // normalize to unix slashes
 		if err != nil {
 			return err
@@ -203,6 +204,18 @@ func TarGz(dst, src string) error {
 		}
 		return tw.Flush()
 	})
+
+	// Flush tar and gzip trailers, then close the file.
+	if closeErr := tw.Close(); err == nil {
+		err = closeErr
+	}
+	if closeErr := gzw.Close(); err == nil {
+		err = closeErr
+	}
+	if closeErr := dst.Close(); err == nil {
+		err = closeErr
+	}
+	return err
 }
 
 // Copy the contents of the file into the tar without buffering
@@ -211,7 +224,7 @@ func cp(dst io.Writer, src fs.FS, path string, n int64) error { // dst, src orde
 	if err != nil {
 		return err
 	}
-	defer f.Close() //nolint:errcheck // source FS is read-only
+	defer f.Close()
 	_, err = io.CopyN(dst, f, n)
 	return err
 }

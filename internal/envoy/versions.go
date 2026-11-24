@@ -22,7 +22,7 @@ func NewGetVersions(client *http.Client, envoyVersionsURL, ua string) version.Ge
 		if err != nil {
 			return nil, err
 		}
-		defer resp.Body.Close() //nolint:errcheck // body fully read below
+		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
 			return nil, fmt.Errorf("received %v status code from %v", resp.StatusCode, envoyVersionsURL)

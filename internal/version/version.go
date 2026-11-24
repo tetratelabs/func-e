@@ -123,7 +123,7 @@ func (v PatchVersion) Patch() int {
 	if matched == nil {
 		return 0 // impossible if created via NewVersion or NewPatchVersion
 	}
-	i, _ := strconv.Atoi(matched[2][1:]) //nolint:errcheck // versionPattern guarantees the suffix is numeric
+	i, _ := strconv.Atoi(matched[2][1:]) //nolint:errcheck // versionPattern guarantees numeric
 	return i
 }
 

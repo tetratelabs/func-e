@@ -182,7 +182,7 @@ func (c *adminClient) Get(ctx context.Context, path string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error Envoy admin URL %s: %w", endpoint, err)
 	}
-	defer resp.Body.Close() //nolint:errcheck // body fully read below
+	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

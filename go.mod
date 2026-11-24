@@ -8,6 +8,7 @@ go 1.27.0
 toolchain go1.27.4
 
 require (
+	github.com/quasilyte/go-ruleguard/dsl v0.3.23
 	github.com/shirou/gopsutil/v4 v4.26.10
 	github.com/stretchr/testify v1.12.1
 	github.com/ulikunitz/xz/v2 v2.0.0-dev.4

@@ -198,7 +198,7 @@ func TestAdminClient_get(t *testing.T) {
 			name: "returns body on 200 status",
 			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte("response body"))
+				w.Write([]byte("response body"))
 			},
 			ctx:      func(t *testing.T) context.Context { t.Helper(); return t.Context() },
 			path:     "/test",
@@ -208,7 +208,7 @@ func TestAdminClient_get(t *testing.T) {
 			name: "returns error on non-200 status code",
 			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusServiceUnavailable)
-				_, _ = w.Write([]byte("not ready"))
+				w.Write([]byte("not ready"))
 			},
 			ctx:         func(t *testing.T) context.Context { t.Helper(); return t.Context() },
 			path:        "/test",
@@ -273,14 +273,14 @@ func TestAdminClient_IsReady(t *testing.T) {
 			name: "returns nil when body is live",
 			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte(live))
+				w.Write([]byte(live))
 			},
 		},
 		{
 			name: "returns error when body is not live",
 			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte("something else"))
+				w.Write([]byte("something else"))
 			},
 			expectedErr: "unexpected /ready response body: \"something else\"",
 		},
@@ -361,7 +361,7 @@ func TestAdminClient_NewListenerRequest(t *testing.T) {
 				actualPath = r.URL.Path
 				actualFormat = r.URL.Query().Get("format")
 				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte(tt.body))
+				w.Write([]byte(tt.body))
 			}))
 
 			req, err := client.NewListenerRequest(t.Context(), tt.listenerName, tt.method, tt.path, http.NoBody)
@@ -747,7 +747,7 @@ func TestAdminClient_AwaitReady(t *testing.T) {
 					methods = append(methods, r.Method)
 					paths = append(paths, r.URL.Path)
 					w.WriteHeader(tt.statusCode(callCount))
-					_, _ = w.Write([]byte(tt.body(callCount)))
+					w.Write([]byte(tt.body(callCount)))
 				}))
 
 				err := client.AwaitReady(tt.ctx(t), tt.interval)
@@ -784,7 +784,7 @@ func TestAdminClient_AwaitReady_ReturnsLastErrorOnTimeout(t *testing.T) {
 			methods = append(methods, r.Method)
 			paths = append(paths, r.URL.Path)
 			w.WriteHeader(http.StatusServiceUnavailable)
-			_, _ = w.Write([]byte("still not ready"))
+			w.Write([]byte("still not ready"))
 		}))
 
 		err := client.AwaitReady(ctx, 100*time.Millisecond)
@@ -810,7 +810,7 @@ func TestAdminClient_AwaitReady_FirstPollOnFirstTick(t *testing.T) {
 			actualMethod = r.Method
 			actualPath = r.URL.Path
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(live))
+			w.Write([]byte(live))
 		}))
 
 		errCh := make(chan error, 1)

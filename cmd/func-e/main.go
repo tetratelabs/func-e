@@ -46,10 +46,10 @@ func run(stdout, stderr io.Writer, args []string) int {
 	defer sigCancel()
 	if err := app.Run(sigCtx, args); err != nil {
 		if validationErr, ok := errors.AsType[*cmd.ValidationError](err); ok && validationErr != nil {
-			_, _ = fmt.Fprintf(stderr, "%s\n", err)
+			fmt.Fprintf(stderr, "%s\n", err)
 			logUsageError(app.Name, stderr)
 		} else {
-			_, _ = fmt.Fprintf(stderr, "error: %s\n", err)
+			fmt.Fprintf(stderr, "error: %s\n", err)
 		}
 		return 1
 	}
@@ -57,5 +57,5 @@ func run(stdout, stderr io.Writer, args []string) int {
 }
 
 func logUsageError(name string, stderr io.Writer) {
-	_, _ = fmt.Fprintf(stderr, "show usage with: %s help\n", name)
+	fmt.Fprintf(stderr, "show usage with: %s help\n", name)
 }

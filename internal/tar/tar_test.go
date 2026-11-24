@@ -200,17 +200,113 @@ func requireEmptyDirectory(t *testing.T, dst string) {
 func TestTarGZ(t *testing.T) {
 	tempDir := t.TempDir()
 
-	src := filepath.Join("testdata", "foo")
-	dst := filepath.Join(tempDir, "test.tar.gz")
-	e := TarGz(dst, src)
-	require.NoError(t, e)
+	tests := []struct {
+		name        string
+		dst         string
+		src         string
+		expectedErr error
+	}{
+		{
+			name: "success",
+			dst:  filepath.Join(tempDir, "test.tar.gz"),
+			src:  filepath.Join("testdata", "foo"),
+		},
+		{
+			name:        "bad destination",
+			dst:         filepath.Join(tempDir, "nodir", "test.tar.gz"),
+			src:         filepath.Join("testdata", "foo"),
+			expectedErr: os.ErrNotExist,
+		},
+		{
+			name:        "bad source",
+			dst:         filepath.Join(tempDir, "bad.tar.gz"),
+			src:         filepath.Join(tempDir, "nonexistent"),
+			expectedErr: os.ErrNotExist,
+		},
+	}
 
-	f, e := os.Open(dst)
-	require.NoError(t, e)
-	defer f.Close()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := TarGz(tt.dst, tt.src)
+			if tt.expectedErr != nil {
+				require.ErrorIs(t, err, tt.expectedErr)
+				return
+			}
+			require.NoError(t, err)
 
-	e = Untar(tempDir, f)
-	require.NoError(t, e)
+			f, err := os.Open(tt.dst)
+			require.NoError(t, err)
+			defer f.Close()
 
-	requireTestFiles(t, tempDir)
+			untarDir := t.TempDir()
+			err = Untar(untarDir, f)
+			require.NoError(t, err)
+			requireTestFiles(t, untarDir)
+		})
+	}
+}
+
+var _ io.WriteCloser = (*errCloser)(nil)
+
+// errCloser returns writeErr after n Write calls and closeErr on Close.
+type errCloser struct {
+	buf      bytes.Buffer
+	n        int
+	writeErr error
+	closeErr error
+}
+
+func (e *errCloser) Write(p []byte) (int, error) {
+	if e.n <= 0 && e.writeErr != nil {
+		return 0, e.writeErr
+	}
+	e.n--
+	return e.buf.Write(p)
+}
+
+func (e *errCloser) Close() error {
+	return e.closeErr
+}
+
+func TestTarGzTo(t *testing.T) {
+	writeErr := errors.New("write failed")
+	closeErr := errors.New("close failed")
+
+	tests := []struct {
+		name        string
+		src         string
+		dst         *errCloser
+		expectedErr string
+	}{
+		{
+			// n=1 allows the gzip header write, then writeErr fires.
+			// For small testdata, flate buffers during WalkDir and tw.Close().
+			// The next dst.Write happens in gzw.Close when flate flushes.
+			name:        "returns gzip close error",
+			src:         filepath.Join("testdata", "foo"),
+			dst:         &errCloser{n: 1, writeErr: writeErr},
+			expectedErr: "write failed",
+		},
+		{
+			// All writes succeed. closeErr fires on dst.Close.
+			name:        "returns file close error",
+			src:         filepath.Join("testdata", "foo"),
+			dst:         &errCloser{n: 1 << 31, closeErr: closeErr},
+			expectedErr: "close failed",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tarGzTo(tt.dst, tt.src)
+			require.EqualError(t, err, tt.expectedErr)
+		})
+	}
+
+	t.Run("walk error masks close error", func(t *testing.T) {
+		dst := &errCloser{n: 1 << 31, closeErr: closeErr}
+		err := tarGzTo(dst, filepath.Join(t.TempDir(), "nonexistent"))
+		// ErrorIs because the walk error wraps os.ErrNotExist with an OS-dependent path.
+		require.ErrorIs(t, err, os.ErrNotExist)
+	})
 }

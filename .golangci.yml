@@ -38,18 +38,7 @@ linters:
     errcheck:
       check-blank: true           # _ = f() should not hide errors
       check-type-assertions: true # unchecked type assertions can panic
-      exclude-functions:          # console-style writers whose errors don't matter
-        - fmt.Print
-        - fmt.Printf
-        - fmt.Println
-        - fmt.Fprint
-        - fmt.Fprintf
-        - fmt.Fprintln
-        - (io.Writer).Write
-        - (net/http.ResponseWriter).Write
-        - (*bytes.Buffer).Write
-        - (*bytes.Buffer).WriteString
-        - (*os.File).WriteString
+      verbose: true
     misspell:
       locale: US
     gocritic:
@@ -57,6 +46,10 @@ linters:
         - diagnostic
         - style
         - performance
+      settings:
+        ruleguard:
+          # fails `_ =` boilerplate the preset covers; use ${config-path} not ${base-path} which resolves empty
+          rules: ${config-path}/.golangci.ruleguard.go
     revive:
       enable-default-rules: true
       rules:
@@ -68,6 +61,9 @@ linters:
           disabled: true
 
   exclusions:
+    presets:
+      # Pragmatic rules in https://golangci-lint.run/docs/linters/false-positives/#preset-std-error-handling
+      - std-error-handling
     rules:
       - path: (_test\.go|internal/test/|e2e/)
         linters:
